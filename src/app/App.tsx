@@ -12,10 +12,16 @@ import {
   getPhotoRemovalRequests, reviewPhotoRemovalRequest, createPhotoRemovalRequest,
   getProfileClaimDisputes, reviewProfileClaimDispute, createProfileClaimDispute,
   createFullProfileClaim,
+  likePhoto, unlikePhoto, getPhotoStats, getMyPhotoLikes,
+  createPhotoComment, getApprovedPhotoComments,
+  getPhotoCommentsForModeration, moderatePhotoComment,
+  getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
+  toggleFeaturedPhoto, toggleFeaturedMemory,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
+  DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -28,7 +34,7 @@ import {
   Hash, CheckCircle2, XCircle, AlertTriangle,
   Settings, Tag, FileText, Key, Save,
   UserCheck, UserX, ToggleRight, ToggleLeft,
-  Info, Package, Pencil
+  Info, Package, Pencil, Heart, MessageCircle, Star, Send
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
@@ -38,7 +44,7 @@ type Page =
   | "who-going" | "the-class" | "claim-profile"
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
-  | "login" | "terms" | "privacy";
+  | "login" | "terms" | "privacy" | "memories";
 
 interface AuthState {
   loggedIn: boolean;
@@ -640,6 +646,7 @@ function Header({ page, navigate, auth, logout }: {
     { label: "Quem Vai",                            page: "who-going"   },
     { label: "A Turma",                             page: "the-class"   },
     { label: "Fotos",                               page: "photo-wall"  },
+    { label: "Memórias",                            page: "memories"    },
     { label: auth.loggedIn ? "Minha Área" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
   ];
 
@@ -712,9 +719,9 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Navegação</p>
             <div className="flex flex-col gap-3">
-              {(["tickets","who-going","the-class","photo-wall"] as Page[]).map(p => (
+              {(["tickets","who-going","the-class","photo-wall","memories"] as Page[]).map(p => (
                 <button key={p} onClick={() => navigate(p)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
-                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos" }[p]}
+                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias" }[p]}
                 </button>
               ))}
             </div>
@@ -1858,9 +1865,47 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
 function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; onSelectPhoto: (id: string) => void;
 }) {
-  const [filter, setFilter]       = useState("all");
+  const [filter, setFilter] = useState("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [stats, setStats] = useState<Record<string, PhotoStats>>({});
+  const [likedPhotoIds, setLikedPhotoIds] = useState<string[]>([]);
+  const [busyLike, setBusyLike] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const years = ["all","2004","2005","2006"];
+  const filteredPhotos = photos.filter(p => filter === "all" || String(p.year_approx) === filter);
+  const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 6);
+  const popularPhotos = [...photos].sort((a, b) => (stats[b.id]?.likes_count ?? 0) - (stats[a.id]?.likes_count ?? 0)).slice(0, 6);
+
+  async function loadStats() {
+    const photoIds = photos.map(p => p.id);
+    if (photoIds.length === 0) { setStats({}); return; }
+    const nextStats = await getPhotoStats(photoIds);
+    for (const photo of photos) nextStats[photo.id] = { ...nextStats[photo.id], is_featured: photo.is_featured };
+    setStats(nextStats);
+    if (auth.loggedIn) setLikedPhotoIds(await getMyPhotoLikes(auth.userId));
+  }
+
+  useEffect(() => { loadStats().catch(() => {}); }, [photos, auth.loggedIn, auth.userId]);
+
+  async function toggleLike(photoId: string) {
+    if (!auth.loggedIn) { navigate("login"); return; }
+    setBusyLike(photoId);
+    setError("");
+    try {
+      if (likedPhotoIds.includes(photoId)) {
+        await unlikePhoto(photoId, auth.userId);
+        setLikedPhotoIds(ids => ids.filter(id => id !== photoId));
+      } else {
+        await likePhoto(photoId, auth.userId);
+        setLikedPhotoIds(ids => [...ids, photoId]);
+      }
+      await loadStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar curtida.");
+    } finally {
+      setBusyLike(null);
+    }
+  }
 
   return (
     <>
@@ -1871,32 +1916,83 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
             <div>
               <SectionLabel>Mural de Memórias</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Fotos da Época</DisplayTitle>
-              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · mais sendo adicionadas</p>
+              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · curtidas e comentários moderados</p>
             </div>
-            <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto antiga</Btn>
+            <div className="flex flex-wrap gap-3">
+              <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de memórias</Btn>
+              <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto antiga</Btn>
+            </div>
           </div>
-          <div className="flex gap-2 mb-8">
+
+          {error && <ErrorState message={error} onRetry={loadStats} />}
+
+          {featuredPhotos.length > 0 && (
+            <div className="mb-10">
+              <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4 flex items-center gap-2"><Star size={14} />Fotos destacadas pela organização</p>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                {featuredPhotos.map(p => (
+                  <button key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="relative aspect-square overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20 text-left">
+                    <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                    <span className="absolute top-2 left-2 bg-[#c9a84c] text-[#0d1a0f] text-[9px] font-mono font-bold px-2 py-1">DESTAQUE</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
             {years.map(y => (
               <button key={y} onClick={() => setFilter(y)}
-                className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors ${filter === y ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
+                className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${filter === y ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
                 {y === "all" ? "Todos os anos" : y}
               </button>
             ))}
           </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {photos.length === 0 && <EmptyState title="Nenhuma foto aprovada" subtitle="As fotos enviadas aparecem aqui apos moderacao." />}
-            {photos.filter(p => filter === "all" || String(p.year_approx) === filter).map(p => (
-              <div key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }}
-                className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-                <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                  <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
-                  <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location_text}</p>
+            {filteredPhotos.length === 0 && <EmptyState title="Nenhuma foto aprovada" subtitle="As fotos enviadas aparecem aqui após moderação." />}
+            {filteredPhotos.map(p => {
+              const photoStats = stats[p.id] ?? { photo_id: p.id, likes_count: 0, comments_count: 0 };
+              const liked = likedPhotoIds.includes(p.id);
+              return (
+                <div key={p.id} className="relative group overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
+                  <button onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="absolute inset-0 text-left">
+                    <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                      <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
+                      <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location_text}</p>
+                    </div>
+                  </button>
+                  <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
+                  {p.is_featured && <div className="absolute top-3 right-3 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1 flex items-center gap-1"><Star size={10} />Destaque</div>}
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-2 text-[#f0ebe0] text-xs font-mono bg-[#0a120a]/80 px-2 py-1">
+                      <Heart size={12} />{photoStats.likes_count}
+                      <MessageCircle size={12} />{photoStats.comments_count}
+                    </div>
+                    <button disabled={busyLike === p.id} onClick={(e) => { e.stopPropagation(); toggleLike(p.id); }} className={`pointer-events-auto border px-2 py-1 text-xs font-mono transition-colors ${liked ? "bg-[#c9a84c] border-[#c9a84c] text-[#0d1a0f]" : "bg-[#0a120a]/80 border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]"}`}>
+                      <Heart size={12} fill={liked ? "currentColor" : "none"} />
+                    </button>
+                  </div>
                 </div>
-                <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {popularPhotos.length > 0 && (
+            <div className="mt-12 bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Fotos mais curtidas</p>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                {popularPhotos.map(p => (
+                  <button key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="relative aspect-square overflow-hidden bg-[#0a120a]">
+                    <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80" />
+                    <span className="absolute bottom-2 left-2 bg-[#0a120a]/80 text-[#f0ebe0] text-[10px] font-mono px-2 py-1 flex items-center gap-1"><Heart size={10} />{stats[p.id]?.likes_count ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-12 bg-[#141f14] border border-dashed border-[#2d6a4f]/40 p-12 text-center">
             <Camera size={32} className="text-[#7a9a7a] mx-auto mb-4" />
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-2">Tem uma foto dessa época?</p>
@@ -1911,7 +2007,6 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
 
 // ─── PHOTO DETAIL ─────────────────────────────────────────────────────────────
 
-
 function PhotoDetailPage({ navigate, people, auth, photo }: {
   navigate: (p: Page) => void; people: DbPerson[]; auth: AuthState; photo: DbPhoto | null;
 }) {
@@ -1920,12 +2015,58 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   const [error, setError] = useState("");
   const [removalReason, setRemovalReason] = useState("");
   const [showRemoval, setShowRemoval] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [comments, setComments] = useState<DbPhotoComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [busy, setBusy] = useState("");
   const tagResults = people.filter(a =>
     a.full_name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1
   ).slice(0, 4);
 
+  async function loadInteractions() {
+    if (!photo) return;
+    const [likes, approvedComments, myLikes] = await Promise.all([
+      getPhotoStats([photo.id]),
+      getApprovedPhotoComments(photo.id),
+      auth.loggedIn ? getMyPhotoLikes(auth.userId) : Promise.resolve([]),
+    ]);
+    setLikesCount(likes[photo.id]?.likes_count ?? 0);
+    setComments(approvedComments);
+    setLiked(myLikes.includes(photo.id));
+  }
+
+  useEffect(() => { loadInteractions().catch(() => {}); }, [photo?.id, auth.loggedIn, auth.userId]);
+
+  async function toggleLike() {
+    if (!photo) return;
+    if (!auth.loggedIn) { navigate("login"); return; }
+    setBusy("like"); setError("");
+    try {
+      if (liked) await unlikePhoto(photo.id, auth.userId);
+      else await likePhoto(photo.id, auth.userId);
+      await loadInteractions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar curtida.");
+    } finally { setBusy(""); }
+  }
+
+  async function submitComment() {
+    if (!photo) return;
+    if (!auth.loggedIn) { navigate("login"); return; }
+    if (commentText.trim().length < 3) { setError("Escreva um comentário com pelo menos 3 caracteres."); return; }
+    setBusy("comment"); setError(""); setMessage("");
+    try {
+      await createPhotoComment({ photoId: photo.id, userId: auth.userId, authorName: auth.name, commentText: commentText.trim() });
+      setCommentText("");
+      setMessage("Comentário enviado para moderação.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar comentário.");
+    } finally { setBusy(""); }
+  }
+
   async function addTag(person: DbPerson) {
-    if (!photo || !auth.loggedIn) { setError("Faca login para marcar pessoas."); return; }
+    if (!photo || !auth.loggedIn) { setError("Faça login para marcar pessoas."); return; }
     setError(""); setMessage("");
     try {
       await supabase.from("photo_tags").insert({
@@ -1936,16 +2077,16 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
         created_by_user_id: auth.userId,
       });
       await writeAudit("create_photo_tag", "photo_tags", null, { photo_id: photo.id, person_id: person.id });
-      setMessage("Marcacao enviada para moderacao.");
+      setMessage("Marcação enviada para moderação.");
       setTagSearch("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar marcacao.");
+      setError(err instanceof Error ? err.message : "Erro ao criar marcação.");
     }
   }
 
   async function requestRemoval() {
-    if (!photo || !auth.loggedIn) { setError("Faca login para solicitar remocao."); return; }
-    if (!removalReason.trim()) { setError("Informe o motivo da remocao."); return; }
+    if (!photo || !auth.loggedIn) { setError("Faça login para solicitar remoção."); return; }
+    if (!removalReason.trim()) { setError("Informe o motivo da remoção."); return; }
     setError(""); setMessage("");
     try {
       await createPhotoRemovalRequest({
@@ -1955,11 +2096,11 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
         requesterEmail: auth.email ?? "",
         reason: removalReason,
       });
-      setMessage("Solicitacao de remocao enviada.");
+      setMessage("Solicitação de remoção enviada.");
       setShowRemoval(false);
       setRemovalReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao solicitar remocao.");
+      setError(err instanceof Error ? err.message : "Erro ao solicitar remoção.");
     }
   }
 
@@ -1968,7 +2109,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-5xl mx-auto px-4">
           <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
-          <EmptyState title="Foto nao encontrada" />
+          <EmptyState title="Foto não encontrada" />
         </div>
       </div>
     );
@@ -1985,6 +2126,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
             <div className="relative overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
               <img src={photo.image_url} alt={photo.caption ?? "Foto"} className="w-full h-full object-cover" />
               <div className="absolute top-4 left-4 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[10px] uppercase tracking-wider px-3 py-1.5">{photo.year_approx}</div>
+              {photo.is_featured && <div className="absolute top-4 right-4 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[10px] uppercase tracking-wider px-3 py-1.5 flex items-center gap-1"><Star size={12} />Destaque</div>}
             </div>
           </div>
           <div className="flex flex-col gap-5">
@@ -1993,13 +2135,36 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
               <DisplayTitle className="text-2xl md:text-3xl mb-2">{photo.caption}</DisplayTitle>
               <p className="text-[#7a9a7a] text-sm flex items-center gap-2"><MapPin size={14} />{photo.location_text}</p>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={toggleLike} disabled={busy === "like"} className={`border px-4 py-3 flex items-center justify-center gap-2 text-sm font-mono ${liked ? "bg-[#c9a84c] border-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]"}`}>
+                <Heart size={16} fill={liked ? "currentColor" : "none"} />{likesCount} curtidas
+              </button>
+              <div className="border border-[#2d6a4f]/30 px-4 py-3 flex items-center justify-center gap-2 text-[#7a9a7a] text-sm font-mono">
+                <MessageCircle size={16} />{comments.length} comentários
+              </div>
+            </div>
             {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
             {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+
+            <div className="border-t border-[#2d6a4f]/20 pt-4">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Comentários</p>
+              <div className="flex flex-col gap-3 mb-4 max-h-52 overflow-y-auto pr-1">
+                {comments.length === 0 ? <p className="text-[#7a9a7a] text-sm">Ainda não há comentários aprovados.</p> : comments.map(comment => (
+                  <div key={comment.id} className="bg-[#141f14] border border-[#2d6a4f]/20 p-3">
+                    <p className="text-[#f0ebe0] text-sm">{comment.comment_text}</p>
+                    <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{comment.author_name ?? "Ex-aluno"} · {comment.created_at?.slice(0, 10)}</p>
+                  </div>
+                ))}
+              </div>
+              <FieldArea label="Novo comentário" value={commentText} onChange={setCommentText} rows={2} />
+              <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar para moderação</Btn>
+            </div>
+
             <div className="border-t border-[#2d6a4f]/20 pt-4">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Marcar pessoas</p>
               <div className="relative mt-3">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input placeholder="Marcar alguem da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
+                <input placeholder="Marcar alguém da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
                   className="w-full bg-[#141f14] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
               </div>
               {tagResults.length > 0 && (
@@ -2016,17 +2181,106 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
             </div>
             {showRemoval && (
               <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-4">
-                <FieldArea label="Motivo da remocao" value={removalReason} onChange={setRemovalReason} />
+                <FieldArea label="Motivo da remoção" value={removalReason} onChange={setRemovalReason} />
                 <div className="flex gap-2 mt-3">
-                  <Btn size="sm" onClick={requestRemoval}>Enviar solicitacao</Btn>
+                  <Btn size="sm" onClick={requestRemoval}>Enviar solicitação</Btn>
                   <Btn size="sm" variant="ghost" onClick={() => setShowRemoval(false)}>Cancelar</Btn>
                 </div>
               </div>
             )}
             <div className="flex flex-col gap-3">
               <Btn full onClick={() => window.open(photo.image_url, "_blank")}><Download size={16} />Baixar foto</Btn>
-              <Btn full variant="ghost" onClick={() => setShowRemoval(true)}><AlertCircle size={16} />Solicitar remocao da foto</Btn>
+              <Btn full variant="ghost" onClick={() => setShowRemoval(true)}><AlertCircle size={16} />Solicitar remoção da foto</Btn>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
+
+function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+  const [memories, setMemories] = useState<DbMemory[]>([]);
+  const [memoryText, setMemoryText] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const maxChars = 420;
+
+  async function loadMemories() {
+    setLoading(true);
+    setError("");
+    try {
+      setMemories(await getApprovedMemories(DEFAULT_EVENT_ID));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar memórias.");
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadMemories(); }, []);
+
+  async function submitMemory() {
+    if (!auth.loggedIn) { navigate("login"); return; }
+    if (memoryText.trim().length < 10) { setError("Escreva uma memória com pelo menos 10 caracteres."); return; }
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await createMemory({
+        eventId: DEFAULT_EVENT_ID,
+        userId: auth.userId,
+        authorName: auth.name,
+        memoryText: memoryText.trim().slice(0, maxChars),
+        isAnonymous,
+      });
+      setMemoryText("");
+      setIsAnonymous(false);
+      setMessage("Memória enviada para moderação.");
+      await loadMemories();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar memória.");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
+      <div className="max-w-5xl mx-auto px-4">
+        <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
+        <SectionLabel>Caixa de memórias</SectionLabel>
+        <DisplayTitle className="text-4xl md:text-6xl mb-4">O que ficou daquele tempo?</DisplayTitle>
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembrança curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereça ficar no acervo do reencontro.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] gap-8">
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5 h-fit">
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
+            <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
+            <div className="flex items-center justify-between text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span><StatusBadge status="pending" /></div>
+            <label className="flex items-center justify-between cursor-pointer border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">
+              <span className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>
+              <button onClick={() => setIsAnonymous(v => !v)} className={`relative w-12 h-6 transition-colors ${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
+                <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${isAnonymous ? "left-7" : "left-1"}`} />
+              </button>
+            </label>
+            {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
+            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Enviar para moderação</Btn>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {loading && <LoadingState message="Carregando memórias..." />}
+            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória aprovada ainda" subtitle="As memórias enviadas aparecem aqui depois da moderação." />}
+            {memories.map(memory => (
+              <div key={memory.id} className={`bg-[#141f14] border p-6 ${memory.is_featured ? "border-[#c9a84c]/60" : "border-[#2d6a4f]/25"}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
+                  {memory.is_featured && <Star size={14} className="text-[#c9a84c]" />}
+                </div>
+                <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
+                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {memory.created_at?.slice(0, 10)}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -2272,7 +2526,11 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
   const [admins, setAdmins] = useState<DbAdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<DbAuditLog[]>([]);
   const [reports, setReports] = useState<Record<string, number>>({});
+  const [comments, setComments] = useState<(DbPhotoComment & { photos?: Partial<DbPhoto> })[]>([]);
+  const [memories, setMemories] = useState<DbMemory[]>([]);
   const [tagFilter, setTagFilter] = useState<"pending"|"approved"|"rejected">("pending");
+  const [commentFilter, setCommentFilter] = useState<ModerationStatus | "all">("pending");
+  const [memoryFilter, setMemoryFilter] = useState<ModerationStatus | "all">("pending");
   const [newAdmin, setNewAdmin] = useState({ userId: "", displayName: "", email: "", role: "viewer" as AdminRole });
   const [lotDraft, setLotDraft] = useState({ name: "", price: "", quantity: "" });
   const [settings, setSettings] = useState({
@@ -2295,6 +2553,8 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     { id:"participants", label:"Participantes", icon:<Users size={13} /> },
     { id:"photos", label:"Fotos", icon:<Camera size={13} />, disabled: !canModerate },
     { id:"tag-mod", label:"Marcacoes", icon:<Tag size={13} />, disabled: !canModerate },
+    { id:"photo-comments", label:"Comentários", icon:<MessageCircle size={13} />, disabled: !canModerate },
+    { id:"memories", label:"Memórias", icon:<Star size={13} />, disabled: !canModerate },
     { id:"claims", label:"Perfis", icon:<UserCheck size={13} />, disabled: !canModerate },
     { id:"removals", label:"Remocoes", icon:<AlertCircle size={13} />, disabled: !canModerate },
     { id:"disputes", label:"Disputas", icon:<Shield size={13} />, disabled: !canModerate },
@@ -2307,13 +2567,15 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     setLoading(true);
     setError("");
     try {
-      const [eventData, lotData, orderData, peopleData, photoData, tagData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
+      const [eventData, lotData, orderData, peopleData, photoData, tagData, commentData, memoryData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
         getEventSettings(),
         getTicketTypesAdmin(),
         getOrdersByStatus(),
         getPeople(),
         getPendingPhotos(),
         getTagsForModeration(tagFilter),
+        getPhotoCommentsForModeration(commentFilter),
+        getMemoriesForModeration(memoryFilter),
         getPendingClaims(),
         getPhotoRemovalRequests(),
         getProfileClaimDisputes(),
@@ -2326,6 +2588,8 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
       setPeopleRows(peopleData);
       setPendingPhotos(photoData);
       setTags(tagData);
+      setComments(commentData);
+      setMemories(memoryData);
       setClaims(claimData);
       setRemovals(removalData);
       setDisputes(disputeData);
@@ -2355,7 +2619,7 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     }
   }
 
-  useEffect(() => { loadAdminData(); }, [tagFilter]);
+  useEffect(() => { loadAdminData(); }, [tagFilter, commentFilter, memoryFilter]);
 
   async function runAction(label: string, action: () => Promise<void>) {
     setBusy(label);
@@ -2606,6 +2870,61 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
                 </table>
               </div>
             )}
+          </div>
+        ))}
+
+        {!loading && tab === "photo-comments" && (!canModerate ? <PermissionState /> : (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(["pending","approved","rejected","hidden","all"] as const).map(val => (
+                <button key={val} onClick={() => setCommentFilter(val)}
+                  className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (commentFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
+                  {val}
+                </button>
+              ))}
+            </div>
+            {comments.length === 0 ? <EmptyState title="Nenhum comentário encontrado" /> : comments.map(comment => (
+              <div key={comment.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-[#f0ebe0] text-sm leading-relaxed">{comment.comment_text}</p>
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{comment.author_name ?? comment.user_id ?? "Ex-aluno"} · {comment.photos?.caption ?? "Foto"} · {comment.created_at?.slice(0,10)}</p>
+                </div>
+                <StatusBadge status={comment.status} />
+                <div className="flex flex-wrap gap-2">
+                  {comment.status !== "approved" && <Btn size="sm" onClick={() => runAction("comment-approve", () => moderatePhotoComment(comment.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn>}
+                  {comment.status !== "rejected" && <Btn size="sm" variant="danger" onClick={() => runAction("comment-reject", () => moderatePhotoComment(comment.id, "rejected", auth.userId))}><X size={12} />Rejeitar</Btn>}
+                  {comment.status !== "hidden" && <Btn size="sm" variant="ghost" onClick={() => runAction("comment-hide", () => moderatePhotoComment(comment.id, "hidden", auth.userId))}>Ocultar</Btn>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {!loading && tab === "memories" && (!canModerate ? <PermissionState /> : (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(["pending","approved","rejected","hidden","all"] as const).map(val => (
+                <button key={val} onClick={() => setMemoryFilter(val)}
+                  className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (memoryFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
+                  {val}
+                </button>
+              ))}
+            </div>
+            {memories.length === 0 ? <EmptyState title="Nenhuma memória encontrada" /> : memories.map(memory => (
+              <div key={memory.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-[#f0ebe0] text-sm leading-relaxed">{memory.memory_text}</p>
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {memory.created_at?.slice(0,10)}</p>
+                </div>
+                <div className="flex items-center gap-2"><StatusBadge status={memory.status} />{memory.is_featured && <StatusBadge status="featured" />}</div>
+                <div className="flex flex-wrap gap-2">
+                  {memory.status !== "approved" && <Btn size="sm" onClick={() => runAction("memory-approve", () => moderateMemory(memory.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn>}
+                  {memory.status !== "rejected" && <Btn size="sm" variant="danger" onClick={() => runAction("memory-reject", () => moderateMemory(memory.id, "rejected", auth.userId))}><X size={12} />Rejeitar</Btn>}
+                  {memory.status !== "hidden" && <Btn size="sm" variant="ghost" onClick={() => runAction("memory-hide", () => moderateMemory(memory.id, "hidden", auth.userId))}>Ocultar</Btn>}
+                  {memory.status === "approved" && <Btn size="sm" variant="outline" onClick={() => runAction("memory-feature", () => toggleFeaturedMemory(memory.id, !memory.is_featured, auth.userId))}><Star size={12} />{memory.is_featured ? "Remover destaque" : "Destacar"}</Btn>}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
 
@@ -3052,6 +3371,7 @@ export default function App() {
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
+        {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && <AdminPage          navigate={navigate} auth={auth}                           />}

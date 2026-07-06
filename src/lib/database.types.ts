@@ -14,6 +14,7 @@ export type ClaimStatus   = "pending" | "approved" | "rejected" | "disputed" | "
 export type AdminRole            = "superadmin" | "admin" | "moderator" | "checkin_staff" | "viewer";
 export type RemovalRequestStatus = "pending" | "approved" | "rejected" | "hidden_preventively";
 export type DisputeStatus        = "pending" | "approved" | "rejected" | "cancelled";
+export type ModerationStatus     = "pending" | "approved" | "rejected" | "hidden";
 
 // ─── ROWS (o que vem do banco) ─────────────────────────────────────────────────
 
@@ -146,6 +147,9 @@ export interface DbPhoto {
   status:               PhotoStatus;
   approved_by_admin_id: uuid | null;
   approved_at:          string | null;
+  is_featured:          boolean;
+  featured_by_admin_id: uuid | null;
+  featured_at:          string | null;
   created_at:           string;
   updated_at:           string;
 }
@@ -232,6 +236,49 @@ export interface DbProfileClaimDispute {
   updated_at:               string;
 }
 
+export interface DbPhotoLike {
+  id:         uuid;
+  photo_id:   uuid;
+  user_id:    uuid;
+  created_at: string;
+}
+
+export interface DbPhotoComment {
+  id:                   uuid;
+  photo_id:             uuid;
+  user_id:              uuid | null;
+  author_name:          string | null;
+  comment_text:         string;
+  status:               ModerationStatus;
+  approved_by_admin_id: uuid | null;
+  approved_at:          string | null;
+  created_at:           string;
+  updated_at:           string;
+}
+
+export interface DbMemory {
+  id:                   uuid;
+  event_id:             uuid;
+  user_id:              uuid | null;
+  person_id:            uuid | null;
+  author_name:          string | null;
+  memory_text:          string;
+  is_anonymous:         boolean;
+  status:               ModerationStatus;
+  is_featured:          boolean;
+  approved_by_admin_id: uuid | null;
+  approved_at:          string | null;
+  created_at:           string;
+  updated_at:           string;
+}
+
+export interface PhotoStats {
+  photo_id:       uuid;
+  likes_count:    number;
+  comments_count: number;
+  is_featured?:   boolean;
+}
+
 export interface DbAuditLog {
   id:             uuid;
   user_id:        uuid | null;
@@ -248,6 +295,9 @@ export type InsertOrder = Omit<DbOrder, "id" | "created_at" | "updated_at">;
 export type InsertTicket = Omit<DbTicket, "id" | "qr_code" | "qr_token_hash" | "checked_in" | "created_at" | "updated_at">;
 export type InsertPhoto = Omit<DbPhoto, "id" | "created_at" | "updated_at">;
 export type InsertPhotoTag = Omit<DbPhotoTag, "id" | "created_at" | "updated_at">;
+export type InsertPhotoLike = Omit<DbPhotoLike, "id" | "created_at">;
+export type InsertPhotoComment = Omit<DbPhotoComment, "id" | "created_at" | "updated_at">;
+export type InsertMemory = Omit<DbMemory, "id" | "created_at" | "updated_at">;
 export type InsertProfileClaim = Omit<DbProfileClaim, "id" | "created_at" | "updated_at">;
 export type InsertProfileClaimAnswer = Omit<DbProfileClaimAnswer, "id" | "created_at">;
 export type UpsertProfile = Omit<DbProfile, "id" | "created_at" | "updated_at">;
@@ -268,6 +318,9 @@ export interface Database {
       payment_events:         { Row: any;                  Insert: any;                           Update: any                           };
       photos:                 { Row: DbPhoto;              Insert: InsertPhoto;                   Update: Partial<DbPhoto>              };
       photo_tags:             { Row: DbPhotoTag;           Insert: InsertPhotoTag;                Update: Partial<DbPhotoTag>           };
+      photo_likes:            { Row: DbPhotoLike;          Insert: InsertPhotoLike;               Update: never                         };
+      photo_comments:         { Row: DbPhotoComment;       Insert: InsertPhotoComment;            Update: Partial<DbPhotoComment>       };
+      memories:               { Row: DbMemory;             Insert: InsertMemory;                  Update: Partial<DbMemory>             };
       photo_removal_requests: { Row: DbPhotoRemovalRequest; Insert: Partial<DbPhotoRemovalRequest>; Update: Partial<DbPhotoRemovalRequest> };
       profile_claim_disputes: { Row: DbProfileClaimDispute; Insert: Partial<DbProfileClaimDispute>; Update: Partial<DbProfileClaimDispute> };
       profile_claims:         { Row: DbProfileClaim;       Insert: InsertProfileClaim;            Update: Partial<DbProfileClaim>       };

@@ -11,6 +11,7 @@ import type {
   DbOrder, DbEvent, InsertOrder, UpsertProfile,
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
+  DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
 } from "./database.types";
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
@@ -591,6 +592,200 @@ export async function exportTicketsCSV(eventId = DEFAULT_EVENT_ID) {
     acompanhante: t.guest_name ?? "", checkin: t.checked_in ? "Sim" : "Não",
     checkin_hora: t.checked_in_at?.slice(0, 16)?.replace("T", " ") ?? "",
   })), "ingressos.csv");
+}
+
+
+// ─── PHASE 2: LIKES, COMMENTS E MEMÓRIAS ─────────────────────────────────────
+
+export async function likePhoto(photoId: string, userId: string): Promise<void> {
+  const { error } = await supabase.from("photo_likes").insert({ photo_id: photoId, user_id: userId });
+  if (error && !String(error.message ?? "").toLowerCase().includes("duplicate")) throw error;
+}
+
+export async function unlikePhoto(photoId: string, userId: string): Promise<void> {
+  const { error } = await supabase.from("photo_likes").delete().eq("photo_id", photoId).eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function getPhotoLikes(photoIds: string[]): Promise<Record<string, number>> {
+  if (photoIds.length === 0) return {};
+  return withFallback(async () => {
+    const { data, error } = await supabase.from("photo_likes").select("photo_id").in("photo_id", photoIds);
+    if (error) throw error;
+    return ((data as Pick<DbPhotoLike, "photo_id">[]) ?? []).reduce<Record<string, number>>((acc, row) => {
+      acc[row.photo_id] = (acc[row.photo_id] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, {});
+}
+
+export async function getMyPhotoLikes(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  return withFallback(async () => {
+    const { data, error } = await supabase.from("photo_likes").select("photo_id").eq("user_id", userId);
+    if (error) throw error;
+    return ((data as Pick<DbPhotoLike, "photo_id">[]) ?? []).map(row => row.photo_id);
+  }, []);
+}
+
+export async function createPhotoComment(params: {
+  photoId: string;
+  userId: string;
+  authorName: string;
+  commentText: string;
+}): Promise<DbPhotoComment> {
+  const { data, error } = await supabase.from("photo_comments").insert({
+    photo_id:     params.photoId,
+    user_id:      params.userId,
+    author_name:  params.authorName,
+    comment_text: params.commentText,
+    status:       "pending",
+  }).select().single();
+  if (error) throw error;
+  await writeAudit("create_photo_comment", "photo_comments", (data as DbPhotoComment).id, { photo_id: params.photoId });
+  return data as DbPhotoComment;
+}
+
+export async function getApprovedPhotoComments(photoId: string): Promise<DbPhotoComment[]> {
+  return withFallback(async () => {
+    const { data, error } = await supabase.from("photo_comments")
+      .select("*")
+      .eq("photo_id", photoId)
+      .eq("status", "approved")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data as DbPhotoComment[]) ?? [];
+  }, []);
+}
+
+export async function getPhotoCommentsForModeration(status: ModerationStatus | "all" = "pending"): Promise<(DbPhotoComment & { photos?: Partial<DbPhoto> })[]> {
+  return withFallback(async () => {
+    let q = supabase.from("photo_comments")
+      .select("*, photos(image_url, caption, year_approx)")
+      .order("created_at", { ascending: false });
+    if (status !== "all") q = q.eq("status", status as any);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as any;
+  }, []);
+}
+
+export async function moderatePhotoComment(id: string, status: ModerationStatus, adminId: string): Promise<void> {
+  const patch = status === "approved"
+    ? { status, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
+    : { status, approved_by_admin_id: adminId, approved_at: null };
+  const { error } = await supabase.from("photo_comments").update(patch).eq("id", id);
+  if (error) throw error;
+  await writeAudit(`photo_comment_${status}`, "photo_comments", id, { admin_id: adminId });
+}
+
+export async function getPhotoCommentCounts(photoIds: string[]): Promise<Record<string, number>> {
+  if (photoIds.length === 0) return {};
+  return withFallback(async () => {
+    const { data, error } = await supabase.from("photo_comments")
+      .select("photo_id")
+      .in("photo_id", photoIds)
+      .eq("status", "approved");
+    if (error) throw error;
+    return ((data as Pick<DbPhotoComment, "photo_id">[]) ?? []).reduce<Record<string, number>>((acc, row) => {
+      acc[row.photo_id] = (acc[row.photo_id] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, {});
+}
+
+export async function getFeaturedOrPopularPhotos(eventId = DEFAULT_EVENT_ID): Promise<DbPhoto[]> {
+  return withFallback(async () => {
+    const { data, error } = await supabase.from("photos")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("status", "approved")
+      .order("is_featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(12);
+    if (error) throw error;
+    return (data as DbPhoto[]) ?? [];
+  }, []);
+}
+
+export async function toggleFeaturedPhoto(photoId: string, featured: boolean, adminId: string): Promise<void> {
+  const patch = featured
+    ? { is_featured: true, featured_by_admin_id: adminId, featured_at: new Date().toISOString() }
+    : { is_featured: false, featured_by_admin_id: null, featured_at: null };
+  const { error } = await supabase.from("photos").update(patch).eq("id", photoId);
+  if (error) throw error;
+  await writeAudit(featured ? "feature_photo" : "unfeature_photo", "photos", photoId, { admin_id: adminId });
+}
+
+export async function createMemory(params: {
+  eventId: string;
+  userId: string;
+  personId?: string | null;
+  authorName: string;
+  memoryText: string;
+  isAnonymous: boolean;
+}): Promise<DbMemory> {
+  const { data, error } = await supabase.from("memories").insert({
+    event_id:      params.eventId,
+    user_id:       params.userId,
+    person_id:     params.personId ?? null,
+    author_name:   params.authorName,
+    memory_text:   params.memoryText,
+    is_anonymous:  params.isAnonymous,
+    status:        "pending",
+    is_featured:   false,
+  }).select().single();
+  if (error) throw error;
+  await writeAudit("create_memory", "memories", (data as DbMemory).id, {});
+  return data as DbMemory;
+}
+
+export async function getApprovedMemories(eventId = DEFAULT_EVENT_ID, featuredOnly = false): Promise<DbMemory[]> {
+  return withFallback(async () => {
+    let q = supabase.from("memories")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("status", "approved")
+      .order("is_featured", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (featuredOnly) q = q.eq("is_featured", true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as DbMemory[]) ?? [];
+  }, []);
+}
+
+export async function getMemoriesForModeration(status: ModerationStatus | "all" = "pending"): Promise<DbMemory[]> {
+  return withFallback(async () => {
+    let q = supabase.from("memories").select("*").order("created_at", { ascending: false });
+    if (status !== "all") q = q.eq("status", status as any);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as DbMemory[]) ?? [];
+  }, []);
+}
+
+export async function moderateMemory(id: string, status: ModerationStatus, adminId: string): Promise<void> {
+  const patch = status === "approved"
+    ? { status, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
+    : { status, approved_by_admin_id: adminId, approved_at: null };
+  const { error } = await supabase.from("memories").update(patch).eq("id", id);
+  if (error) throw error;
+  await writeAudit(`memory_${status}`, "memories", id, { admin_id: adminId });
+}
+
+export async function toggleFeaturedMemory(id: string, featured: boolean, adminId: string): Promise<void> {
+  const { error } = await supabase.from("memories").update({ is_featured: featured }).eq("id", id);
+  if (error) throw error;
+  await writeAudit(featured ? "feature_memory" : "unfeature_memory", "memories", id, { admin_id: adminId });
+}
+
+export async function getPhotoStats(photoIds: string[]): Promise<Record<string, PhotoStats>> {
+  const [likes, comments] = await Promise.all([getPhotoLikes(photoIds), getPhotoCommentCounts(photoIds)]);
+  return photoIds.reduce<Record<string, PhotoStats>>((acc, photoId) => {
+    acc[photoId] = { photo_id: photoId, likes_count: likes[photoId] ?? 0, comments_count: comments[photoId] ?? 0 };
+    return acc;
+  }, {});
 }
 
 // ─── ADMIN USERS ─────────────────────────────────────────────────────────────

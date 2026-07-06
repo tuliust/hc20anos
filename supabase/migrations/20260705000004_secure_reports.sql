@@ -7,7 +7,7 @@ returns jsonb language plpgsql security definer stable as $$
 declare
   result jsonb;
 begin
-  if not is_admin(auth.uid()) then
+  if not is_admin() then
     raise exception 'not authorized';
   end if;
 
