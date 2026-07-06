@@ -12,6 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow,
 } from "./database.types";
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
@@ -786,6 +787,148 @@ export async function getPhotoStats(photoIds: string[]): Promise<Record<string, 
     acc[photoId] = { photo_id: photoId, likes_count: likes[photoId] ?? 0, comments_count: comments[photoId] ?? 0 };
     return acc;
   }, {});
+}
+
+
+// ─── POLLS ───────────────────────────────────────────────────────────────────
+
+export async function getPolls(eventId = DEFAULT_EVENT_ID, includeAdmin = false): Promise<(DbPoll & { poll_options?: DbPollOption[] })[]> {
+  return withFallback(async () => {
+    let q = supabase
+      .from("polls")
+      .select("*, poll_options(*)")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
+    if (!includeAdmin) q = (q as any).in("status", ["open", "closed"]);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as any;
+  }, []);
+}
+
+export async function getPollWithOptions(pollId: string): Promise<(DbPoll & { poll_options?: DbPollOption[] }) | null> {
+  const { data, error } = await supabase
+    .from("polls")
+    .select("*, poll_options(*)")
+    .eq("id", pollId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getPollResults(pollId: string): Promise<Record<string, number>> {
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("poll_results")
+      .select("option_id, votes_count")
+      .eq("poll_id", pollId);
+    if (error) throw error;
+    return ((data ?? []) as PollResultRow[]).reduce<Record<string, number>>((acc, row) => {
+      acc[row.option_id] = row.votes_count;
+      return acc;
+    }, {});
+  }, {});
+}
+
+export async function getMyPollVotes(userId: string, pollIds?: string[]): Promise<DbPollVote[]> {
+  if (!userId) return [];
+  return withFallback(async () => {
+    let q = supabase.from("poll_votes").select("*").eq("user_id", userId);
+    if (pollIds?.length) q = (q as any).in("poll_id", pollIds);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as DbPollVote[];
+  }, []);
+}
+
+export async function votePoll(params: { pollId: string; optionId: string; userId: string; allowMultiple?: boolean }): Promise<void> {
+  if (!params.allowMultiple) {
+    await supabase.from("poll_votes").delete().eq("poll_id", params.pollId).eq("user_id", params.userId);
+  }
+  const { error } = await supabase.from("poll_votes").insert({
+    poll_id: params.pollId,
+    option_id: params.optionId,
+    user_id: params.userId,
+  });
+  if (error) throw error;
+  await writeAudit("vote_poll", "poll_votes", null, { poll_id: params.pollId, option_id: params.optionId });
+}
+
+export async function createPoll(params: {
+  eventId?: string; question: string; description?: string; status?: PollStatus;
+  allowMultipleVotes?: boolean; options: string[]; adminId: string;
+}): Promise<DbPoll> {
+  const { data: poll, error } = await supabase.from("polls").insert({
+    event_id: params.eventId ?? DEFAULT_EVENT_ID,
+    question: params.question,
+    description: params.description ?? null,
+    status: params.status ?? "draft",
+    allow_multiple_votes: params.allowMultipleVotes ?? false,
+    created_by_admin_id: params.adminId,
+  }).select().single();
+  if (error) throw error;
+  const pollRow = poll as DbPoll;
+  const options = params.options.map((option, idx) => ({
+    poll_id: pollRow.id,
+    option_text: option,
+    sort_order: idx,
+  })).filter(o => o.option_text.trim().length > 0);
+  if (options.length) {
+    const { error: optErr } = await supabase.from("poll_options").insert(options);
+    if (optErr) throw optErr;
+  }
+  await writeAudit("create_poll", "polls", pollRow.id, { options_count: options.length, admin_id: params.adminId });
+  return pollRow;
+}
+
+export async function updatePoll(id: string, patch: Partial<DbPoll>, adminId: string): Promise<void> {
+  const { error } = await supabase.from("polls").update(patch).eq("id", id);
+  if (error) throw error;
+  await writeAudit("update_poll", "polls", id, { fields: Object.keys(patch), admin_id: adminId });
+}
+
+export async function closePoll(id: string, adminId: string): Promise<void> {
+  await updatePoll(id, { status: "closed" as PollStatus }, adminId);
+}
+
+export async function archivePoll(id: string, adminId: string): Promise<void> {
+  await updatePoll(id, { status: "archived" as PollStatus }, adminId);
+}
+
+// ─── PUBLIC LOCATION MAP ─────────────────────────────────────────────────────
+
+export async function getPublicLocationStats(): Promise<LocationStat[]> {
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("public_profile_locations")
+      .select("*")
+      .order("current_country")
+      .order("current_state")
+      .order("current_city");
+    if (error) throw error;
+    const rows = (data ?? []) as PublicLocationRow[];
+    const map = new Map<string, LocationStat>();
+    for (const row of rows) {
+      const key = [row.current_city, row.current_state ?? "", row.current_country ?? "Brasil"].join("|");
+      const current = map.get(key) ?? {
+        key,
+        city: row.current_city,
+        state: row.current_state,
+        country: row.current_country ?? "Brasil",
+        count: 0,
+        people: [],
+      };
+      current.count += 1;
+      current.people.push(row);
+      map.set(key, current);
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.city.localeCompare(b.city));
+  }, []);
+}
+
+export async function getPeopleByPublicLocation(key: string): Promise<PublicLocationRow[]> {
+  const stats = await getPublicLocationStats();
+  return stats.find(item => item.key === key)?.people ?? [];
 }
 
 // ─── ADMIN USERS ─────────────────────────────────────────────────────────────

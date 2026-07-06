@@ -15,6 +15,7 @@ export type AdminRole            = "superadmin" | "admin" | "moderator" | "check
 export type RemovalRequestStatus = "pending" | "approved" | "rejected" | "hidden_preventively";
 export type DisputeStatus        = "pending" | "approved" | "rejected" | "cancelled";
 export type ModerationStatus     = "pending" | "approved" | "rejected" | "hidden";
+export type PollStatus           = "draft" | "open" | "closed" | "archived";
 
 // ─── ROWS (o que vem do banco) ─────────────────────────────────────────────────
 
@@ -279,6 +280,63 @@ export interface PhotoStats {
   is_featured?:   boolean;
 }
 
+export interface DbPoll {
+  id:                   uuid;
+  event_id:             uuid;
+  question:             string;
+  description:          string | null;
+  status:               PollStatus;
+  allow_multiple_votes: boolean;
+  created_by_admin_id:  uuid | null;
+  created_at:           string;
+  updated_at:           string;
+}
+
+export interface DbPollOption {
+  id:          uuid;
+  poll_id:     uuid;
+  option_text: string;
+  sort_order:  number;
+  created_at:  string;
+}
+
+export interface DbPollVote {
+  id:         uuid;
+  poll_id:    uuid;
+  option_id:  uuid;
+  user_id:    uuid;
+  created_at: string;
+}
+
+export interface PollResultRow {
+  poll_id:     uuid;
+  option_id:   uuid;
+  option_text: string;
+  sort_order:  number;
+  votes_count: number;
+}
+
+export interface PublicLocationRow {
+  profile_id:       uuid;
+  person_id:        uuid;
+  display_name:     string | null;
+  full_name:        string;
+  current_city:     string;
+  current_state:    string | null;
+  current_country:  string | null;
+  profession:       string | null;
+  show_profession:  boolean | null;
+}
+
+export interface LocationStat {
+  key:      string;
+  city:     string;
+  state:    string | null;
+  country:  string | null;
+  count:    number;
+  people:   PublicLocationRow[];
+}
+
 export interface DbAuditLog {
   id:             uuid;
   user_id:        uuid | null;
@@ -298,6 +356,9 @@ export type InsertPhotoTag = Omit<DbPhotoTag, "id" | "created_at" | "updated_at"
 export type InsertPhotoLike = Omit<DbPhotoLike, "id" | "created_at">;
 export type InsertPhotoComment = Omit<DbPhotoComment, "id" | "created_at" | "updated_at">;
 export type InsertMemory = Omit<DbMemory, "id" | "created_at" | "updated_at">;
+export type InsertPoll = Omit<DbPoll, "id" | "created_at" | "updated_at">;
+export type InsertPollOption = Omit<DbPollOption, "id" | "created_at">;
+export type InsertPollVote = Omit<DbPollVote, "id" | "created_at">;
 export type InsertProfileClaim = Omit<DbProfileClaim, "id" | "created_at" | "updated_at">;
 export type InsertProfileClaimAnswer = Omit<DbProfileClaimAnswer, "id" | "created_at">;
 export type UpsertProfile = Omit<DbProfile, "id" | "created_at" | "updated_at">;
@@ -321,6 +382,9 @@ export interface Database {
       photo_likes:            { Row: DbPhotoLike;          Insert: InsertPhotoLike;               Update: never                         };
       photo_comments:         { Row: DbPhotoComment;       Insert: InsertPhotoComment;            Update: Partial<DbPhotoComment>       };
       memories:               { Row: DbMemory;             Insert: InsertMemory;                  Update: Partial<DbMemory>             };
+      polls:                  { Row: DbPoll;               Insert: InsertPoll;                    Update: Partial<DbPoll>               };
+      poll_options:           { Row: DbPollOption;         Insert: InsertPollOption;              Update: Partial<DbPollOption>         };
+      poll_votes:             { Row: DbPollVote;           Insert: InsertPollVote;                Update: never                         };
       photo_removal_requests: { Row: DbPhotoRemovalRequest; Insert: Partial<DbPhotoRemovalRequest>; Update: Partial<DbPhotoRemovalRequest> };
       profile_claim_disputes: { Row: DbProfileClaimDispute; Insert: Partial<DbProfileClaimDispute>; Update: Partial<DbProfileClaimDispute> };
       profile_claims:         { Row: DbProfileClaim;       Insert: InsertProfileClaim;            Update: Partial<DbProfileClaim>       };
@@ -328,7 +392,10 @@ export interface Database {
       admin_users:            { Row: DbAdminUser;          Insert: Partial<DbAdminUser>;          Update: Partial<DbAdminUser>          };
       audit_logs:             { Row: DbAuditLog;           Insert: Partial<DbAuditLog>;           Update: never                         };
     };
-    Views:   Record<string, never>;
+    Views: {
+      poll_results:             { Row: PollResultRow };
+      public_profile_locations: { Row: PublicLocationRow };
+    };
     Functions: {
       is_admin:           { Args: Record<string, never>; Returns: boolean };
       fn_increment_sold:  { Args: { p_ticket_type_id: string; delta?: number }; Returns: void };

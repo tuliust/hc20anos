@@ -17,11 +17,14 @@ import {
   getPhotoCommentsForModeration, moderatePhotoComment,
   getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
   toggleFeaturedPhoto, toggleFeaturedMemory,
+  getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
+  getPublicLocationStats,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -44,7 +47,8 @@ type Page =
   | "who-going" | "the-class" | "claim-profile"
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
-  | "login" | "terms" | "privacy" | "memories";
+  | "login" | "terms" | "privacy" | "memories"
+  | "polls" | "where-now" | "share-invite";
 
 interface AuthState {
   loggedIn: boolean;
@@ -243,6 +247,7 @@ function StatusBadge({ status }: { status: string }) {
     cancelled:    { label: "Cancelado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     open:         { label: "Aberto",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     closed:       { label: "Fechado",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    archived:     { label: "Arquivado",        color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
   };
   const s = map[status] || map.unclaimed;
   return (
@@ -647,6 +652,8 @@ function Header({ page, navigate, auth, logout }: {
     { label: "A Turma",                             page: "the-class"   },
     { label: "Fotos",                               page: "photo-wall"  },
     { label: "Memórias",                            page: "memories"    },
+    { label: "Enquetes",                             page: "polls"       },
+    { label: "Mapa",                                 page: "where-now"   },
     { label: auth.loggedIn ? "Minha Área" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
   ];
 
@@ -719,9 +726,9 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Navegação</p>
             <div className="flex flex-col gap-3">
-              {(["tickets","who-going","the-class","photo-wall","memories"] as Page[]).map(p => (
+              {(["tickets","who-going","the-class","photo-wall","memories","polls","where-now"] as Page[]).map(p => (
                 <button key={p} onClick={() => navigate(p)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
-                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias" }[p]}
+                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias", polls:"Enquetes", "where-now":"Onde a turma está" }[p]}
                 </button>
               ))}
             </div>
@@ -1489,6 +1496,7 @@ function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
         <div className="flex flex-col gap-3">
           <Btn full onClick={() => navigate("alumni-area")}><Download size={16} />Ver meu ingresso</Btn>
           <Btn full variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Completar meu perfil</Btn>
+          <Btn full variant="outline" onClick={() => navigate("share-invite")}><Send size={16} />Compartilhar convite</Btn>
           <Btn full variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={16} />Enviar foto antiga</Btn>
         </div>
       </div>
@@ -2199,6 +2207,286 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   );
 }
 
+// ─── POLLS ────────────────────────────────────────────────────────────────────
+
+function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+  const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
+  const [results, setResults] = useState<Record<string, Record<string, number>>>({});
+  const [myVotes, setMyVotes] = useState<DbPollVote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function loadPolls() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getPolls(DEFAULT_EVENT_ID);
+      setPolls(data);
+      const nextResults: Record<string, Record<string, number>> = {};
+      for (const poll of data) nextResults[poll.id] = await getPollResults(poll.id);
+      setResults(nextResults);
+      if (auth.loggedIn) setMyVotes(await getMyPollVotes(auth.userId, data.map(p => p.id)));
+      else setMyVotes([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar enquetes.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadPolls(); }, [auth.loggedIn, auth.userId]);
+
+  async function submitVote(poll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) {
+    if (!auth.loggedIn) { navigate("login"); return; }
+    setBusy(optionId);
+    setError("");
+    setMessage("");
+    try {
+      await votePoll({ pollId: poll.id, optionId, userId: auth.userId, allowMultiple: poll.allow_multiple_votes });
+      setMessage("Voto registrado.");
+      await loadPolls();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao registrar voto.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function totalVotes(pollId: string): number {
+    return Object.values(results[pollId] ?? {}).reduce<number>((sum, value) => sum + Number(value), 0);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+          <div>
+            <SectionLabel>Enquetes nostálgicas</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-6xl">Vote nas memórias da turma</DisplayTitle>
+            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Escolha músicas, lugares e lembranças que marcaram a Turma 2006. Os resultados são atualizados conforme os votos entram.</p>
+          </div>
+          <Btn variant="outline" onClick={() => navigate("where-now")}><MapPin size={16} />Onde estamos</Btn>
+        </div>
+
+        {message && <div className="mb-6 bg-[#0d2e1a] border border-[#2d6a4f] p-4 text-[#74c69d] text-sm font-mono">{message}</div>}
+        {error && <ErrorState message={error} onRetry={loadPolls} />}
+        {loading && <LoadingState message="Carregando enquetes..." />}
+
+        {!loading && polls.length === 0 && (
+          <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organização ainda não abriu votações para a turma." />
+        )}
+
+        {!loading && polls.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {polls.map(poll => {
+              const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+              const total = Math.max(totalVotes(poll.id), 1);
+              const votedOptions = myVotes.filter(v => v.poll_id === poll.id).map(v => v.option_id);
+              return (
+                <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Enquete</p>
+                      <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{poll.question}</h3>
+                      {poll.description && <p className="text-[#7a9a7a] text-sm mt-2">{poll.description}</p>}
+                    </div>
+                    <StatusBadge status={poll.status} />
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {options.map(option => {
+                      const count = results[poll.id]?.[option.id] ?? 0;
+                      const percent = Math.round((count / total) * 100);
+                      const voted = votedOptions.includes(option.id);
+                      const disabled = poll.status !== "open" || busy === option.id;
+                      return (
+                        <button key={option.id} disabled={disabled} onClick={() => submitVote(poll, option.id)}
+                          className={`text-left border p-4 transition-colors disabled:cursor-not-allowed ${voted ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <span className="text-[#f0ebe0] text-sm font-semibold">{option.option_text}</span>
+                            <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>
+                          </div>
+                          <div className="h-2 bg-[#1a2e1a] overflow-hidden">
+                            <div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} />
+                          </div>
+                          <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar.</p>}
+                  {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── WHERE NOW ────────────────────────────────────────────────────────────────
+
+function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
+  const [locations, setLocations] = useState<LocationStat[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadLocations() {
+    setLoading(true);
+    setError("");
+    try {
+      setLocations(await getPublicLocationStats());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar mapa da turma.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadLocations(); }, []);
+
+  const selected = locations.find(item => item.key === selectedKey) ?? locations[0] ?? null;
+  const totalPeople = locations.reduce((sum, item) => sum + item.count, 0);
+
+  return (
+    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+          <div>
+            <SectionLabel>Onde a turma está hoje</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-6xl">Mapa afetivo da Turma 2006</DisplayTitle>
+            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas localizações autorizadas aparecem aqui. Os dados vêm dos perfis públicos dos ex-alunos.</p>
+          </div>
+          <Btn variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Atualizar perfil</Btn>
+        </div>
+
+        {error && <ErrorState message={error} onRetry={loadLocations} />}
+        {loading && <LoadingState message="Carregando localizações..." />}
+
+        {!loading && locations.length === 0 && (
+          <EmptyState icon={<MapPin size={42} />} title="Nenhuma localização pública" subtitle="Os ex-alunos precisam autorizar a exibição da cidade no perfil." action={<Btn onClick={() => navigate("edit-profile")}>Atualizar meu perfil</Btn>} />
+        )}
+
+        {!loading && locations.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Localizações públicas</p>
+                  <p className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{totalPeople} pessoas em {locations.length} lugares</p>
+                </div>
+                <MapPin size={34} className="text-[#2d6a4f]" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {locations.map(item => (
+                  <button key={item.key} onClick={() => setSelectedKey(item.key)}
+                    className={`text-left border p-4 transition-colors ${selected?.key === item.key ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
+                    <p className="text-[#f0ebe0] font-semibold">{item.city}</p>
+                    <p className="text-[#7a9a7a] text-xs font-mono">{[item.state, item.country].filter(Boolean).join(" · ")}</p>
+                    <p className="text-[#c9a84c] text-xs font-mono mt-2">{item.count} ex-aluno{item.count === 1 ? "" : "s"}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+              {selected ? (
+                <>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{selected.city}</p>
+                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Quem está por lá</h3>
+                  <div className="flex flex-col gap-3">
+                    {selected.people.map(person => (
+                      <div key={person.profile_id} className="flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3">
+                        <div className="w-10 h-10 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-xs">{initials(person.display_name ?? person.full_name)}</div>
+                        <div>
+                          <p className="text-[#f0ebe0] text-sm font-semibold">{person.display_name ?? person.full_name}</p>
+                          {person.show_profession && person.profession && <p className="text-[#7a9a7a] text-xs">{person.profession}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : <EmptyState title="Selecione uma localidade" />}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SHARE INVITE ─────────────────────────────────────────────────────────────
+
+function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+  const [useName, setUseName] = useState(true);
+  const [message, setMessage] = useState("");
+  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. Dia 17/10/2026, às 19h, em Natal. Vamos juntos?`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setMessage("Texto copiado.");
+    } catch {
+      setMessage("Copie manualmente o texto do convite.");
+    }
+  }
+
+  async function nativeShare() {
+    const nav = navigator as Navigator & { share?: (data: { title?: string; text?: string }) => Promise<void> };
+    if (nav.share) {
+      await nav.share({ title: "Reencontro Turma 2006", text: inviteText });
+    } else {
+      window.open(whatsappUrl, "_blank");
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      <div className="max-w-5xl mx-auto px-4">
+        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
+          <div>
+            <SectionLabel>Convite compartilhável</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-6xl mb-4">Chame a turma para o reencontro</DisplayTitle>
+            <p className="text-[#7a9a7a] leading-relaxed mb-8">Use este cartão para divulgar que você vai ao reencontro. A versão sem nome preserva sua privacidade.</p>
+            <label className="flex items-center gap-3 bg-[#141f14] border border-[#2d6a4f]/30 p-4 mb-4 cursor-pointer">
+              <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" />
+              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite</span>
+            </label>
+            {message && <p className="text-[#74c69d] text-sm font-mono mb-4">{message}</p>}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Btn onClick={nativeShare}><Send size={16} />Compartilhar</Btn>
+              <Btn variant="outline" onClick={() => window.open(whatsappUrl, "_blank")}><Phone size={16} />WhatsApp</Btn>
+              <Btn variant="ghost" onClick={copyInvite}><FileText size={16} />Copiar texto</Btn>
+            </div>
+          </div>
+
+          <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
+            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-8">Colégio Henrique Castriciano</p>
+            <h3 className="font-['Playfair_Display'] text-4xl font-black leading-none mb-6">Eu vou ao reencontro da Turma 2006</h3>
+            {useName && auth.loggedIn && <p className="text-[#2d6a4f] font-bold text-lg mb-6">{auth.name}</p>}
+            <div className="h-px bg-[#c9a84c] my-6" />
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">17 out 2026</p></div>
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">19h</p></div>
+              <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">Natal, Rio Grande do Norte</p></div>
+            </div>
+            <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histórias, fotos antigas e vínculos que atravessaram o tempo.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
 
 function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
@@ -2334,6 +2622,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
               </div>
             </div>
             <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
+            <div className="mt-3"><Btn full size="sm" variant="ghost" onClick={() => navigate("share-invite")}><Send size={14} />Convite compartilhável</Btn></div>
           </div>
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
             <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Status do pagamento</p>
@@ -2528,6 +2817,8 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
   const [reports, setReports] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<(DbPhotoComment & { photos?: Partial<DbPhoto> })[]>([]);
   const [memories, setMemories] = useState<DbMemory[]>([]);
+  const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
+  const [pollDraft, setPollDraft] = useState({ question: "", description: "", optionsText: "", status: "open" as PollStatus, allowMultiple: false });
   const [tagFilter, setTagFilter] = useState<"pending"|"approved"|"rejected">("pending");
   const [commentFilter, setCommentFilter] = useState<ModerationStatus | "all">("pending");
   const [memoryFilter, setMemoryFilter] = useState<ModerationStatus | "all">("pending");
@@ -2555,6 +2846,7 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     { id:"tag-mod", label:"Marcacoes", icon:<Tag size={13} />, disabled: !canModerate },
     { id:"photo-comments", label:"Comentários", icon:<MessageCircle size={13} />, disabled: !canModerate },
     { id:"memories", label:"Memórias", icon:<Star size={13} />, disabled: !canModerate },
+    { id:"polls", label:"Enquetes", icon:<BarChart3 size={13} />, disabled: !canManageEvent },
     { id:"claims", label:"Perfis", icon:<UserCheck size={13} />, disabled: !canModerate },
     { id:"removals", label:"Remocoes", icon:<AlertCircle size={13} />, disabled: !canModerate },
     { id:"disputes", label:"Disputas", icon:<Shield size={13} />, disabled: !canModerate },
@@ -2567,7 +2859,7 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     setLoading(true);
     setError("");
     try {
-      const [eventData, lotData, orderData, peopleData, photoData, tagData, commentData, memoryData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
+      const [eventData, lotData, orderData, peopleData, photoData, tagData, commentData, memoryData, pollData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
         getEventSettings(),
         getTicketTypesAdmin(),
         getOrdersByStatus(),
@@ -2576,6 +2868,7 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
         getTagsForModeration(tagFilter),
         getPhotoCommentsForModeration(commentFilter),
         getMemoriesForModeration(memoryFilter),
+        getPolls(DEFAULT_EVENT_ID, true),
         getPendingClaims(),
         getPhotoRemovalRequests(),
         getProfileClaimDisputes(),
@@ -2590,6 +2883,7 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
       setTags(tagData);
       setComments(commentData);
       setMemories(memoryData);
+      setPolls(pollData);
       setClaims(claimData);
       setRemovals(removalData);
       setDisputes(disputeData);
@@ -2668,6 +2962,28 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
         status: "draft",
       });
       setLotDraft({ name: "", price: "", quantity: "" });
+    });
+  }
+
+
+  async function createAdminPoll() {
+    if (!canManageEvent) return;
+    const options = pollDraft.optionsText.split("\n").map(o => o.trim()).filter(Boolean);
+    if (!pollDraft.question.trim() || options.length < 2) {
+      setError("Informe a pergunta e pelo menos duas opções.");
+      return;
+    }
+    await runAction("poll-create", async () => {
+      await createPoll({
+        eventId: event?.id ?? DEFAULT_EVENT_ID,
+        question: pollDraft.question,
+        description: pollDraft.description,
+        status: pollDraft.status,
+        allowMultipleVotes: pollDraft.allowMultiple,
+        options,
+        adminId: auth.userId,
+      });
+      setPollDraft({ question: "", description: "", optionsText: "", status: "open", allowMultiple: false });
     });
   }
 
@@ -2922,6 +3238,46 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
                   {memory.status !== "rejected" && <Btn size="sm" variant="danger" onClick={() => runAction("memory-reject", () => moderateMemory(memory.id, "rejected", auth.userId))}><X size={12} />Rejeitar</Btn>}
                   {memory.status !== "hidden" && <Btn size="sm" variant="ghost" onClick={() => runAction("memory-hide", () => moderateMemory(memory.id, "hidden", auth.userId))}>Ocultar</Btn>}
                   {memory.status === "approved" && <Btn size="sm" variant="outline" onClick={() => runAction("memory-feature", () => toggleFeaturedMemory(memory.id, !memory.is_featured, auth.userId))}><Star size={12} />{memory.is_featured ? "Remover destaque" : "Destacar"}</Btn>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {!loading && tab === "polls" && (!canManageEvent ? <PermissionState /> : (
+          <div className="flex flex-col gap-6">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Pergunta" value={pollDraft.question} onChange={v => setPollDraft(s => ({ ...s, question: v }))} />
+              <Field label="Descrição" value={pollDraft.description} onChange={v => setPollDraft(s => ({ ...s, description: v }))} />
+              <FieldArea label="Opções, uma por linha" value={pollDraft.optionsText} onChange={v => setPollDraft(s => ({ ...s, optionsText: v }))} rows={5} />
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Status inicial</label>
+                  <select value={pollDraft.status} onChange={e => setPollDraft(s => ({ ...s, status: e.target.value as PollStatus }))}
+                    className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                    {(["draft","open","closed","archived"] as PollStatus[]).map(status => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </div>
+                <label className="flex items-center gap-3 text-[#f0ebe0] text-sm">
+                  <input type="checkbox" checked={pollDraft.allowMultiple} onChange={e => setPollDraft(s => ({ ...s, allowMultiple: e.target.checked }))} className="accent-[#2d6a4f]" />
+                  Permitir múltiplos votos
+                </label>
+                <Btn onClick={createAdminPoll} disabled={busy === "poll-create"}><BarChart3 size={14} />Criar enquete</Btn>
+              </div>
+            </div>
+
+            {polls.length === 0 ? <EmptyState title="Nenhuma enquete cadastrada" /> : polls.map(poll => (
+              <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-5 flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-[#f0ebe0] font-semibold">{poll.question}</p>
+                  {poll.description && <p className="text-[#7a9a7a] text-sm mt-1">{poll.description}</p>}
+                  <p className="text-[#7a9a7a] font-mono text-xs mt-2">{poll.poll_options?.length ?? 0} opções · {poll.allow_multiple_votes ? "múltiplos votos" : "voto único"}</p>
+                </div>
+                <StatusBadge status={poll.status} />
+                <div className="flex flex-wrap gap-2">
+                  {poll.status !== "open" && <Btn size="sm" onClick={() => runAction("poll-open", () => updatePoll(poll.id, { status: "open" }, auth.userId))}>Abrir</Btn>}
+                  {poll.status !== "closed" && <Btn size="sm" variant="outline" onClick={() => runAction("poll-close", () => closePoll(poll.id, auth.userId))}>Encerrar</Btn>}
+                  {poll.status !== "archived" && <Btn size="sm" variant="ghost" onClick={() => runAction("poll-archive", () => archivePoll(poll.id, auth.userId))}>Arquivar</Btn>}
                 </div>
               </div>
             ))}
@@ -3372,6 +3728,9 @@ export default function App() {
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
+        {page === "polls"         && <PollsPage          navigate={navigate} auth={auth}                              />}
+        {page === "where-now"     && <WhereNowPage       navigate={navigate}                                         />}
+        {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && <AdminPage          navigate={navigate} auth={auth}                           />}
