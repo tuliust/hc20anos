@@ -60,5 +60,6 @@ Admin expandido:
 
 ## Observações
 
+- O convite compartilhável usa Web Share API quando disponível e fallback para compartilhamento por texto.
 - O mapa da turma usa apenas dados de perfis com `show_city=true`.
 - Não foram adicionadas dependências pesadas para geração de imagem.
