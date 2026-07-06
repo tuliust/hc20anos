@@ -1,7 +1,21 @@
 # Fase 2 — interações
 
-Este documento registra a implementação incremental da Fase 2 do projeto **Turma 2006 — 20 anos depois**.
+Estado atual:
 
-## Estado atual
+- curtidas
+- comentários
+- memórias
+- enquetes
+- mapa da turma
+- convite compartilhável
 
-Prompt 4 em preparação.
+Migrations:
+
+- 20260705000005_phase2_interactions.sql
+- 20260705000006_polls_where_archive.sql
+
+Arquivos principais:
+
+- src/app/App.tsx
+- src/lib/services.ts
+- src/lib/database.types.ts
