@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { DEV_MODE, supabase } from "../lib/supabase";
 import {
-  getPeople, getTicketTypes, isUserAdmin, writeAudit, MOCK_PEOPLE,
+  getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
   getTicketTypesAdmin, updateTicketTypeStatus, updateTicketTypeFull, createTicketType,
   getEventSettings, updateEventSettings,
   getReports, exportToCsv, exportPeopleCSV, exportOrdersCSV, exportTicketsCSV,
   getAdminUsers, addAdminUser, updateAdminRole, removeAdminUser,
-  getAuditLogs, getPendingPhotos, moderatePhoto,
+  getAuditLogs, getApprovedPhotos, getPendingPhotos, moderatePhoto, uploadPhoto,
   getTagsForModeration, moderateTag,
   getPendingClaims, moderateClaim,
   getPhotoRemovalRequests, reviewPhotoRemovalRequest, createPhotoRemovalRequest,
@@ -14,8 +14,8 @@ import {
   createFullProfileClaim,
 } from "../lib/services";
 import type {
-  DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog,
-  DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
+  DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
+  DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -45,6 +45,8 @@ interface AuthState {
   isAdmin: boolean;
   name: string;
   userId: string;
+  email?: string;
+  role?: AdminRole | null;
 }
 
 interface Alumni {
@@ -80,6 +82,7 @@ interface TagModItem {
 // ─── DATA ──────────────────────────────────────────────────────────────────────
 
 const EVENT_DATE = new Date("2026-10-17T19:00:00-03:00");
+const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ALUMNI: Alumni[] = [
   { id: "1",  name: "Ana Paula Oliveira",  nickname: "Aninha",    sala: "A", city: "Natal, RN",          profession: "Médica",           status: "confirmed" },
@@ -215,8 +218,18 @@ function StatusBadge({ status }: { status: string }) {
     available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     pending:      { label: "Aguardando",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     approved:     { label: "Aprovado",         color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
+    rejected:     { label: "Rejeitado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    removed:      { label: "Removido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    paused:       { label: "Pausado",          color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    draft:        { label: "Rascunho",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    viewer:       { label: "Leitura",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    moderator:    { label: "Moderador",        color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
+    admin:        { label: "Admin",            color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
+    superadmin:   { label: "Superadmin",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    checkin_staff:{ label: "Check-in",         color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
     declined:     { label: "Recusado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     valid:        { label: "Válido",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     used:         { label: "Já utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
@@ -322,6 +335,26 @@ function LoadingState({ message = "Carregando..." }: { message?: string }) {
   );
 }
 
+function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+      <AlertCircle size={36} className="text-[#e74c3c]" />
+      <p className="text-[#e74c3c] font-mono text-sm">{message}</p>
+      {onRetry && <Btn size="sm" variant="ghost" onClick={onRetry}><RefreshCw size={14} />Tentar novamente</Btn>}
+    </div>
+  );
+}
+
+function PermissionState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+      <Lock size={36} className="text-[#c9a84c]" />
+      <p className="text-[#c9a84c] font-mono text-sm uppercase tracking-wider">Sem permissao para esta acao</p>
+      <p className="text-[#7a9a7a] text-xs">Solicite acesso a um superadmin.</p>
+    </div>
+  );
+}
+
 function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = "Confirmar", danger = false }: {
   open: boolean; onClose: () => void; onConfirm: () => void;
   title: string; message: string; confirmLabel?: string; danger?: boolean;
@@ -406,33 +439,50 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
   open: boolean; onClose: () => void; auth: AuthState; navigate: (p: Page) => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [year, setYear] = useState("2005");
   const [location, setLocation] = useState("");
   const [tagSearch, setTagSearch] = useState("");
-  const [tagged, setTagged] = useState<string[]>([]);
+  const [tagged, setTagged] = useState<DbPerson[]>([]);
   const [authorized, setAuthorized] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  const tagResults = ALUMNI.filter(a =>
-    a.name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1 && !tagged.includes(a.name)
+  const tagResults = MOCK_PEOPLE.filter(a =>
+    a.full_name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1 && !tagged.some(t => t.id === a.id)
   ).slice(0, 5);
 
   function reset() {
-    setPreview(null); setCaption(""); setYear("2005"); setLocation("");
+    setPreview(null); setFile(null); setCaption(""); setYear("2005"); setLocation("");
     setTagSearch(""); setTagged([]); setAuthorized(false);
     setSubmitted(false); setLoading(false); setUploadError("");
   }
 
-  function submit() {
-    if (!preview)    { setUploadError("Selecione uma foto antes de enviar."); return; }
+  async function submit() {
+    if (!file)       { setUploadError("Selecione uma foto antes de enviar."); return; }
     if (!caption)    { setUploadError("Adicione uma legenda para a foto."); return; }
     if (!authorized) { setUploadError("Confirme que você tem o direito de compartilhar esta imagem."); return; }
     setUploadError("");
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSubmitted(true); }, 1800);
+    try {
+      await uploadPhoto({
+        file,
+        userId: auth.userId,
+        userName: auth.name,
+        caption,
+        yearApprox: Number(year),
+        locationText: location,
+        eventId: DEFAULT_EVENT_ID,
+        tags: tagged.map(person => ({ personId: person.id, name: person.full_name })),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erro ao enviar foto.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleClose() { reset(); onClose(); }
@@ -475,7 +525,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
             {preview ? (
               <div className="relative group">
                 <img src={preview} alt="Preview" className="w-full aspect-[4/3] object-cover" />
-                <button onClick={() => setPreview(null)}
+                <button onClick={() => { setPreview(null); setFile(null); }}
                   className="absolute top-3 right-3 bg-[#0a120a]/80 text-[#f0ebe0] p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={16} />
                 </button>
@@ -484,16 +534,18 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => setPreview("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=600&h=450&fit=crop&auto=format")}
+              <label
                 className="w-full aspect-[4/3] border-2 border-dashed border-[#2d6a4f]/40 bg-[#0a120a] flex flex-col items-center justify-center gap-3 hover:border-[#2d6a4f]/70 transition-colors cursor-pointer">
+                <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" className="sr-only"
+                  onChange={e => {
+                    const selected = e.target.files?.[0] ?? null;
+                    setFile(selected);
+                    setPreview(selected ? URL.createObjectURL(selected) : null);
+                  }} />
                 <Upload size={32} className="text-[#3a5a3a]" />
                 <p className="text-[#7a9a7a] text-sm">Clique para selecionar a foto</p>
-                <p className="text-[#3a5a3a] text-xs font-mono">JPG, PNG ou HEIC · máx 10 MB</p>
-                <span className="text-[#2d6a4f] text-[10px] font-mono border border-[#2d6a4f]/40 px-3 py-1 mt-1 uppercase tracking-wider">
-                  Protótipo — clique para foto de exemplo
-                </span>
-              </button>
+                <p className="text-[#3a5a3a] text-xs font-mono">JPG, PNG ou HEIC · max 10 MB</p>
+              </label>
             )}
           </div>
 
@@ -516,9 +568,9 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
             {tagged.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {tagged.map(p => (
-                  <span key={p} className="flex items-center gap-2 bg-[#2d6a4f]/30 border border-[#2d6a4f]/40 text-[#f0ebe0] text-xs px-3 py-1.5 font-mono">
-                    {p.split(" ")[0]}
-                    <button onClick={() => setTagged(t => t.filter(x => x !== p))} className="text-[#7a9a7a] hover:text-[#f0ebe0]">
+                  <span key={p.id} className="flex items-center gap-2 bg-[#2d6a4f]/30 border border-[#2d6a4f]/40 text-[#f0ebe0] text-xs px-3 py-1.5 font-mono">
+                    {p.full_name.split(" ")[0]}
+                    <button onClick={() => setTagged(t => t.filter(x => x.id !== p.id))} className="text-[#7a9a7a] hover:text-[#f0ebe0]">
                       <X size={12} />
                     </button>
                   </span>
@@ -533,13 +585,13 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
             {tagResults.length > 0 && (
               <div className="border border-[#2d6a4f]/20 bg-[#0a120a] mt-1">
                 {tagResults.map(a => (
-                  <button key={a.id} onClick={() => { setTagged(t => [...t, a.name]); setTagSearch(""); }}
+                  <button key={a.id} onClick={() => { setTagged(t => [...t, a]); setTagSearch(""); }}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#141f14] text-left border-b border-[#2d6a4f]/10 last:border-0">
                     <div className="w-7 h-7 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] text-xs font-mono font-bold shrink-0">
-                      {initials(a.name)}
+                      {initials(a.full_name)}
                     </div>
-                    <span className="text-[#f0ebe0] text-sm">{a.name}</span>
-                    {a.nickname && <span className="text-[#c9a84c] text-xs font-mono ml-auto">&ldquo;{a.nickname}&rdquo;</span>}
+                    <span className="text-[#f0ebe0] text-sm">{a.full_name}</span>
+                    {a.nickname_at_school && <span className="text-[#c9a84c] text-xs font-mono ml-auto">&ldquo;{a.nickname_at_school}&rdquo;</span>}
                   </button>
                 ))}
               </div>
@@ -693,7 +745,7 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
 
 function LoginPage({ navigate, onLogin }: {
   navigate: (p: Page) => void;
-  onLogin: (isAdmin: boolean, name: string) => void;
+  onLogin: (auth: AuthState) => void;
 }) {
   const [mode, setMode] = useState<"alumni" | "admin">("alumni");
   const [email, setEmail]       = useState("");
@@ -713,29 +765,37 @@ function LoginPage({ navigate, onLogin }: {
         const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password: adminCode });
         if (authErr || !data.user) {
           // Fallback demo: código ADMIN2026 (desenvolvimento)
-          if (adminCode.trim().toUpperCase() === "ADMIN2026") {
-            onLogin(true, "Organização");
+          if (DEV_MODE && adminCode.trim().toUpperCase() === "ADMIN2026") {
+            onLogin({ loggedIn: true, isAdmin: true, name: "Organizacao", userId: "dev-admin", email, role: "superadmin" });
           } else {
-            setError("Credenciais inválidas. Em dev, use código ADMIN2026.");
+            setError("Credenciais invalidas.");
           }
           setLoading(false); return;
         }
-        const admin = await isUserAdmin(data.user.id);
-        if (!admin) { setError("Esta conta não tem permissão de admin."); await supabase.auth.signOut(); setLoading(false); return; }
-        onLogin(true, data.user.user_metadata?.full_name ?? data.user.email ?? "Admin");
+        const admin = await getCurrentAdminUser(data.user.id);
+        if (!admin) { setError("Esta conta nao tem permissao de admin."); await supabase.auth.signOut(); setLoading(false); return; }
+        onLogin({
+          loggedIn: true,
+          isAdmin: true,
+          name: data.user.user_metadata?.full_name ?? admin.display_name ?? data.user.email ?? "Admin",
+          userId: data.user.id,
+          email: data.user.email ?? admin.email ?? undefined,
+          role: admin.role,
+        });
       } else {
         if (!email.includes("@")) { setError("Informe um e-mail válido."); setLoading(false); return; }
         if (password.length < 4)  { setError("Senha muito curta. Use ao menos 4 caracteres."); setLoading(false); return; }
         const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
         if (authErr || !data.user) {
           // Fallback demo: qualquer e-mail + senha válida
+          if (!DEV_MODE) { setError("Credenciais invalidas."); setLoading(false); return; }
           const prefix = email.split("@")[0].split(".")[0].toLowerCase();
           const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
-          onLogin(false, match?.full_name || "Ana Paula Oliveira");
+          onLogin({ loggedIn: true, isAdmin: false, name: match?.full_name || "Ana Paula Oliveira", userId: "dev-user", email, role: null });
           setLoading(false); return;
         }
         const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
-        onLogin(false, displayName);
+        onLogin({ loggedIn: true, isAdmin: false, name: displayName, userId: data.user.id, email: data.user.email, role: null });
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -1527,15 +1587,65 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   const [answers, setAnswers]   = useState<Record<string, string>>({});
   const [claimResult, setClaimResult] = useState<"approved" | "rejected" | null>(null);
   const [loading, setLoading]   = useState(false);
+  const [claimEmail, setClaimEmail] = useState(auth.email ?? "");
+  const [claimPhone, setClaimPhone] = useState("");
+  const [claimError, setClaimError] = useState("");
 
   const results = people
     .filter(a => a.full_name.toLowerCase().includes(search.toLowerCase()) && search.length > 1)
     .map(personToAlumni);
   const alreadyClaimed = selected && (selected.status === "claimed" || selected.status === "confirmed");
 
-  function submitAnswers(result: "approved" | "rejected") {
+  async function submitAnswers(result: "approved" | "rejected") {
     setLoading(true);
-    setTimeout(() => { setLoading(false); setClaimResult(result); setStep(7); }, 1400);
+    setClaimError("");
+    try {
+      if (!selected) throw new Error("Selecione um perfil.");
+      if (!claimEmail.includes("@")) throw new Error("Informe um e-mail valido.");
+      const scoreAnswers = CONFIRM_QUESTIONS.map(q => ({
+        key: q.id,
+        text: answers[q.id] ?? "",
+        score: answers[q.id] && answers[q.id] !== "Não me lembro" ? 1 : 0,
+      }));
+      await createFullProfileClaim({
+        personId: selected.id,
+        userId: auth.loggedIn ? auth.userId : null,
+        name: selected.name,
+        email: claimEmail,
+        phone: claimPhone,
+        answers: scoreAnswers,
+      });
+      setClaimResult(result);
+      setStep(7);
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Erro ao enviar reivindicacao.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitDispute() {
+    if (!selected) return;
+    setLoading(true);
+    setClaimError("");
+    try {
+      await createProfileClaimDispute({
+        personId: selected.id,
+        userId: auth.loggedIn ? auth.userId : "",
+        currentClaimantUserId: null,
+        requesterName: auth.name || selected.name,
+        requesterEmail: auth.email ?? claimEmail,
+        requesterPhone: claimPhone,
+        reason: "Solicitacao de disputa aberta pelo fluxo de reivindicacao.",
+        evidenceText: "Usuario informa que o perfil reivindicado pertence a ele.",
+      });
+      setClaimResult("approved");
+      setStep(7);
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Erro ao abrir disputa.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const bars = 7;
@@ -1609,7 +1719,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             </div>
             <div className="flex flex-col gap-3">
               <Btn full onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Buscar outro nome</Btn>
-              <Btn full variant="ghost"><Mail size={16} />Abrir disputa de perfil</Btn>
+              <Btn full variant="ghost" onClick={submitDispute} disabled={loading}><Mail size={16} />Abrir disputa de perfil</Btn>
             </div>
           </div>
         )}
@@ -1639,8 +1749,8 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         {step === 3 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
             <p className="text-[#f0ebe0] font-semibold">Informe seus contatos para verificação</p>
-            <Field label="E-mail" type="email" placeholder="seu@email.com" icon={<Mail size={16} />} />
-            <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" icon={<Phone size={16} />}
+            <Field label="E-mail" type="email" placeholder="seu@email.com" value={claimEmail} onChange={setClaimEmail} icon={<Mail size={16} />} />
+            <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={claimPhone} onChange={setClaimPhone} icon={<Phone size={16} />}
               hint="Enviaremos um código de verificação via SMS ou WhatsApp" />
             <Btn full onClick={() => setStep(4)}>Enviar código de verificação <ArrowRight size={16} /></Btn>
           </div>
@@ -1665,6 +1775,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         {/* Step 5 — Confirmation questions */}
         {step === 5 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6">
+            {claimError && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{claimError}</p>}
             <div>
               <p className="text-[#f0ebe0] font-semibold mb-1">Perguntas de confirmação</p>
               <p className="text-[#7a9a7a] text-sm">Para garantir sua identidade, responda às perguntas sobre o HC. Apenas ex-alunos saberão as respostas.</p>
@@ -1744,7 +1855,9 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
 
 // ─── PHOTO WALL ───────────────────────────────────────────────────────────────
 
-function PhotoWallPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
+  navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; onSelectPhoto: (id: string) => void;
+}) {
   const [filter, setFilter]       = useState("all");
   const [uploadOpen, setUploadOpen] = useState(false);
   const years = ["all","2004","2005","2006"];
@@ -1758,7 +1871,7 @@ function PhotoWallPage({ navigate, auth }: { navigate: (p: Page) => void; auth: 
             <div>
               <SectionLabel>Mural de Memórias</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Fotos da Época</DisplayTitle>
-              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{PHOTOS.length} fotos · mais sendo adicionadas</p>
+              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · mais sendo adicionadas</p>
             </div>
             <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto antiga</Btn>
           </div>
@@ -1771,20 +1884,16 @@ function PhotoWallPage({ navigate, auth }: { navigate: (p: Page) => void; auth: 
             ))}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {PHOTOS.filter(p => filter === "all" || p.year === filter).map(p => (
-              <div key={p.id} onClick={() => navigate("photo-detail")}
+            {photos.length === 0 && <EmptyState title="Nenhuma foto aprovada" subtitle="As fotos enviadas aparecem aqui apos moderacao." />}
+            {photos.filter(p => filter === "all" || String(p.year_approx) === filter).map(p => (
+              <div key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }}
                 className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-                <img src={p.url} alt={p.caption} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                   <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
-                  <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location}</p>
-                  <div className="flex gap-1 mt-2 flex-wrap">
-                    {p.people.slice(0,2).map(person => (
-                      <span key={person} className="bg-[#2d6a4f]/80 text-[#f0ebe0] text-[9px] font-mono px-2 py-0.5">{person.split(" ")[0]}</span>
-                    ))}
-                  </div>
+                  <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location_text}</p>
                 </div>
-                <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year}</div>
+                <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
               </div>
             ))}
           </div>
@@ -1802,13 +1911,69 @@ function PhotoWallPage({ navigate, auth }: { navigate: (p: Page) => void; auth: 
 
 // ─── PHOTO DETAIL ─────────────────────────────────────────────────────────────
 
-function PhotoDetailPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
-  const photo = PHOTOS[0];
+
+function PhotoDetailPage({ navigate, people, auth, photo }: {
+  navigate: (p: Page) => void; people: DbPerson[]; auth: AuthState; photo: DbPhoto | null;
+}) {
   const [tagSearch, setTagSearch] = useState("");
-  const [tagged, setTagged]       = useState<string[]>(photo.people);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [removalReason, setRemovalReason] = useState("");
+  const [showRemoval, setShowRemoval] = useState(false);
   const tagResults = people.filter(a =>
-    a.full_name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1 && !tagged.includes(a.full_name)
-  ).map(personToAlumni);
+    a.full_name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1
+  ).slice(0, 4);
+
+  async function addTag(person: DbPerson) {
+    if (!photo || !auth.loggedIn) { setError("Faca login para marcar pessoas."); return; }
+    setError(""); setMessage("");
+    try {
+      await supabase.from("photo_tags").insert({
+        photo_id: photo.id,
+        person_id: person.id,
+        tagged_name_snapshot: person.full_name,
+        status: "pending",
+        created_by_user_id: auth.userId,
+      });
+      await writeAudit("create_photo_tag", "photo_tags", null, { photo_id: photo.id, person_id: person.id });
+      setMessage("Marcacao enviada para moderacao.");
+      setTagSearch("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar marcacao.");
+    }
+  }
+
+  async function requestRemoval() {
+    if (!photo || !auth.loggedIn) { setError("Faca login para solicitar remocao."); return; }
+    if (!removalReason.trim()) { setError("Informe o motivo da remocao."); return; }
+    setError(""); setMessage("");
+    try {
+      await createPhotoRemovalRequest({
+        photoId: photo.id,
+        userId: auth.userId,
+        requesterName: auth.name,
+        requesterEmail: auth.email ?? "",
+        reason: removalReason,
+      });
+      setMessage("Solicitacao de remocao enviada.");
+      setShowRemoval(false);
+      setRemovalReason("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao solicitar remocao.");
+    }
+  }
+
+  if (!photo) {
+    return (
+      <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
+        <div className="max-w-5xl mx-auto px-4">
+          <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
+          <EmptyState title="Foto nao encontrada" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
@@ -1818,52 +1983,49 @@ function PhotoDetailPage({ navigate, people }: { navigate: (p: Page) => void; pe
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <div className="relative overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-              <img src={photo.url} alt={photo.caption} className="w-full h-full object-cover" />
-              <div className="absolute top-4 left-4 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[10px] uppercase tracking-wider px-3 py-1.5">{photo.year}</div>
+              <img src={photo.image_url} alt={photo.caption ?? "Foto"} className="w-full h-full object-cover" />
+              <div className="absolute top-4 left-4 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[10px] uppercase tracking-wider px-3 py-1.5">{photo.year_approx}</div>
             </div>
           </div>
           <div className="flex flex-col gap-5">
             <div>
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{photo.year} · {photo.location}</p>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{photo.year_approx} · {photo.location_text}</p>
               <DisplayTitle className="text-2xl md:text-3xl mb-2">{photo.caption}</DisplayTitle>
-              <p className="text-[#7a9a7a] text-sm flex items-center gap-2"><MapPin size={14} />{photo.location}</p>
+              <p className="text-[#7a9a7a] text-sm flex items-center gap-2"><MapPin size={14} />{photo.location_text}</p>
             </div>
+            {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
+            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
             <div className="border-t border-[#2d6a4f]/20 pt-4">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Na foto</p>
-              <div className="flex flex-col gap-2">
-                {tagged.map(person => (
-                  <div key={person} className="flex items-center justify-between p-3 bg-[#141f14] border border-[#2d6a4f]/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold text-xs font-mono">{initials(person)}</div>
-                      <span className="text-[#f0ebe0] text-sm">{person}</span>
-                    </div>
-                    <button onClick={() => setTagged(t => t.filter(x => x !== person))}
-                      className="text-[#7a9a7a] text-xs hover:text-[#e74c3c] transition-colors font-mono">
-                      Remover
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Marcar pessoas</p>
               <div className="relative mt-3">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input placeholder="Marcar alguém da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
+                <input placeholder="Marcar alguem da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
                   className="w-full bg-[#141f14] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
               </div>
               {tagResults.length > 0 && (
                 <div className="border border-[#2d6a4f]/20 bg-[#0a120a] mt-1">
-                  {tagResults.slice(0,4).map(a => (
-                    <button key={a.id} onClick={() => { setTagged(t => [...t, a.name]); setTagSearch(""); }}
+                  {tagResults.map(a => (
+                    <button key={a.id} onClick={() => addTag(a)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#141f14] text-left border-b border-[#2d6a4f]/10 last:border-0">
-                      <div className="w-7 h-7 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] text-xs font-mono font-bold shrink-0">{initials(a.name)}</div>
-                      <span className="text-[#f0ebe0] text-sm">{a.name}</span>
+                      <div className="w-7 h-7 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] text-xs font-mono font-bold shrink-0">{initials(a.full_name)}</div>
+                      <span className="text-[#f0ebe0] text-sm">{a.full_name}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
+            {showRemoval && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-4">
+                <FieldArea label="Motivo da remocao" value={removalReason} onChange={setRemovalReason} />
+                <div className="flex gap-2 mt-3">
+                  <Btn size="sm" onClick={requestRemoval}>Enviar solicitacao</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => setShowRemoval(false)}>Cancelar</Btn>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
-              <Btn full><Download size={16} />Baixar foto</Btn>
-              <Btn full variant="ghost"><AlertCircle size={16} />Solicitar remoção da foto</Btn>
+              <Btn full onClick={() => window.open(photo.image_url, "_blank")}><Download size={16} />Baixar foto</Btn>
+              <Btn full variant="ghost" onClick={() => setShowRemoval(true)}><AlertCircle size={16} />Solicitar remocao da foto</Btn>
             </div>
           </div>
         </div>
@@ -2023,89 +2185,266 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 
+
+function AdminReviewList<T>({ title, items, getTitle, getSubtitle, getStatus, onApprove, onReject }: {
+  title: string;
+  items: T[];
+  getTitle: (item: T) => string;
+  getSubtitle: (item: T) => string;
+  getStatus: (item: T) => string;
+  onApprove: (item: T) => void;
+  onReject: (item: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{title}</p>
+      {items.length === 0 ? <EmptyState title="Nenhum item encontrado" /> : items.map((item, index) => (
+        <div key={index} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <p className="text-[#f0ebe0] font-semibold text-sm">{getTitle(item)}</p>
+            <p className="text-[#7a9a7a] text-xs">{getSubtitle(item)}</p>
+          </div>
+          <StatusBadge status={getStatus(item)} />
+          <div className="flex gap-2">
+            <Btn size="sm" onClick={() => onApprove(item)}><Check size={12} />Aprovar</Btn>
+            <Btn size="sm" variant="danger" onClick={() => onReject(item)}><X size={12} />Rejeitar</Btn>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdminTable({ admins, currentUserId, onRole, onRemove }: {
+  admins: DbAdminUser[];
+  currentUserId: string;
+  onRole: (id: string, role: AdminRole) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      {admins.length === 0 ? <EmptyState title="Nenhum administrador cadastrado" /> : (
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[#2d6a4f]/20">
+              {["Nome","E-mail","Role","Acoes"].map(h => <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {admins.map(admin => (
+              <tr key={admin.id} className="border-b border-[#2d6a4f]/10">
+                <td className="py-4 px-4 text-[#f0ebe0] text-sm">{admin.display_name ?? admin.user_id}</td>
+                <td className="py-4 px-4 text-[#7a9a7a] text-sm">{admin.email ?? "-"}</td>
+                <td className="py-4 px-4"><StatusBadge status={admin.role} /></td>
+                <td className="py-4 px-4">
+                  <div className="flex flex-wrap gap-2">
+                    <select value={admin.role} onChange={e => onRole(admin.id, e.target.value as AdminRole)}
+                      className="bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-2 px-3 text-xs">
+                      {(["viewer","checkin_staff","moderator","admin","superadmin"] as AdminRole[]).map(role => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                    {admin.user_id !== currentUserId && <Btn size="sm" variant="danger" onClick={() => onRemove(admin.id)}>Remover</Btn>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [tab, setTab]           = useState("dashboard");
-  const [lots, setLots]         = useState<Lot[]>(LOTS_INIT);
-  const [tagMods, setTagMods]   = useState<TagModItem[]>(TAG_MODS_INIT);
+  const [tab, setTab] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [event, setEvent] = useState<DbEvent | null>(null);
+  const [lots, setLots] = useState<DbTicketType[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [peopleRows, setPeopleRows] = useState<DbPerson[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<DbPhoto[]>([]);
+  const [tags, setTags] = useState<(DbPhotoTag & { photos: Pick<DbPhoto, "image_url" | "caption"> | null })[]>([]);
+  const [claims, setClaims] = useState<(DbProfileClaim & { people: Pick<DbPerson, "full_name" | "nickname_at_school" | "class_group"> | null })[]>([]);
+  const [removals, setRemovals] = useState<(DbPhotoRemovalRequest & { photos?: Partial<DbPhoto> })[]>([]);
+  const [disputes, setDisputes] = useState<(DbProfileClaimDispute & { people?: Partial<DbPerson> })[]>([]);
+  const [admins, setAdmins] = useState<DbAdminUser[]>([]);
+  const [auditLogs, setAuditLogs] = useState<DbAuditLog[]>([]);
+  const [reports, setReports] = useState<Record<string, number>>({});
   const [tagFilter, setTagFilter] = useState<"pending"|"approved"|"rejected">("pending");
-  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ userId: "", displayName: "", email: "", role: "viewer" as AdminRole });
+  const [lotDraft, setLotDraft] = useState({ name: "", price: "", quantity: "" });
   const [settings, setSettings] = useState({
-    name: "Turma 2006 — 20 anos depois",
-    date: "2026-10-17", time: "19:00",
-    venue: "Espaço Cultural Ponta Negra",
-    address: "Av. Engenheiro Roberto Freire, Ponta Negra — Natal, RN",
-    salesStatus: "open",
-    contactEmail: "turma2006.hc@gmail.com",
-    contactPhone: "(84) 99999-0206",
-    description: "Reencontro dos ex-alunos do Colégio Henrique Castriciano formados em 2006.",
-    rules: "Ingresso nominal e intransferível. Obrigatório documento com foto.",
-    companionPolicy: "Acompanhantes permitidos com ingresso casal ou mesa VIP.",
-    refundPolicy: "Sem reembolso após confirmação, exceto cancelamento do evento.",
+    name: "", date: "", time: "", venue: "", address: "", salesStatus: "closed",
+    contactEmail: "", contactPhone: "", description: "", rules: "", companionPolicy: "", refundPolicy: "",
   });
 
+  const role = auth.role ?? "viewer";
+  const canManageEvent = role === "superadmin" || role === "admin";
+  const canManageAdmins = role === "superadmin";
+  const canModerate = role === "superadmin" || role === "admin" || role === "moderator";
+  const canCheckin = role === "superadmin" || role === "admin" || role === "checkin_staff";
+  const canExport = role !== "viewer";
+
   const tabs = [
-    { id:"dashboard",  label:"Dashboard",   icon:<BarChart3 size={13} />  },
-    { id:"orders",     label:"Pedidos",      icon:<Ticket    size={13} />  },
-    { id:"lots",       label:"Lotes",        icon:<Package   size={13} />  },
-    { id:"participants",label:"Participantes",icon:<Users    size={13} />  },
-    { id:"photos",     label:"Fotos",        icon:<Camera    size={13} />  },
-    { id:"tag-mod",    label:"Marcações",    icon:<Tag       size={13} />  },
-    { id:"profiles",   label:"Perfis",       icon:<UserCheck size={13} />  },
-    { id:"settings",   label:"Config.",      icon:<Settings  size={13} />  },
+    { id:"dashboard", label:"Dashboard", icon:<BarChart3 size={13} /> },
+    { id:"orders", label:"Pedidos", icon:<Ticket size={13} /> },
+    { id:"lots", label:"Lotes", icon:<Package size={13} />, disabled: !canManageEvent },
+    { id:"reports", label:"Relatorios", icon:<Download size={13} /> },
+    { id:"participants", label:"Participantes", icon:<Users size={13} /> },
+    { id:"photos", label:"Fotos", icon:<Camera size={13} />, disabled: !canModerate },
+    { id:"tag-mod", label:"Marcacoes", icon:<Tag size={13} />, disabled: !canModerate },
+    { id:"claims", label:"Perfis", icon:<UserCheck size={13} />, disabled: !canModerate },
+    { id:"removals", label:"Remocoes", icon:<AlertCircle size={13} />, disabled: !canModerate },
+    { id:"disputes", label:"Disputas", icon:<Shield size={13} />, disabled: !canModerate },
+    { id:"admins", label:"Admins", icon:<Key size={13} />, disabled: !canManageAdmins },
+    { id:"audit", label:"Auditoria", icon:<FileText size={13} /> },
+    { id:"settings", label:"Config.", icon:<Settings size={13} />, disabled: !canManageEvent },
   ];
 
-  const orders = [
-    { id:"HC2006-0042", name:"Ana Paula Oliveira", type:"Individual", value:120, status:"approved"  },
-    { id:"HC2006-0041", name:"Bruno Cavalcanti",   type:"Casal",      value:200, status:"approved"  },
-    { id:"HC2006-0040", name:"Carla Medeiros",     type:"Individual", value:120, status:"pending"   },
-    { id:"HC2006-0039", name:"Felipe Araújo",      type:"Individual", value:120, status:"approved"  },
-    { id:"HC2006-0038", name:"Gabriela Santos",    type:"Casal",      value:200, status:"declined"  },
-    { id:"HC2006-0037", name:"Henrique Costa",     type:"Individual", value:120, status:"cancelled" },
-  ];
-
-  function toggleLot(id: string) {
-    setLots(ls => ls.map(l => l.id !== id ? l : { ...l, status: l.status === "open" ? "closed" : l.status === "closed" ? "open" : l.status }));
+  async function loadAdminData() {
+    setLoading(true);
+    setError("");
+    try {
+      const [eventData, lotData, orderData, peopleData, photoData, tagData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
+        getEventSettings(),
+        getTicketTypesAdmin(),
+        getOrdersByStatus(),
+        getPeople(),
+        getPendingPhotos(),
+        getTagsForModeration(tagFilter),
+        getPendingClaims(),
+        getPhotoRemovalRequests(),
+        getProfileClaimDisputes(),
+        getAdminUsers(),
+        getAuditLogs(80),
+      ]);
+      setEvent(eventData);
+      setLots(lotData);
+      setOrders(orderData);
+      setPeopleRows(peopleData);
+      setPendingPhotos(photoData);
+      setTags(tagData);
+      setClaims(claimData);
+      setRemovals(removalData);
+      setDisputes(disputeData);
+      setAdmins(adminData);
+      setAuditLogs(auditData);
+      if (eventData) {
+        setSettings({
+          name: eventData.title,
+          date: eventData.event_date,
+          time: eventData.event_time?.slice(0, 5) ?? "19:00",
+          venue: eventData.location_name,
+          address: eventData.location_address ?? "",
+          salesStatus: eventData.sales_status,
+          contactEmail: eventData.contact_email ?? "",
+          contactPhone: eventData.contact_whatsapp ?? "",
+          description: eventData.description ?? "",
+          rules: eventData.general_rules ?? "",
+          companionPolicy: eventData.companion_policy ?? "",
+          refundPolicy: eventData.refund_policy ?? "",
+        });
+        setReports(await getReports(eventData.id));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar dados do admin.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function moderateTag(id: string, action: "approved"|"rejected") {
-    setTagMods(ms => ms.map(m => m.id !== id ? m : { ...m, modStatus: action }));
+  useEffect(() => { loadAdminData(); }, [tagFilter]);
+
+  async function runAction(label: string, action: () => Promise<void>) {
+    setBusy(label);
+    setError("");
+    try {
+      await action();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+      await loadAdminData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel concluir a acao.");
+    } finally {
+      setBusy("");
+    }
   }
 
-  function saveSettings() { setSettingsSaved(true); setTimeout(() => setSettingsSaved(false), 2500); }
+  async function saveSettings() {
+    if (!event || !canManageEvent) return;
+    await runAction("settings", () => updateEventSettings(event.id, {
+      title: settings.name,
+      event_date: settings.date,
+      event_time: settings.time,
+      location_name: settings.venue,
+      location_address: settings.address,
+      sales_status: settings.salesStatus as DbEvent["sales_status"],
+      contact_email: settings.contactEmail,
+      contact_whatsapp: settings.contactPhone,
+      description: settings.description,
+      general_rules: settings.rules,
+      companion_policy: settings.companionPolicy,
+      refund_policy: settings.refundPolicy,
+    }, auth.userId));
+  }
 
-  const visibleTags = tagMods.filter(t => t.modStatus === tagFilter);
+  async function createLot() {
+    if (!event || !canManageEvent) return;
+    await runAction("lot-create", async () => {
+      await createTicketType({
+        event_id: event.id,
+        name: lotDraft.name || "Novo lote",
+        description: "",
+        price_cents: Math.max(0, Math.round(Number(lotDraft.price || 0) * 100)),
+        available_quantity: Math.max(0, Number(lotDraft.quantity || 0)),
+        sold_quantity: 0,
+        allows_guest: false,
+        status: "draft",
+      });
+      setLotDraft({ name: "", price: "", quantity: "" });
+    });
+  }
+
+  if (!auth.isAdmin) return <PermissionState />;
 
   return (
     <div className="min-h-screen bg-[#080f08]">
-      {/* Admin top bar */}
       <div className="bg-[#080f08] border-b border-[#2d6a4f]/20 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={20} /></button>
           <div>
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold">Painel Admin</p>
-            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Turma 2006 — HC</p>
+            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Role: {role}</p>
           </div>
         </div>
-        <Btn size="sm" onClick={() => navigate("checkin")}><Scan size={14} />Check-in</Btn>
+        {canCheckin && <Btn size="sm" onClick={() => navigate("checkin")}><Scan size={14} />Check-in</Btn>}
       </div>
 
-      {/* Tabs */}
       <div className="flex overflow-x-auto border-b border-[#2d6a4f]/20 px-2">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-4 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+          <button key={t.id} disabled={t.disabled} onClick={() => !t.disabled && setTab(t.id)}
+            className={"flex items-center gap-1.5 px-4 py-4 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
             {t.icon}{t.label}
           </button>
         ))}
       </div>
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <SaveToast show={saved} />
+        {error && <ErrorState message={error} onRetry={loadAdminData} />}
+        {loading && <LoadingState message="Carregando painel..." />}
 
-        {/* ── DASHBOARD ── */}
-        {tab === "dashboard" && (
+        {!loading && tab === "dashboard" && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {([["61","Ingressos vendidos","+8 hoje"],["R$ 7.660","Receita total","Aprovado"],["4","Pagamentos pendentes","Expiram em 48h"],["0","Check-ins realizados","Evento: Out/26"]] as const).map(([val,label,delta]) => (
+              {([
+                [String(reports.tickets_sold ?? 0), "Ingressos vendidos", "Total"],
+                ["R$ " + ((reports.revenue_cents ?? 0) / 100).toFixed(2), "Receita total", "Aprovado"],
+                [String(reports.orders_pending ?? 0), "Pagamentos pendentes", "Aguardando"],
+                [String(reports.checkins_done ?? 0), "Check-ins realizados", "Evento"],
+              ] as const).map(([val,label,delta]) => (
                 <div key={label} className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
                   <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-3xl mb-1">{val}</p>
                   <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{label}</p>
@@ -2115,293 +2454,237 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
             </div>
             <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Ingressos por tipo</p>
-              {([["Individual",53,100,"#2d6a4f"],["Casal",42,50,"#40916c"],["Mesa VIP",20,20,"#c9a84c"]] as const).map(([label,sold,total,color]) => (
-                <div key={label} className="flex items-center gap-4 mb-3">
-                  <span className="text-[#7a9a7a] font-mono text-xs w-20">{label}</span>
+              {lots.length === 0 ? <EmptyState title="Nenhum lote encontrado" /> : lots.map((l, idx) => (
+                <div key={l.id} className="flex items-center gap-4 mb-3">
+                  <span className="text-[#7a9a7a] font-mono text-xs w-32 truncate">{l.name}</span>
                   <div className="flex-1 h-2 bg-[#1a2e1a]">
-                    <div className="h-full" style={{ width:`${(sold/total)*100}%`, background:color }} />
+                    <div className="h-full" style={{ width: String(l.available_quantity ? (l.sold_quantity/l.available_quantity)*100 : 0) + "%", background:["#2d6a4f","#40916c","#c9a84c"][idx % 3] }} />
                   </div>
-                  <span className="text-[#f0ebe0] font-mono text-xs">{sold}/{total}</span>
+                  <span className="text-[#f0ebe0] font-mono text-xs">{l.sold_quantity}/{l.available_quantity}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── ORDERS ── */}
-        {tab === "orders" && (
+        {!loading && tab === "orders" && (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#2d6a4f]/20">
-                  {["Código","Nome","Tipo","Valor","Status",""].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(o => (
+            <div className="flex gap-2 mb-4">
+              {canExport && <Btn size="sm" onClick={() => event && exportOrdersCSV(event.id)}><Download size={14} />CSV pedidos</Btn>}
+              {canExport && <Btn size="sm" variant="ghost" onClick={() => event && exportTicketsCSV(event.id)}><Download size={14} />CSV ingressos</Btn>}
+            </div>
+            {orders.length === 0 ? <EmptyState title="Nenhum pedido encontrado" /> : (
+              <table className="w-full">
+                <thead><tr className="border-b border-[#2d6a4f]/20">{["Codigo","Nome","Ingresso","Valor","Status"].map(h => <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>)}</tr></thead>
+                <tbody>{orders.map(o => (
                   <tr key={o.id} className="border-b border-[#2d6a4f]/10 hover:bg-[#141f14] transition-colors">
                     <td className="py-4 px-4 text-[#c9a84c] font-['JetBrains_Mono'] text-xs">{o.id}</td>
-                    <td className="py-4 px-4 text-[#f0ebe0] text-sm">{o.name}</td>
-                    <td className="py-4 px-4 text-[#7a9a7a] text-sm">{o.type}</td>
-                    <td className="py-4 px-4 text-[#f0ebe0] font-mono text-sm">R$ {o.value}</td>
-                    <td className="py-4 px-4"><StatusBadge status={o.status} /></td>
-                    <td className="py-4 px-4"><button className="text-[#2d6a4f] hover:text-[#40916c] font-mono text-xs uppercase">Ver</button></td>
+                    <td className="py-4 px-4 text-[#f0ebe0] text-sm">{o.buyer_name}</td>
+                    <td className="py-4 px-4 text-[#7a9a7a] text-sm">{o.ticket_type_id}</td>
+                    <td className="py-4 px-4 text-[#f0ebe0] font-mono text-sm">R$ {(o.total_amount_cents / 100).toFixed(2)}</td>
+                    <td className="py-4 px-4"><StatusBadge status={o.payment_status} /></td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                ))}</tbody>
+              </table>
+            )}
           </div>
         )}
 
-        {/* ── LOTS ── */}
-        {tab === "lots" && (
+        {!loading && tab === "lots" && (!canManageEvent ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Gestão de lotes e ingressos</p>
-              <Btn size="sm"><Package size={14} />Criar novo lote</Btn>
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Gestao de lotes e ingressos</p>
+              <Btn size="sm" onClick={createLot} disabled={busy === "lot-create"}><Package size={14} />Criar novo lote</Btn>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-[#141f14] border border-[#2d6a4f]/25 p-4">
+              <Field label="Nome" value={lotDraft.name} onChange={v => setLotDraft(s => ({ ...s, name: v }))} />
+              <Field label="Preco (R$)" value={lotDraft.price} onChange={v => setLotDraft(s => ({ ...s, price: v }))} />
+              <Field label="Quantidade" value={lotDraft.quantity} onChange={v => setLotDraft(s => ({ ...s, quantity: v }))} />
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#2d6a4f]/20">
-                    {["Lote","Tipo","Preço","Total","Vendidos","Disponíveis","Status","Ações"].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {lots.map(l => (
+              {lots.length === 0 ? <EmptyState title="Nenhum lote cadastrado" /> : (
+                <table className="w-full">
+                  <thead><tr className="border-b border-[#2d6a4f]/20">{["Lote","Tipo","Preco","Total","Vendidos","Disponiveis","Status","Acoes"].map(h => <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider whitespace-nowrap">{h}</th>)}</tr></thead>
+                  <tbody>{lots.map(l => (
                     <tr key={l.id} className="border-b border-[#2d6a4f]/10 hover:bg-[#141f14] transition-colors">
-                      <td className="py-4 px-4 text-[#c9a84c] font-mono text-xs">{l.lot}</td>
-                      <td className="py-4 px-4 text-[#f0ebe0] text-sm">{l.type}</td>
-                      <td className="py-4 px-4 text-[#f0ebe0] font-['JetBrains_Mono'] text-sm">R$ {l.price}</td>
-                      <td className="py-4 px-4 text-[#7a9a7a] font-mono text-sm">{l.total}</td>
-                      <td className="py-4 px-4 text-[#7a9a7a] font-mono text-sm">{l.sold}</td>
-                      <td className="py-4 px-4">
-                        <span className={`font-mono text-sm ${l.total-l.sold === 0 ? "text-[#e74c3c]" : l.total-l.sold <= 10 ? "text-[#c9a84c]" : "text-[#74c69d]"}`}>
-                          {l.total - l.sold}
-                        </span>
-                      </td>
+                      <td className="py-4 px-4 text-[#c9a84c] font-mono text-xs">{l.name}</td>
+                      <td className="py-4 px-4 text-[#f0ebe0] text-sm">{l.allows_guest ? "Com acompanhante" : "Individual"}</td>
+                      <td className="py-4 px-4 text-[#f0ebe0] font-['JetBrains_Mono'] text-sm">R$ {(l.price_cents / 100).toFixed(2)}</td>
+                      <td className="py-4 px-4 text-[#7a9a7a] font-mono text-sm">{l.available_quantity}</td>
+                      <td className="py-4 px-4 text-[#7a9a7a] font-mono text-sm">{l.sold_quantity}</td>
+                      <td className="py-4 px-4 text-[#74c69d] font-mono text-sm">{l.available_quantity - l.sold_quantity}</td>
                       <td className="py-4 px-4"><StatusBadge status={l.status} /></td>
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
-                          {l.status !== "sold-out" && (
-                            <button onClick={() => toggleLot(l.id)}
-                              className={`flex items-center gap-1 text-xs font-mono uppercase tracking-wider border px-3 py-1.5 transition-colors ${l.status === "open" ? "border-[#c0392b]/40 text-[#e74c3c] hover:bg-[#c0392b]/10" : "border-[#2d6a4f]/40 text-[#74c69d] hover:bg-[#2d6a4f]/10"}`}>
+                          {l.status !== "sold_out" && (
+                            <button onClick={() => runAction("lot-status", () => updateTicketTypeStatus(l.id, l.status === "open" ? "closed" : "open", auth.userId))}
+                              className="flex items-center gap-1 text-xs font-mono uppercase tracking-wider border px-3 py-1.5 border-[#2d6a4f]/40 text-[#74c69d] hover:bg-[#2d6a4f]/10">
                               {l.status === "open" ? <><ToggleRight size={12} />Fechar</> : <><ToggleLeft size={12} />Abrir</>}
                             </button>
                           )}
-                          <button className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors p-1"><Pencil size={14} /></button>
+                          <button onClick={() => runAction("lot-edit", () => updateTicketTypeFull(l.id, { allows_guest: !l.allows_guest }, auth.userId))} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors p-1"><Pencil size={14} /></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  ))}</tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {!loading && tab === "reports" && (
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(reports).map(([key, value]) => (
+                <div key={key} className="bg-[#141f14] border border-[#2d6a4f]/25 p-5">
+                  <p className="text-[#f0ebe0] font-mono text-2xl">{key.includes("cents") ? "R$ " + (Number(value)/100).toFixed(2) : value}</p>
+                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{key.replaceAll("_", " ")}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canExport && <Btn size="sm" onClick={exportPeopleCSV}><Download size={14} />CSV ex-alunos</Btn>}
+              {canExport && <Btn size="sm" onClick={() => event && exportOrdersCSV(event.id)}><Download size={14} />CSV pedidos</Btn>}
+              {canExport && <Btn size="sm" onClick={() => event && exportTicketsCSV(event.id)}><Download size={14} />CSV ingressos</Btn>}
             </div>
           </div>
         )}
 
-        {/* ── PARTICIPANTS ── */}
-        {tab === "participants" && (
+        {!loading && tab === "participants" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {ALUMNI.map(a => <AlumniCard key={a.id} alumni={a} />)}
+            {peopleRows.length === 0 ? <EmptyState title="Nenhum participante" /> : peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
           </div>
         )}
 
-        {/* ── PHOTOS ── */}
-        {tab === "photos" && (
+        {!loading && tab === "photos" && (!canModerate ? <PermissionState /> : (
           <div>
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-6">
-              {PHOTOS.length} fotos aguardando revisão
-            </p>
+            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-6">{pendingPhotos.length} fotos aguardando revisao</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {PHOTOS.map(p => (
+              {pendingPhotos.length === 0 && <EmptyState title="Nenhuma foto pendente" />}
+              {pendingPhotos.map(p => (
                 <div key={p.id} className="bg-[#141f14] border border-[#2d6a4f]/25">
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img src={p.url} alt={p.caption} className="w-full h-full object-cover opacity-80" />
-                  </div>
+                  <div className="aspect-[4/3] overflow-hidden"><img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80" /></div>
                   <div className="p-4">
                     <p className="text-[#f0ebe0] text-sm font-semibold mb-1">{p.caption}</p>
-                    <p className="text-[#7a9a7a] text-xs mb-3">{p.year} · {p.location}</p>
+                    <p className="text-[#7a9a7a] text-xs mb-3">{p.year_approx} · {p.location_text}</p>
                     <div className="flex gap-2">
-                      <Btn size="sm" full><Check size={12} />Aprovar</Btn>
-                      <Btn size="sm" full variant="danger"><X size={12} /></Btn>
+                      <Btn size="sm" full onClick={() => runAction("photo-approve", () => moderatePhoto(p.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn>
+                      <Btn size="sm" full variant="danger" onClick={() => runAction("photo-reject", () => moderatePhoto(p.id, "rejected", auth.userId))}><X size={12} /></Btn>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        ))}
 
-        {/* ── TAG MODERATION ── */}
-        {tab === "tag-mod" && (
+        {!loading && tab === "tag-mod" && (!canModerate ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
-            {/* Filter tabs */}
             <div className="flex gap-2 mb-2">
-              {([["pending","Pendentes"],["approved","Aprovadas"],["rejected","Rejeitadas"]] as const).map(([val,label]) => (
+              {(["pending","approved","rejected"] as const).map(val => (
                 <button key={val} onClick={() => setTagFilter(val)}
-                  className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors ${tagFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
-                  {label} ({tagMods.filter(t => t.modStatus === val).length})
+                  className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (tagFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
+                  {val}
                 </button>
               ))}
             </div>
-            {visibleTags.length === 0 ? (
-              <div className="text-center py-20">
-                <Tag size={40} className="text-[#3a5a3a] mx-auto mb-4" />
-                <p className="text-[#7a9a7a] font-mono text-sm">
-                  Nenhuma marcação {tagFilter === "pending" ? "pendente" : tagFilter === "approved" ? "aprovada" : "rejeitada"}
-                </p>
-              </div>
-            ) : (
+            {tags.length === 0 ? <EmptyState title="Nenhuma marcacao encontrada" /> : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#2d6a4f]/20">
-                      {["Foto","Pessoa marcada","Adicionado por","Data","Status","Ações"].map(h => (
-                        <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>
-                      ))}
+                  <thead><tr className="border-b border-[#2d6a4f]/20">{["Foto","Pessoa marcada","Adicionado por","Data","Status","Acoes"].map(h => <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>)}</tr></thead>
+                  <tbody>{tags.map(t => (
+                    <tr key={t.id} className="border-b border-[#2d6a4f]/10 hover:bg-[#141f14] transition-colors">
+                      <td className="py-4 px-4"><div className="flex items-center gap-3"><img src={t.photos?.image_url ?? ""} alt={t.photos?.caption ?? "Foto"} className="w-16 h-12 object-cover shrink-0" /><span className="text-[#7a9a7a] text-xs hidden md:block">{t.photos?.caption}</span></div></td>
+                      <td className="py-4 px-4 text-[#f0ebe0] text-sm font-semibold">{t.tagged_name_snapshot}</td>
+                      <td className="py-4 px-4 text-[#7a9a7a] text-sm">{t.created_by_user_id ?? "-"}</td>
+                      <td className="py-4 px-4 text-[#7a9a7a] font-mono text-xs">{t.created_at?.slice(0,10)}</td>
+                      <td className="py-4 px-4"><StatusBadge status={t.status} /></td>
+                      <td className="py-4 px-4"><div className="flex items-center gap-2">{t.status !== "approved" && <Btn size="sm" onClick={() => runAction("tag-approve", () => moderateTag(t.id,"approved", auth.userId))}><UserCheck size={12} />Aprovar</Btn>}{t.status !== "rejected" && <Btn size="sm" variant="danger" onClick={() => runAction("tag-reject", () => moderateTag(t.id,"rejected", auth.userId))}><UserX size={12} />Remover</Btn>}</div></td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {visibleTags.map(t => (
-                      <tr key={t.id} className="border-b border-[#2d6a4f]/10 hover:bg-[#141f14] transition-colors">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <img src={t.photoUrl} alt={t.photoCaption} className="w-16 h-12 object-cover shrink-0" />
-                            <span className="text-[#7a9a7a] text-xs hidden md:block">{t.photoCaption}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-[#f0ebe0] text-sm font-semibold">{t.taggedPerson}</td>
-                        <td className="py-4 px-4 text-[#7a9a7a] text-sm">{t.addedBy}</td>
-                        <td className="py-4 px-4 text-[#7a9a7a] font-mono text-xs">{t.date}</td>
-                        <td className="py-4 px-4"><StatusBadge status={t.modStatus} /></td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {t.modStatus !== "approved"  && <Btn size="sm" onClick={() => moderateTag(t.id,"approved")} ><UserCheck size={12} />Aprovar</Btn>}
-                            {t.modStatus !== "rejected"  && <Btn size="sm" variant="danger" onClick={() => moderateTag(t.id,"rejected")}><UserX size={12} />Remover</Btn>}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  ))}</tbody>
                 </table>
               </div>
             )}
           </div>
-        )}
+        ))}
 
-        {/* ── PROFILES ── */}
-        {tab === "profiles" && (
+        {!loading && tab === "claims" && (!canModerate ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-2">
-              Solicitações de reivindicação pendentes
-            </p>
-            {ALUMNI.filter(a => a.status === "unclaimed").map(a => (
-              <div key={a.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="w-10 h-10 bg-[#1a2e1a] border border-[#2d6a4f]/30 flex items-center justify-center text-[#7a9a7a] font-bold font-mono text-sm shrink-0">
-                  {initials(a.name)}
-                </div>
-                <div className="flex-1">
-                  <p className="text-[#f0ebe0] font-semibold text-sm">{a.name}</p>
-                  {a.nickname && <p className="text-[#7a9a7a] text-xs font-mono">&ldquo;{a.nickname}&rdquo; · Sala {a.sala}</p>}
-                </div>
-                <StatusBadge status="unclaimed" />
-                <div className="flex gap-2">
-                  <Btn size="sm"><Check size={12} />Aprovar</Btn>
-                  <Btn size="sm" variant="danger"><X size={12} /></Btn>
-                </div>
+            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-2">Solicitacoes de reivindicacao pendentes</p>
+            {claims.length === 0 && <EmptyState title="Nenhuma reivindicacao pendente" />}
+            {claims.map(c => (
+              <div key={c.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="w-10 h-10 bg-[#1a2e1a] border border-[#2d6a4f]/30 flex items-center justify-center text-[#7a9a7a] font-bold font-mono text-sm shrink-0">{initials(c.requester_name)}</div>
+                <div className="flex-1"><p className="text-[#f0ebe0] font-semibold text-sm">{c.requester_name}</p><p className="text-[#7a9a7a] text-xs font-mono">{c.people?.full_name} · score {c.verification_score ?? 0}</p></div>
+                <StatusBadge status={c.status} />
+                <div className="flex gap-2"><Btn size="sm" onClick={() => runAction("claim-approve", () => moderateClaim(c.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn><Btn size="sm" variant="danger" onClick={() => runAction("claim-reject", () => moderateClaim(c.id, "rejected", auth.userId, "Rejeitado pelo admin"))}><X size={12} /></Btn></div>
               </div>
             ))}
           </div>
-        )}
+        ))}
 
-        {/* ── SETTINGS ── */}
-        {tab === "settings" && (
-          <div className="max-w-2xl flex flex-col gap-6">
-            <SaveToast show={settingsSaved} />
+        {!loading && tab === "removals" && (!canModerate ? <PermissionState /> : (
+          <AdminReviewList title="Solicitacoes de remocao" items={removals} getTitle={r => r.requester_name} getSubtitle={r => (r.photos?.caption ?? "Foto") + " · " + r.reason} getStatus={r => r.status} onApprove={r => runAction("removal-approve", () => reviewPhotoRemovalRequest(r.id, "approved", auth.userId))} onReject={r => runAction("removal-reject", () => reviewPhotoRemovalRequest(r.id, "rejected", auth.userId))} />
+        ))}
 
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Dados do evento</p>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Nome do evento</label>
-                <input value={settings.name} onChange={e => setSettings(s => ({ ...s, name: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Data</label>
-                  <input type="date" value={settings.date} onChange={e => setSettings(s => ({ ...s, date: e.target.value }))}
-                    className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Horário</label>
-                  <input type="time" value={settings.time} onChange={e => setSettings(s => ({ ...s, time: e.target.value }))}
-                    className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Nome do espaço</label>
-                <input value={settings.venue} onChange={e => setSettings(s => ({ ...s, venue: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Endereço completo</label>
-                <input value={settings.address} onChange={e => setSettings(s => ({ ...s, address: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-              </div>
-              <FieldArea label="Descrição do evento" value={settings.description} onChange={v => setSettings(s => ({ ...s, description: v }))} />
+        {!loading && tab === "disputes" && (!canModerate ? <PermissionState /> : (
+          <AdminReviewList title="Disputas de perfil" items={disputes} getTitle={d => d.requester_name} getSubtitle={d => (d.people?.full_name ?? d.person_id) + " · " + d.reason} getStatus={d => d.status} onApprove={d => runAction("dispute-approve", () => reviewProfileClaimDispute(d.id, "approved", auth.userId))} onReject={d => runAction("dispute-reject", () => reviewProfileClaimDispute(d.id, "rejected", auth.userId))} />
+        ))}
+
+        {!loading && tab === "admins" && (!canManageAdmins ? <PermissionState /> : (
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-[#141f14] border border-[#2d6a4f]/25 p-4">
+              <Field label="User ID" value={newAdmin.userId} onChange={v => setNewAdmin(s => ({ ...s, userId: v }))} />
+              <Field label="Nome" value={newAdmin.displayName} onChange={v => setNewAdmin(s => ({ ...s, displayName: v }))} />
+              <Field label="E-mail" value={newAdmin.email} onChange={v => setNewAdmin(s => ({ ...s, email: v }))} />
+              <div><label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Role</label><select value={newAdmin.role} onChange={e => setNewAdmin(s => ({ ...s, role: e.target.value as AdminRole }))} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">{(["viewer","checkin_staff","moderator","admin","superadmin"] as AdminRole[]).map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div className="flex items-end"><Btn full size="sm" onClick={() => runAction("admin-add", () => addAdminUser(newAdmin.userId, newAdmin.role, newAdmin.displayName, newAdmin.email, auth.userId))}>Adicionar</Btn></div>
             </div>
+            <AdminTable admins={admins} currentUserId={auth.userId} onRole={(id, nextRole) => runAction("admin-role", () => updateAdminRole(id, nextRole, auth.userId))} onRemove={id => runAction("admin-remove", () => removeAdminUser(id, auth.userId))} />
+          </div>
+        ))}
 
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Status das vendas</p>
-              {([["open","Vendas abertas","Ingressos disponíveis para compra"],["paused","Vendas pausadas","Página visível, mas compra bloqueada"],["closed","Vendas encerradas","Evento finalizado ou esgotado"]] as const).map(([val,label,desc]) => (
-                <label key={val} className={`flex items-start gap-4 p-4 border cursor-pointer transition-colors ${settings.salesStatus === val ? "border-[#2d6a4f] bg-[#1a2e1a]" : "border-[#2d6a4f]/20 hover:border-[#2d6a4f]/40"}`}>
-                  <div className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 mt-0.5 ${settings.salesStatus === val ? "border-[#2d6a4f] bg-[#2d6a4f]" : "border-[#3a5a3a]"}`}>
-                    {settings.salesStatus === val && <Check size={12} className="text-[#f0ebe0]" />}
-                  </div>
-                  <input type="radio" className="sr-only" checked={settings.salesStatus === val} onChange={() => setSettings(s => ({ ...s, salesStatus: val }))} />
-                  <div>
-                    <p className="text-[#f0ebe0] font-semibold text-sm">{label}</p>
-                    <p className="text-[#7a9a7a] text-xs">{desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Contato da organização</p>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">E-mail</label>
-                <input value={settings.contactEmail} onChange={e => setSettings(s => ({ ...s, contactEmail: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-              </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">WhatsApp / Telefone</label>
-                <input value={settings.contactPhone} onChange={e => setSettings(s => ({ ...s, contactPhone: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-              </div>
-            </div>
-
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Regras e políticas</p>
-              <FieldArea label="Regras gerais"            value={settings.rules}           onChange={v => setSettings(s => ({ ...s, rules: v }))}           rows={2} />
-              <FieldArea label="Política de acompanhante" value={settings.companionPolicy} onChange={v => setSettings(s => ({ ...s, companionPolicy: v }))} rows={2} />
-              <FieldArea label="Política de reembolso"   value={settings.refundPolicy}    onChange={v => setSettings(s => ({ ...s, refundPolicy: v }))}    rows={2} />
-            </div>
-
-            <Btn full size="lg" onClick={saveSettings}><Save size={16} />Salvar configurações</Btn>
+        {!loading && tab === "audit" && (
+          <div className="overflow-x-auto">
+            {auditLogs.length === 0 ? <EmptyState title="Nenhum log encontrado" /> : (
+              <table className="w-full">
+                <thead><tr className="border-b border-[#2d6a4f]/20">{["Data","Acao","Entidade","Usuario"].map(h => <th key={h} className="text-left py-3 px-4 text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">{h}</th>)}</tr></thead>
+                <tbody>{auditLogs.map(log => <tr key={log.id} className="border-b border-[#2d6a4f]/10"><td className="py-4 px-4 text-[#7a9a7a] font-mono text-xs">{log.created_at?.slice(0,16)?.replace("T"," ")}</td><td className="py-4 px-4 text-[#f0ebe0] text-sm">{log.action}</td><td className="py-4 px-4 text-[#7a9a7a] text-sm">{log.entity_type}</td><td className="py-4 px-4 text-[#7a9a7a] font-mono text-xs">{log.user_id ?? "-"}</td></tr>)}</tbody>
+              </table>
+            )}
           </div>
         )}
+
+        {!loading && tab === "settings" && (!canManageEvent ? <PermissionState /> : (
+          <div className="max-w-2xl flex flex-col gap-6">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Dados do evento</p>
+              <Field label="Nome do evento" value={settings.name} onChange={v => setSettings(s => ({ ...s, name: v }))} />
+              <div className="grid grid-cols-2 gap-4"><Field label="Data" type="date" value={settings.date} onChange={v => setSettings(s => ({ ...s, date: v }))} /><Field label="Horario" type="time" value={settings.time} onChange={v => setSettings(s => ({ ...s, time: v }))} /></div>
+              <Field label="Nome do espaco" value={settings.venue} onChange={v => setSettings(s => ({ ...s, venue: v }))} />
+              <Field label="Endereco completo" value={settings.address} onChange={v => setSettings(s => ({ ...s, address: v }))} />
+              <FieldArea label="Descricao do evento" value={settings.description} onChange={v => setSettings(s => ({ ...s, description: v }))} />
+            </div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Status das vendas</p>
+              {(["open","paused","closed"] as const).map(val => <label key={val} className={"flex items-start gap-4 p-4 border cursor-pointer transition-colors " + (settings.salesStatus === val ? "border-[#2d6a4f] bg-[#1a2e1a]" : "border-[#2d6a4f]/20 hover:border-[#2d6a4f]/40")}><input type="radio" className="sr-only" checked={settings.salesStatus === val} onChange={() => setSettings(s => ({ ...s, salesStatus: val }))} /><StatusBadge status={val} /></label>)}
+            </div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Contato e politicas</p>
+              <Field label="E-mail" value={settings.contactEmail} onChange={v => setSettings(s => ({ ...s, contactEmail: v }))} />
+              <Field label="WhatsApp / Telefone" value={settings.contactPhone} onChange={v => setSettings(s => ({ ...s, contactPhone: v }))} />
+              <FieldArea label="Regras gerais" value={settings.rules} onChange={v => setSettings(s => ({ ...s, rules: v }))} rows={2} />
+              <FieldArea label="Politica de acompanhante" value={settings.companionPolicy} onChange={v => setSettings(s => ({ ...s, companionPolicy: v }))} rows={2} />
+              <FieldArea label="Politica de reembolso" value={settings.refundPolicy} onChange={v => setSettings(s => ({ ...s, refundPolicy: v }))} rows={2} />
+            </div>
+            <Btn full size="lg" onClick={saveSettings} disabled={busy === "settings"}><Save size={16} />Salvar configuracoes</Btn>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-// ─── CHECKIN PAGE (ENHANCED) ──────────────────────────────────────────────────
 
 function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [searchMode, setSearchMode] = useState<"qr"|"name"|"email"|"phone">("qr");
@@ -2680,9 +2963,11 @@ const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
 export default function App() {
   const [page, setPage]               = useState<Page>("home");
   const [returnPage, setReturnPage]   = useState<Page>("home");
-  const [auth, setAuth]               = useState<AuthState>({ loggedIn: false, isAdmin: false, name: "", userId: "" });
+  const [auth, setAuth]               = useState<AuthState>({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
   const [people, setPeople]           = useState<DbPerson[]>(MOCK_PEOPLE);
   const [ticketTypes, setTicketTypes] = useState<DbTicketType[]>([]);
+  const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
@@ -2690,9 +2975,10 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const u = session.user;
-        const admin  = await isUserAdmin(u.id).catch(() => false);
+        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
+        const admin  = !!adminUser;
         const name   = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id });
+        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
       }
       setAuthLoading(false);
     });
@@ -2700,11 +2986,12 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const u = session.user;
-        const admin = await isUserAdmin(u.id).catch(() => false);
+        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
+        const admin = !!adminUser;
         const name  = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id });
+        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
       } else if (event === "SIGNED_OUT") {
-        setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "" });
+        setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
       }
     });
 
@@ -2713,8 +3000,9 @@ export default function App() {
 
   // ── Carrega dados reais do Supabase com fallback para mock ────────────────
   useEffect(() => {
-    getPeople().then(setPeople).catch(() => setPeople(MOCK_PEOPLE));
+    getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getTicketTypes().then(setTicketTypes).catch(() => {});
+    getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
   }, []);
 
   function navigate(p: Page) {
@@ -2735,16 +3023,16 @@ export default function App() {
     );
   }
 
-  function handleLogin(isAdmin: boolean, name: string) {
-    setAuth({ loggedIn: true, isAdmin, name, userId: "u1" });
-    const dest = returnPage !== "login" ? returnPage : isAdmin ? "admin" : "alumni-area";
+  function handleLogin(nextAuth: AuthState) {
+    setAuth(nextAuth);
+    const dest = returnPage !== "login" ? returnPage : nextAuth.isAdmin ? "admin" : "alumni-area";
     setPage(dest);
     window.scrollTo(0, 0);
   }
 
   async function logout() {
     await supabase.auth.signOut().catch(() => {});
-    setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "" });
+    setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
     navigate("home");
     await writeAudit("logout", "auth", null, {}).catch(() => {});
   }
@@ -2762,8 +3050,8 @@ export default function App() {
         {page === "who-going"     && <WhoGoingPage      navigate={navigate} people={people}                       />}
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
-        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth}                          />}
-        {page === "photo-detail"  && <PhotoDetailPage   navigate={navigate} people={people}                      />}
+        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
+        {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && <AdminPage          navigate={navigate} auth={auth}                           />}

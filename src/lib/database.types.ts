@@ -279,6 +279,7 @@ export interface Database {
     Functions: {
       is_admin:           { Args: Record<string, never>; Returns: boolean };
       fn_increment_sold:  { Args: { p_ticket_type_id: string; delta?: number }; Returns: void };
+      get_event_reports:  { Args: { p_event_id: string }; Returns: Record<string, number> };
     };
     Enums: {
       event_status:   EventStatus;

@@ -4,7 +4,7 @@
 // o banco não estiver configurado (DEV_MODE) ou houver erro.
 // ================================================================
 
-import { supabase } from "./supabase";
+import { DEV_MODE, supabase } from "./supabase";
 import type {
   DbPerson, DbTicketType, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbProfileClaimAnswer, DbTicket,
@@ -47,7 +47,12 @@ const MOCK_TICKET_TYPES: DbTicketType[] = [
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  try { return await fn(); } catch { return fallback; }
+  try {
+    return await fn();
+  } catch (error) {
+    if (DEV_MODE) return fallback;
+    throw error;
+  }
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
@@ -59,7 +64,7 @@ export async function getEvent(slug = "turma-2006-20-anos"): Promise<DbEvent | n
       .select("*")
       .eq("slug", slug)
       .single();
-    if (error) return null;
+    if (error) throw error;
     return data as DbEvent;
   }, null);
 }
@@ -253,6 +258,7 @@ export async function uploadPhoto(params: {
   yearApprox: number;
   locationText: string;
   eventId: string;
+  tags?: { personId: string; name: string }[];
 }) {
   // 1. Faz upload no Storage
   const ext = params.file.name.split(".").pop();
@@ -283,7 +289,26 @@ export async function uploadPhoto(params: {
     status:               "pending",
   }).select().single();
   if (error) throw error;
-  return data as DbPhoto;
+  const photo = data as DbPhoto;
+
+  if (params.tags?.length) {
+    const { error: tagError } = await supabase.from("photo_tags").insert(
+      params.tags.map(tag => ({
+        photo_id:              photo.id,
+        person_id:             tag.personId,
+        tagged_name_snapshot:  tag.name,
+        status:                "pending" as const,
+        created_by_user_id:    params.userId,
+      }))
+    );
+    if (tagError) throw tagError;
+  }
+
+  await writeAudit("upload_photo", "photos", photo.id, {
+    tags_count: params.tags?.length ?? 0,
+    authorization_given: true,
+  });
+  return photo;
 }
 
 export async function moderatePhoto(id: string, action: "approved" | "rejected", adminId: string) {
@@ -421,6 +446,16 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
   return !!data;
 }
 
+export async function getCurrentAdminUser(userId: string): Promise<DbAdminUser | null> {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as DbAdminUser | null;
+}
+
 // ─── AUDIT LOGS ───────────────────────────────────────────────────────────────
 
 export async function writeAudit(
@@ -472,7 +507,7 @@ export async function updateTicketTypeFull(id: string, patch: Partial<DbTicketTy
 export async function getEventSettings(slug = "turma-2006-20-anos"): Promise<DbEvent | null> {
   return withFallback(async () => {
     const { data, error } = await supabase.from("events").select("*").eq("slug", slug).single();
-    if (error) return null;
+    if (error) throw error;
     return data as DbEvent;
   }, null);
 }
@@ -614,6 +649,9 @@ export async function createPhotoRemovalRequest(params: {
     status:            "pending",
   }).select().single();
   if (error) throw error;
+  await writeAudit("create_photo_removal_request", "photo_removal_requests", (data as DbPhotoRemovalRequest).id, {
+    photo_id: params.photoId,
+  });
   return data as DbPhotoRemovalRequest;
 }
 
@@ -661,6 +699,9 @@ export async function createProfileClaimDispute(params: {
     status:                   "pending",
   }).select().single();
   if (error) throw error;
+  await writeAudit("create_profile_claim_dispute", "profile_claim_disputes", (data as DbProfileClaimDispute).id, {
+    person_id: params.personId,
+  });
   return data as DbProfileClaimDispute;
 }
 
@@ -724,6 +765,11 @@ export async function createFullProfileClaim(params: {
 
   // Atualiza score
   await supabase.from("profile_claims").update({ verification_score: score }).eq("id", (claim as DbProfileClaim).id);
+  await writeAudit("create_profile_claim", "profile_claims", (claim as DbProfileClaim).id, {
+    person_id: params.personId,
+    answers_count: params.answers.length,
+    score,
+  });
 
   return { claim: claim as DbProfileClaim, score };
 }
