@@ -18,13 +18,13 @@ import {
   getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
   toggleFeaturedPhoto, toggleFeaturedMemory,
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
-  getPublicLocationStats, getMyTickets,
+  getPublicLocationStats, getMyTickets, getMyProfile, saveMyProfile, findTicketForCheckin, markTicketCheckedIn,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails, DbProfile,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -685,7 +685,6 @@ function Header({ page, navigate, auth, logout }: {
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navLinks: { label: string; page: Page }[] = [
-    { label: "Ingressos",                           page: "tickets"     },
     { label: "Quem Vai",                            page: "who-going"   },
     { label: "A Turma",                             page: "the-class"   },
     { label: "Fotos",                               page: "photo-wall"  },
@@ -702,20 +701,26 @@ function Header({ page, navigate, auth, logout }: {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => go("home")} className="text-left">
-            <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.3em] uppercase leading-none">Colégio Henrique Castriciano</p>
-            <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">Turma 2006</p>
+          <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-3 shrink-0 text-left">
+            <div className="relative h-10 w-10 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
+              <span className="font-['Playfair_Display'] text-[#c9a84c] text-lg font-black leading-none">HC</span>
+              <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
+            </div>
+            <div className="hidden lg:block">
+              <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-sm leading-tight tracking-wide uppercase">Turma 2006</p>
+              <p className="text-[#7a9a7a] font-mono text-[9px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
+            </div>
           </button>
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-4 xl:gap-5 min-w-0">
             {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
-                className={`text-xs font-mono font-bold uppercase tracking-[0.2em] transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+                className={`text-[10px] xl:text-[11px] font-mono font-bold uppercase tracking-[0.16em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
                 {l.label}
               </button>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
-            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex">Comprar</Btn>
+          <div className="flex items-center gap-3 shrink-0">
+            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-[10px]">Comprar ingresso</Btn>
             {auth.loggedIn && (
               <button onClick={logout} className="hidden md:flex text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Sair">
                 <LogOut size={18} />
@@ -1100,8 +1105,8 @@ function TicketsPreview({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-function WhoGoingPreview({ navigate }: { navigate: (p: Page) => void }) {
-  const confirmed = ALUMNI.filter(a => a.status === "confirmed").slice(0, 8);
+function WhoGoingPreview({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
+  const confirmed = people.filter(a => a.profile_status === "confirmed" && a.is_visible).slice(0, 8);
   return (
     <section className="bg-[#0d1a0f] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
@@ -1110,7 +1115,7 @@ function WhoGoingPreview({ navigate }: { navigate: (p: Page) => void }) {
           <Btn variant="ghost" onClick={() => navigate("who-going")}>Ver todos <ArrowRight size={16} /></Btn>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {confirmed.map(a => <AlumniCard key={a.id} alumni={a} />)}
+          {confirmed.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
         </div>
         <div className="mt-8 text-center">
           <p className="text-[#7a9a7a] text-sm mb-4 font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
@@ -1121,7 +1126,8 @@ function WhoGoingPreview({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-function PhotoWallPreview({ navigate }: { navigate: (p: Page) => void }) {
+function PhotoWallPreview({ navigate, photos }: { navigate: (p: Page) => void; photos: DbPhoto[] }) {
+  const previewPhotos = photos.slice(0, 6);
   return (
     <section className="bg-[#080f08] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
@@ -1129,19 +1135,23 @@ function PhotoWallPreview({ navigate }: { navigate: (p: Page) => void }) {
           <div><SectionLabel>Mural de Memórias</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">Fotos da época</DisplayTitle></div>
           <Btn variant="ghost" onClick={() => navigate("photo-wall")}>Ver todas <ArrowRight size={16} /></Btn>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {PHOTOS.map(p => (
-            <div key={p.id} onClick={() => navigate("photo-detail")}
-              className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-              <img src={p.url} alt={p.caption} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                <p className="text-[#f0ebe0] font-bold text-sm">{p.caption}</p>
-                <p className="text-[#c9a84c] font-mono text-xs">{p.year}</p>
+        {previewPhotos.length === 0 ? (
+          <EmptyState title="Nenhuma foto aprovada ainda" subtitle="As fotos aprovadas pela moderação aparecerão aqui." action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>Abrir mural</Btn>} />
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            {previewPhotos.map(p => (
+              <div key={p.id} onClick={() => navigate("photo-detail")}
+                className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
+                <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto da turma"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                  <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "Memória da turma"}</p>
+                  <p className="text-[#c9a84c] font-mono text-xs">{p.year_approx ?? "HC"}</p>
+                </div>
+                {p.year_approx && <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>}
               </div>
-              <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year}</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1203,14 +1213,14 @@ function FAQSection() {
   );
 }
 
-function LandingPage({ navigate }: { navigate: (p: Page) => void }) {
+function LandingPage({ navigate, people, photos }: { navigate: (p: Page) => void; people: DbPerson[]; photos: DbPhoto[] }) {
   return <>
     <Hero navigate={navigate} />
     <AboutSection />
     <EventInfoSection />
     <TicketsPreview navigate={navigate} />
-    <WhoGoingPreview navigate={navigate} />
-    <PhotoWallPreview navigate={navigate} />
+    <WhoGoingPreview navigate={navigate} people={people} />
+    <PhotoWallPreview navigate={navigate} photos={photos} />
     <TimelineSection />
     <FAQSection />
   </>;
@@ -1533,7 +1543,7 @@ function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <Btn full onClick={() => navigate("alumni-area")}><Download size={16} />Ver meu ingresso</Btn>
+          <Btn full onClick={() => navigate("my-ticket")}><Download size={16} />Ver meu ingresso</Btn>
           <Btn full variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Completar meu perfil</Btn>
           <Btn full variant="outline" onClick={() => navigate("share-invite")}><Send size={16} />Compartilhar convite</Btn>
           <Btn full variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={16} />Enviar foto antiga</Btn>
@@ -3020,9 +3030,88 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
 // ─── EDIT PROFILE ─────────────────────────────────────────────────────────────
 
 function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [privacy, setPrivacy] = useState({ showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
-  const [saved, setSaved]     = useState(false);
-  function save() { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+  const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> }) | null>(null);
+  const [form, setForm] = useState({
+    displayName: "", photoUrl: "", city: "", state: "", country: "Brasil",
+    profession: "", bio: "", memoryText: "", instagram: "", linkedin: "",
+  });
+  const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function loadProfile() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getMyProfile(auth.userId);
+      setProfile(data);
+      if (data) {
+        setForm({
+          displayName: data.display_name ?? auth.name,
+          photoUrl: data.current_photo_url ?? "",
+          city: data.current_city ?? "",
+          state: data.current_state ?? "",
+          country: data.current_country ?? "Brasil",
+          profession: data.profession ?? "",
+          bio: data.bio ?? "",
+          memoryText: data.memory_text ?? "",
+          instagram: data.instagram_url ?? "",
+          linkedin: data.linkedin_url ?? "",
+        });
+        setPrivacy({
+          showCurrentPhoto: data.show_current_photo,
+          showCity: data.show_city,
+          showProfession: data.show_profession,
+          showSocial: data.show_social_links,
+          showInList: data.show_confirmed_status,
+          allowTagging: data.allow_photo_tags,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar perfil.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadProfile(); }, [auth.userId]);
+
+  async function save() {
+    if (!profile) { setError("Reivindique seu perfil antes de editar os dados públicos."); return; }
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await saveMyProfile(auth.userId, {
+        display_name: form.displayName.trim() || null,
+        current_photo_url: form.photoUrl.trim() || null,
+        current_city: form.city.trim() || null,
+        current_state: form.state.trim() || null,
+        current_country: form.country.trim() || null,
+        profession: form.profession.trim() || null,
+        bio: form.bio.trim() || null,
+        memory_text: form.memoryText.trim() || null,
+        instagram_url: form.instagram.trim() || null,
+        linkedin_url: form.linkedin.trim() || null,
+        show_current_photo: privacy.showCurrentPhoto,
+        show_city: privacy.showCity,
+        show_profession: privacy.showProfession,
+        show_social_links: privacy.showSocial,
+        allow_photo_tags: privacy.allowTagging,
+        show_confirmed_status: privacy.showInList,
+      });
+      setProfile({ ...profile, ...updated });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar perfil.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const avatarLabel = initials(form.displayName || auth.name);
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -3033,53 +3122,69 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         <SectionLabel>Perfil</SectionLabel>
         <DisplayTitle className="text-3xl md:text-4xl mb-10">Editar meu perfil</DisplayTitle>
         <SaveToast show={saved} />
-        <div className="flex flex-col gap-6">
+        {loading && <LoadingState message="Carregando perfil..." />}
+        {error && <ErrorState message={error} onRetry={loadProfile} />}
+        {!loading && !profile && !error && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Foto de perfil</p>
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0">AP</div>
-              <div className="flex flex-col gap-2">
-                <Btn size="sm" variant="outline"><Upload size={14} />Enviar foto</Btn>
-                <p className="text-[#7a9a7a] text-xs font-mono">JPG ou PNG · máx 2 MB</p>
+            <EmptyState title="Perfil ainda não reivindicado" subtitle="Para editar dados públicos, primeiro vincule sua conta ao seu nome na lista da turma." action={<Btn onClick={() => navigate("claim-profile")}><UserCheck size={16} />Reivindicar perfil</Btn>} />
+          </div>
+        )}
+        {!loading && profile && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Foto de perfil</p>
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0 overflow-hidden">
+                  {form.photoUrl ? <img src={form.photoUrl} alt={form.displayName || auth.name} className="w-full h-full object-cover" /> : avatarLabel}
+                </div>
+                <div className="flex-1">
+                  <Field label="URL da foto" placeholder="https://..." value={form.photoUrl} onChange={v => setForm(f => ({ ...f, photoUrl: v }))} />
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">Upload direto de avatar ficará para etapa futura; por enquanto use uma URL de imagem.</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Informações pessoais</p>
-            <Field label="Nome de exibição"  placeholder="Como você quer aparecer"           />
-            <Field label="Apelido da época"  placeholder="Como te chamavam na escola"        />
-            <Field label="Cidade atual"      placeholder="Onde você mora hoje" icon={<MapPin size={14} />} />
-            <Field label="Profissão"         placeholder="O que você faz hoje"               />
-            <FieldArea label="Mini bio"      placeholder="Conte um pouco sobre você hoje..." />
-            <FieldArea label="Memória favorita do HC" placeholder="Uma memória que você nunca vai esquecer..." rows={2} />
-          </div>
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Redes sociais</p>
-            <Field label="Instagram" placeholder="@seuperfil"               icon={<Instagram size={14} />} />
-            <Field label="LinkedIn"  placeholder="linkedin.com/in/seuperfil" icon={<Linkedin  size={14} />} />
-          </div>
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Privacidade</p>
-            <div className="flex flex-col gap-4">
-              {([
-                ["showInList",     "Aparecer na lista de confirmados"],
-                ["showCity",       "Exibir cidade atual"             ],
-                ["showProfession", "Exibir profissão"                ],
-                ["showSocial",     "Exibir redes sociais"            ],
-                ["allowTagging",   "Permitir marcações em fotos"     ],
-              ] as [keyof typeof privacy, string][]).map(([key, label]) => (
-                <label key={key} className="flex items-center justify-between cursor-pointer">
-                  <span className="text-[#f0ebe0] text-sm">{label}</span>
-                  <button onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
-                    className={`relative w-12 h-6 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${privacy[key] ? "left-7" : "left-1"}`} />
-                  </button>
-                </label>
-              ))}
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Informações pessoais</p>
+              <Field label="Nome de exibição" value={form.displayName} onChange={v => setForm(f => ({ ...f, displayName: v }))} placeholder="Como você quer aparecer" />
+              <InfoRow label="Apelido da época" value={profile.people?.nickname_at_school ?? "Não informado"} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Cidade atual" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} placeholder="Onde você mora hoje" icon={<MapPin size={14} />} />
+                <Field label="Estado" value={form.state} onChange={v => setForm(f => ({ ...f, state: v }))} placeholder="UF/estado" />
+              </div>
+              <Field label="País" value={form.country} onChange={v => setForm(f => ({ ...f, country: v }))} placeholder="Brasil" />
+              <Field label="Profissão" value={form.profession} onChange={v => setForm(f => ({ ...f, profession: v }))} placeholder="O que você faz hoje" />
+              <FieldArea label="Mini bio" value={form.bio} onChange={v => setForm(f => ({ ...f, bio: v }))} placeholder="Conte um pouco sobre você hoje..." />
+              <FieldArea label="Memória favorita do HC" value={form.memoryText} onChange={v => setForm(f => ({ ...f, memoryText: v }))} placeholder="Uma memória que você nunca vai esquecer..." rows={2} />
             </div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Redes sociais</p>
+              <Field label="Instagram" value={form.instagram} onChange={v => setForm(f => ({ ...f, instagram: v }))} placeholder="https://instagram.com/seuperfil" icon={<Instagram size={14} />} />
+              <Field label="LinkedIn" value={form.linkedin} onChange={v => setForm(f => ({ ...f, linkedin: v }))} placeholder="https://linkedin.com/in/seuperfil" icon={<Linkedin size={14} />} />
+            </div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Privacidade</p>
+              <div className="flex flex-col gap-4">
+                {([
+                  ["showInList",     "Aparecer na lista de confirmados"],
+                  ["showCurrentPhoto", "Exibir foto atual"],
+                  ["showCity",       "Exibir cidade atual"],
+                  ["showProfession", "Exibir profissão"],
+                  ["showSocial",     "Exibir redes sociais"],
+                  ["allowTagging",   "Permitir marcações em fotos"],
+                ] as [keyof typeof privacy, string][]).map(([key, label]) => (
+                  <label key={key} className="flex items-center justify-between cursor-pointer">
+                    <span className="text-[#f0ebe0] text-sm">{label}</span>
+                    <button onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
+                      className={`relative w-12 h-6 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
+                      <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${privacy[key] ? "left-7" : "left-1"}`} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <Btn full size="lg" onClick={save} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><Save size={16} />Salvar alterações</>}</Btn>
           </div>
-          <Btn full size="lg" onClick={save}><Save size={16} />Salvar alterações</Btn>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -3722,47 +3827,69 @@ function AdminPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
 
 function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [searchMode, setSearchMode] = useState<"qr"|"name"|"email"|"phone">("qr");
-  const [query, setQuery]           = useState("");
-  const [result, setResult]         = useState<"valid"|"used"|"invalid"|"pending"|"declined"|"cancelled"|null>(null);
-  const [checkedIn, setCheckedIn]   = useState(false);
-  const [checkinName, setCheckinName] = useState("");
+  const [query, setQuery] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<TicketWithDetails | null>(null);
   const [checkinTime, setCheckinTime] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const codeMap: Record<string, "valid"|"used"|"pending"|"declined"> = {
-    "HC2006-0042": "valid", "HC2006-0041": "used", "HC2006-0040": "pending", "HC2006-0038": "declined",
-  };
-  const nameMap: Record<string, string> = {
-    "HC2006-0042": "Ana Paula Oliveira", "HC2006-0041": "Bruno Cavalcanti",
-    "HC2006-0040": "Carla Medeiros",     "HC2006-0038": "Gabriela Santos",
-  };
-
-  function doSearch() {
+  async function doSearch() {
     if (!query.trim()) return;
-    const upper = query.trim().toUpperCase();
-    if (searchMode === "qr") {
-      const r = codeMap[upper]; setResult(r || "invalid"); setCheckinName(nameMap[upper] || "");
-    } else if (searchMode === "name") {
-      // Em produção: chama /checkin?q=...&mode=name via servidor
-      // Mock fallback: busca nos dados locais
-      const found = MOCK_PEOPLE.find(a => a.full_name.toLowerCase().includes(query.toLowerCase()));
-      if (found) { setResult(found.profile_status === "confirmed" ? "valid" : "pending"); setCheckinName(found.full_name); }
-      else setResult("invalid");
-    } else if (searchMode === "email") {
-      if (query.includes("@")) { setResult("valid"); setCheckinName("Ana Paula Oliveira"); }
-      else setResult("invalid");
-    } else {
-      if (query.length >= 8) { setResult("valid"); setCheckinName("Felipe Araújo"); }
-      else setResult("invalid");
+    setLoading(true);
+    setError("");
+    setResult(null);
+    setCheckedIn(false);
+    setSelectedTicket(null);
+    try {
+      const ticket = await findTicketForCheckin(query, searchMode);
+      if (!ticket) {
+        setResult("invalid");
+        return;
+      }
+      setSelectedTicket(ticket);
+      if (ticket.checked_in) {
+        setResult("used");
+        setCheckinTime(formatDateTimeBR(ticket.checked_in_at));
+        return;
+      }
+      const paymentStatus = ticketPaymentStatus(ticket);
+      if (paymentStatus === "approved") setResult("valid");
+      else if (paymentStatus === "pending" || paymentStatus === "in_process") setResult("pending");
+      else setResult(paymentStatus);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao buscar ingresso.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function registerEntry() {
-    const now = new Date();
-    setCheckinTime(now.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }));
-    setCheckedIn(true);
+  async function registerEntry() {
+    if (!selectedTicket || result !== "valid") return;
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await markTicketCheckedIn(selectedTicket.id, auth.userId);
+      setSelectedTicket(updated);
+      setCheckinTime(formatDateTimeBR(updated.checked_in_at));
+      setCheckedIn(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao registrar entrada.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function reset() { setResult(null); setQuery(""); setCheckedIn(false); setCheckinName(""); setCheckinTime(""); }
+  function reset() {
+    setResult(null);
+    setQuery("");
+    setCheckedIn(false);
+    setSelectedTicket(null);
+    setCheckinTime("");
+    setError("");
+  }
 
   const modes = [
     { id:"qr" as const,    label:"QR / Código",  placeholder:"Ex: HC2006-0042"      },
@@ -3770,6 +3897,8 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
     { id:"email" as const, label:"E-mail",        placeholder:"email@exemplo.com"     },
     { id:"phone" as const, label:"Telefone",      placeholder:"(84) 9 9999-0000"      },
   ];
+  const paymentStatus = ticketPaymentStatus(selectedTicket);
+  const checkinName = selectedTicket?.attendee_name ?? "";
 
   return (
     <div className="min-h-screen bg-[#080f08]">
@@ -3778,32 +3907,30 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
           <button onClick={() => navigate("admin")} className="text-[#7a9a7a] hover:text-[#f0ebe0]"><ArrowLeft size={20} /></button>
           <div>
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold">Check-in</p>
-            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">17 Out 2026 · 19h00</p>
+            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Validação real por tabela tickets</p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-[#0d2e1a] border border-[#2d6a4f]/40 px-4 py-2">
           <div className="w-2 h-2 rounded-full bg-[#2d6a4f] animate-pulse" />
-          <span className="text-[#74c69d] text-xs font-mono">0 check-ins hoje</span>
+          <span className="text-[#74c69d] text-xs font-mono">Supabase ativo</span>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-10">
-        {/* QR area */}
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 mb-6 text-center">
           <div className="w-44 h-44 bg-[#1a2e1a] border-2 border-dashed border-[#2d6a4f]/40 flex flex-col items-center justify-center mx-auto mb-4">
             <Scan size={48} className="text-[#2d6a4f] mb-2" />
-            <p className="text-[#7a9a7a] text-xs font-mono">Câmera do dispositivo</p>
-            <p className="text-[#3a5a3a] text-[10px] font-mono">(protótipo visual)</p>
+            <p className="text-[#7a9a7a] text-xs font-mono">Leitura por câmera</p>
+            <p className="text-[#3a5a3a] text-[10px] font-mono">etapa futura</p>
           </div>
-          <p className="text-[#7a9a7a] text-sm">Aponte a câmera para o QR Code do ingresso</p>
+          <p className="text-[#7a9a7a] text-sm">Digite o código textual do ingresso ou busque por nome, e-mail ou telefone.</p>
         </div>
 
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-4">
           <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Busca manual</p>
-          {/* Mode selector */}
           <div className="flex gap-1 bg-[#0a120a] p-1">
             {modes.map(m => (
-              <button key={m.id} onClick={() => { setSearchMode(m.id); setQuery(""); setResult(null); }}
+              <button key={m.id} onClick={() => { setSearchMode(m.id); setQuery(""); setResult(null); setSelectedTicket(null); }}
                 className={`flex-1 py-2 text-[9px] font-mono uppercase tracking-wider transition-colors ${searchMode === m.id ? "bg-[#2d6a4f] text-[#f0ebe0]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
                 {m.label}
               </button>
@@ -3817,85 +3944,67 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
               onKeyDown={e => e.key === "Enter" && doSearch()}
               className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
           </div>
-          {/* Quick test codes */}
-          <div className="flex flex-wrap gap-2">
-            {Object.keys(codeMap).map(code => (
-              <button key={code} onClick={() => { setQuery(code); setSearchMode("qr"); setResult(null); }}
-                className="text-[#c9a84c] font-mono text-[10px] border border-[#c9a84c]/30 px-3 py-1.5 hover:border-[#c9a84c]/60 transition-colors">
-                {code}
-              </button>
-            ))}
-          </div>
-          <Btn full onClick={doSearch}>Verificar ingresso</Btn>
+          {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+          <Btn full onClick={doSearch} disabled={loading}>{loading ? <><RefreshCw size={16} className="animate-spin" />Buscando...</> : <>Verificar ingresso</>}</Btn>
         </div>
 
-        {/* POST CHECK-IN SUCCESS */}
-        {result === "valid" && checkedIn && (
+        {result === "valid" && checkedIn && selectedTicket && (
           <div className="mt-6 bg-[#0d2e1a] border-2 border-[#2d6a4f] p-10 text-center">
             <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 size={40} className="text-[#f0ebe0]" />
             </div>
             <DisplayTitle className="text-3xl mb-2">Entrada registrada!</DisplayTitle>
-            <p className="text-[#74c69d] font-semibold text-lg mb-1">{checkinName}</p>
-            <p className="text-[#7a9a7a] font-mono text-xs mb-1">Check-in realizado às {checkinTime}</p>
-            <p className="text-[#3a5a3a] font-mono text-[10px] mb-6">Registrado por: Organização · 17 Out 2026</p>
+            <p className="text-[#74c69d] font-semibold text-lg mb-1">{selectedTicket.attendee_name}</p>
+            <p className="text-[#7a9a7a] font-mono text-xs mb-1">Check-in realizado em {checkinTime}</p>
+            <p className="text-[#3a5a3a] font-mono text-[10px] mb-6">Registrado por: {auth.name}</p>
             <Btn full onClick={reset}>Nova verificação</Btn>
           </div>
         )}
 
-        {/* RESULT STATES */}
         {result && !checkedIn && (
           <div className={`mt-6 border p-8 text-center ${
             result === "valid"     ? "bg-[#0d2e1a] border-[#2d6a4f]"        :
             result === "used"      ? "bg-[#2e2a0a] border-[#c9a84c]/60"     :
-            result === "pending"   ? "bg-[#1a1a0a] border-[#c9a84c]/40"     :
-            result === "declined"  ? "bg-[#2e0a0a] border-[#c0392b]/60"     :
-            result === "cancelled" ? "bg-[#1a0505] border-[#c0392b]/40"     :
+            result === "pending" || result === "in_process" ? "bg-[#1a1a0a] border-[#c9a84c]/40" :
+            result === "invalid"   ? "bg-[#2e0a0a] border-[#c0392b]/60"     :
                                      "bg-[#2e0a0a] border-[#c0392b]/60"
           }`}>
-            {result === "valid" && (
+            {result === "valid" && selectedTicket && (
               <>
                 <CheckCircle2 size={48} className="text-[#2d6a4f] mx-auto mb-4" />
                 <DisplayTitle className="text-2xl mb-1">Ingresso válido</DisplayTitle>
-                <p className="text-[#74c69d] font-semibold text-lg mb-1">{checkinName}</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mb-4">Ingresso Individual · 1º Lote</p>
-                <Btn full className="mb-3" onClick={registerEntry}>Registrar entrada</Btn>
+                <p className="text-[#74c69d] font-semibold text-lg mb-1">{selectedTicket.attendee_name}</p>
+                <p className="text-[#7a9a7a] font-mono text-xs mb-4">{ticketTypeName(selectedTicket)} · {selectedTicket.qr_code}</p>
+                <Btn full className="mb-3" onClick={registerEntry} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Registrando...</> : <>Registrar entrada</>}</Btn>
               </>
             )}
-            {result === "used" && (
+            {result === "used" && selectedTicket && (
               <>
                 <AlertTriangle size={48} className="text-[#c9a84c] mx-auto mb-4" />
                 <DisplayTitle className="text-2xl mb-2">Já utilizado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm mb-2">{checkinName || "Este ingresso"} já registrou entrada às 19h23.</p>
-                <p className="text-[#7a9a7a] text-xs font-mono">Verificar se outra pessoa apresentou o mesmo QR Code.</p>
+                <p className="text-[#7a9a7a] text-sm mb-2">{checkinName} já registrou entrada em {formatDateTimeBR(selectedTicket.checked_in_at)}.</p>
+                <p className="text-[#7a9a7a] text-xs font-mono">Verifique duplicidade antes de qualquer liberação manual.</p>
               </>
             )}
-            {result === "pending" && (
+            {(result === "pending" || result === "in_process") && (
               <>
                 <Clock size={48} className="text-[#c9a84c] mx-auto mb-4" />
                 <DisplayTitle className="text-2xl mb-2">Pagamento pendente</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">Pagamento não confirmado. Não autorizar a entrada sem aprovação do financeiro.</p>
+                <p className="text-[#7a9a7a] text-sm">Status atual: {paymentStatus}. Não autorizar entrada sem aprovação.</p>
               </>
             )}
-            {result === "declined" && (
+            {!["valid","used","pending","in_process","invalid"].includes(result) && (
               <>
                 <XCircle size={48} className="text-[#c0392b] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-2">Pagamento recusado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">O pagamento deste ingresso foi recusado. <strong className="text-[#f0ebe0]">Entrada não autorizada.</strong></p>
-              </>
-            )}
-            {result === "cancelled" && (
-              <>
-                <XCircle size={48} className="text-[#c0392b] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-2">Ingresso cancelado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">Este ingresso foi cancelado e não dá direito à entrada.</p>
+                <DisplayTitle className="text-2xl mb-2">Entrada não autorizada</DisplayTitle>
+                <p className="text-[#7a9a7a] text-sm">Status de pagamento: <strong className="text-[#f0ebe0]">{paymentStatus}</strong>.</p>
               </>
             )}
             {result === "invalid" && (
               <>
                 <AlertCircle size={48} className="text-[#c0392b] mx-auto mb-4" />
                 <DisplayTitle className="text-2xl mb-2">Não encontrado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">Nenhum ingresso encontrado para &ldquo;{query}&rdquo;.</p>
+                <p className="text-[#7a9a7a] text-sm">Nenhum ingresso encontrado para “{query}”.</p>
               </>
             )}
             <button onClick={reset} className="mt-4 text-[#7a9a7a] text-xs font-mono uppercase tracking-wider hover:text-[#f0ebe0] transition-colors block mx-auto">
@@ -4077,7 +4186,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate}                                            />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes}             />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth}                           />}
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}

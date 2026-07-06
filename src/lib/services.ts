@@ -8,7 +8,7 @@ import { DEV_MODE, supabase } from "./supabase";
 import type {
   DbPerson, DbTicketType, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbProfileClaimAnswer, DbTicket,
-  DbOrder, DbEvent, InsertOrder, UpsertProfile,
+  DbOrder, DbEvent, DbProfile, InsertOrder, UpsertProfile,
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
@@ -109,14 +109,49 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
 
 // ─── PROFILES ─────────────────────────────────────────────────────────────────
 
-export async function getMyProfile(userId: string) {
+export async function getMyProfile(userId: string): Promise<(DbProfile & { people?: Partial<DbPerson> }) | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*, people(*)")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  return data as (DbProfile & { people?: Partial<DbPerson> }) | null;
+}
+
+export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): Promise<DbProfile> {
+  const current = await getMyProfile(userId);
+  if (!current?.id) {
+    throw new Error("Perfil ainda não reivindicado. Reivindique seu perfil antes de editar os dados públicos.");
+  }
+  const allowedPatch: Partial<DbProfile> = {
+    display_name: patch.display_name ?? null,
+    current_photo_url: patch.current_photo_url ?? null,
+    current_city: patch.current_city ?? null,
+    current_state: patch.current_state ?? null,
+    current_country: patch.current_country ?? null,
+    profession: patch.profession ?? null,
+    bio: patch.bio ?? null,
+    memory_text: patch.memory_text ?? null,
+    instagram_url: patch.instagram_url ?? null,
+    linkedin_url: patch.linkedin_url ?? null,
+    show_current_photo: patch.show_current_photo ?? false,
+    show_city: patch.show_city ?? false,
+    show_profession: patch.show_profession ?? false,
+    show_social_links: patch.show_social_links ?? false,
+    allow_photo_tags: patch.allow_photo_tags ?? false,
+    show_confirmed_status: patch.show_confirmed_status ?? false,
+  };
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(allowedPatch)
+    .eq("id", current.id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+  if (error) throw error;
+  await writeAudit("update_profile", "profiles", current.id, { fields: Object.keys(allowedPatch) });
+  return data as DbProfile;
 }
 
 export async function upsertProfile(profile: UpsertProfile) {
@@ -195,33 +230,9 @@ export async function getMyTicket(email: string): Promise<DbTicket | null> {
   return data as DbTicket | null;
 }
 
-// Busca para check-in: por QR code, nome, e-mail ou telefone
-export async function findTicketForCheckin(query: string, mode: "qr" | "name" | "email" | "phone") {
-  return withFallback(async () => {
-    let q = supabase
-      .from("tickets")
-      .select("*, orders(payment_status, buyer_name), ticket_types(name)")
-      .limit(5);
-
-    if (mode === "qr")    q = q.eq("qr_code", query.toUpperCase());
-    else if (mode === "email") q = q.ilike("attendee_email", `%${query}%`);
-    else if (mode === "phone") q = q.ilike("attendee_phone", `%${query}%`);
-    else q = q.ilike("attendee_name", `%${query}%`);
-
-    const { data, error } = await q;
-    if (error) throw error;
-    return (data ?? []) as (DbTicket & { orders: { payment_status: string; buyer_name: string } | null; ticket_types: { name: string } | null })[];
-  }, []);
-}
-
+// Check-in helper preservado para compatibilidade com fluxos antigos.
 export async function checkInTicket(ticketId: string, adminUserId: string): Promise<void> {
-  const { error } = await supabase
-    .from("tickets")
-    .update({ checked_in: true, checked_in_at: new Date().toISOString(), checked_in_by_admin_id: adminUserId })
-    .eq("id", ticketId)
-    .eq("checked_in", false);  // previne duplicação
-  if (error) throw error;
-  await writeAudit("checkin", "tickets", ticketId, { admin_id: adminUserId });
+  await markTicketCheckedIn(ticketId, adminUserId);
 }
 
 // ─── PHOTOS ───────────────────────────────────────────────────────────────────
@@ -597,6 +608,48 @@ export async function getTicketDetails(ticketId: string): Promise<TicketWithDeta
     .maybeSingle();
   if (error) throw error;
   return data as unknown as TicketWithDetails | null;
+}
+
+export async function findTicketForCheckin(query: string, mode: "qr" | "name" | "email" | "phone" = "qr"): Promise<TicketWithDetails | null> {
+  const clean = query.trim();
+  if (!clean) return null;
+  return withFallback(async () => {
+    let q = supabase
+      .from("tickets")
+      .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
+      .limit(10);
+    if (mode === "qr") {
+      q = q.eq("qr_code", clean.toUpperCase());
+    } else if (mode === "email") {
+      q = q.ilike("attendee_email", clean);
+    } else if (mode === "phone") {
+      q = q.ilike("attendee_phone", `%${clean}%`);
+    } else {
+      q = q.ilike("attendee_name", `%${clean}%`);
+    }
+    const { data, error } = await q.order("created_at", { ascending: false });
+    if (error) throw error;
+    return ((data ?? []) as unknown as TicketWithDetails[])[0] ?? null;
+  }, null);
+}
+
+export async function markTicketCheckedIn(ticketId: string, adminId: string): Promise<TicketWithDetails> {
+  const current = await getTicketDetails(ticketId);
+  if (!current) throw new Error("Ingresso não encontrado.");
+  if (current.checked_in) throw new Error("Este ingresso já registrou entrada.");
+  if (current.orders?.payment_status !== "approved") throw new Error("Pagamento não aprovado. Entrada não autorizada.");
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({ checked_in: true, checked_in_at: now, checked_in_by_admin_id: adminId })
+    .eq("id", ticketId)
+    .eq("checked_in", false)
+    .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Não foi possível registrar: ingresso já utilizado ou indisponível.");
+  await writeAudit("ticket_checkin", "tickets", ticketId, { admin_id: adminId, checked_in_at: now });
+  return data as unknown as TicketWithDetails;
 }
 
 // ─── CSV EXPORT ───────────────────────────────────────────────────────────────
