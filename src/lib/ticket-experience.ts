@@ -24,7 +24,9 @@ function qrSrc(code: string, size = 224) {
 
 function likelyTicketCode(text: string): string | null {
   const matches = text.match(CODE_RE) ?? [];
-  return matches.find(code => code.includes("-") || code.length >= 8) ?? null;
+  return matches.find(code => /\d/.test(code) && code.includes("-"))
+    ?? matches.find(code => /\d/.test(code) && code.length >= 8)
+    ?? null;
 }
 
 function addRealQrCodes() {
@@ -244,7 +246,7 @@ function addCameraScanner() {
     .find(el => el.innerText.includes("Leitura por câmera") || el.innerText.includes("câmera"));
   if (!host) return;
 
-  const wrapper = host.closest("div.bg-\[\#141f14\]") as HTMLElement | null;
+  const wrapper = host.parentElement?.parentElement ?? host.parentElement ?? host;
   const status = document.createElement("p");
   status.className = "text-[#7a9a7a] text-xs font-mono mt-3";
   status.innerText = "Leitor QR pronto.";
@@ -274,7 +276,7 @@ function addCameraScanner() {
   controls.appendChild(start);
   controls.appendChild(stop);
   controls.appendChild(status);
-  wrapper?.appendChild(controls);
+  wrapper.appendChild(controls);
 }
 
 function runEnhancements() {
