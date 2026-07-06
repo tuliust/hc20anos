@@ -18,13 +18,13 @@ import {
   getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
   toggleFeaturedPhoto, toggleFeaturedMemory,
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
-  getPublicLocationStats,
+  getPublicLocationStats, getMyTickets,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -48,7 +48,8 @@ type Page =
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
   | "login" | "terms" | "privacy" | "memories"
-  | "polls" | "where-now" | "share-invite";
+  | "polls" | "where-now" | "share-invite"
+  | "my-ticket" | "archive";
 
 interface AuthState {
   loggedIn: boolean;
@@ -184,6 +185,35 @@ function initials(name: string) {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
 
+function formatDateBR(value?: string | null) {
+  if (!value) return "Data a confirmar";
+  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatDateTimeBR(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function eventDateTimeLabel(event?: DbEvent | null) {
+  if (!event) return "17 out 2026 · 19h";
+  const date = formatDateBR(event.event_date);
+  const time = event.event_time?.slice(0, 5)?.replace(":", "h") ?? "19h";
+  return `${date} · ${time}`;
+}
+
+function ticketTypeName(ticket?: TicketWithDetails | null) {
+  return ticket?.ticket_types?.name ?? "Ingresso do reencontro";
+}
+
+function ticketPaymentStatus(ticket?: TicketWithDetails | null) {
+  return ticket?.orders?.payment_status ?? "pending";
+}
+
 // Mapeia DbPerson → Alumni (interface legada dos componentes visuais)
 function personToAlumni(p: DbPerson): Alumni {
   return {
@@ -230,6 +260,7 @@ function StatusBadge({ status }: { status: string }) {
     "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     pending:      { label: "Aguardando",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    in_process:   { label: "Em processamento", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     approved:     { label: "Aprovado",         color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     rejected:     { label: "Rejeitado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     removed:      { label: "Removido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
@@ -245,6 +276,13 @@ function StatusBadge({ status }: { status: string }) {
     used:         { label: "Já utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     invalid:      { label: "Inválido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     cancelled:    { label: "Cancelado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    refunded:     { label: "Reembolsado",      color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    expired:      { label: "Expirado",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    charged_back: { label: "Contestação",      color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    checked_in:   { label: "Check-in feito",   color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    unauthorized: { label: "Login necessário", color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    forbidden:    { label: "Sem permissão",    color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    success:      { label: "Sucesso",          color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     open:         { label: "Aberto",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     closed:       { label: "Fechado",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
     archived:     { label: "Arquivado",        color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
@@ -654,6 +692,7 @@ function Header({ page, navigate, auth, logout }: {
     { label: "Memórias",                            page: "memories"    },
     { label: "Enquetes",                             page: "polls"       },
     { label: "Mapa",                                 page: "where-now"   },
+    { label: "Acervo",                               page: "archive"     },
     { label: auth.loggedIn ? "Minha Área" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
   ];
 
@@ -726,9 +765,9 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Navegação</p>
             <div className="flex flex-col gap-3">
-              {(["tickets","who-going","the-class","photo-wall","memories","polls","where-now"] as Page[]).map(p => (
+              {(["tickets","who-going","the-class","photo-wall","memories","polls","where-now","archive"] as Page[]).map(p => (
                 <button key={p} onClick={() => navigate(p)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
-                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias", polls:"Enquetes", "where-now":"Onde a turma está" }[p]}
+                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias", polls:"Enquetes", "where-now":"Onde a turma está", archive:"Acervo Digital" }[p]}
                 </button>
               ))}
             </div>
@@ -2425,8 +2464,35 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
 
 function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [useName, setUseName] = useState(true);
+  const [event, setEvent] = useState<DbEvent | null>(null);
+  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. Dia 17/10/2026, às 19h, em Natal. Vamos juntos?`;
+
+  useEffect(() => {
+    let active = true;
+    async function loadInviteData() {
+      setLoading(true);
+      try {
+        const [eventData, ticketData] = await Promise.all([
+          getEventSettings().catch(() => null),
+          auth.loggedIn ? getMyTickets(auth.userId, auth.email).catch(() => []) : Promise.resolve([]),
+        ]);
+        if (!active) return;
+        setEvent(eventData);
+        setTickets(ticketData);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    loadInviteData();
+    return () => { active = false; };
+  }, [auth.loggedIn, auth.userId, auth.email]);
+
+  const hasApprovedTicket = tickets.some(t => ticketPaymentStatus(t) === "approved");
+  const dateLabel = eventDateTimeLabel(event);
+  const locationLabel = event?.location_name ?? "Natal, Rio Grande do Norte";
+  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. ${dateLabel}, em ${locationLabel}. Vamos juntos?`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
 
   async function copyInvite() {
@@ -2450,22 +2516,34 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
+        <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
           <div>
             <SectionLabel>Convite compartilhável</SectionLabel>
             <DisplayTitle className="text-4xl md:text-6xl mb-4">Chame a turma para o reencontro</DisplayTitle>
-            <p className="text-[#7a9a7a] leading-relaxed mb-8">Use este cartão para divulgar que você vai ao reencontro. A versão sem nome preserva sua privacidade.</p>
+            <p className="text-[#7a9a7a] leading-relaxed mb-6">Use este cartão para divulgar o reencontro. A versão sem nome preserva sua privacidade.</p>
+            {loading && <LoadingState message="Carregando dados do convite..." />}
+            {!loading && auth.loggedIn && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <StatusBadge status={hasApprovedTicket ? "approved" : "pending"} />
+                <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">{hasApprovedTicket ? "Ingresso aprovado" : "Ingresso não localizado/aprovado"}</span>
+              </div>
+            )}
             <label className="flex items-center gap-3 bg-[#141f14] border border-[#2d6a4f]/30 p-4 mb-4 cursor-pointer">
-              <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" />
-              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite</span>
+              <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" disabled={!auth.loggedIn} />
+              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite {auth.loggedIn ? "" : "(faça login para ativar)"}</span>
             </label>
             {message && <p className="text-[#74c69d] text-sm font-mono mb-4">{message}</p>}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <Btn onClick={nativeShare}><Send size={16} />Compartilhar</Btn>
               <Btn variant="outline" onClick={() => window.open(whatsappUrl, "_blank")}><Phone size={16} />WhatsApp</Btn>
               <Btn variant="ghost" onClick={copyInvite}><FileText size={16} />Copiar texto</Btn>
             </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {auth.loggedIn && <Btn variant="ghost" onClick={() => navigate("my-ticket")}><Ticket size={16} />Meu ingresso</Btn>}
+              <Btn variant="ghost" onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
+            </div>
+            <p className="text-[#7a9a7a] text-xs font-mono mt-6">Download de imagem será implementado sem dependência pesada em etapa futura. Nesta versão, o compartilhamento usa texto, Web Share API e WhatsApp.</p>
           </div>
 
           <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
@@ -2474,9 +2552,9 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
             {useName && auth.loggedIn && <p className="text-[#2d6a4f] font-bold text-lg mb-6">{auth.name}</p>}
             <div className="h-px bg-[#c9a84c] my-6" />
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">17 out 2026</p></div>
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">19h</p></div>
-              <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">Natal, Rio Grande do Norte</p></div>
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">{dateLabel.split(" · ")[0]}</p></div>
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">{dateLabel.split(" · ")[1] ?? "19h"}</p></div>
+              <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">{locationLabel}</p></div>
             </div>
             <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histórias, fotos antigas e vínculos que atravessaram o tempo.</p>
           </div>
@@ -2486,6 +2564,251 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   );
 }
 
+
+// ─── MY TICKET PAGE ───────────────────────────────────────────────────────────
+
+function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
+  const [event, setEvent] = useState<DbEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  async function loadTicket() {
+    setLoading(true);
+    setError("");
+    try {
+      const [ticketData, eventData] = await Promise.all([
+        getMyTickets(auth.userId, auth.email),
+        getEventSettings().catch(() => null),
+      ]);
+      setTickets(ticketData);
+      setEvent(eventData);
+      if (!selectedId && ticketData[0]) setSelectedId(ticketData[0].id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar ingresso.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadTicket(); }, [auth.userId, auth.email]);
+
+  const ticket = tickets.find(t => t.id === selectedId) ?? tickets[0] ?? null;
+  const paymentStatus = ticketPaymentStatus(ticket);
+  const ticketStatus = ticket?.checked_in ? "checked_in" : paymentStatus;
+  const eventName = event?.title ?? "Turma 2006 — 20 anos depois";
+  const eventLocation = event?.location_name ?? "Local a confirmar";
+  const eventAddress = event?.location_address ?? "Endereço será informado pela organização.";
+
+  return (
+    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      <div className="max-w-5xl mx-auto px-4">
+        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha área</button>
+        <SectionLabel>Meu ingresso</SectionLabel>
+        <DisplayTitle className="text-4xl md:text-6xl mb-4">Entrada do reencontro</DisplayTitle>
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Confira o status do pagamento e apresente o código no check-in do evento.</p>
+
+        {loading && <LoadingState message="Carregando ingresso..." />}
+        {error && <ErrorState message={error} onRetry={loadTicket} />}
+        {!loading && !error && tickets.length === 0 && (
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos ingressos vinculados ao seu e-mail de login. Compre um ingresso ou entre em contato com a organização." />
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
+              <Btn variant="outline" onClick={() => navigate("home")}><Mail size={16} />Contato da organização</Btn>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && ticket && (
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+            <div className="bg-[#f0ebe0] text-[#0d1a0f] border-8 border-[#c9a84c] p-8 text-center">
+              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-6">Ingresso oficial</p>
+              <div className="w-48 h-48 mx-auto bg-white border-4 border-[#0d1a0f] flex items-center justify-center mb-6">
+                <QrCode size={128} className="text-[#0d1a0f]" />
+              </div>
+              <p className="font-mono text-lg font-bold tracking-widest break-all">{ticket.qr_code}</p>
+              <p className="text-xs text-[#5b4636] mt-3">QR visual demonstrativo. Use também o código textual acima.</p>
+              <div className="mt-6 flex justify-center"><StatusBadge status={ticketStatus} /></div>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              {tickets.length > 1 && (
+                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-3">Selecionar ingresso</p>
+                  <div className="flex flex-wrap gap-2">
+                    {tickets.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`px-4 py-2 text-xs font-mono border ${item.id === ticket.id ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{item.attendee_name}</button>)}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Participante</p>
+                    <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{ticket.attendee_name}</h2>
+                    <p className="text-[#7a9a7a] text-sm font-mono mt-1">{ticket.attendee_email}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2"><StatusBadge status={paymentStatus} />{ticket.checked_in && <StatusBadge status="checked_in" />}</div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <InfoRow label="Tipo" value={ticketTypeName(ticket)} />
+                  <InfoRow label="Telefone" value={ticket.attendee_phone ?? "Não informado"} />
+                  <InfoRow label="Acompanhante" value={ticket.guest_name ?? "Não informado"} />
+                  <InfoRow label="Check-in" value={ticket.checked_in ? `Realizado ${formatDateTimeBR(ticket.checked_in_at)}` : "Ainda não realizado"} />
+                  <InfoRow label="Pagamento" value={paymentStatus} />
+                  <InfoRow label="Pedido" value={ticket.order_id} />
+                </div>
+              </div>
+
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Dados do evento</p>
+                <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold mb-2">{eventName}</h3>
+                <div className="flex flex-col gap-2 text-sm text-[#8ab89a]">
+                  <p className="flex items-center gap-2"><Calendar size={14} />{eventDateTimeLabel(event)}</p>
+                  <p className="flex items-center gap-2"><MapPin size={14} />{eventLocation}</p>
+                  <p className="text-[#7a9a7a]">{eventAddress}</p>
+                </div>
+              </div>
+
+              <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Instruções e termos</p>
+                <ul className="text-[#8ab89a] text-sm leading-relaxed list-disc pl-5 space-y-2">
+                  <li>Apresente o QR Code ou o código textual na entrada.</li>
+                  <li>O ingresso é nominal e deve estar com pagamento aprovado.</li>
+                  <li>Depois do check-in, o mesmo código não poderá ser reutilizado.</li>
+                  <li>Em caso de divergência, procure a organização do evento.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+      <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-[#f0ebe0] text-sm break-words">{value}</p>
+    </div>
+  );
+}
+
+// ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
+
+function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
+  const [event, setEvent] = useState<DbEvent | null>(null);
+  const [memories, setMemories] = useState<DbMemory[]>([]);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function loadArchive() {
+      setLoading(true);
+      const [eventData, memoryData] = await Promise.all([
+        getEventSettings().catch(() => null),
+        getApprovedMemories(DEFAULT_EVENT_ID).catch(() => []),
+      ]);
+      if (!active) return;
+      setEvent(eventData);
+      setMemories(memoryData);
+      setLoading(false);
+    }
+    loadArchive();
+    return () => { active = false; };
+  }, []);
+
+  const dateSource = event?.event_date ? new Date(`${event.event_date}T${event.event_time ?? "19:00:00"}-03:00`) : EVENT_DATE;
+  const archiveOpen = Date.now() >= dateSource.getTime();
+  const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 8);
+  const officialPhotos = featuredPhotos.length ? featuredPhotos : photos.slice(0, 8);
+  const confirmedPeople = people.filter(p => p.profile_status === "confirmed" && p.is_visible).slice(0, 16);
+
+  return (
+    <>
+      <PhotoUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} auth={auth} navigate={navigate} />
+      <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <SectionLabel>Acervo Digital</SectionLabel>
+          <DisplayTitle className="text-4xl md:text-7xl mb-4">Memórias do reencontro</DisplayTitle>
+          <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaço para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranças aprovadas pela organização.</p>
+
+          {loading && <LoadingState message="Carregando acervo..." />}
+
+          {!loading && !archiveOpen && (
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
+              <div className="max-w-3xl">
+                <StatusBadge status="closed" />
+                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">O acervo será aberto depois do reencontro.</h2>
+                <p className="text-[#8ab89a] leading-relaxed mb-8">Depois do evento, esta página reunirá fotos oficiais, fotos enviadas pelos participantes, vídeo oficial, lista de presença respeitando privacidade e memórias aprovadas.</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  {[
+                    ["Fotos oficiais", "Seleção da organização"],
+                    ["Memórias", "Relatos aprovados da turma"],
+                    ["Melhores momentos", "Vídeo e destaques pós-evento"],
+                  ].map(([title, body]) => <div key={title} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-5"><p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-2">{title}</p><p className="text-[#7a9a7a] text-sm">{body}</p></div>)}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
+                  <Btn variant="outline" onClick={() => navigate("photo-wall")}><Camera size={16} />Ver fotos antigas</Btn>
+                  <Btn variant="ghost" onClick={() => navigate("memories")}><MessageCircle size={16} />Ver memórias</Btn>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && archiveOpen && (
+            <div className="flex flex-col gap-10">
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Mensagem da organização</p>
+                <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembranças que a turma escolheu dividir.</p>
+              </div>
+
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Fotos oficiais e destaques</p>
+                  <Btn size="sm" variant="outline" onClick={() => setUploadOpen(true)}><Upload size={14} />Enviar foto</Btn>
+                </div>
+                {officialPhotos.length === 0 ? <EmptyState title="Nenhuma foto no acervo" subtitle="As fotos aprovadas aparecerão aqui." /> : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {officialPhotos.map(photo => <div key={photo.id} className="aspect-[4/3] overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20"><img src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto do acervo"} className="w-full h-full object-cover opacity-85" /></div>)}
+                  </div>
+                )}
+              </section>
+
+              <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Memórias da turma</p>
+                  {memories.length === 0 ? <EmptyState title="Nenhuma memória aprovada" /> : memories.slice(0, 5).map(memory => <div key={memory.id} className="border-b border-[#2d6a4f]/15 py-4 last:border-b-0"><p className="text-[#f0ebe0] font-['Playfair_Display'] text-lg">“{memory.memory_text}”</p><p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "Anônimo" : memory.author_name ?? "Ex-aluno"}</p></div>)}
+                </div>
+                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Melhores momentos</p>
+                  <div className="aspect-video bg-[#0a120a] border border-[#2d6a4f]/20 flex items-center justify-center mb-4"><Camera size={48} className="text-[#2d6a4f]" /></div>
+                  <p className="text-[#7a9a7a] text-sm">Placeholder para vídeo oficial e seleção de melhores momentos. A configuração definitiva será adicionada em etapa futura.</p>
+                </div>
+              </section>
+
+              <section className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Lista de presença pública</p>
+                {confirmedPeople.length === 0 ? <EmptyState title="Lista indisponível" subtitle="A lista pública respeita as preferências de privacidade dos perfis." /> : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {confirmedPeople.map(person => <div key={person.id} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4"><p className="text-[#f0ebe0] text-sm font-semibold">{person.full_name}</p><p className="text-[#7a9a7a] text-xs font-mono">Turma 2006{person.class_group ? ` · Sala ${person.class_group}` : ""}</p></div>)}
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 // ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
 
@@ -2579,6 +2902,28 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 // ─── ALUMNI AREA ──────────────────────────────────────────────────────────────
 
 function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadArea() {
+    setLoading(true);
+    setError("");
+    try {
+      setTickets(await getMyTickets(auth.userId, auth.email));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar sua área.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadArea(); }, [auth.userId, auth.email]);
+
+  const mainTicket = tickets[0] ?? null;
+  const paymentStatus = ticketPaymentStatus(mainTicket);
+  const hasApprovedTicket = paymentStatus === "approved";
+
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-4xl mx-auto px-4">
@@ -2586,73 +2931,87 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
           <div>
             <SectionLabel>Área do Ex-Aluno</SectionLabel>
             <DisplayTitle className="text-3xl md:text-4xl">Olá, {auth.name.split(" ")[0]}!</DisplayTitle>
-            <p className="text-[#7a9a7a] font-mono text-sm mt-1">&ldquo;Aninha&rdquo; · Turma 2006 — Sala A</p>
+            <p className="text-[#7a9a7a] font-mono text-sm mt-1">Turma 2006 · dados protegidos por login</p>
           </div>
-          <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Sair">
+          <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Voltar ao início">
             <LogOut size={20} />
           </button>
         </div>
 
-        {/* Ticket card */}
-        <div className="bg-[#141f14] border border-[#2d6a4f]/40 p-6 md:p-8 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <div className="bg-[#f0ebe0] p-6 mx-auto md:mx-0 w-32 h-32 flex items-center justify-center shrink-0">
-              <QrCode size={72} className="text-[#0d1a0f]" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Meu ingresso</p>
-              <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">Ingresso Individual — 1º Lote</p>
-              <p className="text-[#7a9a7a] text-xs font-mono mb-3">HC2006-0042 · 17 Out 2026 · 19h00</p>
-              <StatusBadge status="approved" />
-            </div>
-            <Btn onClick={() => {}} size="sm"><Download size={14} />Baixar</Btn>
-          </div>
-        </div>
+        {loading && <LoadingState message="Carregando seus dados..." />}
+        {error && <ErrorState message={error} onRetry={loadArea} />}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Meu perfil</p>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-lg">
-                {initials(auth.name)}
-              </div>
-              <div>
-                <p className="text-[#f0ebe0] font-semibold">{auth.name}</p>
-                <p className="text-[#7a9a7a] text-xs font-mono">Médica · Natal, RN</p>
+        {!loading && !error && (
+          <>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/40 p-6 md:p-8 mb-8">
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="bg-[#f0ebe0] p-6 mx-auto md:mx-0 w-32 h-32 flex items-center justify-center shrink-0">
+                  <QrCode size={72} className="text-[#0d1a0f]" />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Meu ingresso</p>
+                  {mainTicket ? (
+                    <>
+                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">{ticketTypeName(mainTicket)}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">{mainTicket.qr_code} · {mainTicket.attendee_name}</p>
+                      <div className="flex flex-wrap justify-center md:justify-start gap-2"><StatusBadge status={paymentStatus} />{mainTicket.checked_in && <StatusBadge status="checked_in" />}</div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">Nenhum ingresso localizado</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">Use o mesmo e-mail da compra para vincular seu ingresso.</p>
+                      <StatusBadge status="pending" />
+                    </>
+                  )}
+                </div>
+                {mainTicket ? <Btn onClick={() => navigate("my-ticket")} size="sm"><QrCode size={14} />Ver ingresso</Btn> : <Btn onClick={() => navigate("tickets")} size="sm"><CreditCard size={14} />Comprar</Btn>}
               </div>
             </div>
-            <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
-            <div className="mt-3"><Btn full size="sm" variant="ghost" onClick={() => navigate("share-invite")}><Send size={14} />Convite compartilhável</Btn></div>
-          </div>
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Status do pagamento</p>
-            <div className="flex items-center gap-3 mb-4">
-              <CheckCircle size={24} className="text-[#2d6a4f]" />
-              <div>
-                <p className="text-[#f0ebe0] font-semibold">Pagamento aprovado</p>
-                <p className="text-[#7a9a7a] text-xs font-mono">PIX · R$ 120,00 · 05 Jul 2026</p>
-              </div>
-            </div>
-            <StatusBadge status="approved" />
-          </div>
-        </div>
 
-        <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Fotos em que apareci</p>
-            <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Ver mural</button>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {PHOTOS.slice(0,3).map(p => (
-              <div key={p.id} onClick={() => navigate("photo-detail")} className="aspect-square overflow-hidden bg-[#1a2e1a] cursor-pointer group">
-                <img src={p.url} alt={p.caption} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Meu perfil</p>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-lg">
+                    {initials(auth.name)}
+                  </div>
+                  <div>
+                    <p className="text-[#f0ebe0] font-semibold">{auth.name}</p>
+                    <p className="text-[#7a9a7a] text-xs font-mono">{auth.email ?? "E-mail não informado"}</p>
+                  </div>
+                </div>
+                <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
+                <div className="mt-3"><Btn full size="sm" variant="ghost" onClick={() => navigate("share-invite")}><Send size={14} />Convite compartilhável</Btn></div>
               </div>
-            ))}
-          </div>
-          <div className="mt-4">
-            <Btn full size="sm" variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={14} />Enviar foto antiga</Btn>
-          </div>
-        </div>
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Status do pagamento</p>
+                {mainTicket ? (
+                  <div className="flex items-center gap-3 mb-4">
+                    {hasApprovedTicket ? <CheckCircle size={24} className="text-[#2d6a4f]" /> : <Clock size={24} className="text-[#c9a84c]" />}
+                    <div>
+                      <p className="text-[#f0ebe0] font-semibold">{hasApprovedTicket ? "Pagamento aprovado" : "Pagamento ainda não aprovado"}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono">{mainTicket.orders?.payment_method ?? "Método não informado"} · {formatDateTimeBR(mainTicket.orders?.paid_at) || "Sem confirmação de pagamento"}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState title="Sem pedido vinculado" subtitle="Compre um ingresso ou confira se você está usando o mesmo e-mail informado na compra." />
+                )}
+                {mainTicket && <StatusBadge status={paymentStatus} />}
+              </div>
+            </div>
+
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Fotos em que apareci</p>
+                <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Ver mural</button>
+              </div>
+              <EmptyState title="Marcações ainda não vinculadas" subtitle="Quando houver marcações aprovadas em fotos usando seu perfil, elas aparecerão aqui." />
+              <div className="mt-4">
+                <Btn full size="sm" variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={14} />Enviar foto antiga</Btn>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -3632,7 +3991,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
 
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
-const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile"];
+const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket"];
 const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
 
 export default function App() {
@@ -3731,6 +4090,8 @@ export default function App() {
         {page === "polls"         && <PollsPage          navigate={navigate} auth={auth}                              />}
         {page === "where-now"     && <WhereNowPage       navigate={navigate}                                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
+        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
+        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && <AdminPage          navigate={navigate} auth={auth}                           />}

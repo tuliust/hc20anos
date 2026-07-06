@@ -133,6 +133,12 @@ export interface DbTicket {
   updated_at:               string;
 }
 
+export interface TicketWithDetails extends DbTicket {
+  orders?: Partial<DbOrder> | null;
+  ticket_types?: Partial<DbTicketType> | null;
+  people?: Partial<DbPerson> | null;
+}
+
 export interface DbPhoto {
   id:                   uuid;
   event_id:             uuid | null;

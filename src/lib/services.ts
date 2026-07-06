@@ -12,7 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, TicketWithDetails,
 } from "./database.types";
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
@@ -537,6 +537,66 @@ export async function getReports(eventId = DEFAULT_EVENT_ID): Promise<Record<str
     photos_total: 6, photos_approved: 6, photos_pending: 0, photos_rejected: 0,
     claims_pending: 0, disputes_pending: 0, removals_pending: 0,
   });
+}
+
+// ─── USER TICKETS ─────────────────────────────────────────────────────────────
+
+export async function getMyOrders(userId: string, email?: string): Promise<DbOrder[]> {
+  if (!userId && !email) return [];
+  return withFallback(async () => {
+    let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
+    if (email) q = q.eq("buyer_email", email);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as DbOrder[]) ?? [];
+  }, []);
+}
+
+export async function getMyTickets(userId: string, email?: string): Promise<TicketWithDetails[]> {
+  if (!userId && !email) return [];
+  return withFallback(async () => {
+    const rows: TicketWithDetails[] = [];
+
+    if (email) {
+      const { data: direct, error: directError } = await supabase
+        .from("tickets")
+        .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
+        .eq("attendee_email", email)
+        .order("created_at", { ascending: false });
+      if (directError) throw directError;
+      rows.push(...((direct ?? []) as unknown as TicketWithDetails[]));
+
+      const { data: orders, error: orderError } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("buyer_email", email);
+      if (orderError) throw orderError;
+      const orderIds = ((orders ?? []) as Pick<DbOrder, "id">[]).map(o => o.id);
+      if (orderIds.length > 0) {
+        const { data: byOrder, error: ticketError } = await supabase
+          .from("tickets")
+          .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
+          .in("order_id", orderIds)
+          .order("created_at", { ascending: false });
+        if (ticketError) throw ticketError;
+        rows.push(...((byOrder ?? []) as unknown as TicketWithDetails[]));
+      }
+    }
+
+    const unique = new Map<string, TicketWithDetails>();
+    for (const row of rows) unique.set(row.id, row);
+    return Array.from(unique.values()).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }, []);
+}
+
+export async function getTicketDetails(ticketId: string): Promise<TicketWithDetails | null> {
+  const { data, error } = await supabase
+    .from("tickets")
+    .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
+    .eq("id", ticketId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as unknown as TicketWithDetails | null;
 }
 
 // ─── CSV EXPORT ───────────────────────────────────────────────────────────────
