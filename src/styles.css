@@ -30,3 +30,87 @@ video,
 canvas {
   display: block;
 }
+
+/* Header refinements requested after Prompt 4.
+   These selectors intentionally target the existing header markup without changing routes. */
+header nav {
+  gap: 1rem !important;
+  min-width: 0;
+}
+
+header nav button {
+  white-space: nowrap;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  letter-spacing: 0.14em !important;
+}
+
+/* Remove the redundant "Ingressos" nav item; the primary CTA now owns this action. */
+header nav button:first-child {
+  display: none !important;
+}
+
+/* Replace the long school-name line in the brand with a compact logo mark. */
+header button.text-left p:first-child {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(201, 168, 76, 0.7);
+  border-radius: 9999px;
+  background: #0d1a0f;
+  color: transparent !important;
+  font-size: 0 !important;
+  letter-spacing: 0 !important;
+  position: relative;
+  margin-bottom: 0.15rem;
+}
+
+header button.text-left p:first-child::before {
+  content: "HC";
+  color: #c9a84c;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+header button.text-left p:first-child::after {
+  content: "20";
+  position: absolute;
+  right: -0.3rem;
+  bottom: -0.25rem;
+  min-width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #c9a84c;
+  color: #0d1a0f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.5rem;
+  font-weight: 900;
+}
+
+header > div > div:last-child > button:first-child {
+  white-space: nowrap;
+  font-size: 0 !important;
+}
+
+header > div > div:last-child > button:first-child::after {
+  content: "Comprar ingresso";
+  font-size: 10px;
+  line-height: 1;
+}
+
+@media (min-width: 1280px) {
+  header nav {
+    gap: 1.25rem !important;
+  }
+
+  header nav button,
+  header > div > div:last-child > button:first-child::after {
+    font-size: 11px !important;
+  }
+}
