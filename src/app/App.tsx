@@ -19,12 +19,15 @@ import {
   toggleFeaturedPhoto, toggleFeaturedMemory,
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getMyTickets, getMyProfile, saveMyProfile, findTicketForCheckin, markTicketCheckedIn,
+  createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
+  getEventArchiveSettings, uploadProfileAvatar,
 } from "../lib/services";
 import type {
-  DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag,
+  DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails, DbProfile,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbEventArchiveSettings,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -117,9 +120,9 @@ const ALUMNI: Alumni[] = [
 ];
 
 const TICKETS: TicketItem[] = [
-  { id: "t1", type: "Ingresso Individual",    lot: "1º Lote",        price: 120, available: 47, total: 100, includes: ["Jantar buffet completo", "Open bar 4 horas", "Área fotográfica", "Brinde comemorativo"],                                        status: "available"   },
-  { id: "t2", type: "Ingresso Casal",         lot: "1º Lote",        price: 200, available: 8,  total: 50,  includes: ["2 jantares buffet", "Open bar 4 horas", "Área fotográfica", "2 brindes comemorativos"],                                         status: "last-units"  },
-  { id: "t3", type: "Mesa VIP — 4 pessoas",   lot: "Edição Limitada", price: 600, available: 0,  total: 20,  includes: ["Mesa reservada premium", "Champagne na chegada", "Open bar premium", "Brinde colecionável exclusivo", "Acesso à área VIP"],    status: "sold-out"    },
+  { id: "00000000-0000-0000-0001-000000000001", type: "Ingresso Individual",    lot: "1º Lote",        price: 120, available: 47, total: 100, includes: ["Jantar buffet completo", "Open bar 4 horas", "Área fotográfica", "Brinde comemorativo"],                                        status: "available"   },
+  { id: "00000000-0000-0000-0001-000000000002", type: "Ingresso Casal",         lot: "1º Lote",        price: 200, available: 8,  total: 50,  includes: ["2 jantares buffet", "Open bar 4 horas", "Área fotográfica", "2 brindes comemorativos"],                                         status: "last-units"  },
+  { id: "00000000-0000-0000-0001-000000000003", type: "Mesa VIP — 4 pessoas",   lot: "Edição Limitada", price: 600, available: 0,  total: 20,  includes: ["Mesa reservada premium", "Champagne na chegada", "Open bar premium", "Brinde colecionável exclusivo", "Acesso à área VIP"],    status: "sold-out"    },
 ];
 
 const PHOTOS: Photo[] = [
@@ -908,9 +911,11 @@ function LoginPage({ navigate, onLogin }: {
                   Reivindicar meu perfil
                 </button>
               </p>
-              <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                Protótipo: qualquer e-mail + senha com 4+ caracteres
-              </p>
+              {DEV_MODE && (
+                <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
+                  Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-5">
@@ -927,9 +932,11 @@ function LoginPage({ navigate, onLogin }: {
               <Btn full onClick={submit} disabled={loading}>
                 {loading ? <><RefreshCw size={16} className="animate-spin" />Verificando...</> : <><Key size={16} />Acessar painel</>}
               </Btn>
-              <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                Protótipo: use o código ADMIN2026
-              </p>
+              {DEV_MODE && (
+                <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
+                  Modo desenvolvimento: use o codigo ADMIN2026
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1228,7 +1235,7 @@ function LandingPage({ navigate, people, photos }: { navigate: (p: Page) => void
 
 // ─── TICKETS PAGE ─────────────────────────────────────────────────────────────
 
-function TicketsPage({ navigate, ticketTypes: liveTypes }: { navigate: (p: Page) => void; ticketTypes: DbTicketType[] }) {
+function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { navigate: (p: Page) => void; ticketTypes: DbTicketType[]; onSelectTicket: (id: string) => void }) {
   // Usa ticket types do Supabase se disponíveis, senão cai no mock local
   const displayTickets: TicketItem[] = (liveTypes.length > 0 ? liveTypes : TICKETS).map(t => {
     if ("price_cents" in t) {
@@ -1283,7 +1290,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes }: { navigate: (p: Page)
                   </div>
                   <Btn size="md" disabled={t.status === "sold-out"}
                     variant={t.status === "last-units" ? "gold" : "primary"}
-                    onClick={() => navigate("checkout")}>
+                    onClick={() => { onSelectTicket(t.id); navigate("checkout"); }}>
                     {t.status === "sold-out" ? "Esgotado" : "Comprar agora"}
                   </Btn>
                 </div>
@@ -1305,22 +1312,134 @@ function TicketsPage({ navigate, ticketTypes: liveTypes }: { navigate: (p: Page)
 
 // ─── CHECKOUT ─────────────────────────────────────────────────────────────────
 
-function CheckoutPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+type CheckoutReturnState = { status: PaymentStatus | "cancelled"; orderId: string } | null;
+
+function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, checkoutReturn }: {
+  navigate: (p: Page) => void;
+  auth: AuthState;
+  ticketTypes: DbTicketType[];
+  selectedTicketTypeId: string | null;
+  checkoutReturn: CheckoutReturnState;
+}) {
   const [step, setStep]           = useState(1);
-  const [form, setForm]           = useState({ name: "", email: "", phone: "", alumni: "" });
+  const [form, setForm]           = useState({ name: auth.name || "", email: auth.email || "", phone: "", alumni: "" });
   const [companion, setCompanion] = useState(false);
   const [payment, setPayment]     = useState("pix");
   const [loading, setLoading]     = useState(false);
+  const [checkoutStatus, setCheckoutStatus] = useState<PaymentStatus | "cancelled" | null>(checkoutReturn?.status ?? null);
+  const [checkoutOrder, setCheckoutOrder] = useState<(DbOrder & { ticket_types?: Partial<DbTicketType> | null; tickets?: { id: string; qr_code: string }[] }) | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [payResult, setPayResult] = useState<"approved" | "declined" | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   const steps = ["Seus dados", "Pagamento", "Processando"];
+  const selectedTicket = ticketTypes.find(t => t.id === selectedTicketTypeId)
+    ?? ticketTypes.find(t => t.status === "open")
+    ?? null;
+  const fallbackTicket = TICKETS.find(t => t.id === selectedTicketTypeId) ?? TICKETS[0];
+  const ticketName = selectedTicket?.name ?? fallbackTicket.type;
+  const ticketPriceCents = selectedTicket?.price_cents ?? fallbackTicket.price * 100;
+  const quantity = companion ? 2 : 1;
+  const totalCents = ticketPriceCents * quantity;
+  const selectedId = selectedTicket?.id ?? selectedTicketTypeId ?? fallbackTicket.id;
 
-  function processPayment(result: "approved" | "declined") {
+  useEffect(() => {
+    if (!checkoutReturn?.orderId) return;
+    setStep(3);
     setLoading(true);
-    setPayResult(null);
-    setTimeout(() => { setLoading(false); setPayResult(result); }, 2000);
+    setCheckoutStatus(checkoutReturn.status);
+    getCheckoutOrder(checkoutReturn.orderId)
+      .then(order => {
+        setCheckoutOrder(order);
+        setCheckoutStatus(order.payment_status);
+      })
+      .catch(() => setCheckoutError("Não foi possível carregar o status do pedido."))
+      .finally(() => setLoading(false));
+  }, [checkoutReturn]);
+
+  async function startPayment() {
+    setCheckoutError(null);
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
+      setCheckoutError("Preencha nome, e-mail e WhatsApp antes de continuar.");
+      return;
+    }
+    if (!selectedId) {
+      setCheckoutError("Selecione um ingresso para continuar.");
+      return;
+    }
+
+    setLoading(true);
+    setStep(3);
+    try {
+      const order = await createCheckoutOrder({
+        ticket_type_id: selectedId,
+        buyer_name: form.name.trim(),
+        buyer_email: form.email.trim().toLowerCase(),
+        buyer_phone: form.phone.trim(),
+        quantity,
+      });
+      setCheckoutOrder(order);
+      setCheckoutStatus(order.payment_status);
+      const preference = await createPaymentPreference(order.id);
+      window.location.assign(preference.init_point || preference.sandbox_init_point || `/?checkout=pending&order=${order.id}`);
+    } catch (error) {
+      setLoading(false);
+      setCheckoutError(error instanceof Error ? error.message : "Não foi possível iniciar o pagamento.");
+    }
   }
+
+  const currentStatus = checkoutStatus ?? "pending";
+  const statusCopy: Record<string, { title: string; body: string; tone: string; icon: React.ReactNode }> = {
+    pending: {
+      title: "Pagamento pendente",
+      body: "Seu pedido foi criado. Conclua o pagamento no Mercado Pago ou aguarde a confirmação.",
+      tone: "bg-[#1a1a0a] border-[#c9a84c]/40",
+      icon: <Clock size={32} className="text-[#c9a84c]" />,
+    },
+    in_process: {
+      title: "Pagamento em análise",
+      body: "O Mercado Pago recebeu o pagamento e está processando a confirmação.",
+      tone: "bg-[#1a1a0a] border-[#c9a84c]/40",
+      icon: <RefreshCw size={32} className="text-[#c9a84c]" />,
+    },
+    approved: {
+      title: "Pagamento aprovado!",
+      body: "Seu ingresso foi liberado. O QR Code será enviado por e-mail e também fica disponível na área do aluno.",
+      tone: "bg-[#0d2e1a] border-[#2d6a4f]",
+      icon: <CheckCircle size={32} className="text-[#f0ebe0]" />,
+    },
+    rejected: {
+      title: "Pagamento recusado",
+      body: "O Mercado Pago não conseguiu aprovar o pagamento. Seu ingresso não foi confirmado.",
+      tone: "bg-[#2e0a0a] border-[#c0392b]/60",
+      icon: <XCircle size={32} className="text-[#f0ebe0]" />,
+    },
+    expired: {
+      title: "Pedido expirado",
+      body: "A janela de pagamento expirou. Inicie uma nova compra para reservar seu ingresso.",
+      tone: "bg-[#1e2a1e] border-[#2d6a4f]/30",
+      icon: <AlertTriangle size={32} className="text-[#c9a84c]" />,
+    },
+    cancelled: {
+      title: "Pagamento cancelado",
+      body: "O pagamento foi cancelado. Você pode voltar e tentar novamente.",
+      tone: "bg-[#2e0a0a] border-[#c0392b]/60",
+      icon: <XCircle size={32} className="text-[#f0ebe0]" />,
+    },
+    refunded: {
+      title: "Pagamento reembolsado",
+      body: "Este pedido foi marcado como reembolsado.",
+      tone: "bg-[#1e2a1e] border-[#2d6a4f]/30",
+      icon: <Info size={32} className="text-[#7a9a7a]" />,
+    },
+    charged_back: {
+      title: "Pagamento contestado",
+      body: "Este pagamento foi contestado e o ingresso não deve ser usado até revisão da organização.",
+      tone: "bg-[#2e0a0a] border-[#c0392b]/60",
+      icon: <AlertTriangle size={32} className="text-[#e74c3c]" />,
+    },
+  };
+  const statusInfo = statusCopy[currentStatus] ?? statusCopy.pending;
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -1348,8 +1467,10 @@ function CheckoutPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
         {/* Order summary */}
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 mb-6">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[#7a9a7a] text-sm">Ingresso Individual — 1º Lote</span>
-            <span className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-lg">R$ 120,00</span>
+            <span className="text-[#7a9a7a] text-sm">{ticketName} × {quantity}</span>
+            <span className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-lg">
+              {(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
           </div>
           <p className="text-[#3a5a3a] text-xs font-mono">17 Out 2026 · Espaço Cultural Ponta Negra, Natal/RN</p>
         </div>
@@ -1418,20 +1539,20 @@ function CheckoutPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
             </div>
             <div className="border-t border-[#2d6a4f]/20 pt-4">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-[#7a9a7a]">Ingresso Individual × 1</span>
-                <span className="text-[#f0ebe0]">R$ 120,00</span>
+                <span className="text-[#7a9a7a]">{ticketName} × {quantity}</span>
+                <span className="text-[#f0ebe0]">{(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
               </div>
               <div className="flex justify-between font-bold">
                 <span className="text-[#f0ebe0]">Total</span>
-                <span className="text-[#c9a84c] font-['Playfair_Display'] text-xl">R$ 120,00</span>
+                <span className="text-[#c9a84c] font-['Playfair_Display'] text-xl">{(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
               </div>
             </div>
+            {checkoutError && (
+              <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{checkoutError}</p>
+            )}
             <div className="flex flex-col gap-3">
-              <Btn full onClick={() => { setStep(3); processPayment("approved"); }} disabled={loading}>
-                {loading ? <><RefreshCw size={16} className="animate-spin" />Processando...</> : <><ArrowRight size={16} />Simular pagamento aprovado</>}
-              </Btn>
-              <Btn full variant="ghost" onClick={() => { setStep(3); processPayment("declined"); }} disabled={loading}>
-                Simular pagamento recusado (demo)
+              <Btn full onClick={startPayment} disabled={loading}>
+                {loading ? <><RefreshCw size={16} className="animate-spin" />Criando pedido...</> : <><ArrowRight size={16} />Ir para Mercado Pago</>}
               </Btn>
             </div>
           </div>
@@ -1448,6 +1569,46 @@ function CheckoutPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
               </div>
             )}
 
+            {!loading && (checkoutStatus || checkoutOrder || checkoutError) && (
+              <div className={`border p-8 flex flex-col gap-5 text-center ${statusInfo.tone}`}>
+                <div className={`w-16 h-16 flex items-center justify-center mx-auto ${currentStatus === "approved" ? "bg-[#2d6a4f]" : currentStatus === "rejected" || currentStatus === "cancelled" ? "bg-[#c0392b]" : "bg-[#0a120a]"}`}>
+                  {statusInfo.icon}
+                </div>
+                <DisplayTitle className="text-2xl">{statusInfo.title}</DisplayTitle>
+                <p className="text-[#7a9a7a] text-sm">{statusInfo.body}</p>
+                {checkoutOrder && (
+                  <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                    <p className="text-[#7a9a7a] font-mono text-[10px] uppercase mb-1">Pedido</p>
+                    <p className="text-[#c9a84c] font-['JetBrains_Mono'] font-bold text-sm tracking-wider break-all">{checkoutOrder.id}</p>
+                    <div className="mt-3 flex items-center justify-center"><StatusBadge status={currentStatus} /></div>
+                  </div>
+                )}
+                {checkoutOrder?.tickets && checkoutOrder.tickets.length > 0 && (
+                  <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                    <p className="text-[#7a9a7a] font-mono text-[10px] uppercase mb-2">Ingressos liberados</p>
+                    <div className="flex flex-col gap-1">
+                      {checkoutOrder.tickets.map(ticket => (
+                        <p key={ticket.id} className="text-[#f0ebe0] font-mono text-xs">{ticket.qr_code}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {checkoutError && (
+                  <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{checkoutError}</p>
+                )}
+                <div className="flex flex-col gap-3">
+                  {currentStatus === "approved" ? (
+                    <Btn full onClick={() => navigate("my-ticket")}>Ver meu ingresso <ArrowRight size={16} /></Btn>
+                  ) : (
+                    <Btn full onClick={() => { setStep(2); setCheckoutError(null); setCheckoutStatus(null); }}>
+                      <RefreshCw size={16} />Tentar novamente
+                    </Btn>
+                  )}
+                  <Btn full variant="ghost" onClick={() => navigate("tickets")}>Voltar aos ingressos</Btn>
+                </div>
+              </div>
+            )}
+
             {/* Approved */}
             {!loading && payResult === "approved" && (
               <div className="bg-[#0d2e1a] border border-[#2d6a4f] p-8 flex flex-col gap-5 text-center">
@@ -1458,7 +1619,7 @@ function CheckoutPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
                 <p className="text-[#7a9a7a] text-sm">Seu ingresso foi confirmado. Verifique seu e-mail para o QR Code de entrada.</p>
                 <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
                   <p className="text-[#7a9a7a] font-mono text-[10px] uppercase mb-1">Código do pedido</p>
-                  <p className="text-[#c9a84c] font-['JetBrains_Mono'] font-bold text-xl tracking-wider">HC2006-0042</p>
+                  <p className="text-[#c9a84c] font-['JetBrains_Mono'] font-bold text-xl tracking-wider">{checkoutOrder?.id ?? "Pedido registrado"}</p>
                 </div>
                 <StatusBadge status="approved" />
                 <Btn full onClick={() => navigate("confirmation")}>Ver meu ingresso <ArrowRight size={16} /></Btn>
@@ -1532,7 +1693,7 @@ function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
             <QrCode size={96} className="text-[#0d1a0f]" />
           </div>
           <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Código do ingresso</p>
-          <p className="text-[#f0ebe0] font-['JetBrains_Mono'] font-bold text-lg tracking-widest mb-4">HC2006-0042</p>
+          <p className="text-[#f0ebe0] font-['JetBrains_Mono'] font-bold text-lg tracking-widest mb-4">Disponivel em Meu ingresso</p>
           <div className="border-t border-[#2d6a4f]/20 pt-4 flex flex-col gap-2 text-sm text-left">
             {[["Evento","Turma 2006 — 20 anos depois"],["Data","17 Out 2026, 19h00"],["Local","Espaço Cultural Ponta Negra"],["Tipo","Ingresso Individual"]].map(([k,v]) => (
               <div key={k} className="flex justify-between">
@@ -1864,9 +2025,11 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               <Btn full onClick={() => submitAnswers("approved")} disabled={Object.keys(answers).length < CONFIRM_QUESTIONS.length || loading}>
                 {loading ? <><RefreshCw size={16} className="animate-spin" />Enviando...</> : "Enviar respostas"}
               </Btn>
-              <Btn full variant="ghost" onClick={() => submitAnswers("rejected")} disabled={loading}>
-                Simular rejeição (demo)
-              </Btn>
+              {DEV_MODE && (
+                <Btn full variant="ghost" onClick={() => submitAnswers("rejected")} disabled={loading}>
+                  Rejeitar teste local
+                </Btn>
+              )}
             </div>
           </div>
         )}
@@ -2553,7 +2716,7 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               {auth.loggedIn && <Btn variant="ghost" onClick={() => navigate("my-ticket")}><Ticket size={16} />Meu ingresso</Btn>}
               <Btn variant="ghost" onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
             </div>
-            <p className="text-[#7a9a7a] text-xs font-mono mt-6">Download de imagem será implementado sem dependência pesada em etapa futura. Nesta versão, o compartilhamento usa texto, Web Share API e WhatsApp.</p>
+            <p className="text-[#7a9a7a] text-xs font-mono mt-6">Compartilhamento disponivel por texto, Web Share API e WhatsApp.</p>
           </div>
 
           <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
@@ -2639,7 +2802,7 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
                 <QrCode size={128} className="text-[#0d1a0f]" />
               </div>
               <p className="font-mono text-lg font-bold tracking-widest break-all">{ticket.qr_code}</p>
-              <p className="text-xs text-[#5b4636] mt-3">QR visual demonstrativo. Use também o código textual acima.</p>
+              <p className="text-xs text-[#5b4636] mt-3">Apresente este código na entrada junto com um documento.</p>
               <div className="mt-6 flex justify-center"><StatusBadge status={ticketStatus} /></div>
             </div>
 
@@ -2711,34 +2874,76 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 // ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
 
+function videoEmbedUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtube.com")) {
+      const id = parsed.searchParams.get("v");
+      return id ? `https://www.youtube.com/embed/${id}` : url;
+    }
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.replace("/", "");
+      return id ? `https://www.youtube.com/embed/${id}` : url;
+    }
+    if (parsed.hostname.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://player.vimeo.com/video/${id}` : url;
+    }
+  } catch {
+    return url;
+  }
+  return url;
+}
+
+function isEmbeddableVideo(url: string) {
+  return /youtube\.com|youtu\.be|vimeo\.com/i.test(url);
+}
+
 function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
   const [event, setEvent] = useState<DbEvent | null>(null);
+  const [settings, setSettings] = useState<DbEventArchiveSettings | null>(null);
   const [memories, setMemories] = useState<DbMemory[]>([]);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
     async function loadArchive() {
       setLoading(true);
-      const [eventData, memoryData] = await Promise.all([
-        getEventSettings().catch(() => null),
-        getApprovedMemories(DEFAULT_EVENT_ID).catch(() => []),
-      ]);
-      if (!active) return;
-      setEvent(eventData);
-      setMemories(memoryData);
-      setLoading(false);
+      setError("");
+      try {
+        const [eventData, settingsData, memoryData] = await Promise.all([
+          getEventSettings().catch(() => null),
+          getEventArchiveSettings(DEFAULT_EVENT_ID).catch(() => null),
+          getApprovedMemories(DEFAULT_EVENT_ID).catch(() => []),
+        ]);
+        if (!active) return;
+        setEvent(eventData);
+        setSettings(settingsData);
+        setMemories(memoryData);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Erro ao carregar acervo.");
+      } finally {
+        if (active) setLoading(false);
+      }
     }
     loadArchive();
     return () => { active = false; };
   }, []);
 
   const dateSource = event?.event_date ? new Date(`${event.event_date}T${event.event_time ?? "19:00:00"}-03:00`) : EVENT_DATE;
-  const archiveOpen = Date.now() >= dateSource.getTime();
+  const archiveOpen = settings?.archive_enabled ?? Date.now() >= dateSource.getTime();
   const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 8);
-  const officialPhotos = featuredPhotos.length ? featuredPhotos : photos.slice(0, 8);
+  const officialPhotoIds = new Set(settings?.official_photo_ids ?? []);
+  const highlightPhotoIds = new Set(settings?.highlight_photo_ids ?? []);
+  const configuredOfficialPhotos = photos.filter(p => officialPhotoIds.has(p.id));
+  const configuredHighlightPhotos = photos.filter(p => highlightPhotoIds.has(p.id));
+  const officialPhotos = configuredOfficialPhotos.length ? configuredOfficialPhotos : (featuredPhotos.length ? featuredPhotos : photos.slice(0, 8));
+  const highlightPhotos = configuredHighlightPhotos.length ? configuredHighlightPhotos : officialPhotos.slice(0, 4);
   const confirmedPeople = people.filter(p => p.profile_status === "confirmed" && p.is_visible).slice(0, 16);
+  const highlightLinks = settings?.highlights_links ?? [];
+  const videoUrl = settings?.official_video_url?.trim() ?? "";
 
   return (
     <>
@@ -2750,6 +2955,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
           <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaço para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranças aprovadas pela organização.</p>
 
           {loading && <LoadingState message="Carregando acervo..." />}
+          {error && <ErrorState message={error} />}
 
           {!loading && !archiveOpen && (
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
@@ -2777,7 +2983,9 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
             <div className="flex flex-col gap-10">
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
                 <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Mensagem da organização</p>
-                <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembranças que a turma escolheu dividir.</p>
+                <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">
+                  {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
+                </p>
               </div>
 
               <section>
@@ -2799,8 +3007,41 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
                 </div>
                 <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
                   <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Melhores momentos</p>
-                  <div className="aspect-video bg-[#0a120a] border border-[#2d6a4f]/20 flex items-center justify-center mb-4"><Camera size={48} className="text-[#2d6a4f]" /></div>
-                  <p className="text-[#7a9a7a] text-sm">Placeholder para vídeo oficial e seleção de melhores momentos. A configuração definitiva será adicionada em etapa futura.</p>
+                  {videoUrl ? (
+                    isEmbeddableVideo(videoUrl) ? (
+                      <iframe
+                        src={videoEmbedUrl(videoUrl)}
+                        title={settings?.official_video_title ?? "Video oficial"}
+                        className="aspect-video w-full border border-[#2d6a4f]/20 bg-[#0a120a] mb-4"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video src={videoUrl} controls className="aspect-video w-full border border-[#2d6a4f]/20 bg-[#0a120a] mb-4" />
+                    )
+                  ) : (
+                    <EmptyState title="Video oficial ainda nao publicado" subtitle="Quando a organizacao configurar o video, ele aparecera aqui." />
+                  )}
+                  {settings?.official_video_title && <p className="text-[#f0ebe0] font-semibold text-sm mb-4">{settings.official_video_title}</p>}
+                  {highlightPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {highlightPhotos.map(photo => (
+                        <img key={photo.id} src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Destaque do acervo"} className="aspect-[4/3] w-full object-cover border border-[#2d6a4f]/20" />
+                      ))}
+                    </div>
+                  )}
+                  {highlightLinks.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {highlightLinks.map(link => (
+                        <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="border border-[#2d6a4f]/20 bg-[#0a120a] p-4 hover:border-[#2d6a4f]/50 transition-colors">
+                          <p className="text-[#f0ebe0] text-sm font-semibold">{link.label}</p>
+                          {link.description && <p className="text-[#7a9a7a] text-xs mt-1">{link.description}</p>}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[#7a9a7a] text-sm">Links de melhores momentos serao exibidos aqui quando publicados pela organizacao.</p>
+                  )}
                 </div>
               </section>
 
@@ -3038,6 +3279,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -3111,6 +3353,24 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
     }
   }
 
+  async function uploadAvatar(file: File | null) {
+    if (!file || !profile) return;
+    setAvatarUploading(true);
+    setError("");
+    try {
+      const publicUrl = await uploadProfileAvatar(auth.userId, file);
+      setForm(f => ({ ...f, photoUrl: publicUrl }));
+      const updated = await saveMyProfile(auth.userId, { current_photo_url: publicUrl });
+      setProfile({ ...profile, ...updated });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar avatar.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   const avatarLabel = initials(form.displayName || auth.name);
 
   return (
@@ -3138,8 +3398,23 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
                   {form.photoUrl ? <img src={form.photoUrl} alt={form.displayName || auth.name} className="w-full h-full object-cover" /> : avatarLabel}
                 </div>
                 <div className="flex-1">
-                  <Field label="URL da foto" placeholder="https://..." value={form.photoUrl} onChange={v => setForm(f => ({ ...f, photoUrl: v }))} />
-                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">Upload direto de avatar ficará para etapa futura; por enquanto use uma URL de imagem.</p>
+                  <label className="inline-flex items-center justify-center gap-2 bg-[#2d6a4f] text-[#f0ebe0] hover:bg-[#40916c] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition-all cursor-pointer">
+                    {avatarUploading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {avatarUploading ? "Enviando..." : "Enviar foto"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      className="sr-only"
+                      disabled={avatarUploading}
+                      onChange={e => uploadAvatar(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  {form.photoUrl && (
+                    <button onClick={() => setForm(f => ({ ...f, photoUrl: "" }))} className="block mt-3 text-[#7a9a7a] hover:text-[#f0ebe0] text-xs font-mono">
+                      Remover foto ao salvar
+                    </button>
+                  )}
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">JPG, PNG ou WebP ate 5 MB. A exibicao publica respeita a configuracao de privacidade abaixo.</p>
                 </div>
               </div>
             </div>
@@ -3892,7 +4167,7 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
   }
 
   const modes = [
-    { id:"qr" as const,    label:"QR / Código",  placeholder:"Ex: HC2006-0042"      },
+    { id:"qr" as const,    label:"QR / Código",  placeholder:"Digite ou leia o codigo do ingresso" },
     { id:"name" as const,  label:"Nome",          placeholder:"Nome do participante"  },
     { id:"email" as const, label:"E-mail",        placeholder:"email@exemplo.com"     },
     { id:"phone" as const, label:"Telefone",      placeholder:"(84) 9 9999-0000"      },
@@ -3921,7 +4196,7 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
           <div className="w-44 h-44 bg-[#1a2e1a] border-2 border-dashed border-[#2d6a4f]/40 flex flex-col items-center justify-center mx-auto mb-4">
             <Scan size={48} className="text-[#2d6a4f] mb-2" />
             <p className="text-[#7a9a7a] text-xs font-mono">Leitura por câmera</p>
-            <p className="text-[#3a5a3a] text-[10px] font-mono">etapa futura</p>
+            <p className="text-[#3a5a3a] text-[10px] font-mono">use a busca manual</p>
           </div>
           <p className="text-[#7a9a7a] text-sm">Digite o código textual do ingresso ou busque por nome, e-mail ou telefone.</p>
         </div>
@@ -4109,6 +4384,8 @@ export default function App() {
   const [auth, setAuth]               = useState<AuthState>({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
   const [people, setPeople]           = useState<DbPerson[]>(MOCK_PEOPLE);
   const [ticketTypes, setTicketTypes] = useState<DbTicketType[]>([]);
+  const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string | null>(null);
+  const [checkoutReturn, setCheckoutReturn] = useState<CheckoutReturnState>(null);
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -4146,6 +4423,17 @@ export default function App() {
     getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getTicketTypes().then(setTicketTypes).catch(() => {});
     getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("checkout");
+    const orderId = params.get("order") ?? params.get("external_reference");
+    const validStatuses = ["pending", "in_process", "approved", "rejected", "expired", "cancelled", "refunded", "charged_back"];
+    if (status && orderId && validStatuses.includes(status)) {
+      setCheckoutReturn({ status: status as PaymentStatus | "cancelled", orderId });
+      setPage("checkout");
+    }
   }, []);
 
   function navigate(p: Page) {
@@ -4187,8 +4475,8 @@ export default function App() {
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} />}
       <main>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} />}
-        {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes}             />}
-        {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth}                           />}
+        {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}
         {page === "who-going"     && <WhoGoingPage      navigate={navigate} people={people}                       />}
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}

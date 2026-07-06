@@ -13,6 +13,7 @@ import type {
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
   DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, TicketWithDetails,
+  DbEventArchiveSettings,
 } from "./database.types";
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
@@ -55,6 +56,20 @@ async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
     if (DEV_MODE) return fallback;
     throw error;
   }
+}
+
+const FUNCTIONS_BASE_URL = `${(import.meta.env.VITE_SUPABASE_URL as string).replace(/\/$/, "")}/functions/v1/make-server-62fab262`;
+
+async function callFunction<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+  headers.set("apikey", import.meta.env.VITE_SUPABASE_ANON_KEY as string);
+  headers.set("Authorization", `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`);
+
+  const response = await fetch(`${FUNCTIONS_BASE_URL}${path}`, { ...init, headers });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.error ?? "Erro ao chamar funcao segura");
+  return payload as T;
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
@@ -125,22 +140,22 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
     throw new Error("Perfil ainda não reivindicado. Reivindique seu perfil antes de editar os dados públicos.");
   }
   const allowedPatch: Partial<DbProfile> = {
-    display_name: patch.display_name ?? null,
-    current_photo_url: patch.current_photo_url ?? null,
-    current_city: patch.current_city ?? null,
-    current_state: patch.current_state ?? null,
-    current_country: patch.current_country ?? null,
-    profession: patch.profession ?? null,
-    bio: patch.bio ?? null,
-    memory_text: patch.memory_text ?? null,
-    instagram_url: patch.instagram_url ?? null,
-    linkedin_url: patch.linkedin_url ?? null,
-    show_current_photo: patch.show_current_photo ?? false,
-    show_city: patch.show_city ?? false,
-    show_profession: patch.show_profession ?? false,
-    show_social_links: patch.show_social_links ?? false,
-    allow_photo_tags: patch.allow_photo_tags ?? false,
-    show_confirmed_status: patch.show_confirmed_status ?? false,
+    display_name: patch.display_name ?? current.display_name,
+    current_photo_url: patch.current_photo_url ?? current.current_photo_url,
+    current_city: patch.current_city ?? current.current_city,
+    current_state: patch.current_state ?? current.current_state,
+    current_country: patch.current_country ?? current.current_country,
+    profession: patch.profession ?? current.profession,
+    bio: patch.bio ?? current.bio,
+    memory_text: patch.memory_text ?? current.memory_text,
+    instagram_url: patch.instagram_url ?? current.instagram_url,
+    linkedin_url: patch.linkedin_url ?? current.linkedin_url,
+    show_current_photo: patch.show_current_photo ?? current.show_current_photo,
+    show_city: patch.show_city ?? current.show_city,
+    show_profession: patch.show_profession ?? current.show_profession,
+    show_social_links: patch.show_social_links ?? current.show_social_links,
+    allow_photo_tags: patch.allow_photo_tags ?? current.allow_photo_tags,
+    show_confirmed_status: patch.show_confirmed_status ?? current.show_confirmed_status,
   };
   const { data, error } = await supabase
     .from("profiles")
@@ -152,6 +167,22 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
   if (error) throw error;
   await writeAudit("update_profile", "profiles", current.id, { fields: Object.keys(allowedPatch) });
   return data as DbProfile;
+}
+
+export async function uploadProfileAvatar(userId: string, file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no maximo 5 MB.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do avatar.");
+  return data.publicUrl;
 }
 
 export async function upsertProfile(profile: UpsertProfile) {
@@ -192,6 +223,56 @@ export async function createOrder(order: InsertOrder): Promise<DbOrder> {
   const { data, error } = await supabase.from("orders").insert(order).select().single();
   if (error) throw error;
   return data as DbOrder;
+}
+
+export async function getEventArchiveSettings(eventId: string): Promise<DbEventArchiveSettings | null> {
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("event_archive_settings")
+      .select("*")
+      .eq("event_id", eventId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as DbEventArchiveSettings | null;
+  }, null);
+}
+
+export async function createCheckoutOrder(params: {
+  ticket_type_id: string;
+  buyer_name: string;
+  buyer_email: string;
+  buyer_phone?: string | null;
+  person_id?: string | null;
+  quantity?: number;
+}): Promise<DbOrder> {
+  const { order } = await callFunction<{ order: DbOrder }>("/orders", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  return order;
+}
+
+export async function createPaymentPreference(orderId: string): Promise<{
+  preference_id: string;
+  init_point: string;
+  sandbox_init_point?: string;
+  dev_mode?: boolean;
+}> {
+  return callFunction("/mp/preference", {
+    method: "POST",
+    body: JSON.stringify({ orderId }),
+  });
+}
+
+export async function getCheckoutOrder(orderId: string): Promise<DbOrder & {
+  ticket_types?: Partial<DbTicketType> | null;
+  tickets?: { id: string; qr_code: string }[];
+}> {
+  const { order } = await callFunction<{ order: DbOrder & {
+    ticket_types?: Partial<DbTicketType> | null;
+    tickets?: { id: string; qr_code: string }[];
+  } }>(`/orders/${orderId}`);
+  return order;
 }
 
 export async function getMyOrder(email: string): Promise<DbOrder | null> {

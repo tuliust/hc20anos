@@ -111,6 +111,16 @@ Expõe apenas localizações autorizadas por `profiles.show_city=true` e pessoas
 - `fn_set_updated_at`: atualiza `updated_at`.
 - `fn_validate_poll_vote`: valida regras de voto em enquetes.
 
+## Acervo e avatares
+
+### event_archive_settings
+
+Configura o Acervo Digital por evento com `archive_enabled`, `post_event_text`, `official_video_url`, `official_video_title`, `official_photo_ids`, `highlight_photo_ids` e `highlights_links`. A leitura e publica; escrita fica restrita a `admin`/`superadmin`.
+
+### storage avatars
+
+Bucket publico `avatars` para fotos atuais de perfil. Upload/update/delete sao restritos ao dono da pasta `auth.uid()`; a URL publica e salva em `profiles.current_photo_url`. A exibicao publica continua condicionada a `profiles.show_current_photo`.
+
 ## Migrations aplicadas
 
-- `20260705000000` a `20260705000006`.
+- `20260705000000` a `20260705000007`.

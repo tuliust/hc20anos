@@ -20,7 +20,6 @@
 - Enquetes.
 - Mapa/lista “Onde a turma está hoje”.
 - Convite compartilhável.
-- Acervo pós-evento.
 - Meu ingresso real.
 
 ## Fase 3

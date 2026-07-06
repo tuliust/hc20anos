@@ -9,7 +9,7 @@ const app = new Hono();
 app.use("*", logger(console.log));
 app.use("/*", cors({
   origin: Deno.env.get("SITE_URL") ?? "*",
-  allowHeaders: ["Content-Type", "Authorization", "X-Signature-256"],
+  allowHeaders: ["Content-Type", "Authorization", "apikey", "x-client-info", "x-signature", "x-request-id"],
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   exposeHeaders: ["Content-Length"],
   maxAge: 600,
@@ -23,6 +23,111 @@ function adminClient() {
 }
 
 const BASE = "/make-server-62fab262";
+
+function publicFunctionUrl(path: string) {
+  const explicit = Deno.env.get("SUPABASE_FUNCTIONS_URL") ?? Deno.env.get("FUNCTIONS_PUBLIC_URL");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const base = explicit ?? (supabaseUrl ? `${supabaseUrl}/functions/v1` : "");
+  return `${base.replace(/\/$/, "")}${BASE}${path}`;
+}
+
+function checkoutReturnUrl(status: string, orderId: string) {
+  const siteUrl = Deno.env.get("SITE_URL") ?? "http://localhost:5173";
+  return `${siteUrl.replace(/\/$/, "")}/?checkout=${status}&order=${orderId}`;
+}
+
+async function hmacSha256Hex(secret: string, message: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function validateMercadoPagoSignature(c: any, body: any) {
+  const secret = Deno.env.get("MERCADO_PAGO_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("[MP Webhook] MERCADO_PAGO_WEBHOOK_SECRET nao configurado");
+    return false;
+  }
+
+  const xSignature = c.req.header("x-signature") ?? "";
+  const requestId = c.req.header("x-request-id") ?? "";
+  const parts = Object.fromEntries(xSignature.split(",").map((part: string) => {
+    const [key, ...value] = part.trim().split("=");
+    return [key, value.join("=")];
+  }));
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  const dataId = c.req.query("data.id") ?? c.req.query("id") ?? body.data?.id ?? body.id;
+
+  if (!requestId || !ts || !v1 || !dataId) return false;
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const expected = await hmacSha256Hex(secret, manifest);
+  return expected.toLowerCase() === String(v1).toLowerCase();
+}
+
+async function sendTransactionalEmail(ticket: any, order: any) {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const from = Deno.env.get("TRANSACTIONAL_FROM_EMAIL");
+  if (!apiKey || !from) {
+    console.log("[Email] Provedor nao configurado; email preparado", { order_id: order.id, ticket_id: ticket.id });
+    return;
+  }
+
+  const siteUrl = Deno.env.get("SITE_URL") ?? "";
+  const html = `
+    <h1>Ingresso confirmado</h1>
+    <p>Ola, ${ticket.attendee_name}. Seu pagamento foi aprovado.</p>
+    <p><strong>QR Code:</strong> ${ticket.qr_code}</p>
+    <p>Apresente este codigo no check-in do reencontro.</p>
+    ${siteUrl ? `<p><a href="${siteUrl.replace(/\/$/, "")}/">Acessar o site</a></p>` : ""}
+  `;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      from,
+      to: [ticket.attendee_email],
+      subject: "Ingresso confirmado - Turma 2006 HC",
+      html,
+    }),
+  });
+
+  if (!res.ok) console.error("[Email] Falha ao enviar", await res.text());
+}
+
+async function sendWhatsAppTemplate(order: any, tickets: any[]) {
+  const endpoint = Deno.env.get("WHATSAPP_PROVIDER_URL");
+  const token = Deno.env.get("WHATSAPP_PROVIDER_TOKEN");
+  const template = Deno.env.get("WHATSAPP_TICKET_TEMPLATE");
+  if (!endpoint || !token || !template) {
+    console.log("[WhatsApp] Provedor nao configurado; disparo ignorado", { order_id: order.id, tickets: tickets.length });
+    return;
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      template,
+      to: order.buyer_phone,
+      variables: {
+        buyer_name: order.buyer_name,
+        order_id: order.id,
+        ticket_count: tickets.length,
+      },
+    }),
+  });
+
+  if (!res.ok) console.error("[WhatsApp] Falha ao enviar template", await res.text());
+}
 
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 
@@ -38,16 +143,15 @@ app.get(`${BASE}/health`, (c) => c.json({ status: "ok", ts: new Date().toISOStri
 
 app.post(`${BASE}/mp/preference`, async (c) => {
   const MP_TOKEN = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
-  const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:5173";
 
   if (!MP_TOKEN) {
-    // MODO DEV: sem token real, retorna URL simulada
+    // MODO DEV: sem token real, retorna URL local de retorno
     const { orderId } = await c.req.json();
     console.warn("[MP] MERCADO_PAGO_ACCESS_TOKEN não configurado — modo dev");
     return c.json({
       dev_mode: true,
-      init_point: `${SITE_URL}/?checkout=pending&order=${orderId}`,
-      sandbox_init_point: `${SITE_URL}/?checkout=pending&order=${orderId}`,
+      init_point: checkoutReturnUrl("pending", orderId),
+      sandbox_init_point: checkoutReturnUrl("pending", orderId),
       preference_id: `DEV-${orderId}`,
     });
   }
@@ -86,12 +190,12 @@ app.post(`${BASE}/mp/preference`, async (c) => {
       },
       external_reference: order.id,
       back_urls: {
-        success: `${SITE_URL}/?checkout=approved&order=${order.id}`,
-        failure: `${SITE_URL}/?checkout=rejected&order=${order.id}`,
-        pending: `${SITE_URL}/?checkout=pending&order=${order.id}`,
+        success: checkoutReturnUrl("approved", order.id),
+        failure: checkoutReturnUrl("rejected", order.id),
+        pending: checkoutReturnUrl("pending", order.id),
       },
       auto_return:         "approved",
-      notification_url:   `${SITE_URL.replace("localhost:5173", "").replace(/\/$/, "")}/functions/v1/make-server-62fab262/mp/webhook`,
+      notification_url:   publicFunctionUrl("/mp/webhook"),
       statement_descriptor: "TURMA2006HC",
     };
 
@@ -139,6 +243,12 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
 
   const body = await c.req.json().catch(() => ({}));
   console.log("[MP Webhook] body:", JSON.stringify(body));
+
+  const validSignature = await validateMercadoPagoSignature(c, body);
+  if (!validSignature) {
+    console.warn("[MP Webhook] assinatura invalida");
+    return c.json({ error: "invalid_signature" }, 401);
+  }
 
   // Registra o evento bruto
   await db.from("payment_events").insert({
@@ -218,22 +328,26 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
         .eq("order_id", orderId);
 
       if ((count ?? 0) === 0) {
-        const qrCode = `HC2006-${mpOrderId.slice(-6).toUpperCase()}`;
-        await db.from("tickets").insert({
+        const quantity = (order as any).quantity ?? 1;
+        const ticketRows = Array.from({ length: quantity }, (_, index) => ({
           order_id:       orderId,
           ticket_type_id: (order as any).ticket_type_id,
           person_id:      (order as any).person_id ?? null,
-          attendee_name:  (order as any).buyer_name,
+          attendee_name:  index === 0 ? (order as any).buyer_name : `${(order as any).buyer_name} - acompanhante ${index}`,
           attendee_email: (order as any).buyer_email,
           attendee_phone: (order as any).buyer_phone ?? null,
-          qr_code:        qrCode,
-          qr_token_hash:  qrCode, // gerado pelo trigger fn_generate_qr_code
-        });
+        }));
+        const { data: tickets, error: ticketErr } = await db.from("tickets").insert(ticketRows).select("*");
+        if (ticketErr) throw ticketErr;
 
         // Incrementa sold_quantity
         await db.rpc("fn_increment_sold", {
           p_ticket_type_id: (order as any).ticket_type_id,
+          delta: quantity,
         });
+
+        for (const ticket of tickets ?? []) await sendTransactionalEmail(ticket, order);
+        await sendWhatsAppTemplate(order, tickets ?? []);
       }
     }
 
@@ -298,6 +412,20 @@ app.post(`${BASE}/orders`, async (c) => {
   } catch (err) {
     return c.json({ error: "Erro interno" }, 500);
   }
+});
+
+app.get(`${BASE}/orders/:id`, async (c) => {
+  const orderId = c.req.param("id");
+  const db = adminClient();
+
+  const { data: order, error } = await db
+    .from("orders")
+    .select("id, ticket_type_id, quantity, total_amount_cents, payment_status, payment_method, paid_at, expires_at, payment_provider_preference_id, payment_provider_order_id, ticket_types(name), tickets(id, qr_code)")
+    .eq("id", orderId)
+    .single();
+
+  if (error || !order) return c.json({ error: "Pedido nao encontrado" }, 404);
+  return c.json({ order });
 });
 
 // ─── VERIFICAR CHECK-IN ───────────────────────────────────────────────────────

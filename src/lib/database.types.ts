@@ -343,6 +343,25 @@ export interface LocationStat {
   people:   PublicLocationRow[];
 }
 
+export interface ArchiveHighlightLink {
+  label: string;
+  url: string;
+  description?: string | null;
+}
+
+export interface DbEventArchiveSettings {
+  event_id:             uuid;
+  archive_enabled:      boolean;
+  post_event_text:      string | null;
+  official_video_url:   string | null;
+  official_video_title: string | null;
+  official_photo_ids:   uuid[];
+  highlight_photo_ids:  uuid[];
+  highlights_links:     ArchiveHighlightLink[];
+  created_at:           string;
+  updated_at:           string;
+}
+
 export interface DbAuditLog {
   id:             uuid;
   user_id:        uuid | null;
@@ -391,6 +410,7 @@ export interface Database {
       polls:                  { Row: DbPoll;               Insert: InsertPoll;                    Update: Partial<DbPoll>               };
       poll_options:           { Row: DbPollOption;         Insert: InsertPollOption;              Update: Partial<DbPollOption>         };
       poll_votes:             { Row: DbPollVote;           Insert: InsertPollVote;                Update: never                         };
+      event_archive_settings: { Row: DbEventArchiveSettings; Insert: Partial<DbEventArchiveSettings>; Update: Partial<DbEventArchiveSettings> };
       photo_removal_requests: { Row: DbPhotoRemovalRequest; Insert: Partial<DbPhotoRemovalRequest>; Update: Partial<DbPhotoRemovalRequest> };
       profile_claim_disputes: { Row: DbProfileClaimDispute; Insert: Partial<DbProfileClaimDispute>; Update: Partial<DbProfileClaimDispute> };
       profile_claims:         { Row: DbProfileClaim;       Insert: InsertProfileClaim;            Update: Partial<DbProfileClaim>       };

@@ -36,6 +36,4 @@ Criar uma experiência digital segura, nostálgica e operacionalmente eficiente 
 
 ## Limites
 
-- Mercado Pago real pendente.
 - Imagem do convite ainda não é baixada como arquivo.
-- Acervo pós-evento usa placeholders para vídeo/melhores momentos.
