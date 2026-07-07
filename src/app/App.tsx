@@ -26,7 +26,7 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
   DbEventArchiveSettings,
 } from "../lib/database.types";
 import {
@@ -65,7 +65,7 @@ interface AuthState {
 
 interface Alumni {
   id: string; name: string; nickname?: string; sala?: string;
-  city?: string; profession?: string;
+  city?: string; profession?: string; avatarUrl?: string;
   status: "unclaimed" | "claimed" | "confirmed";
 }
 
@@ -217,15 +217,16 @@ function ticketPaymentStatus(ticket?: TicketWithDetails | null) {
   return ticket?.orders?.payment_status ?? "pending";
 }
 
-// Mapeia DbPerson â†’ Alumni (interface legada dos componentes visuais)
+// Mapeia DbPerson para Alumni, interface legada dos componentes visuais.
 function personToAlumni(p: DbPerson): Alumni {
   return {
     id:         p.id,
     name:       p.full_name,
     nickname:   p.nickname_at_school ?? undefined,
     sala:       p.class_group ?? undefined,
-    city:       undefined,    // vem de profiles, carregado separadamente
+    city:       undefined,
     profession: undefined,
+    avatarUrl:  p.avatar_url ?? undefined,
     status:     p.profile_status as "unclaimed" | "claimed" | "confirmed",
   };
 }
@@ -434,31 +435,121 @@ function SaveToast({ show }: { show: boolean }) {
   );
 }
 
-function AlumniCard({ alumni, onClaim }: { alumni: Alumni; onClaim?: () => void }) {
+function AlumniCard({ alumni, onClaim, onOpen }: { alumni: Alumni; onClaim?: () => void; onOpen?: () => void }) {
   const colors = ["#2d6a4f", "#1a4d2e", "#40916c", "#1e3a2f", "#0b3d2e"];
-  const color = colors[parseInt(alumni.id) % colors.length];
+  const numericSeed = Number.parseInt(alumni.id.replace(/\D/g, "").slice(-4) || "0", 10);
+  const color = colors[numericSeed % colors.length];
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (!onOpen) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen();
+    }
+  }
+
   return (
-    <div className="bg-[#141f14] border border-[#2d6a4f]/20 p-4 flex flex-col gap-3 hover:border-[#2d6a4f]/50 transition-colors">
+    <div
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={handleKeyDown}
+      className={`bg-[#141f14] border border-[#2d6a4f]/20 p-4 flex flex-col gap-3 hover:border-[#2d6a4f]/50 transition-colors ${onOpen ? "cursor-pointer focus:outline-none focus:border-[#c9a84c]" : ""}`}
+    >
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 flex items-center justify-center text-[#f0ebe0] font-bold text-sm font-mono shrink-0" style={{ background: color }}>
-          {initials(alumni.name)}
-        </div>
+        {alumni.avatarUrl ? (
+          <img
+            src={alumni.avatarUrl}
+            alt={alumni.name}
+            className="w-12 h-12 object-cover shrink-0 bg-[#1a2e1a]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-12 h-12 flex items-center justify-center text-[#f0ebe0] font-bold text-sm font-mono shrink-0" style={{ background: color }}>
+            {initials(alumni.name)}
+          </div>
+        )}
+
         <div className="flex-1 min-w-0">
           <p className="text-[#f0ebe0] font-semibold text-sm leading-tight truncate">{alumni.name}</p>
           {alumni.nickname && <p className="text-[#c9a84c] text-xs font-mono mt-0.5">&ldquo;{alumni.nickname}&rdquo;</p>}
           {alumni.city && <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{alumni.city}</p>}
         </div>
       </div>
+
       <div className="flex items-center justify-between">
         <StatusBadge status={alumni.status} />
         {alumni.status === "unclaimed" && onClaim && (
-          <button onClick={onClaim}
-            className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2d6a4f] hover:text-[#40916c] border border-[#2d6a4f]/40 hover:border-[#40916c] px-3 py-1.5 transition-colors">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClaim(); }}
+            className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2d6a4f] hover:text-[#40916c] border border-[#2d6a4f]/40 hover:border-[#40916c] px-3 py-1.5 transition-colors"
+          >
             Reivindicar
           </button>
         )}
       </div>
     </div>
+  );
+}
+
+function PersonDetailModal({
+  person,
+  profile,
+  onClose,
+  onClaim,
+}: {
+  person: DbPerson | null;
+  profile?: Partial<PublicLocationRow> | null;
+  onClose: () => void;
+  onClaim?: () => void;
+}) {
+  if (!person) return null;
+
+  const avatarUrl = person.avatar_url ?? profile?.avatar_url ?? null;
+  const displayName = profile?.display_name || person.full_name;
+  const location = [profile?.current_city, profile?.current_state, profile?.current_country].filter(Boolean).join(" · ");
+
+  return (
+    <Modal open={!!person} onClose={onClose} title="Perfil da turma" wide>
+      <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-6">
+        <div>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={person.full_name} className="w-full aspect-square object-cover bg-[#1a2e1a] border border-[#2d6a4f]/30" />
+          ) : (
+            <div className="w-full aspect-square bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-3xl border border-[#2d6a4f]/30">
+              {initials(person.full_name)}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Ex-aluno</p>
+            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold leading-tight">{displayName}</h3>
+            {person.nickname_at_school && <p className="text-[#c9a84c] font-mono text-sm mt-1">&ldquo;{person.nickname_at_school}&rdquo;</p>}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge status={person.profile_status} />
+            {person.class_group && <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Sala {person.class_group}</span>}
+            <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_year}</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <InfoRow label="Nome completo" value={person.full_name} />
+            <InfoRow label="Apelido na escola" value={person.nickname_at_school} />
+            <InfoRow label="Sala" value={person.class_group ? `Sala ${person.class_group}` : null} />
+            <InfoRow label="Status do perfil" value={person.profile_status} />
+            <InfoRow label="Localização atual" value={location || null} />
+            <InfoRow label="Profissão" value={profile?.show_profession ? profile?.profession : null} />
+          </div>
+
+          {person.profile_status === "unclaimed" && onClaim && (
+            <Btn onClick={onClaim}><UserCheck size={16} />Reivindicar perfil</Btn>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1779,44 +1870,70 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
+
   const filtered = people.filter(a =>
     a.full_name.toLowerCase().includes(search.toLowerCase()) &&
     (filter === "all" || a.profile_status === filter)
   );
+
   return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-12">
-          <SectionLabel>Colégio Henrique Castriciano</SectionLabel>
-          <DisplayTitle className="text-5xl md:text-7xl">A Turma 2006</DisplayTitle>
-          <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{people.length} ex-alunos · Turma 2006</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="relative flex-1 bg-[#141f14] border border-[#2d6a4f]/30">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-            <input placeholder="Buscar por nome..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none" />
+    <>
+      <PersonDetailModal
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+      />
+
+      <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="mb-12">
+            <SectionLabel>Colégio Henrique Castriciano</SectionLabel>
+            <DisplayTitle className="text-5xl md:text-7xl">A Turma 2006</DisplayTitle>
+            <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{people.length} ex-alunos · Turma 2006</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[["all","Todos"],["confirmed","Confirmados"],["claimed","Reivindicados"],["unclaimed","Não localizados"]].map(([val,label]) => (
-              <button key={val} onClick={() => setFilter(val)}
-                className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors ${filter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
-                {label}
-              </button>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="relative flex-1 bg-[#141f14] border border-[#2d6a4f]/30">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+              <input
+                placeholder="Buscar por nome..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[["all","Todos"],["confirmed","Confirmados"],["claimed","Reivindicados"],["unclaimed","Não localizados"]].map(([val,label]) => (
+                <button key={val} onClick={() => setFilter(val)}
+                  className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors ${filter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {filtered.map(a => (
+              <AlumniCard
+                key={a.id}
+                alumni={personToAlumni(a)}
+                onOpen={() => setSelectedPerson(a)}
+                onClaim={() => navigate("claim-profile")}
+              />
             ))}
           </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center py-20 text-[#7a9a7a]">
+              <Users size={40} className="mx-auto mb-4 opacity-40" />
+              <p className="font-mono text-sm">Nenhum resultado</p>
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filtered.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} onClaim={() => navigate("claim-profile")} />)}
-        </div>
-        {filtered.length === 0 && (
-          <div className="text-center py-20 text-[#7a9a7a]">
-            <Users size={40} className="mx-auto mb-4 opacity-40" />
-            <p className="font-mono text-sm">Nenhum resultado</p>
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -2602,9 +2719,11 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
 
 // ─── WHERE NOW ────────────────────────────────────────────────────────────────
 
-function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
+function WhereNowPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [locations, setLocations] = useState<LocationStat[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
+  const [selectedLocationProfile, setSelectedLocationProfile] = useState<PublicLocationRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -2626,69 +2745,105 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
   const totalPeople = locations.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
-          <div>
-            <SectionLabel>Onde a turma está hoje</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-6xl">Mapa afetivo da Turma 2006</DisplayTitle>
-            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas localizações autorizadas aparecem aqui. Os dados vêm dos perfis públicos dos ex-alunos.</p>
-          </div>
-          <Btn variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Atualizar perfil</Btn>
-        </div>
+    <>
+      <PersonDetailModal
+        person={selectedPerson}
+        profile={selectedLocationProfile}
+        onClose={() => { setSelectedPerson(null); setSelectedLocationProfile(null); }}
+      />
 
-        {error && <ErrorState message={error} onRetry={loadLocations} />}
-        {loading && <LoadingState message="Carregando localizações..." />}
-
-        {!loading && locations.length === 0 && (
-          <EmptyState icon={<MapPin size={42} />} title="Nenhuma localização pública" subtitle="Os ex-alunos precisam autorizar a exibição da cidade no perfil." action={<Btn onClick={() => navigate("edit-profile")}>Atualizar meu perfil</Btn>} />
-        )}
-
-        {!loading && locations.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Localizações públicas</p>
-                  <p className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{totalPeople} pessoas em {locations.length} lugares</p>
-                </div>
-                <MapPin size={34} className="text-[#2d6a4f]" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {locations.map(item => (
-                  <button key={item.key} onClick={() => setSelectedKey(item.key)}
-                    className={`text-left border p-4 transition-colors ${selected?.key === item.key ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
-                    <p className="text-[#f0ebe0] font-semibold">{item.city}</p>
-                    <p className="text-[#7a9a7a] text-xs font-mono">{[item.state, item.country].filter(Boolean).join(" · ")}</p>
-                    <p className="text-[#c9a84c] text-xs font-mono mt-2">{item.count} ex-aluno{item.count === 1 ? "" : "s"}</p>
-                  </button>
-                ))}
-              </div>
+      <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+            <div>
+              <SectionLabel>Onde a turma está hoje</SectionLabel>
+              <DisplayTitle className="text-4xl md:text-6xl">Mapa afetivo da Turma 2006</DisplayTitle>
+              <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas localizações autorizadas aparecem aqui. Os dados vêm dos perfis públicos dos ex-alunos.</p>
             </div>
+            <Btn variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Atualizar perfil</Btn>
+          </div>
 
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-              {selected ? (
-                <>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{selected.city}</p>
-                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Quem está por lá</h3>
-                  <div className="flex flex-col gap-3">
-                    {selected.people.map(person => (
-                      <div key={person.profile_id} className="flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3">
-                        <div className="w-10 h-10 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-xs">{initials(person.display_name ?? person.full_name)}</div>
-                        <div>
-                          <p className="text-[#f0ebe0] text-sm font-semibold">{person.display_name ?? person.full_name}</p>
-                          {person.show_profession && person.profession && <p className="text-[#7a9a7a] text-xs">{person.profession}</p>}
-                        </div>
-                      </div>
-                    ))}
+          {error && <ErrorState message={error} onRetry={loadLocations} />}
+          {loading && <LoadingState message="Carregando localizações..." />}
+
+          {!loading && locations.length === 0 && (
+            <EmptyState
+              icon={<MapPin size={42} />}
+              title="Nenhuma localização pública"
+              subtitle="Os ex-alunos precisam autorizar a exibição da cidade no perfil."
+              action={<Btn onClick={() => navigate("edit-profile")}>Atualizar meu perfil</Btn>}
+            />
+          )}
+
+          {!loading && locations.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Localizações públicas</p>
+                    <p className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{totalPeople} pessoas em {locations.length} lugares</p>
                   </div>
-                </>
-              ) : <EmptyState title="Selecione uma localidade" />}
+                  <MapPin size={34} className="text-[#2d6a4f]" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {locations.map(item => (
+                    <button key={item.key} onClick={() => setSelectedKey(item.key)}
+                      className={`text-left border p-4 transition-colors ${selected?.key === item.key ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
+                      <p className="text-[#f0ebe0] font-semibold">{item.city}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono">{[item.state, item.country].filter(Boolean).join(" · ")}</p>
+                      <p className="text-[#c9a84c] text-xs font-mono mt-2">{item.count} ex-aluno{item.count === 1 ? "" : "s"}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+                {selected ? (
+                  <>
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{selected.city}</p>
+                    <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Quem está por lá</h3>
+
+                    <div className="flex flex-col gap-3">
+                      {selected.people.map(person => {
+                        const personDetails = people.find(item => item.id === person.person_id) ?? null;
+                        const avatarUrl = personDetails?.avatar_url ?? person.avatar_url ?? null;
+                        const displayName = person.display_name ?? person.full_name;
+
+                        return (
+                          <button
+                            key={person.profile_id}
+                            onClick={() => {
+                              if (!personDetails) return;
+                              setSelectedPerson(personDetails);
+                              setSelectedLocationProfile(person);
+                            }}
+                            className="w-full text-left flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3 hover:border-[#2d6a4f]/60 transition-colors"
+                          >
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={displayName} className="w-10 h-10 object-cover bg-[#1a2e1a] shrink-0" loading="lazy" />
+                            ) : (
+                              <div className="w-10 h-10 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-xs shrink-0">{initials(displayName)}</div>
+                            )}
+
+                            <div>
+                              <p className="text-[#f0ebe0] text-sm font-semibold">{displayName}</p>
+                              {person.show_profession && person.profession && <p className="text-[#7a9a7a] text-xs">{person.profession}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState title="Selecione uma localidade" />
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -4672,7 +4827,7 @@ export default function App() {
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
         {page === "polls"         && <PollsPage          navigate={navigate} auth={auth}                              />}
-        {page === "where-now"     && <WhereNowPage       navigate={navigate}                                         />}
+        {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}

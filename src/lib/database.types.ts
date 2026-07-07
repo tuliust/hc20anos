@@ -50,6 +50,7 @@ export interface DbPerson {
   claimed_at:           string | null;
   is_visible:           boolean;
   private_notes:        string | null;
+  avatar_url?:          string | null;
   created_at:           string;
   updated_at:           string;
 }
@@ -327,6 +328,7 @@ export interface PublicLocationRow {
   person_id:        uuid;
   display_name:     string | null;
   full_name:        string;
+  avatar_url:       string | null;
   current_city:     string;
   current_state:    string | null;
   current_country:  string | null;
