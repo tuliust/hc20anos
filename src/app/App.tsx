@@ -3667,7 +3667,6 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   async function loadProfile() {
     setLoading(true);
@@ -3928,6 +3927,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [event, setEvent] = useState<DbEvent | null>(null);
   const [lots, setLots] = useState<DbTicketType[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
