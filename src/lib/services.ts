@@ -1,7 +1,7 @@
-﻿// ================================================================
-// Services â€” Turma 2006
-// Todas as funÃ§Ãµes tentam o Supabase primeiro e caem no mock se
-// o banco nÃ£o estiver configurado (DEV_MODE) ou houver erro.
+// ================================================================
+// Services — Turma 2006
+// Todas as funções tentam o Supabase primeiro e caem no mock se
+// o banco não estiver configurado (DEV_MODE) ou houver erro.
 // ================================================================
 
 import { DEV_MODE, supabase } from "./supabase";
@@ -16,19 +16,79 @@ import type {
   DbEventArchiveSettings,
 } from "./database.types";
 
-// â”€â”€â”€ MOCK DATA (fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export interface HomePageContent {
+  event_id: string;
+  hero_eyebrow: string;
+  hero_title: string;
+  hero_tagline: string;
+  hero_subtitle: string;
+  hero_event_line: string;
+  primary_cta_label: string;
+  secondary_cta_label: string;
+  about_eyebrow: string;
+  about_title: string;
+  about_body_1: string;
+  about_body_2: string;
+  info_eyebrow: string;
+  info_title: string;
+  tickets_eyebrow: string;
+  tickets_title: string;
+  confirmed_eyebrow: string;
+  confirmed_title: string;
+  photos_eyebrow: string;
+  photos_title: string;
+  timeline_eyebrow: string;
+  timeline_title: string;
+  faq_eyebrow: string;
+  faq_title: string;
+  updated_at?: string | null;
+  updated_by_admin_id?: string | null;
+}
+
+const DEFAULT_HOME_EVENT_ID = "00000000-0000-0000-0000-000000000001";
+
+export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {
+  event_id: DEFAULT_HOME_EVENT_ID,
+  hero_eyebrow: "Colégio Henrique Castriciano · Natal, RN",
+  hero_title: "Turma 2006 — 20 anos depois",
+  hero_tagline: "20 anos depois",
+  hero_subtitle: "O reencontro dos ex-alunos do Colégio Henrique Castriciano",
+  hero_event_line: "17 de Outubro de 2026 · Espaço Cultural Ponta Negra · Natal, RN",
+  primary_cta_label: "Comprar ingresso",
+  secondary_cta_label: "Ver quem vai",
+  about_eyebrow: "Sobre o Reencontro",
+  about_title: "Uma noite para celebrar quem a gente se tornou",
+  about_body_1: "Vinte anos passaram desde que dividimos o mesmo pátio, os mesmos corredores e as mesmas angústias de vestibular.",
+  about_body_2: "No dia 17 de outubro de 2026, a Turma 2006 do Colégio Henrique Castriciano se reúne para uma noite inesquecível de memórias, reconexão e celebração.",
+  info_eyebrow: "Informações do Evento",
+  info_title: "Data, hora e local",
+  tickets_eyebrow: "Ingressos",
+  tickets_title: "Garanta sua vaga",
+  confirmed_eyebrow: "Confirmados",
+  confirmed_title: "Quem já garantiu vaga",
+  photos_eyebrow: "Mural de Memórias",
+  photos_title: "Fotos da época",
+  timeline_eyebrow: "Nossa história",
+  timeline_title: "A linha do tempo da turma",
+  faq_eyebrow: "Dúvidas frequentes",
+  faq_title: "FAQ",
+};
+
+
+
+// ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
 
 export const MOCK_PEOPLE: DbPerson[] = [
   { id:"00000000-0000-0000-0002-000000000001", full_name:"Ana Paula Oliveira",   class_year:2006, class_group:"A", nickname_at_school:"Aninha",    profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0002-000000000002", full_name:"Bruno Cavalcanti",     class_year:2006, class_group:"B", nickname_at_school:"BrunÃ£o",    profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0002-000000000002", full_name:"Bruno Cavalcanti",     class_year:2006, class_group:"B", nickname_at_school:"Brunão",    profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000003", full_name:"Carla Medeiros",       class_year:2006, class_group:"A", nickname_at_school:"Carlinha",  profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0002-000000000004", full_name:"Diego Ferreira",       class_year:2006, class_group:"B", nickname_at_school:"DiegÃ£o",    profile_status:"claimed",   claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0002-000000000004", full_name:"Diego Ferreira",       class_year:2006, class_group:"B", nickname_at_school:"Diegão",    profile_status:"claimed",   claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000005", full_name:"Eduarda Lima",         class_year:2006, class_group:"A", nickname_at_school:"Du",        profile_status:"claimed",   claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0002-000000000006", full_name:"Felipe AraÃºjo",        class_year:2006, class_group:"C", nickname_at_school:"Fepa",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0002-000000000006", full_name:"Felipe Araújo",        class_year:2006, class_group:"C", nickname_at_school:"Fepa",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000007", full_name:"Gabriela Santos",      class_year:2006, class_group:"B", nickname_at_school:"Gabi",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000008", full_name:"Henrique Costa",       class_year:2006, class_group:"C", nickname_at_school:"Kiko",      profile_status:"unclaimed", claimed_by_user_id:null, claimed_at:null, is_visible:false, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000009", full_name:"Isabela Rodrigues",    class_year:2006, class_group:"A", nickname_at_school:"Bela",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0002-000000000010", full_name:"JoÃ£o Vitor Melo",      class_year:2006, class_group:"B", nickname_at_school:"JV",        profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0002-000000000010", full_name:"João Vitor Melo",      class_year:2006, class_group:"B", nickname_at_school:"JV",        profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000011", full_name:"Karoline Freitas",     class_year:2006, class_group:"C", nickname_at_school:"Karo",      profile_status:"claimed",   claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000012", full_name:"Lucas Nogueira",       class_year:2006, class_group:"A", nickname_at_school:"Luquinhas", profile_status:"unclaimed", claimed_by_user_id:null, claimed_at:null, is_visible:false, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000013", full_name:"Marina Pinheiro",      class_year:2006, class_group:"B", nickname_at_school:"Mari",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
@@ -36,18 +96,18 @@ export const MOCK_PEOPLE: DbPerson[] = [
   { id:"00000000-0000-0000-0002-000000000015", full_name:"Olivia Carvalho",      class_year:2006, class_group:"A", nickname_at_school:"Oli",       profile_status:"claimed",   claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000016", full_name:"Pedro Gomes",          class_year:2006, class_group:"B", nickname_at_school:"PH",        profile_status:"unclaimed", claimed_by_user_id:null, claimed_at:null, is_visible:false, private_notes:null, created_at:"", updated_at:"" },
   { id:"00000000-0000-0000-0002-000000000017", full_name:"Rafaela Souza",        class_year:2006, class_group:"C", nickname_at_school:"Rafa",      profile_status:"confirmed", claimed_by_user_id:null, claimed_at:null, is_visible:true, private_notes:null, created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0002-000000000018", full_name:"Sandro Vieira",        class_year:2006, class_group:"A", nickname_at_school:"SandÃ£o",    profile_status:"unclaimed", claimed_by_user_id:null, claimed_at:null, is_visible:false, private_notes:null, created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0002-000000000018", full_name:"Sandro Vieira",        class_year:2006, class_group:"A", nickname_at_school:"Sandão",    profile_status:"unclaimed", claimed_by_user_id:null, claimed_at:null, is_visible:false, private_notes:null, created_at:"", updated_at:"" },
 ];
 
 const MOCK_TICKET_TYPES: DbTicketType[] = [
-  { id:"00000000-0000-0000-0001-000000000001", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Individual â€” 1Âº Lote",           description:null, price_cents:12000, available_quantity:100, sold_quantity:53, sales_start_at:null, sales_end_at:null, allows_guest:false, status:"open",     created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0001-000000000002", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Casal â€” 1Âº Lote",                description:null, price_cents:20000, available_quantity:50,  sold_quantity:42, sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"open",     created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0001-000000000003", event_id:"00000000-0000-0000-0000-000000000001", name:"Mesa VIP â€” EdiÃ§Ã£o Limitada (4 pessoas)", description:null, price_cents:60000, available_quantity:20,  sold_quantity:20, sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"sold_out", created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0001-000000000004", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Individual â€” 2Âº Lote",           description:null, price_cents:15000, available_quantity:100, sold_quantity:0,  sales_start_at:null, sales_end_at:null, allows_guest:false, status:"closed",   created_at:"", updated_at:"" },
-  { id:"00000000-0000-0000-0001-000000000005", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Casal â€” 2Âº Lote",                description:null, price_cents:25000, available_quantity:50,  sold_quantity:0,  sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"closed",   created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0001-000000000001", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Individual — 1º Lote",           description:null, price_cents:12000, available_quantity:100, sold_quantity:53, sales_start_at:null, sales_end_at:null, allows_guest:false, status:"open",     created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0001-000000000002", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Casal — 1º Lote",                description:null, price_cents:20000, available_quantity:50,  sold_quantity:42, sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"open",     created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0001-000000000003", event_id:"00000000-0000-0000-0000-000000000001", name:"Mesa VIP — Edição Limitada (4 pessoas)", description:null, price_cents:60000, available_quantity:20,  sold_quantity:20, sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"sold_out", created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0001-000000000004", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Individual — 2º Lote",           description:null, price_cents:15000, available_quantity:100, sold_quantity:0,  sales_start_at:null, sales_end_at:null, allows_guest:false, status:"closed",   created_at:"", updated_at:"" },
+  { id:"00000000-0000-0000-0001-000000000005", event_id:"00000000-0000-0000-0000-000000000001", name:"Ingresso Casal — 2º Lote",                description:null, price_cents:25000, available_quantity:50,  sold_quantity:0,  sales_start_at:null, sales_end_at:null, allows_guest:true,  status:"closed",   created_at:"", updated_at:"" },
 ];
 
-// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -72,7 +132,43 @@ async function callFunction<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
-// â”€â”€â”€ EVENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getHomePageContent(eventId = DEFAULT_HOME_EVENT_ID): Promise<HomePageContent> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("home_page_content")
+      .select("*")
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return { ...HOME_PAGE_CONTENT_DEFAULTS, ...(data ?? {}), event_id: eventId } as HomePageContent;
+  }, HOME_PAGE_CONTENT_DEFAULTS);
+}
+
+export async function updateHomePageContent(
+  eventId: string,
+  patch: Partial<HomePageContent>,
+  adminId?: string
+): Promise<HomePageContent> {
+  const payload = {
+    ...patch,
+    event_id: eventId,
+    updated_by_admin_id: adminId ?? null,
+  };
+
+  const { data, error } = await (supabase as any)
+    .from("home_page_content")
+    .upsert(payload, { onConflict: "event_id" })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  await writeAudit("update_home_page_content", "home_page_content", eventId, { patch }).catch(() => {});
+  return { ...HOME_PAGE_CONTENT_DEFAULTS, ...(data ?? {}), event_id: eventId } as HomePageContent;
+}
+
+
+// ─── EVENTS ───────────────────────────────────────────────────────────────────
 
 export async function getEvent(slug = "turma-2006-20-anos"): Promise<DbEvent | null> {
   return withFallback(async () => {
@@ -92,7 +188,7 @@ export async function updateEvent(id: string, patch: Partial<DbEvent>): Promise<
   await writeAudit("update_event", "events", id, { patch });
 }
 
-// â”€â”€â”€ PEOPLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PEOPLE ───────────────────────────────────────────────────────────────────
 
 export async function getPeople(filters?: {
   search?: string;
@@ -122,7 +218,7 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
   }, MOCK_PEOPLE.filter(p => p.is_visible));
 }
 
-// â”€â”€â”€ PROFILES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PROFILES ─────────────────────────────────────────────────────────────────
 
 export async function getMyProfile(userId: string): Promise<(DbProfile & { people?: Partial<DbPerson> }) | null> {
   const { data, error } = await supabase
@@ -137,7 +233,7 @@ export async function getMyProfile(userId: string): Promise<(DbProfile & { peopl
 export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): Promise<DbProfile> {
   const current = await getMyProfile(userId);
   if (!current?.id) {
-    throw new Error("Perfil ainda nÃ£o reivindicado. Reivindique seu perfil antes de editar os dados pÃºblicos.");
+    throw new Error("Perfil ainda não reivindicado. Reivindique seu perfil antes de editar os dados públicos.");
   }
   const allowedPatch: Partial<DbProfile> = {
     display_name: patch.display_name ?? current.display_name,
@@ -192,7 +288,7 @@ export async function upsertProfile(profile: UpsertProfile) {
   if (error) throw error;
 }
 
-// â”€â”€â”€ TICKET TYPES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TICKET TYPES ─────────────────────────────────────────────────────────────
 
 export async function getTicketTypes(eventId?: string): Promise<DbTicketType[]> {
   return withFallback(async () => {
@@ -217,7 +313,7 @@ export async function createTicketType(data: Partial<DbTicketType>) {
   return row as DbTicketType;
 }
 
-// â”€â”€â”€ ORDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ORDERS ───────────────────────────────────────────────────────────────────
 
 export async function createOrder(order: InsertOrder): Promise<DbOrder> {
   const { data, error } = await supabase.from("orders").insert(order).select().single();
@@ -297,7 +393,7 @@ export async function getOrdersByStatus(status?: string): Promise<DbOrder[]> {
   }, []);
 }
 
-// â”€â”€â”€ TICKETS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TICKETS ──────────────────────────────────────────────────────────────────
 
 export async function getMyTicket(email: string): Promise<DbTicket | null> {
   const { data, error } = await supabase
@@ -316,7 +412,7 @@ export async function checkInTicket(ticketId: string, adminUserId: string): Prom
   await markTicketCheckedIn(ticketId, adminUserId);
 }
 
-// â”€â”€â”€ PHOTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHOTOS ───────────────────────────────────────────────────────────────────
 
 export async function getApprovedPhotos(eventId?: string): Promise<DbPhoto[]> {
   return withFallback(async () => {
@@ -362,7 +458,7 @@ export async function uploadPhoto(params: {
     .upload(path, params.file, { upsert: false });
   if (storageError) throw storageError;
 
-  // 2. Gera signed URL para thumbnail (expiraÃ§Ã£o longa)
+  // 2. Gera signed URL para thumbnail (expiração longa)
   const { data: signedData } = await supabase.storage
     .from("photos")
     .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 ano
@@ -414,7 +510,7 @@ export async function moderatePhoto(id: string, action: "approved" | "rejected",
   await writeAudit(`photo_${action}`, "photos", id, { admin_id: adminId });
 }
 
-// â”€â”€â”€ PHOTO TAGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHOTO TAGS ───────────────────────────────────────────────────────────────
 
 export async function getTagsForModeration(status = "pending"): Promise<(DbPhotoTag & { photos: Pick<DbPhoto, "image_url" | "caption"> | null })[]> {
   return withFallback(async () => {
@@ -448,7 +544,7 @@ export async function addPhotoTag(photoId: string, personId: string, taggedName:
   if (error && !error.message.includes("duplicate")) throw error;
 }
 
-// â”€â”€â”€ PROFILE CLAIMS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PROFILE CLAIMS ───────────────────────────────────────────────────────────
 
 export async function createProfileClaim(data: {
   personId: string;
@@ -499,7 +595,7 @@ export async function moderateClaim(
   reason?: string
 ) {
   if (action === "approved") {
-    // 1. Aprova a solicitaÃ§Ã£o
+    // 1. Aprova a solicitação
     const { data: claim, error: claimError } = await supabase
       .from("profile_claims")
       .update({ status: "approved", reviewed_by_admin_id: adminId, reviewed_at: new Date().toISOString() })
@@ -508,14 +604,14 @@ export async function moderateClaim(
       .single();
     if (claimError) throw claimError;
 
-    // 2. Vincula o perfil ao usuÃ¡rio
+    // 2. Vincula o perfil ao usuário
     await supabase.from("people").update({
       profile_status:      "claimed",
       claimed_by_user_id:  (claim as any).requester_user_id,
       claimed_at:          new Date().toISOString(),
     }).eq("id", (claim as any).person_id);
 
-    // 3. Cria o profile bÃ¡sico
+    // 3. Cria o profile básico
     await supabase.from("profiles").upsert({
       person_id:    (claim as any).person_id,
       user_id:      (claim as any).requester_user_id,
@@ -533,7 +629,7 @@ export async function moderateClaim(
   await writeAudit(`claim_${action}`, "profile_claims", claimId, { admin_id: adminId });
 }
 
-// â”€â”€â”€ ADMIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
 
 export async function isUserAdmin(userId: string): Promise<boolean> {
   const { data } = await supabase.from("admin_users").select("id").eq("user_id", userId).maybeSingle();
@@ -550,7 +646,7 @@ export async function getCurrentAdminUser(userId: string): Promise<DbAdminUser |
   return data as DbAdminUser | null;
 }
 
-// â”€â”€â”€ AUDIT LOGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── AUDIT LOGS ───────────────────────────────────────────────────────────────
 
 export async function writeAudit(
   action: string,
@@ -568,11 +664,11 @@ export async function writeAudit(
       metadata_json: metadata,
     });
   } catch {
-    // Falha silenciosa â€” audit log nÃ£o deve quebrar o fluxo principal
+    // Falha silenciosa — audit log não deve quebrar o fluxo principal
   }
 }
 
-// â”€â”€â”€ TICKET TYPES (admin) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TICKET TYPES (admin) ─────────────────────────────────────────────────────
 
 export async function getTicketTypesAdmin(eventId?: string): Promise<DbTicketType[]> {
   return withFallback(async () => {
@@ -596,7 +692,7 @@ export async function updateTicketTypeFull(id: string, patch: Partial<DbTicketTy
   await writeAudit("update_lot", "ticket_types", id, { patch, admin_id: adminId });
 }
 
-// â”€â”€â”€ EVENT SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── EVENT SETTINGS ───────────────────────────────────────────────────────────
 
 export async function getEventSettings(slug = "turma-2006-20-anos"): Promise<DbEvent | null> {
   return withFallback(async () => {
@@ -612,7 +708,7 @@ export async function updateEventSettings(id: string, patch: Partial<DbEvent>, a
   await writeAudit("update_event_settings", "events", id, { fields: Object.keys(patch), admin_id: adminId });
 }
 
-// â”€â”€â”€ REPORTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── REPORTS ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -631,7 +727,7 @@ export async function getReports(eventId = DEFAULT_EVENT_ID): Promise<Record<str
   });
 }
 
-// â”€â”€â”€ USER TICKETS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── USER TICKETS ─────────────────────────────────────────────────────────────
 
 export async function getMyOrders(userId: string, email?: string): Promise<DbOrder[]> {
   if (!userId && !email) return [];
@@ -716,9 +812,9 @@ export async function findTicketForCheckin(query: string, mode: "qr" | "name" | 
 
 export async function markTicketCheckedIn(ticketId: string, adminId: string): Promise<TicketWithDetails> {
   const current = await getTicketDetails(ticketId);
-  if (!current) throw new Error("Ingresso nÃ£o encontrado.");
-  if (current.checked_in) throw new Error("Este ingresso jÃ¡ registrou entrada.");
-  if (current.orders?.payment_status !== "approved") throw new Error("Pagamento nÃ£o aprovado. Entrada nÃ£o autorizada.");
+  if (!current) throw new Error("Ingresso não encontrado.");
+  if (current.checked_in) throw new Error("Este ingresso já registrou entrada.");
+  if (current.orders?.payment_status !== "approved") throw new Error("Pagamento não aprovado. Entrada não autorizada.");
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("tickets")
@@ -728,12 +824,12 @@ export async function markTicketCheckedIn(ticketId: string, adminId: string): Pr
     .select("*, orders(*), ticket_types(*), people(full_name, nickname_at_school, class_group)")
     .maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error("NÃ£o foi possÃ­vel registrar: ingresso jÃ¡ utilizado ou indisponÃ­vel.");
+  if (!data) throw new Error("Não foi possível registrar: ingresso já utilizado ou indisponível.");
   await writeAudit("ticket_checkin", "tickets", ticketId, { admin_id: adminId, checked_in_at: now });
   return data as unknown as TicketWithDetails;
 }
 
-// â”€â”€â”€ CSV EXPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CSV EXPORT ───────────────────────────────────────────────────────────────
 
 export function exportToCsv(rows: Record<string, unknown>[], filename: string) {
   if (rows.length === 0) return;
@@ -784,13 +880,13 @@ export async function exportTicketsCSV(eventId = DEFAULT_EVENT_ID) {
   exportToCsv((data ?? []).map((t: any) => ({
     codigo: t.qr_code, nome: t.attendee_name, email: t.attendee_email,
     telefone: t.attendee_phone ?? "", ingresso: t.ticket_types?.name ?? "",
-    acompanhante: t.guest_name ?? "", checkin: t.checked_in ? "Sim" : "NÃ£o",
+    acompanhante: t.guest_name ?? "", checkin: t.checked_in ? "Sim" : "Não",
     checkin_hora: t.checked_in_at?.slice(0, 16)?.replace("T", " ") ?? "",
   })), "ingressos.csv");
 }
 
 
-// â”€â”€â”€ PHASE 2: LIKES, COMMENTS E MEMÃ“RIAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHASE 2: LIKES, COMMENTS E MEMÓRIAS ─────────────────────────────────────
 
 export async function likePhoto(photoId: string, userId: string): Promise<void> {
   const { error } = await supabase.from("photo_likes").insert({ photo_id: photoId, user_id: userId });
@@ -984,7 +1080,7 @@ export async function getPhotoStats(photoIds: string[]): Promise<Record<string, 
 }
 
 
-// â”€â”€â”€ POLLS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POLLS ───────────────────────────────────────────────────────────────────
 
 export async function getPolls(eventId = DEFAULT_EVENT_ID, includeAdmin = false): Promise<(DbPoll & { poll_options?: DbPollOption[] })[]> {
   return withFallback(async () => {
@@ -1089,7 +1185,7 @@ export async function archivePoll(id: string, adminId: string): Promise<void> {
   await updatePoll(id, { status: "archived" as PollStatus }, adminId);
 }
 
-// â”€â”€â”€ PUBLIC LOCATION MAP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PUBLIC LOCATION MAP ─────────────────────────────────────────────────────
 
 export async function getPublicLocationStats(): Promise<LocationStat[]> {
   return withFallback(async () => {
@@ -1125,7 +1221,7 @@ export async function getPeopleByPublicLocation(key: string): Promise<PublicLoca
   return stats.find(item => item.key === key)?.people ?? [];
 }
 
-// â”€â”€â”€ ADMIN USERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ADMIN USERS ─────────────────────────────────────────────────────────────
 
 export async function getAdminUsers(): Promise<DbAdminUser[]> {
   return withFallback(async () => {
@@ -1153,7 +1249,7 @@ export async function removeAdminUser(id: string, adminId: string) {
   await writeAudit("remove_admin", "admin_users", id, { removed_by: adminId });
 }
 
-// â”€â”€â”€ AUDIT LOGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── AUDIT LOGS ───────────────────────────────────────────────────────────────
 
 export async function getAuditLogs(limit = 100, offset = 0): Promise<DbAuditLog[]> {
   return withFallback(async () => {
@@ -1166,7 +1262,7 @@ export async function getAuditLogs(limit = 100, offset = 0): Promise<DbAuditLog[
   }, []);
 }
 
-// â”€â”€â”€ PHOTO REMOVAL REQUESTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHOTO REMOVAL REQUESTS ───────────────────────────────────────────────────
 
 export async function createPhotoRemovalRequest(params: {
   photoId: string; userId: string; requesterName: string;
@@ -1212,7 +1308,7 @@ export async function reviewPhotoRemovalRequest(id: string, action: "approved" |
   await writeAudit(`removal_request_${action}`, "photo_removal_requests", id, { admin_id: adminId, notes });
 }
 
-// â”€â”€â”€ PROFILE CLAIM DISPUTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PROFILE CLAIM DISPUTES ───────────────────────────────────────────────────
 
 export async function createProfileClaimDispute(params: {
   personId: string; userId: string; currentClaimantUserId: string | null;
@@ -1267,13 +1363,13 @@ export async function reviewProfileClaimDispute(id: string, action: "approved" |
   await writeAudit(`dispute_${action}`, "profile_claim_disputes", id, { admin_id: adminId, notes });
 }
 
-// â”€â”€â”€ PROFILE CLAIMS (completar persistÃªncia) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PROFILE CLAIMS (completar persistência) ──────────────────────────────────
 
 export async function createFullProfileClaim(params: {
   personId: string; userId: string | null; name: string; email: string; phone: string;
   answers: { key: string; text: string; score: number }[];
 }): Promise<{ claim: DbProfileClaim; score: number }> {
-  // Cria a solicitaÃ§Ã£o
+  // Cria a solicitação
   const { data: claim, error } = await supabase.from("profile_claims").insert({
     person_id:          params.personId,
     requester_user_id:  params.userId,
@@ -1305,4 +1401,3 @@ export async function createFullProfileClaim(params: {
 
   return { claim: claim as DbProfileClaim, score };
 }
-
