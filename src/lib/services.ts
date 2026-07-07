@@ -385,9 +385,10 @@ export async function getMyOrder(email: string): Promise<DbOrder | null> {
 
 export async function getOrdersByStatus(status?: string): Promise<DbOrder[]> {
   return withFallback(async () => {
-    let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
-    if (status) q = q.eq("payment_status", status as any);
-    const { data, error } = await q;
+    const { data, error } = await (supabase as any).rpc("get_admin_orders", {
+      p_status: status ? status : null,
+    });
+
     if (error) throw error;
     return (data as DbOrder[]) ?? [];
   }, []);
