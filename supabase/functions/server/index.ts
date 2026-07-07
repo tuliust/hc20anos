@@ -1,9 +1,9 @@
-﻿import { Hono }  from "npm:hono";
+import { Hono }  from "npm:hono";
 import { cors }   from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// â”€â”€â”€ SETUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SETUP ────────────────────────────────────────────────────────────────────
 
 const app = new Hono().basePath("/server");
 app.use("*", logger(console.log));
@@ -15,7 +15,7 @@ app.use("/*", cors({
   maxAge: 600,
 }));
 
-// Service-role client (server-side only â€” NUNCA exposto ao browser)
+// Service-role client (server-side only — NUNCA exposto ao browser)
 function adminClient() {
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -129,17 +129,17 @@ async function sendWhatsAppTemplate(order: any, tickets: any[]) {
   if (!res.ok) console.error("[WhatsApp] Falha ao enviar template", await res.text());
 }
 
-// â”€â”€â”€ HEALTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HEALTH ───────────────────────────────────────────────────────────────────
 
 app.get(`${BASE}/health`, (c) => c.json({ status: "ok", ts: new Date().toISOString() }));
 
-// â”€â”€â”€ MERCADO PAGO â€” Criar PreferÃªncia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MERCADO PAGO — Criar Preferência ─────────────────────────────────────────
 //
 // POST /make-server-62fab262/mp/preference
 // Body: { orderId: string }
 //
-// Cria uma preferÃªncia de pagamento no Mercado Pago e retorna o init_point.
-// Deve ser chamado pelo client APÃ“S criar o order no Supabase.
+// Cria uma preferência de pagamento no Mercado Pago e retorna o init_point.
+// Deve ser chamado pelo client APÓS criar o order no Supabase.
 
 app.post(`${BASE}/mp/preference`, async (c) => {
   const MP_TOKEN = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
@@ -147,7 +147,7 @@ app.post(`${BASE}/mp/preference`, async (c) => {
   if (!MP_TOKEN) {
     // MODO DEV: sem token real, retorna URL local de retorno
     const { orderId } = await c.req.json();
-    console.warn("[MP] MERCADO_PAGO_ACCESS_TOKEN nÃ£o configurado â€” modo dev");
+    console.warn("[MP] MERCADO_PAGO_ACCESS_TOKEN não configurado — modo dev");
     return c.json({
       dev_mode: true,
       init_point: checkoutReturnUrl("pending", orderId),
@@ -168,17 +168,17 @@ app.post(`${BASE}/mp/preference`, async (c) => {
       .single();
 
     if (orderErr || !order) {
-      return c.json({ error: "Pedido nÃ£o encontrado" }, 404);
+      return c.json({ error: "Pedido não encontrado" }, 404);
     }
 
     const ticketType = (order as any).ticket_types;
     const unitPrice  = (ticketType?.price_cents ?? order.total_amount_cents) / 100;
 
-    // Cria preferÃªncia no Mercado Pago
+    // Cria preferência no Mercado Pago
     const mpBody = {
       items: [{
         id:           order.ticket_type_id,
-        title:        ticketType?.name ?? "Ingresso â€” Turma 2006",
+        title:        ticketType?.name ?? "Ingresso — Turma 2006",
         quantity:     order.quantity,
         unit_price:   unitPrice,
         currency_id:  "BRL",
@@ -210,7 +210,7 @@ app.post(`${BASE}/mp/preference`, async (c) => {
 
     if (!mpRes.ok) {
       const err = await mpRes.text();
-      console.error("[MP] Erro ao criar preferÃªncia:", err);
+      console.error("[MP] Erro ao criar preferência:", err);
       return c.json({ error: "Erro no Mercado Pago", detail: err }, 500);
     }
 
@@ -228,15 +228,15 @@ app.post(`${BASE}/mp/preference`, async (c) => {
     });
 
   } catch (err) {
-    console.error("[MP] ExceÃ§Ã£o:", err);
+    console.error("[MP] Exceção:", err);
     return c.json({ error: "Erro interno" }, 500);
   }
 });
 
-// â”€â”€â”€ MERCADO PAGO â€” Webhook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MERCADO PAGO — Webhook ───────────────────────────────────────────────────
 //
 // POST /make-server-62fab262/mp/webhook
-// Recebe notificaÃ§Ãµes do Mercado Pago, atualiza orders e emite tickets.
+// Recebe notificações do Mercado Pago, atualiza orders e emite tickets.
 
 app.post(`${BASE}/mp/webhook`, async (c) => {
   const db = adminClient();
@@ -269,7 +269,7 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
   try {
     const MP_TOKEN = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!MP_TOKEN) {
-      console.warn("[MP Webhook] Sem token â€” ignorando");
+      console.warn("[MP Webhook] Sem token — ignorando");
       return c.json({ received: true });
     }
 
@@ -285,7 +285,7 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
     const mpOrderId    = String(paymentId);
     const paymentMethod = payment.payment_method_id ?? null;
 
-    // Mapeia status MP â†’ status interno
+    // Mapeia status MP → status interno
     const statusMap: Record<string, string> = {
       approved:   "approved",
       rejected:   "rejected",
@@ -311,7 +311,7 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
       .single();
 
     if (orderErr || !order) {
-      console.error("[MP Webhook] Order nÃ£o encontrado:", orderId, orderErr);
+      console.error("[MP Webhook] Order não encontrado:", orderId, orderErr);
       return c.json({ received: true });
     }
 
@@ -321,7 +321,7 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
       .eq("provider_event_id", mpOrderId)
       .is("order_id", null);
 
-    // Se aprovado, cria o(s) ticket(s) se ainda nÃ£o existirem
+    // Se aprovado, cria o(s) ticket(s) se ainda não existirem
     if (mpStatus === "approved") {
       const { count } = await db.from("tickets")
         .select("id", { count: "exact", head: true })
@@ -363,15 +363,15 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
 
   } catch (err) {
     console.error("[MP Webhook] Erro:", err);
-    return c.json({ received: true, error: "internal" }, 200); // sempre 200 para o MP nÃ£o reenviar
+    return c.json({ received: true, error: "internal" }, 200); // sempre 200 para o MP não reenviar
   }
 });
 
-// â”€â”€â”€ CRIAR ORDER (server-side, contorna RLS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CRIAR ORDER (server-side, contorna RLS) ──────────────────────────────────
 //
 // POST /make-server-62fab262/orders
-// Cria o order pelo service role para evitar que RLS bloqueie a inserÃ§Ã£o antes
-// do usuÃ¡rio estar autenticado.
+// Cria o order pelo service role para evitar que RLS bloqueie a inserção antes
+// do usuário estar autenticado.
 
 app.post(`${BASE}/orders`, async (c) => {
   try {
@@ -385,12 +385,12 @@ app.post(`${BASE}/orders`, async (c) => {
       .eq("id", body.ticket_type_id)
       .single();
 
-    if (ttErr || !tt) return c.json({ error: "Tipo de ingresso nÃ£o encontrado" }, 404);
+    if (ttErr || !tt) return c.json({ error: "Tipo de ingresso não encontrado" }, 404);
     if (tt.status === "sold_out" || tt.status === "closed") {
       return c.json({ error: "Ingresso esgotado ou fora de venda" }, 400);
     }
     if ((tt.available_quantity - tt.sold_quantity) < (body.quantity ?? 1)) {
-      return c.json({ error: "Quantidade indisponÃ­vel" }, 400);
+      return c.json({ error: "Quantidade indisponível" }, 400);
     }
 
     const { data: order, error: orderErr } = await db.from("orders").insert({
@@ -428,7 +428,7 @@ app.get(`${BASE}/orders/:id`, async (c) => {
   return c.json({ order });
 });
 
-// â”€â”€â”€ VERIFICAR CHECK-IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── VERIFICAR CHECK-IN ───────────────────────────────────────────────────────
 //
 // GET /make-server-62fab262/checkin?q=HC2006-XXXX&mode=qr
 // Busca ingresso para check-in (service role, sem RLS).
@@ -438,7 +438,7 @@ app.get(`${BASE}/checkin`, async (c) => {
   const mode = c.req.query("mode") ?? "qr";
   const db   = adminClient();
 
-  if (!q) return c.json({ error: "Query obrigatÃ³ria" }, 400);
+  if (!q) return c.json({ error: "Query obrigatória" }, 400);
 
   try {
     let query = db.from("tickets")
@@ -459,7 +459,7 @@ app.get(`${BASE}/checkin`, async (c) => {
   }
 });
 
-// â”€â”€â”€ REGISTRAR CHECK-IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── REGISTRAR CHECK-IN ───────────────────────────────────────────────────────
 //
 // POST /make-server-62fab262/checkin
 // Body: { ticketId: string, adminUserId: string }
@@ -471,7 +471,7 @@ app.post(`${BASE}/checkin`, async (c) => {
   const { data: ticket, error: fetchErr } = await db
     .from("tickets").select("*").eq("id", ticketId).single();
 
-  if (fetchErr || !ticket) return c.json({ error: "Ingresso nÃ£o encontrado" }, 404);
+  if (fetchErr || !ticket) return c.json({ error: "Ingresso não encontrado" }, 404);
   if ((ticket as any).checked_in) return c.json({ error: "already_used", ticket }, 409);
 
   const now = new Date().toISOString();
@@ -494,7 +494,6 @@ app.post(`${BASE}/checkin`, async (c) => {
   return c.json({ success: true, checked_in_at: now });
 });
 
-// â”€â”€â”€ START â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── START ────────────────────────────────────────────────────────────────────
 
 Deno.serve(app.fetch);
-

@@ -1,11 +1,11 @@
-﻿import { downloadInviteImage, getTicketQrImageUrl, likelyTicketCode, startQrCameraScanner } from "./ticket-experience";
+import { downloadInviteImage, getTicketQrImageUrl, likelyTicketCode, startQrCameraScanner } from "./ticket-experience";
 
 function replaceTicketQr() {
   const text = document.body.innerText;
-  if (!text.includes("Ingresso oficial") && !text.includes("CÃ³digo do ingresso")) return;
+  if (!text.includes("Ingresso oficial") && !text.includes("Código do ingresso")) return;
 
   const cards = Array.from(document.querySelectorAll<HTMLElement>("div"))
-    .filter(el => /Ingresso oficial|CÃ³digo do ingresso/.test(el.innerText) && Boolean(likelyTicketCode(el.innerText)))
+    .filter(el => /Ingresso oficial|Código do ingresso/.test(el.innerText) && Boolean(likelyTicketCode(el.innerText)))
     .slice(0, 4);
 
   for (const card of cards) {
@@ -31,12 +31,12 @@ function replaceTicketQr() {
 
     const note = Array.from(card.querySelectorAll<HTMLElement>("p"))
       .find(p => /QR visual|demonstrativo/i.test(p.innerText));
-    if (note) note.innerText = "QR Code real gerado a partir do cÃ³digo textual do ingresso.";
+    if (note) note.innerText = "QR Code real gerado a partir do código textual do ingresso.";
   }
 }
 
 function addInviteDownload() {
-  if (!document.body.innerText.includes("Convite compartilhÃ¡vel")) return;
+  if (!document.body.innerText.includes("Convite compartilhável")) return;
   if (document.querySelector("[data-invite-download='true']")) return;
 
   const actions = Array.from(document.querySelectorAll<HTMLElement>("button"))
@@ -55,9 +55,9 @@ function addInviteDownload() {
       .find(t => t.includes("Eu vou ao reencontro da Turma 2006")) ?? "";
 
     const lines = cardText.split("\n").map(s => s.trim()).filter(Boolean);
-    const dateLabel = lines.find(l => /^\d{1,2}\//.test(l) || /Out|2026|h/.test(l)) ?? "17 Out 2026 Â· 19h";
-    const locationLabel = lines.find(l => /Natal|EspaÃ§o|Local/i.test(l)) ?? "Natal, RN";
-    const name = lines.find(l => !/ColÃ©gio|Eu vou|Data|Hora|Local|20 anos/i.test(l) && l.length > 3 && l.length < 80) ?? "";
+    const dateLabel = lines.find(l => /^\d{1,2}\//.test(l) || /Out|2026|h/.test(l)) ?? "17 Out 2026 · 19h";
+    const locationLabel = lines.find(l => /Natal|Espaço|Local/i.test(l)) ?? "Natal, RN";
+    const name = lines.find(l => !/Colégio|Eu vou|Data|Hora|Local|20 anos/i.test(l) && l.length > 3 && l.length < 80) ?? "";
 
     downloadInviteImage({ name, useName: Boolean(name), dateLabel, locationLabel });
   };
@@ -76,7 +76,7 @@ function addCameraControls() {
   if (document.querySelector("[data-camera-scan='true']")) return;
 
   const host = Array.from(document.querySelectorAll<HTMLElement>("div"))
-    .find(el => el.innerText.includes("Leitura por cÃ¢mera"));
+    .find(el => el.innerText.includes("Leitura por câmera"));
 
   if (!host) return;
 
@@ -99,7 +99,7 @@ function addCameraControls() {
   const start = document.createElement("button");
   start.type = "button";
   start.className = "bg-[#2d6a4f] text-[#f0ebe0] px-4 py-3 text-xs font-mono uppercase tracking-wider";
-  start.textContent = "Ativar cÃ¢mera";
+  start.textContent = "Ativar câmera";
   start.onclick = async () => {
     host.innerHTML = "";
     host.appendChild(video);
@@ -116,7 +116,7 @@ function addCameraControls() {
           .find(btn => btn.innerText.toLowerCase().includes("verificar ingresso"))?.click();
       },
     }).catch(error => {
-      status.innerText = error instanceof Error ? error.message : "NÃ£o foi possÃ­vel acessar a cÃ¢mera.";
+      status.innerText = error instanceof Error ? error.message : "Não foi possível acessar a câmera.";
       return null;
     });
   };
