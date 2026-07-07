@@ -899,59 +899,68 @@ function LoginPage({ navigate, onLogin }: {
   navigate: (p: Page) => void;
   onLogin: (auth: AuthState) => void;
 }) {
-  const [mode, setMode] = useState<"alumni" | "admin">("alumni");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw]     = useState(false);
-  const [adminCode, setAdminCode] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
   async function submit() {
     setError("");
     setLoading(true);
+
     try {
-      if (mode === "admin") {
-        // Tenta login real com Supabase Auth
-        if (!email.includes("@")) { setError("Informe o e-mail da conta admin."); setLoading(false); return; }
-        const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password: adminCode });
-        if (authErr || !data.user) {
-          // Fallback demo: código ADMIN2026 (desenvolvimento)
-          if (DEV_MODE && adminCode.trim().toUpperCase() === "ADMIN2026") {
-            onLogin({ loggedIn: true, isAdmin: true, name: "Organizacao", userId: "dev-admin", email, role: "superadmin" });
-          } else {
-            setError("Credenciais invalidas.");
-          }
-          setLoading(false); return;
+      if (!email.includes("@")) {
+        setError("Informe um e-mail válido.");
+        setLoading(false);
+        return;
+      }
+
+      if (password.length < 4) {
+        setError("Senha muito curta. Use ao menos 4 caracteres.");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (authErr || !data.user) {
+        if (!DEV_MODE) {
+          setError("Credenciais inválidas.");
+          setLoading(false);
+          return;
         }
-        const admin = await getCurrentAdminUser(data.user.id);
-        if (!admin) { setError("Esta conta nao tem permissao de admin."); await supabase.auth.signOut(); setLoading(false); return; }
+
+        const prefix = email.split("@")[0].split(".")[0].toLowerCase();
+        const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
+
         onLogin({
           loggedIn: true,
-          isAdmin: true,
-          name: data.user.user_metadata?.full_name ?? admin.display_name ?? data.user.email ?? "Admin",
-          userId: data.user.id,
-          email: data.user.email ?? admin.email ?? undefined,
-          role: admin.role,
+          isAdmin: false,
+          name: match?.full_name || "Ana Paula Oliveira",
+          userId: "dev-user",
+          email,
+          role: null,
         });
-      } else {
-        if (!email.includes("@")) { setError("Informe um e-mail válido."); setLoading(false); return; }
-        if (password.length < 4)  { setError("Senha muito curta. Use ao menos 4 caracteres."); setLoading(false); return; }
-        const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (authErr || !data.user) {
-          // Fallback demo: qualquer e-mail + senha válida
-          if (!DEV_MODE) { setError("Credenciais invalidas."); setLoading(false); return; }
-          const prefix = email.split("@")[0].split(".")[0].toLowerCase();
-          const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
-          onLogin({ loggedIn: true, isAdmin: false, name: match?.full_name || "Ana Paula Oliveira", userId: "dev-user", email, role: null });
-          setLoading(false); return;
-        }
-        const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
-        onLogin({ loggedIn: true, isAdmin: false, name: displayName, userId: data.user.id, email: data.user.email, role: null });
+
+        setLoading(false);
+        return;
       }
+
+      const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
+
+      onLogin({
+        loggedIn: true,
+        isAdmin: false,
+        name: displayName,
+        userId: data.user.id,
+        email: data.user.email,
+        role: null,
+      });
     } catch {
       setError("Erro de conexão. Tente novamente.");
     }
+
     setLoading(false);
   }
 
@@ -968,68 +977,179 @@ function LoginPage({ navigate, onLogin }: {
         </div>
 
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-          <div className="flex mb-8 border-b border-[#2d6a4f]/20">
-            {([["alumni","Ex-Aluno"],["admin","Admin"]] as const).map(([m, label]) => (
-              <button key={m} onClick={() => { setMode(m); setError(""); }}
-                className={`flex-1 pb-4 text-xs font-mono uppercase tracking-widest border-b-2 transition-colors ${mode === m ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <div className="flex flex-col gap-5">
+            <DisplayTitle className="text-xl">Entrar como ex-aluno</DisplayTitle>
 
-          {mode === "alumni" ? (
-            <div className="flex flex-col gap-5">
-              <DisplayTitle className="text-xl">Entrar como ex-aluno</DisplayTitle>
-              <Field label="E-mail" type="email" placeholder="seu@email.com" value={email} onChange={setEmail} icon={<Mail size={16} />} />
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
-                <div className="relative">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                  <input type={showPw ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-                  <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
-                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-              {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-              <Btn full onClick={submit} disabled={loading}>
-                {loading ? <><RefreshCw size={16} className="animate-spin" />Entrando...</> : "Entrar"}
-              </Btn>
-              <p className="text-[#7a9a7a] text-xs text-center">
-                Ainda não tem conta?{" "}
-                <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
-                  Reivindicar meu perfil
+            <Field
+              label="E-mail"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={setEmail}
+              icon={<Mail size={16} />}
+            />
+
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+                <input
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
-              </p>
-              {DEV_MODE && (
-                <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                  Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-5">
-              <DisplayTitle className="text-xl">Acesso administrativo</DisplayTitle>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Código de acesso</label>
-                <div className="relative">
-                  <Key size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                  <input type="password" placeholder="••••••••••" value={adminCode} onChange={e => setAdminCode(e.target.value)}
-                    className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
-                </div>
               </div>
-              {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-              <Btn full onClick={submit} disabled={loading}>
-                {loading ? <><RefreshCw size={16} className="animate-spin" />Verificando...</> : <><Key size={16} />Acessar painel</>}
-              </Btn>
-              {DEV_MODE && (
-                <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                  Modo desenvolvimento: use o codigo ADMIN2026
-                </p>
-              )}
             </div>
-          )}
+
+            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+
+            <Btn full onClick={submit} disabled={loading}>
+              {loading ? <><RefreshCw size={16} className="animate-spin" />Entrando...</> : "Entrar"}
+            </Btn>
+
+            <p className="text-[#7a9a7a] text-xs text-center">
+              Ainda não tem conta?{" "}
+              <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
+                Reivindicar meu perfil
+              </button>
+            </p>
+
+            {DEV_MODE && (
+              <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
+                Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <button onClick={() => navigate("home")} className="text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors flex items-center gap-2 mx-auto">
+            <ArrowLeft size={16} />Voltar ao site
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminLoginPage({ navigate, onLogin }: {
+  navigate: (p: Page) => void;
+  onLogin: (auth: AuthState) => void;
+}) {
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw]     = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+
+  async function submit() {
+    setError("");
+    setLoading(true);
+
+    try {
+      if (!email.includes("@")) {
+        setError("Informe o e-mail da conta administrativa.");
+        setLoading(false);
+        return;
+      }
+
+      if (!password) {
+        setError("Informe a senha da conta administrativa.");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (authErr || !data.user) {
+        setError("Credenciais inválidas.");
+        setLoading(false);
+        return;
+      }
+
+      const admin = await getCurrentAdminUser(data.user.id);
+
+      if (!admin || !["admin", "superadmin"].includes(admin.role)) {
+        await supabase.auth.signOut().catch(() => {});
+        setError("Esta conta não tem permissão para acessar o painel administrativo.");
+        setLoading(false);
+        return;
+      }
+
+      onLogin({
+        loggedIn: true,
+        isAdmin: true,
+        name: data.user.user_metadata?.full_name ?? admin.display_name ?? data.user.email ?? "Admin",
+        userId: data.user.id,
+        email: data.user.email ?? admin.email ?? undefined,
+        role: admin.role,
+      });
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
+    }
+
+    setLoading(false);
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-20"
+      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">
+            Painel administrativo
+          </p>
+          <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl uppercase mb-2">Admin</h1>
+          <p className="font-['Playfair_Display'] italic text-[#c9a84c] text-xl">Turma 2006</p>
+        </div>
+
+        <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+          <div className="flex flex-col gap-5">
+            <DisplayTitle className="text-xl">Acesso administrativo</DisplayTitle>
+
+            <Field
+              label="E-mail"
+              type="email"
+              placeholder="admin@email.com"
+              value={email}
+              onChange={setEmail}
+              icon={<Mail size={16} />}
+            />
+
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+                <input
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+
+            <Btn full onClick={submit} disabled={loading}>
+              {loading ? <><RefreshCw size={16} className="animate-spin" />Verificando...</> : <><Key size={16} />Acessar painel</>}
+            </Btn>
+
+            <p className="text-[#7a9a7a] text-xs leading-relaxed">
+              O acesso administrativo usa exclusivamente uma conta real do Supabase Auth com registro em admin_users.
+            </p>
+          </div>
         </div>
 
         <div className="mt-6 text-center">
@@ -4655,7 +4775,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
 const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket"];
-const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
+const PROTECTED_ADMIN:  Page[] = ["checkin"];
 
 const PAGE_PATHS: Record<Page, string> = {
   home: "/",
@@ -4800,6 +4920,7 @@ export default function App() {
     setAuth(nextAuth);
     const dest = returnPage !== "login" ? returnPage : nextAuth.isAdmin ? "admin" : "alumni-area";
     setPage(dest);
+    updateBrowserPath(dest);
     window.scrollTo(0, 0);
   }
 
@@ -4833,7 +4954,7 @@ export default function App() {
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
-        {page === "admin"         && <AdminPage          navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} />}
+        {page === "admin"         && (auth.isAdmin ? <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} /> : <AdminLoginPage navigate={navigate} onLogin={handleLogin} />)}
         {page === "checkin"       && <CheckinPage        navigate={navigate} auth={auth}                           />}
         {page === "login"         && <LoginPage          navigate={navigate} onLogin={handleLogin}                 />}
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
