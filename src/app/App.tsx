@@ -1172,39 +1172,39 @@ function Hero({ navigate, content }: { navigate: (p: Page) => void; content: Hom
   }, []);
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-16 pb-8 md:pt-20 md:pb-6"
       style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
       <div className="absolute inset-0 opacity-[0.06]"
         style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] pointer-events-none"
         style={{ background: "#2d6a4f" }} />
 
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto py-24 md:py-0">
-        <p className="text-[#c9a84c] tracking-[0.5em] text-[10px] md:text-xs font-mono font-bold uppercase mb-6">{content.hero_eyebrow}</p>
-        <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] uppercase leading-[0.88] tracking-tight"
-          style={{ fontSize: "clamp(3.2rem, 13vw, 9rem)" }}>{content.hero_title}</h1>
-        <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-3"
-          style={{ fontSize: "clamp(1.2rem, 4vw, 2.8rem)" }}>{content.hero_tagline}</p>
-        <div className="w-20 h-px bg-[#c9a84c] mx-auto my-6 opacity-50" />
+      <div className="relative z-10 text-center px-4 max-w-5xl w-full mx-auto">
+        <p className="text-[#c9a84c] tracking-[0.5em] text-[10px] md:text-xs font-mono font-bold uppercase mb-4 md:mb-5">{content.hero_eyebrow}</p>
+        <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] uppercase leading-[0.86] tracking-tight"
+          style={{ fontSize: "clamp(3rem, 10vw, 8rem)" }}>{content.hero_title}</h1>
+        <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2"
+          style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>{content.hero_tagline}</p>
+        <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
         <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-2">{content.hero_subtitle}</p>
-        <p className="text-[#f0ebe0] font-mono text-xs tracking-[0.2em] uppercase opacity-70 mb-10">{content.hero_event_line}</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+        <p className="text-[#f0ebe0] font-mono text-xs tracking-[0.2em] uppercase opacity-70 mb-6 md:mb-8">{content.hero_event_line}</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 md:mb-10">
           <Btn size="lg" onClick={() => navigate("tickets")}>{content.primary_cta_label}</Btn>
           <Btn size="lg" variant="outline" onClick={() => navigate("who-going")}>{content.secondary_cta_label}</Btn>
         </div>
         <div className="inline-flex">
           {[{ v: time.days, l: "Dias" }, { v: time.hours, l: "Horas" }, { v: time.minutes, l: "Min" }, { v: time.seconds, l: "Seg" }].map(({ v, l }, i) => (
             <div key={l} className="flex items-center">
-              {i > 0 && <span className="text-[#2d6a4f] font-mono text-2xl mx-3 md:mx-5 font-light">:</span>}
+              {i > 0 && <span className="text-[#2d6a4f] font-mono text-xl md:text-2xl mx-3 md:mx-5 font-light">:</span>}
               <div className="text-center">
-                <div className="font-['JetBrains_Mono'] text-3xl md:text-5xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
+                <div className="font-['JetBrains_Mono'] text-2xl md:text-4xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
                 <div className="text-[#c9a84c] text-[9px] tracking-[0.3em] uppercase font-mono mt-1">{l}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+      <div className="absolute bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
         <ChevronDown className="text-[#c9a84c] opacity-50" size={20} />
       </div>
     </section>
