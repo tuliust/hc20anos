@@ -1,0 +1,55 @@
+name: Apply admin and photo UI adjustments
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/apply_admin_photo_adjustments.py
+      - .github/workflows/apply-admin-photo-adjustments.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply source changes
+        run: python scripts/apply_admin_photo_adjustments.py
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Remove one-off automation files
+        run: |
+          rm -f scripts/apply_admin_photo_adjustments.py
+          rm -f .github/workflows/apply-admin-photo-adjustments.yml
+
+      - name: Commit source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- src/app/App.tsx scripts/apply_admin_photo_adjustments.py .github/workflows/apply-admin-photo-adjustments.yml; then
+            echo "No changes to commit."
+          else
+            git add src/app/App.tsx scripts/apply_admin_photo_adjustments.py .github/workflows/apply-admin-photo-adjustments.yml
+            git commit -m "Refine admin navigation and photo filters"
+            git push origin main
+          fi
