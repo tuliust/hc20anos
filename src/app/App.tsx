@@ -3667,6 +3667,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   async function loadProfile() {
     setLoading(true);
@@ -4031,7 +4032,7 @@ const role = auth.role ?? "viewer";
           companionPolicy: eventData.companion_policy ?? "",
           refundPolicy: eventData.refund_policy ?? "",
         });
-        const homeData = await getHomePageContent(eventData.id);
+        const homeData = await getHomePageContent(DEFAULT_EVENT_ID);
         setHomeDraft(homeData);
         onHomeContentUpdated(homeData);
         setReports(await getReports(eventData.id));
@@ -4079,9 +4080,12 @@ const role = auth.role ?? "viewer";
   }
 
   async function saveHomeContent() {
-    if (!event || !canManageEvent) return;
+    if (!canManageEvent) return;
     await runAction("home-content", async () => {
-      const updated = await updateHomePageContent(event.id, homeDraft, auth.userId);
+      const updated = await updateHomePageContent(DEFAULT_EVENT_ID, {
+        ...homeDraft,
+        event_id: DEFAULT_EVENT_ID,
+      }, auth.userId);
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
     });
@@ -4135,20 +4139,27 @@ const role = auth.role ?? "viewer";
           <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={20} /></button>
           <div>
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold">Painel Admin</p>
-            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Role: {role}</p>
           </div>
         </div>
-        {canCheckin && <Btn size="sm" onClick={() => navigate("checkin")}><Scan size={14} />Check-in</Btn>}
+        <Btn size="sm" variant={adminMenuOpen ? "gold" : "outline"} onClick={() => setAdminMenuOpen(open => !open)}><Menu size={14} />Menu</Btn>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 border-b border-[#2d6a4f]/20 px-2">
-        {tabs.map(t => (
-          <button key={t.id} disabled={t.disabled} onClick={() => !t.disabled && setTab(t.id)}
-            className={"flex items-center justify-center gap-1.5 px-2 md:px-3 py-3 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
+      {adminMenuOpen && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 border-b border-[#2d6a4f]/20 px-2 bg-[#080f08]">
+          {tabs.map(t => (
+            <button key={t.id} disabled={t.disabled} onClick={() => { if (!t.disabled) { setTab(t.id); setAdminMenuOpen(false); } }}
+              className={"flex items-center justify-center gap-1.5 px-2 md:px-3 py-3 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
+              {t.icon}{t.label}
+            </button>
+          ))}
+          {canCheckin && (
+            <button onClick={() => { setAdminMenuOpen(false); navigate("checkin"); }}
+              className="flex items-center justify-center gap-1.5 px-2 md:px-3 py-3 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 border-transparent text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors">
+              <Scan size={13} />Check-in
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <SaveToast show={saved} />
