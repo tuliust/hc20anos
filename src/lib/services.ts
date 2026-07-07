@@ -18,6 +18,7 @@ import type {
 
 export interface HomePageContent {
   event_id: string;
+  header_logo_url?: string | null;
   hero_eyebrow: string;
   hero_title: string;
   hero_tagline: string;
@@ -49,6 +50,7 @@ const DEFAULT_HOME_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
+  header_logo_url: null,
   hero_eyebrow: "Colégio Henrique Castriciano · Natal, RN",
   hero_title: "Turma 2006 — 20 anos depois",
   hero_tagline: "20 anos depois",
@@ -278,6 +280,26 @@ export async function uploadProfileAvatar(userId: string, file: File): Promise<s
 
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do avatar.");
+  return data.publicUrl;
+}
+
+export async function uploadHeaderLogo(file: File, adminId: string): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
+  if (file.size > 2 * 1024 * 1024) throw new Error("O logo deve ter no maximo 2 MB.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "png";
+  const path = `${adminId}/header-logo-${Date.now()}.${safeExt}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do logo.");
+
+  await writeAudit("upload_header_logo", "home_page_content", DEFAULT_HOME_EVENT_ID, { path, admin_id: adminId }).catch(() => {});
   return data.publicUrl;
 }
 

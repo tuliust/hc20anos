@@ -20,7 +20,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getMyTickets, getMyProfile, saveMyProfile, findTicketForCheckin, markTicketCheckedIn,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
-  getEventArchiveSettings, uploadProfileAvatar, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
@@ -774,8 +774,8 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
 
 // ─── HEADER ───────────────────────────────────────────────────────────────────
 
-function Header({ page, navigate, auth, logout }: {
-  page: Page; navigate: (p: Page) => void; auth: AuthState; logout: () => void;
+function Header({ page, navigate, auth, logout, content }: {
+  page: Page; navigate: (p: Page) => void; auth: AuthState; logout: () => void; content?: HomePageContent;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navLinks: { label: string; page: Page }[] = [
@@ -794,27 +794,33 @@ function Header({ page, navigate, auth, logout }: {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-3 shrink-0 text-left">
-            <div className="relative h-10 w-10 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
-              <span className="font-['Playfair_Display'] text-[#c9a84c] text-lg font-black leading-none">HC</span>
-              <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
-            </div>
-            <div className="hidden lg:block">
-              <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-sm leading-tight tracking-wide uppercase">Turma 2006</p>
-              <p className="text-[#7a9a7a] font-mono text-[9px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-4 shrink-0 text-left">
+            {content?.header_logo_url ? (
+              <img src={content.header_logo_url} alt="Turma 2006" className="h-12 md:h-14 w-auto max-w-[190px] object-contain" />
+            ) : (
+              <>
+                <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
+                  <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">HC</span>
+                  <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
+                </div>
+                <div className="hidden lg:block">
+                  <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">Turma 2006</p>
+                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
+                </div>
+              </>
+            )}
           </button>
-          <nav className="hidden md:flex items-center gap-4 xl:gap-5 min-w-0">
+          <nav className="hidden md:flex items-center gap-5 xl:gap-6 min-w-0">
             {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
-                className={`text-[10px] xl:text-[11px] font-mono font-bold uppercase tracking-[0.16em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+                className={`text-[11px] xl:text-xs font-mono font-bold uppercase tracking-[0.16em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
                 {l.label}
               </button>
             ))}
           </nav>
           <div className="flex items-center gap-3 shrink-0">
-            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-[10px]">Comprar ingresso</Btn>
+            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">Comprar ingresso</Btn>
             {auth.loggedIn && (
               <button onClick={logout} className="hidden md:flex text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Sair">
                 <LogOut size={18} />
@@ -1172,7 +1178,7 @@ function Hero({ navigate, content }: { navigate: (p: Page) => void; content: Hom
   }, []);
 
   return (
-    <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-16 pb-8 md:pt-20 md:pb-6"
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
       style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
       <div className="absolute inset-0 opacity-[0.06]"
         style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
@@ -1186,18 +1192,18 @@ function Hero({ navigate, content }: { navigate: (p: Page) => void; content: Hom
         <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2"
           style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>{content.hero_tagline}</p>
         <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-2">{content.hero_subtitle}</p>
-        <p className="text-[#f0ebe0] font-mono text-xs tracking-[0.2em] uppercase opacity-70 mb-6 md:mb-8">{content.hero_event_line}</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 md:mb-10">
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>
+        <p className="text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 mt-1 mb-10 md:mb-12">{content.hero_event_line}</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 md:mb-12">
           <Btn size="lg" onClick={() => navigate("tickets")}>{content.primary_cta_label}</Btn>
           <Btn size="lg" variant="outline" onClick={() => navigate("who-going")}>{content.secondary_cta_label}</Btn>
         </div>
         <div className="inline-flex">
           {[{ v: time.days, l: "Dias" }, { v: time.hours, l: "Horas" }, { v: time.minutes, l: "Min" }, { v: time.seconds, l: "Seg" }].map(({ v, l }, i) => (
             <div key={l} className="flex items-center">
-              {i > 0 && <span className="text-[#2d6a4f] font-mono text-xl md:text-2xl mx-3 md:mx-5 font-light">:</span>}
+              {i > 0 && <span className="text-[#2d6a4f] font-mono text-3xl md:text-4xl mx-3 md:mx-6 font-light">:</span>}
               <div className="text-center">
-                <div className="font-['JetBrains_Mono'] text-2xl md:text-4xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
+                <div className="font-['JetBrains_Mono'] text-4xl md:text-6xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
                 <div className="text-[#c9a84c] text-[9px] tracking-[0.3em] uppercase font-mono mt-1">{l}</div>
               </div>
             </div>
@@ -4091,6 +4097,20 @@ const role = auth.role ?? "viewer";
     });
   }
 
+  async function handleHeaderLogoUpload(file?: File | null) {
+    if (!file || !canManageEvent) return;
+    await runAction("header-logo", async () => {
+      const logoUrl = await uploadHeaderLogo(file, auth.userId);
+      const updated = await updateHomePageContent(DEFAULT_EVENT_ID, {
+        ...homeDraft,
+        event_id: DEFAULT_EVENT_ID,
+        header_logo_url: logoUrl,
+      }, auth.userId);
+      setHomeDraft(updated);
+      onHomeContentUpdated(updated);
+    });
+  }
+
   async function createLot() {
     if (!event || !canManageEvent) return;
     await runAction("lot-create", async () => {
@@ -4207,6 +4227,44 @@ const role = auth.role ?? "viewer";
                 </div>
                 <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar textos</Btn>
               </div>
+
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
+                  {homeDraft.header_logo_url ? (
+                    <img src={homeDraft.header_logo_url} alt="Logo atual do header" className="max-h-16 max-w-full object-contain" />
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center">
+                        <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">HC</span>
+                        <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
+                      </div>
+                      <div>
+                        <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">Turma 2006</p>
+                        <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Logo do header</p>
+                  <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, JPG ou WEBP. O arquivo aparecerá no topo do site público.</p>
+                  <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] cursor-pointer transition-colors">
+                    <Upload size={14} />{busy === "header-logo" ? "Enviando..." : "Enviar logo"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      className="sr-only"
+                      disabled={busy === "header-logo"}
+                      onChange={e => {
+                        const file = e.currentTarget.files?.[0] ?? null;
+                        void handleHeaderLogoUpload(file);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Chamada superior do hero" value={homeDraft.hero_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, hero_eyebrow: v }))} />
                 <Field label="Título principal" value={homeDraft.hero_title} onChange={v => setHomeDraft(s => ({ ...s, hero_title: v }))} />
@@ -4997,7 +5055,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} />}
+      {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent} />}
       <main>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
