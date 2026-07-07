@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
@@ -43,7 +43,7 @@ import {
   Info, Package, Pencil, Heart, MessageCircle, Star, Send
 } from "lucide-react";
 
-// â”€â”€â”€ TYPES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TYPES ─────────────────────────────────────────────────────────────────────
 
 type Page =
   | "home" | "tickets" | "checkout" | "confirmation"
@@ -93,85 +93,85 @@ interface TagModItem {
   modStatus: "pending" | "approved" | "rejected";
 }
 
-// â”€â”€â”€ DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DATA ──────────────────────────────────────────────────────────────────────
 
 const EVENT_DATE = new Date("2026-10-17T19:00:00-03:00");
 const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ALUMNI: Alumni[] = [
-  { id: "1",  name: "Ana Paula Oliveira",  nickname: "Aninha",    sala: "A", city: "Natal, RN",          profession: "MÃ©dica",           status: "confirmed" },
-  { id: "2",  name: "Bruno Cavalcanti",    nickname: "BrunÃ£o",    sala: "B", city: "Recife, PE",          profession: "Advogado",         status: "confirmed" },
-  { id: "3",  name: "Carla Medeiros",      nickname: "Carlinha",  sala: "A", city: "SÃ£o Paulo, SP",       profession: "Arquiteta",        status: "confirmed" },
-  { id: "4",  name: "Diego Ferreira",      nickname: "DiegÃ£o",    sala: "B", city: "Fortaleza, CE",       profession: "Engenheiro",       status: "claimed"   },
-  { id: "5",  name: "Eduarda Lima",        nickname: "Du",        sala: "A", city: "BrasÃ­lia, DF",        profession: "Jornalista",       status: "claimed"   },
-  { id: "6",  name: "Felipe AraÃºjo",       nickname: "Fepa",      sala: "C", city: "Natal, RN",           profession: "Professor",        status: "confirmed" },
+  { id: "1",  name: "Ana Paula Oliveira",  nickname: "Aninha",    sala: "A", city: "Natal, RN",          profession: "Médica",           status: "confirmed" },
+  { id: "2",  name: "Bruno Cavalcanti",    nickname: "Brunão",    sala: "B", city: "Recife, PE",          profession: "Advogado",         status: "confirmed" },
+  { id: "3",  name: "Carla Medeiros",      nickname: "Carlinha",  sala: "A", city: "São Paulo, SP",       profession: "Arquiteta",        status: "confirmed" },
+  { id: "4",  name: "Diego Ferreira",      nickname: "Diegão",    sala: "B", city: "Fortaleza, CE",       profession: "Engenheiro",       status: "claimed"   },
+  { id: "5",  name: "Eduarda Lima",        nickname: "Du",        sala: "A", city: "Brasília, DF",        profession: "Jornalista",       status: "claimed"   },
+  { id: "6",  name: "Felipe Araújo",       nickname: "Fepa",      sala: "C", city: "Natal, RN",           profession: "Professor",        status: "confirmed" },
   { id: "7",  name: "Gabriela Santos",     nickname: "Gabi",      sala: "B", city: "Rio de Janeiro, RJ",  profession: "Dentista",         status: "confirmed" },
   { id: "8",  name: "Henrique Costa",      nickname: "Kiko",      sala: "C", city: "Natal, RN",           profession: "Empreendedor",     status: "unclaimed" },
-  { id: "9",  name: "Isabela Rodrigues",   nickname: "Bela",      sala: "A", city: "Recife, PE",          profession: "PsicÃ³loga",        status: "confirmed" },
-  { id: "10", name: "JoÃ£o Vitor Melo",     nickname: "JV",        sala: "B", city: "Natal, RN",           profession: "MÃ©dico",           status: "confirmed" },
-  { id: "11", name: "Karoline Freitas",    nickname: "Karo",      sala: "C", city: "SÃ£o Paulo, SP",       profession: "Designer",         status: "claimed"   },
-  { id: "12", name: "Lucas Nogueira",      nickname: "Luquinhas", sala: "A", city: "Manaus, AM",          profession: "GeÃ³logo",          status: "unclaimed" },
+  { id: "9",  name: "Isabela Rodrigues",   nickname: "Bela",      sala: "A", city: "Recife, PE",          profession: "Psicóloga",        status: "confirmed" },
+  { id: "10", name: "João Vitor Melo",     nickname: "JV",        sala: "B", city: "Natal, RN",           profession: "Médico",           status: "confirmed" },
+  { id: "11", name: "Karoline Freitas",    nickname: "Karo",      sala: "C", city: "São Paulo, SP",       profession: "Designer",         status: "claimed"   },
+  { id: "12", name: "Lucas Nogueira",      nickname: "Luquinhas", sala: "A", city: "Manaus, AM",          profession: "Geólogo",          status: "unclaimed" },
   { id: "13", name: "Marina Pinheiro",     nickname: "Mari",      sala: "B", city: "Natal, RN",           profession: "Nutricionista",    status: "confirmed" },
   { id: "14", name: "Nathan Alves",        nickname: "Nath",      sala: "C", city: "Campina Grande, PB",  profession: "Desenvolvedor",    status: "confirmed" },
-  { id: "15", name: "Olivia Carvalho",     nickname: "Oli",       sala: "A", city: "FlorianÃ³polis, SC",   profession: "Fisioterapeuta",   status: "claimed"   },
+  { id: "15", name: "Olivia Carvalho",     nickname: "Oli",       sala: "A", city: "Florianópolis, SC",   profession: "Fisioterapeuta",   status: "claimed"   },
   { id: "16", name: "Pedro Gomes",         nickname: "PH",        sala: "B", city: "Natal, RN",           profession: "Contador",         status: "unclaimed" },
-  { id: "17", name: "Rafaela Souza",       nickname: "Rafa",      sala: "C", city: "JoÃ£o Pessoa, PB",     profession: "Professora",       status: "confirmed" },
-  { id: "18", name: "Sandro Vieira",       nickname: "SandÃ£o",    sala: "A", city: "Natal, RN",           profession: "Servidor PÃºblico", status: "unclaimed" },
+  { id: "17", name: "Rafaela Souza",       nickname: "Rafa",      sala: "C", city: "João Pessoa, PB",     profession: "Professora",       status: "confirmed" },
+  { id: "18", name: "Sandro Vieira",       nickname: "Sandão",    sala: "A", city: "Natal, RN",           profession: "Servidor Público", status: "unclaimed" },
 ];
 
 const TICKETS: TicketItem[] = [
-  { id: "00000000-0000-0000-0001-000000000001", type: "Ingresso Individual",    lot: "1Âº Lote",        price: 120, available: 47, total: 100, includes: ["Jantar buffet completo", "Open bar 4 horas", "Ãrea fotogrÃ¡fica", "Brinde comemorativo"],                                        status: "available"   },
-  { id: "00000000-0000-0000-0001-000000000002", type: "Ingresso Casal",         lot: "1Âº Lote",        price: 200, available: 8,  total: 50,  includes: ["2 jantares buffet", "Open bar 4 horas", "Ãrea fotogrÃ¡fica", "2 brindes comemorativos"],                                         status: "last-units"  },
-  { id: "00000000-0000-0000-0001-000000000003", type: "Mesa VIP â€” 4 pessoas",   lot: "EdiÃ§Ã£o Limitada", price: 600, available: 0,  total: 20,  includes: ["Mesa reservada premium", "Champagne na chegada", "Open bar premium", "Brinde colecionÃ¡vel exclusivo", "Acesso Ã  Ã¡rea VIP"],    status: "sold-out"    },
+  { id: "00000000-0000-0000-0001-000000000001", type: "Ingresso Individual",    lot: "1º Lote",        price: 120, available: 47, total: 100, includes: ["Jantar buffet completo", "Open bar 4 horas", "Área fotográfica", "Brinde comemorativo"],                                        status: "available"   },
+  { id: "00000000-0000-0000-0001-000000000002", type: "Ingresso Casal",         lot: "1º Lote",        price: 200, available: 8,  total: 50,  includes: ["2 jantares buffet", "Open bar 4 horas", "Área fotográfica", "2 brindes comemorativos"],                                         status: "last-units"  },
+  { id: "00000000-0000-0000-0001-000000000003", type: "Mesa VIP — 4 pessoas",   lot: "Edição Limitada", price: 600, available: 0,  total: 20,  includes: ["Mesa reservada premium", "Champagne na chegada", "Open bar premium", "Brinde colecionável exclusivo", "Acesso Ã  área VIP"],    status: "sold-out"    },
 ];
 
 const PHOTOS: Photo[] = [
-  { id: "p1", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&h=450&fit=crop&auto=format", caption: "Formatura da Turma 2006",   year: "2006", location: "PÃ¡tio do HC",            people: ["Ana Paula Oliveira", "Bruno Cavalcanti"]  },
-  { id: "p2", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=600&h=450&fit=crop&auto=format", caption: "Intervalo no corredor",      year: "2004", location: "HC â€” Corredor Principal", people: ["Felipe AraÃºjo", "Gabriela Santos"]       },
-  { id: "p3", url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&h=450&fit=crop&auto=format", caption: "Aula de HistÃ³ria â€” Sala A",  year: "2005", location: "HC â€” Sala A",             people: ["Ana Paula Oliveira", "Isabela Rodrigues"] },
-  { id: "p4", url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=450&fit=crop&auto=format", caption: "Gincana escolar",            year: "2005", location: "Quadra do HC",            people: ["JoÃ£o Vitor Melo", "Karoline Freitas"]    },
-  { id: "p5", url: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=600&h=450&fit=crop&auto=format", caption: "AulÃ£o prÃ©-vestibular",       year: "2006", location: "HC â€” AuditÃ³rio",          people: ["Nathan Alves", "Olivia Carvalho"]        },
-  { id: "p6", url: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=600&h=450&fit=crop&auto=format", caption: "ColaÃ§Ã£o de grau",            year: "2006", location: "HC â€” AuditÃ³rio Principal", people: ["Pedro Gomes", "Diego Ferreira"]          },
+  { id: "p1", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&h=450&fit=crop&auto=format", caption: "Formatura da Turma 2006",   year: "2006", location: "Pátio do HC",            people: ["Ana Paula Oliveira", "Bruno Cavalcanti"]  },
+  { id: "p2", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=600&h=450&fit=crop&auto=format", caption: "Intervalo no corredor",      year: "2004", location: "HC — Corredor Principal", people: ["Felipe Araújo", "Gabriela Santos"]       },
+  { id: "p3", url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&h=450&fit=crop&auto=format", caption: "Aula de História — Sala A",  year: "2005", location: "HC — Sala A",             people: ["Ana Paula Oliveira", "Isabela Rodrigues"] },
+  { id: "p4", url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=450&fit=crop&auto=format", caption: "Gincana escolar",            year: "2005", location: "Quadra do HC",            people: ["João Vitor Melo", "Karoline Freitas"]    },
+  { id: "p5", url: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=600&h=450&fit=crop&auto=format", caption: "Aulão pré-vestibular",       year: "2006", location: "HC — Auditório",          people: ["Nathan Alves", "Olivia Carvalho"]        },
+  { id: "p6", url: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=600&h=450&fit=crop&auto=format", caption: "Colação de grau",            year: "2006", location: "HC — Auditório Principal", people: ["Pedro Gomes", "Diego Ferreira"]          },
 ];
 
 const LOTS_INIT: Lot[] = [
-  { id: "l1", lot: "1Âº Lote",        type: "Individual",    price: 120, total: 100, sold: 53, status: "open",     startDate: "2026-06-01", endDate: "2026-08-31", allowCompanion: false },
-  { id: "l2", lot: "1Âº Lote",        type: "Casal",         price: 200, total: 50,  sold: 42, status: "open",     startDate: "2026-06-01", endDate: "2026-08-31", allowCompanion: true  },
-  { id: "l3", lot: "EdiÃ§Ã£o Limitada", type: "Mesa VIP (4p)", price: 600, total: 20,  sold: 20, status: "sold-out", startDate: "2026-06-01", endDate: "2026-07-15", allowCompanion: true  },
-  { id: "l4", lot: "2Âº Lote",        type: "Individual",    price: 150, total: 100, sold: 0,  status: "closed",   startDate: "2026-09-01", endDate: "2026-10-10", allowCompanion: false },
-  { id: "l5", lot: "2Âº Lote",        type: "Casal",         price: 250, total: 50,  sold: 0,  status: "closed",   startDate: "2026-09-01", endDate: "2026-10-10", allowCompanion: true  },
+  { id: "l1", lot: "1º Lote",        type: "Individual",    price: 120, total: 100, sold: 53, status: "open",     startDate: "2026-06-01", endDate: "2026-08-31", allowCompanion: false },
+  { id: "l2", lot: "1º Lote",        type: "Casal",         price: 200, total: 50,  sold: 42, status: "open",     startDate: "2026-06-01", endDate: "2026-08-31", allowCompanion: true  },
+  { id: "l3", lot: "Edição Limitada", type: "Mesa VIP (4p)", price: 600, total: 20,  sold: 20, status: "sold-out", startDate: "2026-06-01", endDate: "2026-07-15", allowCompanion: true  },
+  { id: "l4", lot: "2º Lote",        type: "Individual",    price: 150, total: 100, sold: 0,  status: "closed",   startDate: "2026-09-01", endDate: "2026-10-10", allowCompanion: false },
+  { id: "l5", lot: "2º Lote",        type: "Casal",         price: 250, total: 50,  sold: 0,  status: "closed",   startDate: "2026-09-01", endDate: "2026-10-10", allowCompanion: true  },
 ];
 
 const TAG_MODS_INIT: TagModItem[] = [
   { id: "tm1", photoId: "p1", photoCaption: "Formatura da Turma 2006",  photoUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=80&h=60&fit=crop", taggedPerson: "Carla Medeiros",  addedBy: "Ana Paula Oliveira",  date: "04 Jul 2026", modStatus: "pending"  },
-  { id: "tm2", photoId: "p3", photoCaption: "Aula de HistÃ³ria â€” Sala A", photoUrl: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=80&h=60&fit=crop", taggedPerson: "Diego Ferreira",  addedBy: "Isabela Rodrigues",   date: "03 Jul 2026", modStatus: "pending"  },
+  { id: "tm2", photoId: "p3", photoCaption: "Aula de História — Sala A", photoUrl: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=80&h=60&fit=crop", taggedPerson: "Diego Ferreira",  addedBy: "Isabela Rodrigues",   date: "03 Jul 2026", modStatus: "pending"  },
   { id: "tm3", photoId: "p4", photoCaption: "Gincana escolar",           photoUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=80&h=60&fit=crop", taggedPerson: "Eduarda Lima",    addedBy: "Karoline Freitas",    date: "02 Jul 2026", modStatus: "approved" },
 ];
 
 const FAQ_ITEMS = [
-  { q: "Quem pode participar?",                a: "O evento Ã© exclusivo para ex-alunos do ColÃ©gio Henrique Castriciano formados em 2006 e seus acompanhantes." },
-  { q: "Posso levar acompanhante?",            a: "Sim! VocÃª pode adquirir o ingresso casal ou mesa VIP. Acompanhantes nÃ£o precisam ser ex-alunos." },
-  { q: "Como funciona a reivindicaÃ§Ã£o?",       a: "VocÃª busca seu nome na lista, informa seus contatos, passa por verificaÃ§Ã£o e responde a perguntas sobre o HC antes de confirmar sua identidade." },
-  { q: "O ingresso Ã© transferÃ­vel?",           a: "NÃ£o. O ingresso Ã© nominal e vinculado ao CPF. Em caso de impossibilidade, entre em contato com a organizaÃ§Ã£o." },
-  { q: "Qual Ã© a forma de pagamento?",         a: "Aceitamos cartÃ£o de crÃ©dito (atÃ© 6Ãƒâ€” sem juros), dÃ©bito e PIX via Mercado Pago." },
-  { q: "Como farei o check-in no dia?",        a: "VocÃª receberÃ¡ um QR Code por e-mail apÃ³s confirmaÃ§Ã£o do pagamento. Apresente na entrada â€” impresso ou no celular." },
+  { q: "Quem pode participar?",                a: "O evento é exclusivo para ex-alunos do Colégio Henrique Castriciano formados em 2006 e seus acompanhantes." },
+  { q: "Posso levar acompanhante?",            a: "Sim! Você pode adquirir o ingresso casal ou mesa VIP. Acompanhantes não precisam ser ex-alunos." },
+  { q: "Como funciona a reivindicação?",       a: "Você busca seu nome na lista, informa seus contatos, passa por verificação e responde a perguntas sobre o HC antes de confirmar sua identidade." },
+  { q: "O ingresso é transferível?",           a: "Não. O ingresso é nominal e vinculado ao CPF. Em caso de impossibilidade, entre em contato com a organização." },
+  { q: "Qual é a forma de pagamento?",         a: "Aceitamos cartão de crédito (até 6× sem juros), débito e PIX via Mercado Pago." },
+  { q: "Como farei o check-in no dia?",        a: "Você receberá um QR Code por e-mail após confirmação do pagamento. Apresente na entrada — impresso ou no celular." },
 ];
 
 const TIMELINE = [
-  { year: "2004", label: "Primeiro ano juntos",          desc: "A turma se forma. ComeÃ§a a histÃ³ria de trÃªs anos que ficaria para sempre." },
-  { year: "2005", label: "No meio do caminho",           desc: "Gincanas, amizades reforÃ§adas, as primeiras provas difÃ­ceis e os momentos que viraram lenda." },
-  { year: "2006", label: "O ano da formatura",           desc: "Vestibular, colaÃ§Ã£o de grau e o adeus que a gente nÃ£o sabia que duraria tanto." },
-  { year: "2016", label: "10 anos â€” onde estÃ¡vamos?",    desc: "Alguns se reencontraram. Muitos jÃ¡ tinham filhos, carreiras e histÃ³rias novas." },
-  { year: "2026", label: "20 anos depois â€” aqui estamos", desc: "O reencontro que todos esperavam. Uma noite para celebrar quem a gente se tornou." },
+  { year: "2004", label: "Primeiro ano juntos",          desc: "A turma se forma. Começa a história de três anos que ficaria para sempre." },
+  { year: "2005", label: "No meio do caminho",           desc: "Gincanas, amizades reforçadas, as primeiras provas difíceis e os momentos que viraram lenda." },
+  { year: "2006", label: "O ano da formatura",           desc: "Vestibular, colação de grau e o adeus que a gente não sabia que duraria tanto." },
+  { year: "2016", label: "10 anos — onde estávamos?",    desc: "Alguns se reencontraram. Muitos já tinham filhos, carreiras e histórias novas." },
+  { year: "2026", label: "20 anos depois — aqui estamos", desc: "O reencontro que todos esperavam. Uma noite para celebrar quem a gente se tornou." },
 ];
 
 const CONFIRM_QUESTIONS = [
-  { id: "q1", question: "Qual era o nome do(a) diretor(a) ou coordenador(a) do HC em 2006?",  options: ["Prof. RosÃ¢ngela AraÃºjo", "Prof. HÃ©lio Menezes",  "Prof. Carla NÃ³brega",    "NÃ£o me lembro"]              },
-  { id: "q2", question: "Em qual rua ficava o ColÃ©gio Henrique Castriciano?",                  options: ["Rua Apodi",             "Av. Deodoro",           "Rua JundiaÃ­",            "Av. Hermes da Fonseca"]      },
-  { id: "q3", question: "Como chamÃ¡vamos informalmente o pÃ¡tio principal?",                    options: ["O QuadradÃ£o",           "O Jardim",              "A Quadra",               "O Corredor"]                 },
+  { id: "q1", question: "Qual era o nome do(a) diretor(a) ou coordenador(a) do HC em 2006?",  options: ["Prof. Rosângela Araújo", "Prof. Hélio Menezes",  "Prof. Carla Nóbrega",    "Não me lembro"]              },
+  { id: "q2", question: "Em qual rua ficava o Colégio Henrique Castriciano?",                  options: ["Rua Apodi",             "Av. Deodoro",           "Rua Jundiaí",            "Av. Hermes da Fonseca"]      },
+  { id: "q3", question: "Como chamávamos informalmente o pátio principal?",                    options: ["O Quadradão",           "O Jardim",              "A Quadra",               "O Corredor"]                 },
 ];
 
-// â”€â”€â”€ UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── UTILS ─────────────────────────────────────────────────────────────────────
 
 function getTimeLeft() {
   const diff = EVENT_DATE.getTime() - Date.now();
@@ -203,10 +203,10 @@ function formatDateTimeBR(value?: string | null) {
 }
 
 function eventDateTimeLabel(event?: DbEvent | null) {
-  if (!event) return "17 out 2026 Â· 19h";
+  if (!event) return "17 out 2026 · 19h";
   const date = formatDateBR(event.event_date);
   const time = event.event_time?.slice(0, 5)?.replace(":", "h") ?? "19h";
-  return `${date} Â· ${time}`;
+  return `${date} · ${time}`;
 }
 
 function ticketTypeName(ticket?: TicketWithDetails | null) {
@@ -230,7 +230,7 @@ function personToAlumni(p: DbPerson): Alumni {
   };
 }
 
-// â”€â”€â”€ PRIMITIVES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PRIMITIVES ────────────────────────────────────────────────────────────────
 
 function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, full = false, className = "" }: {
   children: React.ReactNode; onClick?: () => void;
@@ -255,11 +255,11 @@ function Btn({ children, onClick, variant = "primary", size = "md", disabled = f
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    unclaimed:    { label: "NÃ£o reivindicado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    unclaimed:    { label: "Não reivindicado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
     claimed:      { label: "Reivindicado",     color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
     confirmed:    { label: "Confirmado",       color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    available:    { label: "DisponÃ­vel",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    "last-units": { label: "Ãšltimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
+    "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     pending:      { label: "Aguardando",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
@@ -275,16 +275,16 @@ function StatusBadge({ status }: { status: string }) {
     superadmin:   { label: "Superadmin",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     checkin_staff:{ label: "Check-in",         color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
     declined:     { label: "Recusado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    valid:        { label: "VÃ¡lido",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    used:         { label: "JÃ¡ utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    invalid:      { label: "InvÃ¡lido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    valid:        { label: "Válido",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
+    used:         { label: "Já utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    invalid:      { label: "Inválido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     cancelled:    { label: "Cancelado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     refunded:     { label: "Reembolsado",      color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
     expired:      { label: "Expirado",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    charged_back: { label: "ContestaÃ§Ã£o",      color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    charged_back: { label: "Contestação",      color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     checked_in:   { label: "Check-in feito",   color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    unauthorized: { label: "Login necessÃ¡rio", color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    forbidden:    { label: "Sem permissÃ£o",    color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    unauthorized: { label: "Login necessário", color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    forbidden:    { label: "Sem permissão",    color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     success:      { label: "Sucesso",          color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     open:         { label: "Aberto",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     closed:       { label: "Fechado",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
@@ -339,7 +339,7 @@ function GoldRule() {
   return <div className="w-16 h-px bg-[#c9a84c] opacity-60 my-6" />;
 }
 
-// â”€â”€â”€ UX PRIMITIVES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── UX PRIMITIVES ────────────────────────────────────────────────────────────
 
 type ToastType = "success" | "error" | "info";
 interface ToastState { message: string; type: ToastType; }
@@ -515,7 +515,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
   async function submit() {
     if (!file)       { setUploadError("Selecione uma foto antes de enviar."); return; }
     if (!caption)    { setUploadError("Adicione uma legenda para a foto."); return; }
-    if (!authorized) { setUploadError("Confirme que vocÃª tem o direito de compartilhar esta imagem."); return; }
+    if (!authorized) { setUploadError("Confirme que você tem o direito de compartilhar esta imagem."); return; }
     setUploadError("");
     setLoading(true);
     try {
@@ -544,7 +544,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
       <Modal open={open} onClose={handleClose} title="Enviar foto antiga">
         <div className="text-center py-6">
           <Lock size={40} className="text-[#c9a84c] mx-auto mb-4" />
-          <p className="text-[#f0ebe0] font-semibold mb-2">FaÃ§a login para enviar fotos</p>
+          <p className="text-[#f0ebe0] font-semibold mb-2">Faça login para enviar fotos</p>
           <p className="text-[#7a9a7a] text-sm mb-6">Apenas ex-alunos identificados podem enviar fotos para o mural.</p>
           <Btn full onClick={() => { handleClose(); navigate("login"); }}>Entrar</Btn>
         </div>
@@ -561,7 +561,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
           </div>
           <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-xl mb-2">Foto enviada!</p>
           <p className="text-[#7a9a7a] text-sm mb-6">
-            Sua foto foi enviada para moderaÃ§Ã£o. Ela aparecerÃ¡ no mural em atÃ© 24 horas apÃ³s aprovaÃ§Ã£o.
+            Sua foto foi enviada para moderação. Ela aparecerá no mural em até 24 horas após aprovação.
           </p>
           <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 mb-6">
             <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2">Status</p>
@@ -582,7 +582,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
                   <X size={16} />
                 </button>
                 <div className="absolute bottom-3 left-3 bg-[#2d6a4f] text-[#f0ebe0] text-[10px] font-mono px-2 py-1 uppercase tracking-wider">
-                  PrÃ©via
+                  Prévia
                 </div>
               </div>
             ) : (
@@ -596,7 +596,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
                   }} />
                 <Upload size={32} className="text-[#3a5a3a]" />
                 <p className="text-[#7a9a7a] text-sm">Clique para selecionar a foto</p>
-                <p className="text-[#3a5a3a] text-xs font-mono">JPG, PNG ou HEIC Â· max 10 MB</p>
+                <p className="text-[#3a5a3a] text-xs font-mono">JPG, PNG ou HEIC · max 10 MB</p>
               </label>
             )}
           </div>
@@ -611,7 +611,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
                 {["2003","2004","2005","2006","2007"].map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <Field label="Local" placeholder="Ex: PÃ¡tio do HC" value={location} onChange={setLocation} />
+            <Field label="Local" placeholder="Ex: Pátio do HC" value={location} onChange={setLocation} />
           </div>
 
           {/* Tag people */}
@@ -657,13 +657,13 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
               {authorized && <Check size={12} className="text-[#f0ebe0]" />}
             </div>
             <p className="text-[#8ab89a] text-sm leading-relaxed">
-              Confirmo que tenho o direito de compartilhar esta imagem e autorizo a organizaÃ§Ã£o a exibi-la no site e no evento, em conformidade com a <button onClick={() => navigate("privacy")} className="text-[#2d6a4f] underline">PolÃ­tica de Privacidade</button>. *
+              Confirmo que tenho o direito de compartilhar esta imagem e autorizo a organização a exibi-la no site e no evento, em conformidade com a <button onClick={() => navigate("privacy")} className="text-[#2d6a4f] underline">Política de Privacidade</button>. *
             </p>
           </label>
 
           <div className="flex items-start gap-3 bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
             <Info size={14} className="text-[#2d6a4f] shrink-0 mt-0.5" />
-            <p className="text-[#7a9a7a] text-xs">Todas as fotos passam por moderaÃ§Ã£o antes de aparecerem no mural. Fotos inadequadas serÃ£o rejeitadas.</p>
+            <p className="text-[#7a9a7a] text-xs">Todas as fotos passam por moderação antes de aparecerem no mural. Fotos inadequadas serão rejeitadas.</p>
           </div>
 
           {uploadError && (
@@ -673,7 +673,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
           <Btn full onClick={submit} disabled={loading}>
             {loading
               ? <><RefreshCw size={16} className="animate-spin" />Enviando...</>
-              : <><Upload size={16} />Enviar para moderaÃ§Ã£o</>}
+              : <><Upload size={16} />Enviar para moderação</>}
           </Btn>
         </div>
       )}
@@ -681,7 +681,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
   );
 }
 
-// â”€â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── HEADER ───────────────────────────────────────────────────────────────────
 
 function Header({ page, navigate, auth, logout }: {
   page: Page; navigate: (p: Page) => void; auth: AuthState; logout: () => void;
@@ -691,11 +691,11 @@ function Header({ page, navigate, auth, logout }: {
     { label: "Quem Vai",                            page: "who-going"   },
     { label: "A Turma",                             page: "the-class"   },
     { label: "Fotos",                               page: "photo-wall"  },
-    { label: "MemÃ³rias",                            page: "memories"    },
+    { label: "Memórias",                            page: "memories"    },
     { label: "Enquetes",                             page: "polls"       },
     { label: "Mapa",                                 page: "where-now"   },
     { label: "Acervo",                               page: "archive"     },
-    { label: auth.loggedIn ? "Minha Ãrea" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
+    { label: auth.loggedIn ? "Minha Área" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
   ];
 
   function go(p: Page) { navigate(p); setMenuOpen(false); }
@@ -704,7 +704,7 @@ function Header({ page, navigate, auth, logout }: {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => go("home")} aria-label="InÃ­cio â€” Turma 2006" className="flex items-center gap-3 shrink-0 text-left">
+          <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-3 shrink-0 text-left">
             <div className="relative h-10 w-10 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
               <span className="font-['Playfair_Display'] text-[#c9a84c] text-lg font-black leading-none">HC</span>
               <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
@@ -739,7 +739,7 @@ function Header({ page, navigate, auth, logout }: {
       {menuOpen && (
         <div className="fixed inset-0 z-40 bg-[#080f08] flex flex-col pt-20 px-6 pb-8">
           <div className="flex flex-col gap-1">
-            {[{ label: "InÃ­cio", page: "home" as Page }, ...navLinks].map(l => (
+            {[{ label: "Início", page: "home" as Page }, ...navLinks].map(l => (
               <button key={l.page} onClick={() => go(l.page)}
                 className="text-left py-5 border-b border-[#2d6a4f]/20 text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold hover:text-[#c9a84c] transition-colors">
                 {l.label}
@@ -758,7 +758,7 @@ function Header({ page, navigate, auth, logout }: {
   );
 }
 
-// â”€â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FOOTER ───────────────────────────────────────────────────────────────────
 
 function Footer({ navigate }: { navigate: (p: Page) => void }) {
   return (
@@ -766,16 +766,16 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
-            <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.4em] uppercase mb-2">ColÃ©gio Henrique Castriciano</p>
+            <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.4em] uppercase mb-2">Colégio Henrique Castriciano</p>
             <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-2xl uppercase mb-4">Turma 2006</p>
-            <p className="text-[#7a9a7a] text-sm leading-relaxed">O reencontro dos ex-alunos, 20 anos depois de uma Ã©poca que ficou para sempre.</p>
+            <p className="text-[#7a9a7a] text-sm leading-relaxed">O reencontro dos ex-alunos, 20 anos depois de uma época que ficou para sempre.</p>
           </div>
           <div>
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">NavegaÃ§Ã£o</p>
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Navegação</p>
             <div className="flex flex-col gap-3">
               {(["tickets","who-going","the-class","photo-wall","memories","polls","where-now","archive"] as Page[]).map(p => (
                 <button key={p} onClick={() => navigate(p)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
-                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"MemÃ³rias", polls:"Enquetes", "where-now":"Onde a turma estÃ¡", archive:"Acervo Digital" }[p]}
+                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias", polls:"Enquetes", "where-now":"Onde a turma está", archive:"Acervo Digital" }[p]}
                 </button>
               ))}
             </div>
@@ -790,7 +790,7 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
           </div>
         </div>
         <div className="border-t border-[#2d6a4f]/20 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#3a5a3a] font-mono">Â© 2026 Turma 2006 â€” ColÃ©gio Henrique Castriciano.</p>
+          <p className="text-xs text-[#3a5a3a] font-mono">© 2026 Turma 2006 — Colégio Henrique Castriciano.</p>
           <div className="flex items-center gap-6 text-xs font-mono">
             <button onClick={() => navigate("terms")}   className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">Termos de Uso</button>
             <button onClick={() => navigate("privacy")} className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">Privacidade</button>
@@ -802,7 +802,7 @@ function Footer({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-// â”€â”€â”€ LOGIN PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
 
 function LoginPage({ navigate, onLogin }: {
   navigate: (p: Page) => void;
@@ -825,7 +825,7 @@ function LoginPage({ navigate, onLogin }: {
         if (!email.includes("@")) { setError("Informe o e-mail da conta admin."); setLoading(false); return; }
         const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password: adminCode });
         if (authErr || !data.user) {
-          // Fallback demo: cÃ³digo ADMIN2026 (desenvolvimento)
+          // Fallback demo: código ADMIN2026 (desenvolvimento)
           if (DEV_MODE && adminCode.trim().toUpperCase() === "ADMIN2026") {
             onLogin({ loggedIn: true, isAdmin: true, name: "Organizacao", userId: "dev-admin", email, role: "superadmin" });
           } else {
@@ -844,11 +844,11 @@ function LoginPage({ navigate, onLogin }: {
           role: admin.role,
         });
       } else {
-        if (!email.includes("@")) { setError("Informe um e-mail vÃ¡lido."); setLoading(false); return; }
+        if (!email.includes("@")) { setError("Informe um e-mail válido."); setLoading(false); return; }
         if (password.length < 4)  { setError("Senha muito curta. Use ao menos 4 caracteres."); setLoading(false); return; }
         const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
         if (authErr || !data.user) {
-          // Fallback demo: qualquer e-mail + senha vÃ¡lida
+          // Fallback demo: qualquer e-mail + senha válida
           if (!DEV_MODE) { setError("Credenciais invalidas."); setLoading(false); return; }
           const prefix = email.split("@")[0].split(".")[0].toLowerCase();
           const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
@@ -859,7 +859,7 @@ function LoginPage({ navigate, onLogin }: {
         onLogin({ loggedIn: true, isAdmin: false, name: displayName, userId: data.user.id, email: data.user.email, role: null });
       }
     } catch {
-      setError("Erro de conexÃ£o. Tente novamente.");
+      setError("Erro de conexão. Tente novamente.");
     }
     setLoading(false);
   }
@@ -870,7 +870,7 @@ function LoginPage({ navigate, onLogin }: {
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">
-            ColÃ©gio Henrique Castriciano Â· Natal, RN
+            Colégio Henrique Castriciano · Natal, RN
           </p>
           <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl uppercase mb-2">Turma 2006</h1>
           <p className="font-['Playfair_Display'] italic text-[#c9a84c] text-xl">20 anos depois</p>
@@ -894,7 +894,7 @@ function LoginPage({ navigate, onLogin }: {
                 <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                  <input type={showPw ? "text" : "password"} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={password} onChange={e => setPassword(e.target.value)}
+                  <input type={showPw ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
                     className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]" />
                   <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -906,7 +906,7 @@ function LoginPage({ navigate, onLogin }: {
                 {loading ? <><RefreshCw size={16} className="animate-spin" />Entrando...</> : "Entrar"}
               </Btn>
               <p className="text-[#7a9a7a] text-xs text-center">
-                Ainda nÃ£o tem conta?{" "}
+                Ainda não tem conta?{" "}
                 <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
                   Reivindicar meu perfil
                 </button>
@@ -921,10 +921,10 @@ function LoginPage({ navigate, onLogin }: {
             <div className="flex flex-col gap-5">
               <DisplayTitle className="text-xl">Acesso administrativo</DisplayTitle>
               <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">CÃ³digo de acesso</label>
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Código de acesso</label>
                 <div className="relative">
                   <Key size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                  <input type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={adminCode} onChange={e => setAdminCode(e.target.value)}
+                  <input type="password" placeholder="••••••••••" value={adminCode} onChange={e => setAdminCode(e.target.value)}
                     className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
                 </div>
               </div>
@@ -951,7 +951,7 @@ function LoginPage({ navigate, onLogin }: {
   );
 }
 
-// â”€â”€â”€ LANDING PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 
 function Hero({ navigate, content }: { navigate: (p: Page) => void; content: HomePageContent }) {
   const [time, setTime] = useState(getTimeLeft());
@@ -1013,7 +1013,7 @@ function AboutSection({ content }: { content: HomePageContent }) {
             <p className="text-[#8ab89a] text-base leading-relaxed">{content.about_body_2}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {[["84","Ex-alunos localizados"],["67%","JÃ¡ confirmaram presenÃ§a"],["12","Estados representados"],["2006","O ano que nÃ£o esquecemos"]].map(([num, label]) => (
+            {[["84","Ex-alunos localizados"],["67%","Já confirmaram presença"],["12","Estados representados"],["2006","O ano que não esquecemos"]].map(([num, label]) => (
               <div key={label} className="border border-[#2d6a4f]/30 p-6 bg-[#141f14]">
                 <p className="font-['Playfair_Display'] font-black text-[#c9a84c] text-4xl md:text-5xl mb-2">{num}</p>
                 <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider leading-tight">{label}</p>
@@ -1034,9 +1034,9 @@ function EventInfoSection({ content }: { content: HomePageContent }) {
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-12">{content.info_title}</DisplayTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: <Calendar size={24} />, title: "Data", info: "SÃ¡bado, 17 de Outubro de 2026", sub: "Portas abertas Ã s 18h30" },
-            { icon: <Clock size={24} />, title: "HorÃ¡rio", info: "19h00 â€” 01h00", sub: "Jantar servido a partir das 20h" },
-            { icon: <MapPin size={24} />, title: "Local", info: "EspaÃ§o Cultural Ponta Negra", sub: "Av. Eng. Roberto Freire â€” Ponta Negra, Natal/RN" },
+            { icon: <Calendar size={24} />, title: "Data", info: "Sábado, 17 de Outubro de 2026", sub: "Portas abertas Ã s 18h30" },
+            { icon: <Clock size={24} />, title: "Horário", info: "19h00 — 01h00", sub: "Jantar servido a partir das 20h" },
+            { icon: <MapPin size={24} />, title: "Local", info: "Espaço Cultural Ponta Negra", sub: "Av. Eng. Roberto Freire — Ponta Negra, Natal/RN" },
           ].map(({ icon, title, info, sub }) => (
             <div key={title} className="bg-[#0d1a0f] p-8">
               <div className="text-[#c9a84c] mb-4">{icon}</div>
@@ -1121,14 +1121,14 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
           <Btn variant="ghost" onClick={() => navigate("photo-wall")}>Ver todas <ArrowRight size={16} /></Btn>
         </div>
         {previewPhotos.length === 0 ? (
-          <EmptyState title="Nenhuma foto aprovada ainda" subtitle="As fotos aprovadas pela moderaÃ§Ã£o aparecerÃ£o aqui." action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>Abrir mural</Btn>} />
+          <EmptyState title="Nenhuma foto aprovada ainda" subtitle="As fotos aprovadas pela moderação aparecerão aqui." action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>Abrir mural</Btn>} />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             {previewPhotos.map(p => (
               <div key={p.id} onClick={() => navigate("photo-detail")} className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
                 <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto da turma"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                  <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "MemÃ³ria da turma"}</p>
+                  <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "Memória da turma"}</p>
                   <p className="text-[#c9a84c] font-mono text-xs">{p.year_approx ?? "HC"}</p>
                 </div>
                 {p.year_approx && <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>}
@@ -1209,13 +1209,13 @@ function LandingPage({ navigate, people, photos, content }: { navigate: (p: Page
 
 
 function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { navigate: (p: Page) => void; ticketTypes: DbTicketType[]; onSelectTicket: (id: string) => void }) {
-  // Usa ticket types do Supabase se disponÃ­veis, senÃ£o cai no mock local
+  // Usa ticket types do Supabase se disponíveis, senão cai no mock local
   const displayTickets: TicketItem[] = (liveTypes.length > 0 ? liveTypes : TICKETS).map(t => {
     if ("price_cents" in t) {
       const tt = t as DbTicketType;
       const avail = tt.available_quantity - tt.sold_quantity;
       return {
-        id: tt.id, type: tt.name, lot: tt.name.split("â€”")[1]?.trim() ?? "Lote",
+        id: tt.id, type: tt.name, lot: tt.name.split("—")[1]?.trim() ?? "Lote",
         price: Math.round(tt.price_cents / 100), available: avail, total: tt.available_quantity,
         includes: [], status: tt.status === "sold_out" ? "sold-out" : avail <= 10 && avail > 0 ? "last-units" : tt.status === "open" ? "available" : "sold-out",
       } as TicketItem;
@@ -1226,9 +1226,9 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-4xl mx-auto px-4">
         <div className="border-b border-[#2d6a4f]/20 pb-12 mb-12">
-          <SectionLabel>17 de Outubro de 2026 Â· Natal, RN</SectionLabel>
+          <SectionLabel>17 de Outubro de 2026 · Natal, RN</SectionLabel>
           <DisplayTitle className="text-5xl md:text-7xl">Ingressos</DisplayTitle>
-          <p className="text-[#7a9a7a] mt-4">EspaÃ§o Cultural Ponta Negra Â· Portas Ã s 18h30</p>
+          <p className="text-[#7a9a7a] mt-4">Espaço Cultural Ponta Negra · Portas Ã s 18h30</p>
         </div>
         <div className="flex flex-col gap-6">
           {displayTickets.map(t => (
@@ -1236,7 +1236,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
               className={`border bg-[#141f14] p-6 md:p-8 ${t.status === "sold-out" ? "border-[#c0392b]/20 opacity-60" : t.status === "last-units" ? "border-[#c9a84c]/50" : "border-[#2d6a4f]/30"}`}>
               {t.status === "last-units" && (
                 <div className="bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[10px] uppercase tracking-widest px-3 py-1.5 inline-block mb-4">
-                  âš¡ Ãšltimas {t.available} unidades
+                  âš¡ Últimas {t.available} unidades
                 </div>
               )}
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
@@ -1275,7 +1275,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
           <Shield size={24} className="text-[#2d6a4f] shrink-0" />
           <div>
             <p className="text-[#f0ebe0] font-semibold mb-1">Compra segura via Mercado Pago</p>
-            <p className="text-[#7a9a7a] text-sm">CartÃ£o de crÃ©dito (atÃ© 6Ãƒâ€”), dÃ©bito e PIX. Ingresso enviado por e-mail apÃ³s confirmaÃ§Ã£o do pagamento.</p>
+            <p className="text-[#7a9a7a] text-sm">Cartão de crédito (até 6×), débito e PIX. Ingresso enviado por e-mail após confirmação do pagamento.</p>
           </div>
         </div>
       </div>
@@ -1283,7 +1283,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
   );
 }
 
-// â”€â”€â”€ CHECKOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CHECKOUT ─────────────────────────────────────────────────────────────────
 
 type CheckoutReturnState = { status: PaymentStatus | "cancelled"; orderId: string } | null;
 
@@ -1326,7 +1326,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
         setCheckoutOrder(order);
         setCheckoutStatus(order.payment_status);
       })
-      .catch(() => setCheckoutError("NÃ£o foi possÃ­vel carregar o status do pedido."))
+      .catch(() => setCheckoutError("Não foi possível carregar o status do pedido."))
       .finally(() => setLoading(false));
   }, [checkoutReturn]);
 
@@ -1357,7 +1357,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
       window.location.assign(preference.init_point || preference.sandbox_init_point || `/?checkout=pending&order=${order.id}`);
     } catch (error) {
       setLoading(false);
-      setCheckoutError(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel iniciar o pagamento.");
+      setCheckoutError(error instanceof Error ? error.message : "Não foi possível iniciar o pagamento.");
     }
   }
 
@@ -1365,25 +1365,25 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
   const statusCopy: Record<string, { title: string; body: string; tone: string; icon: React.ReactNode }> = {
     pending: {
       title: "Pagamento pendente",
-      body: "Seu pedido foi criado. Conclua o pagamento no Mercado Pago ou aguarde a confirmaÃ§Ã£o.",
+      body: "Seu pedido foi criado. Conclua o pagamento no Mercado Pago ou aguarde a confirmação.",
       tone: "bg-[#1a1a0a] border-[#c9a84c]/40",
       icon: <Clock size={32} className="text-[#c9a84c]" />,
     },
     in_process: {
-      title: "Pagamento em anÃ¡lise",
-      body: "O Mercado Pago recebeu o pagamento e estÃ¡ processando a confirmaÃ§Ã£o.",
+      title: "Pagamento em análise",
+      body: "O Mercado Pago recebeu o pagamento e está processando a confirmação.",
       tone: "bg-[#1a1a0a] border-[#c9a84c]/40",
       icon: <RefreshCw size={32} className="text-[#c9a84c]" />,
     },
     approved: {
       title: "Pagamento aprovado!",
-      body: "Seu ingresso foi liberado. O QR Code serÃ¡ enviado por e-mail e tambÃ©m fica disponÃ­vel na Ã¡rea do aluno.",
+      body: "Seu ingresso foi liberado. O QR Code será enviado por e-mail e também fica disponível na área do aluno.",
       tone: "bg-[#0d2e1a] border-[#2d6a4f]",
       icon: <CheckCircle size={32} className="text-[#f0ebe0]" />,
     },
     rejected: {
       title: "Pagamento recusado",
-      body: "O Mercado Pago nÃ£o conseguiu aprovar o pagamento. Seu ingresso nÃ£o foi confirmado.",
+      body: "O Mercado Pago não conseguiu aprovar o pagamento. Seu ingresso não foi confirmado.",
       tone: "bg-[#2e0a0a] border-[#c0392b]/60",
       icon: <XCircle size={32} className="text-[#f0ebe0]" />,
     },
@@ -1395,7 +1395,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
     },
     cancelled: {
       title: "Pagamento cancelado",
-      body: "O pagamento foi cancelado. VocÃª pode voltar e tentar novamente.",
+      body: "O pagamento foi cancelado. Você pode voltar e tentar novamente.",
       tone: "bg-[#2e0a0a] border-[#c0392b]/60",
       icon: <XCircle size={32} className="text-[#f0ebe0]" />,
     },
@@ -1407,7 +1407,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
     },
     charged_back: {
       title: "Pagamento contestado",
-      body: "Este pagamento foi contestado e o ingresso nÃ£o deve ser usado atÃ© revisÃ£o da organizaÃ§Ã£o.",
+      body: "Este pagamento foi contestado e o ingresso não deve ser usado até revisão da organização.",
       tone: "bg-[#2e0a0a] border-[#c0392b]/60",
       icon: <AlertTriangle size={32} className="text-[#e74c3c]" />,
     },
@@ -1440,12 +1440,12 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
         {/* Order summary */}
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 mb-6">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[#7a9a7a] text-sm">{ticketName} Ãƒâ€” {quantity}</span>
+            <span className="text-[#7a9a7a] text-sm">{ticketName} × {quantity}</span>
             <span className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-lg">
               {(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </span>
           </div>
-          <p className="text-[#3a5a3a] text-xs font-mono">17 Out 2026 Â· EspaÃ§o Cultural Ponta Negra, Natal/RN</p>
+          <p className="text-[#3a5a3a] text-xs font-mono">17 Out 2026 · Espaço Cultural Ponta Negra, Natal/RN</p>
         </div>
 
         {/* Step 1 */}
@@ -1475,7 +1475,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
                 {acceptTerms && <Check size={12} className="text-[#f0ebe0]" />}
               </div>
               <p className="text-[#7a9a7a] text-xs leading-relaxed">
-                Li e aceito os <button onClick={() => navigate("terms")} className="text-[#2d6a4f] underline">Termos de Uso</button> e a <button onClick={() => navigate("privacy")} className="text-[#2d6a4f] underline">PolÃ­tica de Privacidade</button>. *
+                Li e aceito os <button onClick={() => navigate("terms")} className="text-[#2d6a4f] underline">Termos de Uso</button> e a <button onClick={() => navigate("privacy")} className="text-[#2d6a4f] underline">Política de Privacidade</button>. *
               </p>
             </label>
             <Btn full onClick={() => setStep(2)} disabled={!acceptTerms}>
@@ -1489,7 +1489,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6">
             <DisplayTitle className="text-2xl">Forma de pagamento</DisplayTitle>
             <div className="flex flex-col gap-3">
-              {[{ id:"pix", label:"PIX", desc:"AprovaÃ§Ã£o imediata" }, { id:"credit", label:"CartÃ£o de crÃ©dito", desc:"AtÃ© 6Ãƒâ€” sem juros" }, { id:"debit", label:"CartÃ£o de dÃ©bito", desc:"AprovaÃ§Ã£o imediata" }].map(m => (
+              {[{ id:"pix", label:"PIX", desc:"Aprovação imediata" }, { id:"credit", label:"Cartão de crédito", desc:"Até 6× sem juros" }, { id:"debit", label:"Cartão de débito", desc:"Aprovação imediata" }].map(m => (
                 <label key={m.id} className={`flex items-center gap-4 p-4 border cursor-pointer transition-colors ${payment === m.id ? "border-[#2d6a4f] bg-[#1a2e1a]" : "border-[#2d6a4f]/20 hover:border-[#2d6a4f]/40"}`}>
                   <div className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${payment === m.id ? "border-[#2d6a4f] bg-[#2d6a4f]" : "border-[#3a5a3a]"}`}>
                     {payment === m.id && <Check size={12} className="text-[#f0ebe0]" />}
@@ -1508,11 +1508,11 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
                 <div className="w-7 h-7 bg-[#2d6a4f] flex items-center justify-center"><Shield size={14} className="text-[#f0ebe0]" /></div>
                 <p className="text-[#f0ebe0] font-semibold text-sm">Processado pelo Mercado Pago</p>
               </div>
-              <p className="text-[#7a9a7a] text-xs">VocÃª serÃ¡ redirecionado para concluir o pagamento com seguranÃ§a.</p>
+              <p className="text-[#7a9a7a] text-xs">Você será redirecionado para concluir o pagamento com segurança.</p>
             </div>
             <div className="border-t border-[#2d6a4f]/20 pt-4">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-[#7a9a7a]">{ticketName} Ãƒâ€” {quantity}</span>
+                <span className="text-[#7a9a7a]">{ticketName} × {quantity}</span>
                 <span className="text-[#f0ebe0]">{(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
               </div>
               <div className="flex justify-between font-bold">
@@ -1531,7 +1531,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
           </div>
         )}
 
-        {/* Step 3 â€” processing / result */}
+        {/* Step 3 — processing / result */}
         {step === 3 && (
           <>
             {loading && (
@@ -1591,7 +1591,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
                 <DisplayTitle className="text-2xl">Pagamento aprovado!</DisplayTitle>
                 <p className="text-[#7a9a7a] text-sm">Seu ingresso foi confirmado. Verifique seu e-mail para o QR Code de entrada.</p>
                 <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
-                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase mb-1">CÃ³digo do pedido</p>
+                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase mb-1">Código do pedido</p>
                   <p className="text-[#c9a84c] font-['JetBrains_Mono'] font-bold text-xl tracking-wider">{checkoutOrder?.id ?? "Pedido registrado"}</p>
                 </div>
                 <StatusBadge status="approved" />
@@ -1608,15 +1608,15 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
                   </div>
                   <DisplayTitle className="text-2xl">Pagamento recusado</DisplayTitle>
                   <p className="text-[#7a9a7a] text-sm mt-2">
-                    O Mercado Pago nÃ£o conseguiu processar seu pagamento.
-                    <strong className="text-[#f0ebe0]"> Seu ingresso nÃ£o foi confirmado.</strong>
+                    O Mercado Pago não conseguiu processar seu pagamento.
+                    <strong className="text-[#f0ebe0]"> Seu ingresso não foi confirmado.</strong>
                   </p>
                 </div>
                 <div className="bg-[#1a0505] border border-[#c0392b]/30 p-5">
                   <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2">Motivo reportado</p>
                   <div className="flex items-start gap-3">
                     <AlertTriangle size={16} className="text-[#e74c3c] shrink-0 mt-0.5" />
-                    <p className="text-[#e74c3c] text-sm">Saldo insuficiente ou cartÃ£o bloqueado para compras online. Verifique com seu banco.</p>
+                    <p className="text-[#e74c3c] text-sm">Saldo insuficiente ou cartão bloqueado para compras online. Verifique com seu banco.</p>
                   </div>
                 </div>
                 <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 text-center">
@@ -1626,13 +1626,13 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
                 <StatusBadge status="declined" />
                 <div className="flex flex-col gap-3">
                   <Btn full onClick={() => { setStep(2); setPayResult(null); }}>
-                    <RefreshCw size={16} />Tentar com outro mÃ©todo
+                    <RefreshCw size={16} />Tentar com outro método
                   </Btn>
                   <Btn full variant="outline" onClick={() => { setPayment("pix"); setStep(2); setPayResult(null); }}>
                     Tentar com PIX
                   </Btn>
                   <Btn full variant="ghost">
-                    <Mail size={16} />Contato com a organizaÃ§Ã£o
+                    <Mail size={16} />Contato com a organização
                   </Btn>
                 </div>
                 <p className="text-[#3a5a3a] text-xs font-mono text-center">
@@ -1647,7 +1647,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
   );
 }
 
-// â”€â”€â”€ CONFIRMATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CONFIRMATION ─────────────────────────────────────────────────────────────
 
 function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
   return (
@@ -1665,10 +1665,10 @@ function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
           <div className="bg-[#f0ebe0] p-8 mx-auto w-40 h-40 flex items-center justify-center mb-6">
             <QrCode size={96} className="text-[#0d1a0f]" />
           </div>
-          <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">CÃ³digo do ingresso</p>
+          <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Código do ingresso</p>
           <p className="text-[#f0ebe0] font-['JetBrains_Mono'] font-bold text-lg tracking-widest mb-4">Disponivel em Meu ingresso</p>
           <div className="border-t border-[#2d6a4f]/20 pt-4 flex flex-col gap-2 text-sm text-left">
-            {[["Evento","Turma 2006 â€” 20 anos depois"],["Data","17 Out 2026, 19h00"],["Local","EspaÃ§o Cultural Ponta Negra"],["Tipo","Ingresso Individual"]].map(([k,v]) => (
+            {[["Evento","Turma 2006 — 20 anos depois"],["Data","17 Out 2026, 19h00"],["Local","Espaço Cultural Ponta Negra"],["Tipo","Ingresso Individual"]].map(([k,v]) => (
               <div key={k} className="flex justify-between">
                 <span className="text-[#7a9a7a]">{k}</span>
                 <span className="text-[#f0ebe0] text-right">{v}</span>
@@ -1687,7 +1687,7 @@ function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-// â”€â”€â”€ WHO GOING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── WHO GOING ────────────────────────────────────────────────────────────────
 
 function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [search, setSearch] = useState("");
@@ -1716,7 +1716,7 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <DisplayTitle className="text-5xl md:text-7xl">Quem Vai</DisplayTitle>
-              <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{confirmed.length} ex-alunos confirmados Â· {completeProfiles} perfis atualizados Â· {pendingProfiles} pendentes</p>
+              <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{confirmed.length} ex-alunos confirmados · {completeProfiles} perfis atualizados · {pendingProfiles} pendentes</p>
             </div>
             <Btn onClick={() => navigate("tickets")}>Garantir minha vaga</Btn>
           </div>
@@ -1734,7 +1734,7 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
               {(["all","confirmed","claimed","unclaimed"] as const).map(val => (
                 <button key={val} onClick={() => setStatusFilter(val)}
                   className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${statusFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
-                  {val === "all" ? "Todos" : val === "confirmed" ? "Confirmados" : val === "claimed" ? "Perfil completo" : "NÃ£o atualizado"}
+                  {val === "all" ? "Todos" : val === "confirmed" ? "Confirmados" : val === "claimed" ? "Perfil completo" : "Não atualizado"}
                 </button>
               ))}
             </div>
@@ -1767,14 +1767,14 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
         <div className="mt-8 bg-[#141f14] border border-[#2d6a4f]/20 p-4 flex items-start gap-3">
           <Shield size={16} className="text-[#2d6a4f] shrink-0 mt-0.5" />
-          <p className="text-[#7a9a7a] text-xs">Apenas ex-alunos que autorizaram a exibiÃ§Ã£o do nome aparecem nesta lista. Use os filtros para ver confirmados, perfis completos e perfis ainda nÃ£o atualizados.</p>
+          <p className="text-[#7a9a7a] text-xs">Apenas ex-alunos que autorizaram a exibição do nome aparecem nesta lista. Use os filtros para ver confirmados, perfis completos e perfis ainda não atualizados.</p>
         </div>
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ THE CLASS PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── THE CLASS PAGE ───────────────────────────────────────────────────────────
 
 function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [search, setSearch] = useState("");
@@ -1787,9 +1787,9 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
-          <SectionLabel>ColÃ©gio Henrique Castriciano</SectionLabel>
+          <SectionLabel>Colégio Henrique Castriciano</SectionLabel>
           <DisplayTitle className="text-5xl md:text-7xl">A Turma 2006</DisplayTitle>
-          <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{people.length} ex-alunos Â· Turma 2006</p>
+          <p className="text-[#7a9a7a] mt-3 font-mono text-sm">{people.length} ex-alunos · Turma 2006</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1 bg-[#141f14] border border-[#2d6a4f]/30">
@@ -1798,7 +1798,7 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
               className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none" />
           </div>
           <div className="flex flex-wrap gap-2">
-            {[["all","Todos"],["confirmed","Confirmados"],["claimed","Reivindicados"],["unclaimed","NÃ£o localizados"]].map(([val,label]) => (
+            {[["all","Todos"],["confirmed","Confirmados"],["claimed","Reivindicados"],["unclaimed","Não localizados"]].map(([val,label]) => (
               <button key={val} onClick={() => setFilter(val)}
                 className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors ${filter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}>
                 {label}
@@ -1820,7 +1820,7 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   );
 }
 
-// â”€â”€â”€ CLAIM PROFILE (COMPLETE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CLAIM PROFILE (COMPLETE) ─────────────────────────────────────────────────
 
 function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => void; people: DbPerson[]; auth: AuthState }) {
   const [step, setStep]         = useState(1);
@@ -1848,7 +1848,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       const scoreAnswers = CONFIRM_QUESTIONS.map(q => ({
         key: q.id,
         text: answers[q.id] ?? "",
-        score: answers[q.id] && answers[q.id] !== "NÃ£o me lembro" ? 1 : 0,
+        score: answers[q.id] && answers[q.id] !== "Não me lembro" ? 1 : 0,
       }));
       await createFullProfileClaim({
         personId: selected.id,
@@ -1908,7 +1908,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           ))}
         </div>
 
-        {/* Step 1 â€” Search */}
+        {/* Step 1 — Search */}
         {step === 1 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
             <p className="text-[#f0ebe0] font-semibold">Busque seu nome na lista da turma</p>
@@ -1927,7 +1927,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
                     </div>
                     <div className="flex-1">
                       <p className="text-[#f0ebe0] font-semibold text-sm">{a.name}</p>
-                      {a.nickname && <p className="text-[#c9a84c] text-xs font-mono">&ldquo;{a.nickname}&rdquo; Â· Sala {a.sala}</p>}
+                      {a.nickname && <p className="text-[#c9a84c] text-xs font-mono">&ldquo;{a.nickname}&rdquo; · Sala {a.sala}</p>}
                     </div>
                     <StatusBadge status={a.status} />
                   </button>
@@ -1938,24 +1938,24 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               <p className="text-[#7a9a7a] text-sm text-center py-4">Nenhum perfil encontrado.</p>
             )}
             <p className="text-[#7a9a7a] text-xs text-center">
-              NÃ£o encontrou? <button className="text-[#2d6a4f] underline">Entre em contato</button>
+              Não encontrou? <button className="text-[#2d6a4f] underline">Entre em contato</button>
             </p>
           </div>
         )}
 
-        {/* Step 2a â€” Already claimed */}
+        {/* Step 2a — Already claimed */}
         {step === 2 && alreadyClaimed && selected && (
           <div className="bg-[#141f14] border border-[#c9a84c]/40 p-8 flex flex-col gap-5">
             <div className="text-center">
               <AlertTriangle size={40} className="text-[#c9a84c] mx-auto mb-4" />
-              <DisplayTitle className="text-xl mb-2">Perfil jÃ¡ reivindicado</DisplayTitle>
+              <DisplayTitle className="text-xl mb-2">Perfil já reivindicado</DisplayTitle>
               <p className="text-[#7a9a7a] text-sm">
-                O perfil de <span className="text-[#f0ebe0] font-semibold">{selected.name}</span> jÃ¡ estÃ¡ vinculado a uma conta ativa.
+                O perfil de <span className="text-[#f0ebe0] font-semibold">{selected.name}</span> já está vinculado a uma conta ativa.
               </p>
             </div>
             <div className="bg-[#0a120a] border border-[#c9a84c]/20 p-5">
               <p className="text-[#7a9a7a] text-sm mb-3">
-                Se este Ã© realmente o seu perfil, entre em contato com a organizaÃ§Ã£o para abrir uma disputa:
+                Se este é realmente o seu perfil, entre em contato com a organização para abrir uma disputa:
               </p>
               <p className="text-[#f0ebe0] text-sm flex items-center gap-2"><Mail size={14} />turma2006.hc@gmail.com</p>
               <p className="text-[#f0ebe0] text-sm flex items-center gap-2 mt-2"><Phone size={14} />(84) 99999-0206</p>
@@ -1967,7 +1967,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           </div>
         )}
 
-        {/* Step 2b â€” Confirm selection */}
+        {/* Step 2b — Confirm selection */}
         {step === 2 && !alreadyClaimed && selected && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
             <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Perfil selecionado</p>
@@ -1980,48 +1980,48 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
                 {selected.nickname && <p className="text-[#c9a84c] text-xs font-mono">&ldquo;{selected.nickname}&rdquo;</p>}
               </div>
             </div>
-            <p className="text-[#f0ebe0] font-semibold">Este Ã© vocÃª?</p>
+            <p className="text-[#f0ebe0] font-semibold">Este é você?</p>
             <div className="flex gap-3">
               <Btn full onClick={() => setStep(3)}>Sim, sou eu <ArrowRight size={16} /></Btn>
-              <Btn full variant="ghost" onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>NÃ£o</Btn>
+              <Btn full variant="ghost" onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Não</Btn>
             </div>
           </div>
         )}
 
-        {/* Step 3 â€” Contact info */}
+        {/* Step 3 — Contact info */}
         {step === 3 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#f0ebe0] font-semibold">Informe seus contatos para verificaÃ§Ã£o</p>
+            <p className="text-[#f0ebe0] font-semibold">Informe seus contatos para verificação</p>
             <Field label="E-mail" type="email" placeholder="seu@email.com" value={claimEmail} onChange={setClaimEmail} icon={<Mail size={16} />} />
             <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={claimPhone} onChange={setClaimPhone} icon={<Phone size={16} />}
-              hint="Enviaremos um cÃ³digo de verificaÃ§Ã£o via SMS ou WhatsApp" />
-            <Btn full onClick={() => setStep(4)}>Enviar cÃ³digo de verificaÃ§Ã£o <ArrowRight size={16} /></Btn>
+              hint="Enviaremos um código de verificação via SMS ou WhatsApp" />
+            <Btn full onClick={() => setStep(4)}>Enviar código de verificação <ArrowRight size={16} /></Btn>
           </div>
         )}
 
-        {/* Step 4 â€” Verification code */}
+        {/* Step 4 — Verification code */}
         {step === 4 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6 text-center">
             <Lock size={32} className="text-[#c9a84c] mx-auto" />
             <div>
-              <p className="text-[#f0ebe0] font-semibold mb-2">CÃ³digo enviado por WhatsApp</p>
-              <p className="text-[#7a9a7a] text-sm">Digite o cÃ³digo de 6 dÃ­gitos enviado para o nÃºmero informado.</p>
+              <p className="text-[#f0ebe0] font-semibold mb-2">Código enviado por WhatsApp</p>
+              <p className="text-[#7a9a7a] text-sm">Digite o código de 6 dígitos enviado para o número informado.</p>
             </div>
             <input type="text" maxLength={6} value={code} onChange={e => setCode(e.target.value)}
               className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-center font-['JetBrains_Mono'] text-2xl tracking-[0.5em] focus:outline-none focus:border-[#2d6a4f]"
               placeholder="000000" />
-            <Btn full onClick={() => setStep(5)} disabled={code.length < 4}>Confirmar cÃ³digo</Btn>
-            <button className="text-[#7a9a7a] text-xs hover:text-[#f0ebe0] transition-colors">Reenviar cÃ³digo</button>
+            <Btn full onClick={() => setStep(5)} disabled={code.length < 4}>Confirmar código</Btn>
+            <button className="text-[#7a9a7a] text-xs hover:text-[#f0ebe0] transition-colors">Reenviar código</button>
           </div>
         )}
 
-        {/* Step 5 â€” Confirmation questions */}
+        {/* Step 5 — Confirmation questions */}
         {step === 5 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6">
             {claimError && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{claimError}</p>}
             <div>
-              <p className="text-[#f0ebe0] font-semibold mb-1">Perguntas de confirmaÃ§Ã£o</p>
-              <p className="text-[#7a9a7a] text-sm">Para garantir sua identidade, responda Ã s perguntas sobre o HC. Apenas ex-alunos saberÃ£o as respostas.</p>
+              <p className="text-[#f0ebe0] font-semibold mb-1">Perguntas de confirmação</p>
+              <p className="text-[#7a9a7a] text-sm">Para garantir sua identidade, responda Ã s perguntas sobre o HC. Apenas ex-alunos saberão as respostas.</p>
             </div>
             {CONFIRM_QUESTIONS.map(q => (
               <div key={q.id}>
@@ -2052,7 +2052,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           </div>
         )}
 
-        {/* Step 7 â€” Approved */}
+        {/* Step 7 — Approved */}
         {step === 7 && claimResult === "approved" && (
           <div className="bg-[#0d2e1a] border border-[#2d6a4f] p-8 flex flex-col gap-5 text-center">
             <div className="w-16 h-16 bg-[#2d6a4f] flex items-center justify-center mx-auto">
@@ -2060,7 +2060,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             </div>
             <DisplayTitle className="text-2xl">Perfil reivindicado!</DisplayTitle>
             <p className="text-[#7a9a7a] text-sm">
-              Identidade confirmada com sucesso. Seu perfil de ex-aluno estÃ¡ vinculado Ã  sua conta.
+              Identidade confirmada com sucesso. Seu perfil de ex-aluno está vinculado Ã  sua conta.
             </p>
             <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
               <StatusBadge status="confirmed" />
@@ -2073,23 +2073,23 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           </div>
         )}
 
-        {/* Step 7 â€” Rejected */}
+        {/* Step 7 — Rejected */}
         {step === 7 && claimResult === "rejected" && (
           <div className="bg-[#2e0a0a] border border-[#c0392b]/60 p-8 flex flex-col gap-5 text-center">
             <div className="w-16 h-16 bg-[#c0392b] flex items-center justify-center mx-auto">
               <UserX size={32} className="text-[#f0ebe0]" />
             </div>
-            <DisplayTitle className="text-2xl">SolicitaÃ§Ã£o rejeitada</DisplayTitle>
+            <DisplayTitle className="text-2xl">Solicitação rejeitada</DisplayTitle>
             <p className="text-[#7a9a7a] text-sm">
-              NÃ£o foi possÃ­vel confirmar sua identidade com base nas respostas. Se houve um erro, entre em contato com a organizaÃ§Ã£o.
+              Não foi possível confirmar sua identidade com base nas respostas. Se houve um erro, entre em contato com a organização.
             </p>
             <div className="bg-[#1a0505] border border-[#c0392b]/30 p-4 text-left">
               <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2">Motivo</p>
-              <p className="text-[#e74c3c] text-sm">As respostas nÃ£o correspondem Ã s informaÃ§Ãµes esperadas para este perfil.</p>
+              <p className="text-[#e74c3c] text-sm">As respostas não correspondem Ã s informações esperadas para este perfil.</p>
             </div>
             <div className="flex flex-col gap-3">
               <Btn full onClick={() => { setStep(5); setClaimResult(null); setAnswers({}); }}>Tentar novamente</Btn>
-              <Btn full variant="ghost"><Mail size={16} />Contato com a organizaÃ§Ã£o</Btn>
+              <Btn full variant="ghost"><Mail size={16} />Contato com a organização</Btn>
             </div>
           </div>
         )}
@@ -2098,7 +2098,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   );
 }
 
-// â”€â”€â”€ PHOTO WALL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHOTO WALL ───────────────────────────────────────────────────────────────
 
 function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; onSelectPhoto: (id: string) => void;
@@ -2166,12 +2166,12 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
             <div>
-              <SectionLabel>Mural de MemÃ³rias</SectionLabel>
-              <DisplayTitle className="text-5xl md:text-7xl">Fotos da Ã‰poca</DisplayTitle>
-              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos Â· curtidas e comentÃ¡rios moderados</p>
+              <SectionLabel>Mural de Memórias</SectionLabel>
+              <DisplayTitle className="text-5xl md:text-7xl">Fotos da Época</DisplayTitle>
+              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · curtidas e comentários moderados</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de memÃ³rias</Btn>
+              <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de memórias</Btn>
               <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto antiga</Btn>
             </div>
           </div>
@@ -2180,7 +2180,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
 
           {featuredPhotos.length > 0 && (
             <div className="mb-10">
-              <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4 flex items-center gap-2"><Star size={14} />Fotos destacadas pela organizaÃ§Ã£o</p>
+              <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4 flex items-center gap-2"><Star size={14} />Fotos destacadas pela organização</p>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {featuredPhotos.map(p => (
                   <button key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="relative aspect-square overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20 text-left">
@@ -2223,7 +2223,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {filteredPhotos.length === 0 && <EmptyState title="Nenhuma foto encontrada" subtitle="Ajuste os filtros ou envie uma foto antiga para moderaÃ§Ã£o." />}
+            {filteredPhotos.length === 0 && <EmptyState title="Nenhuma foto encontrada" subtitle="Ajuste os filtros ou envie uma foto antiga para moderação." />}
             {filteredPhotos.map(p => {
               const photoStats = stats[p.id] ?? { photo_id: p.id, likes_count: 0, comments_count: 0 };
               const liked = likedPhotoIds.includes(p.id);
@@ -2274,8 +2274,8 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
 
           <div className="mt-12 bg-[#141f14] border border-dashed border-[#2d6a4f]/40 p-12 text-center">
             <Camera size={32} className="text-[#7a9a7a] mx-auto mb-4" />
-            <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-2">Tem uma foto dessa Ã©poca?</p>
-            <p className="text-[#7a9a7a] text-sm mb-6">Contribua com o mural. Todas as fotos passam por moderaÃ§Ã£o antes de serem publicadas.</p>
+            <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-2">Tem uma foto dessa época?</p>
+            <p className="text-[#7a9a7a] text-sm mb-6">Contribua com o mural. Todas as fotos passam por moderação antes de serem publicadas.</p>
             <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto</Btn>
           </div>
         </div>
@@ -2284,7 +2284,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   );
 }
 
-// â”€â”€â”€ PHOTO DETAIL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PHOTO DETAIL ─────────────────────────────────────────────────────────────
 
 function PhotoDetailPage({ navigate, people, auth, photo }: {
   navigate: (p: Page) => void; people: DbPerson[]; auth: AuthState; photo: DbPhoto | null;
@@ -2333,19 +2333,19 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   async function submitComment() {
     if (!photo) return;
     if (!auth.loggedIn) { navigate("login"); return; }
-    if (commentText.trim().length < 3) { setError("Escreva um comentÃ¡rio com pelo menos 3 caracteres."); return; }
+    if (commentText.trim().length < 3) { setError("Escreva um comentário com pelo menos 3 caracteres."); return; }
     setBusy("comment"); setError(""); setMessage("");
     try {
       await createPhotoComment({ photoId: photo.id, userId: auth.userId, authorName: auth.name, commentText: commentText.trim() });
       setCommentText("");
-      setMessage("ComentÃ¡rio enviado para moderaÃ§Ã£o.");
+      setMessage("Comentário enviado para moderação.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar comentÃ¡rio.");
+      setError(err instanceof Error ? err.message : "Erro ao enviar comentário.");
     } finally { setBusy(""); }
   }
 
   async function addTag(person: DbPerson) {
-    if (!photo || !auth.loggedIn) { setError("FaÃ§a login para marcar pessoas."); return; }
+    if (!photo || !auth.loggedIn) { setError("Faça login para marcar pessoas."); return; }
     setError(""); setMessage("");
     try {
       await supabase.from("photo_tags").insert({
@@ -2356,16 +2356,16 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
         created_by_user_id: auth.userId,
       });
       await writeAudit("create_photo_tag", "photo_tags", null, { photo_id: photo.id, person_id: person.id });
-      setMessage("MarcaÃ§Ã£o enviada para moderaÃ§Ã£o.");
+      setMessage("Marcação enviada para moderação.");
       setTagSearch("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar marcaÃ§Ã£o.");
+      setError(err instanceof Error ? err.message : "Erro ao criar marcação.");
     }
   }
 
   async function requestRemoval() {
-    if (!photo || !auth.loggedIn) { setError("FaÃ§a login para solicitar remoÃ§Ã£o."); return; }
-    if (!removalReason.trim()) { setError("Informe o motivo da remoÃ§Ã£o."); return; }
+    if (!photo || !auth.loggedIn) { setError("Faça login para solicitar remoção."); return; }
+    if (!removalReason.trim()) { setError("Informe o motivo da remoção."); return; }
     setError(""); setMessage("");
     try {
       await createPhotoRemovalRequest({
@@ -2375,11 +2375,11 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
         requesterEmail: auth.email ?? "",
         reason: removalReason,
       });
-      setMessage("SolicitaÃ§Ã£o de remoÃ§Ã£o enviada.");
+      setMessage("Solicitação de remoção enviada.");
       setShowRemoval(false);
       setRemovalReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao solicitar remoÃ§Ã£o.");
+      setError(err instanceof Error ? err.message : "Erro ao solicitar remoção.");
     }
   }
 
@@ -2388,7 +2388,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-5xl mx-auto px-4">
           <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
-          <EmptyState title="Foto nÃ£o encontrada" />
+          <EmptyState title="Foto não encontrada" />
         </div>
       </div>
     );
@@ -2410,7 +2410,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
           </div>
           <div className="flex flex-col gap-5">
             <div>
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{photo.year_approx} Â· {photo.location_text}</p>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{photo.year_approx} · {photo.location_text}</p>
               <DisplayTitle className="text-2xl md:text-3xl mb-2">{photo.caption}</DisplayTitle>
               <p className="text-[#7a9a7a] text-sm flex items-center gap-2"><MapPin size={14} />{photo.location_text}</p>
             </div>
@@ -2419,31 +2419,31 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
                 <Heart size={16} fill={liked ? "currentColor" : "none"} />{likesCount} curtidas
               </button>
               <div className="border border-[#2d6a4f]/30 px-4 py-3 flex items-center justify-center gap-2 text-[#7a9a7a] text-sm font-mono">
-                <MessageCircle size={16} />{comments.length} comentÃ¡rios
+                <MessageCircle size={16} />{comments.length} comentários
               </div>
             </div>
             {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
             {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
 
             <div className="border-t border-[#2d6a4f]/20 pt-4">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">ComentÃ¡rios</p>
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Comentários</p>
               <div className="flex flex-col gap-3 mb-4 max-h-52 overflow-y-auto pr-1">
-                {comments.length === 0 ? <p className="text-[#7a9a7a] text-sm">Ainda nÃ£o hÃ¡ comentÃ¡rios aprovados.</p> : comments.map(comment => (
+                {comments.length === 0 ? <p className="text-[#7a9a7a] text-sm">Ainda não há comentários aprovados.</p> : comments.map(comment => (
                   <div key={comment.id} className="bg-[#141f14] border border-[#2d6a4f]/20 p-3">
                     <p className="text-[#f0ebe0] text-sm">{comment.comment_text}</p>
-                    <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{comment.author_name ?? "Ex-aluno"} Â· {comment.created_at?.slice(0, 10)}</p>
+                    <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{comment.author_name ?? "Ex-aluno"} · {comment.created_at?.slice(0, 10)}</p>
                   </div>
                 ))}
               </div>
-              <FieldArea label="Novo comentÃ¡rio" value={commentText} onChange={setCommentText} rows={2} />
-              <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar para moderaÃ§Ã£o</Btn>
+              <FieldArea label="Novo comentário" value={commentText} onChange={setCommentText} rows={2} />
+              <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar para moderação</Btn>
             </div>
 
             <div className="border-t border-[#2d6a4f]/20 pt-4">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Marcar pessoas</p>
               <div className="relative mt-3">
                 <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input placeholder="Marcar alguÃ©m da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
+                <input placeholder="Marcar alguém da turma..." value={tagSearch} onChange={e => setTagSearch(e.target.value)}
                   className="w-full bg-[#141f14] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
               </div>
               {tagResults.length > 0 && (
@@ -2460,16 +2460,16 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
             </div>
             {showRemoval && (
               <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-4">
-                <FieldArea label="Motivo da remoÃ§Ã£o" value={removalReason} onChange={setRemovalReason} />
+                <FieldArea label="Motivo da remoção" value={removalReason} onChange={setRemovalReason} />
                 <div className="flex gap-2 mt-3">
-                  <Btn size="sm" onClick={requestRemoval}>Enviar solicitaÃ§Ã£o</Btn>
+                  <Btn size="sm" onClick={requestRemoval}>Enviar solicitação</Btn>
                   <Btn size="sm" variant="ghost" onClick={() => setShowRemoval(false)}>Cancelar</Btn>
                 </div>
               </div>
             )}
             <div className="flex flex-col gap-3">
               <Btn full onClick={() => window.open(photo.image_url, "_blank")}><Download size={16} />Baixar foto</Btn>
-              <Btn full variant="ghost" onClick={() => setShowRemoval(true)}><AlertCircle size={16} />Solicitar remoÃ§Ã£o da foto</Btn>
+              <Btn full variant="ghost" onClick={() => setShowRemoval(true)}><AlertCircle size={16} />Solicitar remoção da foto</Btn>
             </div>
           </div>
         </div>
@@ -2478,7 +2478,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   );
 }
 
-// â”€â”€â”€ POLLS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POLLS ────────────────────────────────────────────────────────────────────
 
 function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
@@ -2534,9 +2534,9 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
           <div>
-            <SectionLabel>Enquetes nostÃ¡lgicas</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-6xl">Vote nas memÃ³rias da turma</DisplayTitle>
-            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Escolha mÃºsicas, lugares e lembranÃ§as que marcaram a Turma 2006. Os resultados sÃ£o atualizados conforme os votos entram.</p>
+            <SectionLabel>Enquetes nostálgicas</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-6xl">Vote nas memórias da turma</DisplayTitle>
+            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Escolha músicas, lugares e lembranças que marcaram a Turma 2006. Os resultados são atualizados conforme os votos entram.</p>
           </div>
           <Btn variant="outline" onClick={() => navigate("where-now")}><MapPin size={16} />Onde estamos</Btn>
         </div>
@@ -2546,7 +2546,7 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
         {loading && <LoadingState message="Carregando enquetes..." />}
 
         {!loading && polls.length === 0 && (
-          <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organizaÃ§Ã£o ainda nÃ£o abriu votaÃ§Ãµes para a turma." />
+          <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organização ainda não abriu votações para a turma." />
         )}
 
         {!loading && polls.length > 0 && (
@@ -2588,8 +2588,8 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
                     })}
                   </div>
 
-                  {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">FaÃ§a login para votar.</p>}
-                  {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite mÃºltiplos votos.</p>}
+                  {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar.</p>}
+                  {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
                 </div>
               );
             })}
@@ -2600,7 +2600,7 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
   );
 }
 
-// â”€â”€â”€ WHERE NOW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── WHERE NOW ────────────────────────────────────────────────────────────────
 
 function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
   const [locations, setLocations] = useState<LocationStat[]>([]);
@@ -2630,18 +2630,18 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
           <div>
-            <SectionLabel>Onde a turma estÃ¡ hoje</SectionLabel>
+            <SectionLabel>Onde a turma está hoje</SectionLabel>
             <DisplayTitle className="text-4xl md:text-6xl">Mapa afetivo da Turma 2006</DisplayTitle>
-            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas localizaÃ§Ãµes autorizadas aparecem aqui. Os dados vÃªm dos perfis pÃºblicos dos ex-alunos.</p>
+            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas localizações autorizadas aparecem aqui. Os dados vêm dos perfis públicos dos ex-alunos.</p>
           </div>
           <Btn variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={16} />Atualizar perfil</Btn>
         </div>
 
         {error && <ErrorState message={error} onRetry={loadLocations} />}
-        {loading && <LoadingState message="Carregando localizaÃ§Ãµes..." />}
+        {loading && <LoadingState message="Carregando localizações..." />}
 
         {!loading && locations.length === 0 && (
-          <EmptyState icon={<MapPin size={42} />} title="Nenhuma localizaÃ§Ã£o pÃºblica" subtitle="Os ex-alunos precisam autorizar a exibiÃ§Ã£o da cidade no perfil." action={<Btn onClick={() => navigate("edit-profile")}>Atualizar meu perfil</Btn>} />
+          <EmptyState icon={<MapPin size={42} />} title="Nenhuma localização pública" subtitle="Os ex-alunos precisam autorizar a exibição da cidade no perfil." action={<Btn onClick={() => navigate("edit-profile")}>Atualizar meu perfil</Btn>} />
         )}
 
         {!loading && locations.length > 0 && (
@@ -2649,7 +2649,7 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">LocalizaÃ§Ãµes pÃºblicas</p>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Localizações públicas</p>
                   <p className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{totalPeople} pessoas em {locations.length} lugares</p>
                 </div>
                 <MapPin size={34} className="text-[#2d6a4f]" />
@@ -2659,7 +2659,7 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
                   <button key={item.key} onClick={() => setSelectedKey(item.key)}
                     className={`text-left border p-4 transition-colors ${selected?.key === item.key ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
                     <p className="text-[#f0ebe0] font-semibold">{item.city}</p>
-                    <p className="text-[#7a9a7a] text-xs font-mono">{[item.state, item.country].filter(Boolean).join(" Â· ")}</p>
+                    <p className="text-[#7a9a7a] text-xs font-mono">{[item.state, item.country].filter(Boolean).join(" · ")}</p>
                     <p className="text-[#c9a84c] text-xs font-mono mt-2">{item.count} ex-aluno{item.count === 1 ? "" : "s"}</p>
                   </button>
                 ))}
@@ -2670,7 +2670,7 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
               {selected ? (
                 <>
                   <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">{selected.city}</p>
-                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Quem estÃ¡ por lÃ¡</h3>
+                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Quem está por lá</h3>
                   <div className="flex flex-col gap-3">
                     {selected.people.map(person => (
                       <div key={person.profile_id} className="flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3">
@@ -2692,7 +2692,7 @@ function WhereNowPage({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-// â”€â”€â”€ SHARE INVITE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SHARE INVITE ─────────────────────────────────────────────────────────────
 
 function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [useName, setUseName] = useState(true);
@@ -2724,7 +2724,7 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const hasApprovedTicket = tickets.some(t => ticketPaymentStatus(t) === "approved");
   const dateLabel = eventDateTimeLabel(event);
   const locationLabel = event?.location_name ?? "Natal, Rio Grande do Norte";
-  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do ColÃ©gio Henrique Castriciano â€” 20 anos depois. ${dateLabel}, em ${locationLabel}. Vamos juntos?`;
+  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. ${dateLabel}, em ${locationLabel}. Vamos juntos?`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
 
   async function copyInvite() {
@@ -2751,19 +2751,19 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
           <div>
-            <SectionLabel>Convite compartilhÃ¡vel</SectionLabel>
+            <SectionLabel>Convite compartilhável</SectionLabel>
             <DisplayTitle className="text-4xl md:text-6xl mb-4">Chame a turma para o reencontro</DisplayTitle>
-            <p className="text-[#7a9a7a] leading-relaxed mb-6">Use este cartÃ£o para divulgar o reencontro. A versÃ£o sem nome preserva sua privacidade.</p>
+            <p className="text-[#7a9a7a] leading-relaxed mb-6">Use este cartão para divulgar o reencontro. A versão sem nome preserva sua privacidade.</p>
             {loading && <LoadingState message="Carregando dados do convite..." />}
             {!loading && auth.loggedIn && (
               <div className="mb-4 flex flex-wrap gap-2">
                 <StatusBadge status={hasApprovedTicket ? "approved" : "pending"} />
-                <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">{hasApprovedTicket ? "Ingresso aprovado" : "Ingresso nÃ£o localizado/aprovado"}</span>
+                <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">{hasApprovedTicket ? "Ingresso aprovado" : "Ingresso não localizado/aprovado"}</span>
               </div>
             )}
             <label className="flex items-center gap-3 bg-[#141f14] border border-[#2d6a4f]/30 p-4 mb-4 cursor-pointer">
               <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" disabled={!auth.loggedIn} />
-              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite {auth.loggedIn ? "" : "(faÃ§a login para ativar)"}</span>
+              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite {auth.loggedIn ? "" : "(faça login para ativar)"}</span>
             </label>
             {message && <p className="text-[#74c69d] text-sm font-mono mb-4">{message}</p>}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -2779,16 +2779,16 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
           </div>
 
           <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
-            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-8">ColÃ©gio Henrique Castriciano</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-8">Colégio Henrique Castriciano</p>
             <h3 className="font-['Playfair_Display'] text-4xl font-black leading-none mb-6">Eu vou ao reencontro da Turma 2006</h3>
             {useName && auth.loggedIn && <p className="text-[#2d6a4f] font-bold text-lg mb-6">{auth.name}</p>}
             <div className="h-px bg-[#c9a84c] my-6" />
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">{dateLabel.split(" Â· ")[0]}</p></div>
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">{dateLabel.split(" Â· ")[1] ?? "19h"}</p></div>
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">{dateLabel.split(" · ")[0]}</p></div>
+              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">{dateLabel.split(" · ")[1] ?? "19h"}</p></div>
               <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">{locationLabel}</p></div>
             </div>
-            <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histÃ³rias, fotos antigas e vÃ­nculos que atravessaram o tempo.</p>
+            <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histórias, fotos antigas e vínculos que atravessaram o tempo.</p>
           </div>
         </div>
       </div>
@@ -2797,7 +2797,7 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 }
 
 
-// â”€â”€â”€ MY TICKET PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MY TICKET PAGE ───────────────────────────────────────────────────────────
 
 function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
@@ -2829,26 +2829,26 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
   const ticket = tickets.find(t => t.id === selectedId) ?? tickets[0] ?? null;
   const paymentStatus = ticketPaymentStatus(ticket);
   const ticketStatus = ticket?.checked_in ? "checked_in" : paymentStatus;
-  const eventName = event?.title ?? "Turma 2006 â€” 20 anos depois";
+  const eventName = event?.title ?? "Turma 2006 — 20 anos depois";
   const eventLocation = event?.location_name ?? "Local a confirmar";
-  const eventAddress = event?.location_address ?? "EndereÃ§o serÃ¡ informado pela organizaÃ§Ã£o.";
+  const eventAddress = event?.location_address ?? "Endereço será informado pela organização.";
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha Ã¡rea</button>
+        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha área</button>
         <SectionLabel>Meu ingresso</SectionLabel>
         <DisplayTitle className="text-4xl md:text-6xl mb-4">Entrada do reencontro</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Confira o status do pagamento e apresente o cÃ³digo no check-in do evento.</p>
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Confira o status do pagamento e apresente o código no check-in do evento.</p>
 
         {loading && <LoadingState message="Carregando ingresso..." />}
         {error && <ErrorState message={error} onRetry={loadTicket} />}
         {!loading && !error && tickets.length === 0 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Nenhum ingresso encontrado" subtitle="NÃ£o localizamos ingressos vinculados ao seu e-mail de login. Compre um ingresso ou entre em contato com a organizaÃ§Ã£o." />
+            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos ingressos vinculados ao seu e-mail de login. Compre um ingresso ou entre em contato com a organização." />
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-              <Btn variant="outline" onClick={() => navigate("home")}><Mail size={16} />Contato da organizaÃ§Ã£o</Btn>
+              <Btn variant="outline" onClick={() => navigate("home")}><Mail size={16} />Contato da organização</Btn>
             </div>
           </div>
         )}
@@ -2861,7 +2861,7 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
                 <QrCode size={128} className="text-[#0d1a0f]" />
               </div>
               <p className="font-mono text-lg font-bold tracking-widest break-all">{ticket.qr_code}</p>
-              <p className="text-xs text-[#5b4636] mt-3">Apresente este cÃ³digo na entrada junto com um documento.</p>
+              <p className="text-xs text-[#5b4636] mt-3">Apresente este código na entrada junto com um documento.</p>
               <div className="mt-6 flex justify-center"><StatusBadge status={ticketStatus} /></div>
             </div>
 
@@ -2887,9 +2887,9 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <InfoRow label="Tipo" value={ticketTypeName(ticket)} />
-                  <InfoRow label="Telefone" value={ticket.attendee_phone ?? "NÃ£o informado"} />
-                  <InfoRow label="Acompanhante" value={ticket.guest_name ?? "NÃ£o informado"} />
-                  <InfoRow label="Check-in" value={ticket.checked_in ? `Realizado ${formatDateTimeBR(ticket.checked_in_at)}` : "Ainda nÃ£o realizado"} />
+                  <InfoRow label="Telefone" value={ticket.attendee_phone ?? "Não informado"} />
+                  <InfoRow label="Acompanhante" value={ticket.guest_name ?? "Não informado"} />
+                  <InfoRow label="Check-in" value={ticket.checked_in ? `Realizado ${formatDateTimeBR(ticket.checked_in_at)}` : "Ainda não realizado"} />
                   <InfoRow label="Pagamento" value={paymentStatus} />
                   <InfoRow label="Pedido" value={ticket.order_id} />
                 </div>
@@ -2906,12 +2906,12 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
               </div>
 
               <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">InstruÃ§Ãµes e termos</p>
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Instruções e termos</p>
                 <ul className="text-[#8ab89a] text-sm leading-relaxed list-disc pl-5 space-y-2">
-                  <li>Apresente o QR Code ou o cÃ³digo textual na entrada.</li>
-                  <li>O ingresso Ã© nominal e deve estar com pagamento aprovado.</li>
-                  <li>Depois do check-in, o mesmo cÃ³digo nÃ£o poderÃ¡ ser reutilizado.</li>
-                  <li>Em caso de divergÃªncia, procure a organizaÃ§Ã£o do evento.</li>
+                  <li>Apresente o QR Code ou o código textual na entrada.</li>
+                  <li>O ingresso é nominal e deve estar com pagamento aprovado.</li>
+                  <li>Depois do check-in, o mesmo código não poderá ser reutilizado.</li>
+                  <li>Em caso de divergência, procure a organização do evento.</li>
                 </ul>
               </div>
             </div>
@@ -2931,7 +2931,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-// â”€â”€â”€ ARCHIVE PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
 
 function videoEmbedUrl(url: string) {
   try {
@@ -3010,8 +3010,8 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
           <SectionLabel>Acervo Digital</SectionLabel>
-          <DisplayTitle className="text-4xl md:text-7xl mb-4">MemÃ³rias do reencontro</DisplayTitle>
-          <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaÃ§o para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranÃ§as aprovadas pela organizaÃ§Ã£o.</p>
+          <DisplayTitle className="text-4xl md:text-7xl mb-4">Memórias do reencontro</DisplayTitle>
+          <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaço para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranças aprovadas pela organização.</p>
 
           {loading && <LoadingState message="Carregando acervo..." />}
           {error && <ErrorState message={error} />}
@@ -3020,19 +3020,19 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
               <div className="max-w-3xl">
                 <StatusBadge status="closed" />
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">O acervo serÃ¡ aberto depois do reencontro.</h2>
-                <p className="text-[#8ab89a] leading-relaxed mb-8">Depois do evento, esta pÃ¡gina reunirÃ¡ fotos oficiais, fotos enviadas pelos participantes, vÃ­deo oficial, lista de presenÃ§a respeitando privacidade e memÃ³rias aprovadas.</p>
+                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">O acervo será aberto depois do reencontro.</h2>
+                <p className="text-[#8ab89a] leading-relaxed mb-8">Depois do evento, esta página reunirá fotos oficiais, fotos enviadas pelos participantes, vídeo oficial, lista de presença respeitando privacidade e memórias aprovadas.</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                   {[
-                    ["Fotos oficiais", "SeleÃ§Ã£o da organizaÃ§Ã£o"],
-                    ["MemÃ³rias", "Relatos aprovados da turma"],
-                    ["Melhores momentos", "VÃ­deo e destaques pÃ³s-evento"],
+                    ["Fotos oficiais", "Seleção da organização"],
+                    ["Memórias", "Relatos aprovados da turma"],
+                    ["Melhores momentos", "Vídeo e destaques pós-evento"],
                   ].map(([title, body]) => <div key={title} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-5"><p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-2">{title}</p><p className="text-[#7a9a7a] text-sm">{body}</p></div>)}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
                   <Btn variant="outline" onClick={() => navigate("photo-wall")}><Camera size={16} />Ver fotos antigas</Btn>
-                  <Btn variant="ghost" onClick={() => navigate("memories")}><MessageCircle size={16} />Ver memÃ³rias</Btn>
+                  <Btn variant="ghost" onClick={() => navigate("memories")}><MessageCircle size={16} />Ver memórias</Btn>
                 </div>
               </div>
             </div>
@@ -3041,7 +3041,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
           {!loading && archiveOpen && (
             <div className="flex flex-col gap-10">
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Mensagem da organizaÃ§Ã£o</p>
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Mensagem da organização</p>
                 <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">
                   {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
                 </p>
@@ -3052,7 +3052,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
                   <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Fotos oficiais e destaques</p>
                   <Btn size="sm" variant="outline" onClick={() => setUploadOpen(true)}><Upload size={14} />Enviar foto</Btn>
                 </div>
-                {officialPhotos.length === 0 ? <EmptyState title="Nenhuma foto no acervo" subtitle="As fotos aprovadas aparecerÃ£o aqui." /> : (
+                {officialPhotos.length === 0 ? <EmptyState title="Nenhuma foto no acervo" subtitle="As fotos aprovadas aparecerão aqui." /> : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {officialPhotos.map(photo => <div key={photo.id} className="aspect-[4/3] overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20"><img src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto do acervo"} className="w-full h-full object-cover opacity-85" /></div>)}
                   </div>
@@ -3061,8 +3061,8 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
 
               <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">MemÃ³rias da turma</p>
-                  {memories.length === 0 ? <EmptyState title="Nenhuma memÃ³ria aprovada" /> : memories.slice(0, 5).map(memory => <div key={memory.id} className="border-b border-[#2d6a4f]/15 py-4 last:border-b-0"><p className="text-[#f0ebe0] font-['Playfair_Display'] text-lg">â€œ{memory.memory_text}â€</p><p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "AnÃ´nimo" : memory.author_name ?? "Ex-aluno"}</p></div>)}
+                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Memórias da turma</p>
+                  {memories.length === 0 ? <EmptyState title="Nenhuma memória aprovada" /> : memories.slice(0, 5).map(memory => <div key={memory.id} className="border-b border-[#2d6a4f]/15 py-4 last:border-b-0"><p className="text-[#f0ebe0] font-['Playfair_Display'] text-lg">“{memory.memory_text}”</p><p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "Anônimo" : memory.author_name ?? "Ex-aluno"}</p></div>)}
                 </div>
                 <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
                   <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Melhores momentos</p>
@@ -3105,10 +3105,10 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
               </section>
 
               <section className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Lista de presenÃ§a pÃºblica</p>
-                {confirmedPeople.length === 0 ? <EmptyState title="Lista indisponÃ­vel" subtitle="A lista pÃºblica respeita as preferÃªncias de privacidade dos perfis." /> : (
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Lista de presença pública</p>
+                {confirmedPeople.length === 0 ? <EmptyState title="Lista indisponível" subtitle="A lista pública respeita as preferências de privacidade dos perfis." /> : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {confirmedPeople.map(person => <div key={person.id} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4"><p className="text-[#f0ebe0] text-sm font-semibold">{person.full_name}</p><p className="text-[#7a9a7a] text-xs font-mono">Turma 2006{person.class_group ? ` Â· Sala ${person.class_group}` : ""}</p></div>)}
+                    {confirmedPeople.map(person => <div key={person.id} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4"><p className="text-[#f0ebe0] text-sm font-semibold">{person.full_name}</p><p className="text-[#7a9a7a] text-xs font-mono">Turma 2006{person.class_group ? ` · Sala ${person.class_group}` : ""}</p></div>)}
                   </div>
                 )}
               </section>
@@ -3120,7 +3120,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
   );
 }
 
-// â”€â”€â”€ MEMORIES PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
 
 function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [memories, setMemories] = useState<DbMemory[]>([]);
@@ -3138,7 +3138,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
     try {
       setMemories(await getApprovedMemories(DEFAULT_EVENT_ID));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar memÃ³rias.");
+      setError(err instanceof Error ? err.message : "Erro ao carregar memórias.");
     } finally { setLoading(false); }
   }
 
@@ -3146,7 +3146,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 
   async function submitMemory() {
     if (!auth.loggedIn) { navigate("login"); return; }
-    if (memoryText.trim().length < 10) { setError("Escreva uma memÃ³ria com pelo menos 10 caracteres."); return; }
+    if (memoryText.trim().length < 10) { setError("Escreva uma memória com pelo menos 10 caracteres."); return; }
     setBusy(true); setError(""); setMessage("");
     try {
       await createMemory({
@@ -3158,10 +3158,10 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
       });
       setMemoryText("");
       setIsAnonymous(false);
-      setMessage("MemÃ³ria enviada para moderaÃ§Ã£o.");
+      setMessage("Memória enviada para moderação.");
       await loadMemories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar memÃ³ria.");
+      setError(err instanceof Error ? err.message : "Erro ao enviar memória.");
     } finally { setBusy(false); }
   }
 
@@ -3169,14 +3169,14 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
     <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
-        <SectionLabel>Caixa de memÃ³rias</SectionLabel>
+        <SectionLabel>Caixa de memórias</SectionLabel>
         <DisplayTitle className="text-4xl md:text-6xl mb-4">O que ficou daquele tempo?</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembranÃ§a curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereÃ§a ficar no acervo do reencontro.</p>
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembrança curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereça ficar no acervo do reencontro.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] gap-8">
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5 h-fit">
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memÃ³ria</p>
-            <FieldArea label="Sua memÃ³ria" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
+            <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
             <div className="flex items-center justify-between text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span><StatusBadge status="pending" /></div>
             <label className="flex items-center justify-between cursor-pointer border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">
               <span className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>
@@ -3186,20 +3186,20 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
             </label>
             {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
             {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Enviar para moderaÃ§Ã£o</Btn>
+            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Enviar para moderação</Btn>
           </div>
 
           <div className="flex flex-col gap-4">
-            {loading && <LoadingState message="Carregando memÃ³rias..." />}
-            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memÃ³ria aprovada ainda" subtitle="As memÃ³rias enviadas aparecem aqui depois da moderaÃ§Ã£o." />}
+            {loading && <LoadingState message="Carregando memórias..." />}
+            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória aprovada ainda" subtitle="As memórias enviadas aparecem aqui depois da moderação." />}
             {memories.map(memory => (
               <div key={memory.id} className={`bg-[#141f14] border p-6 ${memory.is_featured ? "border-[#c9a84c]/60" : "border-[#2d6a4f]/25"}`}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{memory.is_featured ? "MemÃ³ria destacada" : "MemÃ³ria da turma"}</p>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
                   {memory.is_featured && <Star size={14} className="text-[#c9a84c]" />}
                 </div>
-                <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">â€œ{memory.memory_text}â€</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "AnÃ´nimo" : (memory.author_name ?? "Ex-aluno")} Â· {memory.created_at?.slice(0, 10)}</p>
+                <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
+                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {memory.created_at?.slice(0, 10)}</p>
               </div>
             ))}
           </div>
@@ -3209,7 +3209,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
   );
 }
 
-// â”€â”€â”€ ALUMNI AREA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ALUMNI AREA ──────────────────────────────────────────────────────────────
 
 function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
@@ -3222,7 +3222,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
     try {
       setTickets(await getMyTickets(auth.userId, auth.email));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar sua Ã¡rea.");
+      setError(err instanceof Error ? err.message : "Erro ao carregar sua área.");
     } finally {
       setLoading(false);
     }
@@ -3239,11 +3239,11 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
           <div>
-            <SectionLabel>Ãrea do Ex-Aluno</SectionLabel>
-            <DisplayTitle className="text-3xl md:text-4xl">OlÃ¡, {auth.name.split(" ")[0]}!</DisplayTitle>
-            <p className="text-[#7a9a7a] font-mono text-sm mt-1">Turma 2006 Â· dados protegidos por login</p>
+            <SectionLabel>Área do Ex-Aluno</SectionLabel>
+            <DisplayTitle className="text-3xl md:text-4xl">Olá, {auth.name.split(" ")[0]}!</DisplayTitle>
+            <p className="text-[#7a9a7a] font-mono text-sm mt-1">Turma 2006 · dados protegidos por login</p>
           </div>
-          <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Voltar ao inÃ­cio">
+          <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Voltar ao início">
             <LogOut size={20} />
           </button>
         </div>
@@ -3263,7 +3263,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
                   {mainTicket ? (
                     <>
                       <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">{ticketTypeName(mainTicket)}</p>
-                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">{mainTicket.qr_code} Â· {mainTicket.attendee_name}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">{mainTicket.qr_code} · {mainTicket.attendee_name}</p>
                       <div className="flex flex-wrap justify-center md:justify-start gap-2"><StatusBadge status={paymentStatus} />{mainTicket.checked_in && <StatusBadge status="checked_in" />}</div>
                     </>
                   ) : (
@@ -3287,11 +3287,11 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
                   </div>
                   <div>
                     <p className="text-[#f0ebe0] font-semibold">{auth.name}</p>
-                    <p className="text-[#7a9a7a] text-xs font-mono">{auth.email ?? "E-mail nÃ£o informado"}</p>
+                    <p className="text-[#7a9a7a] text-xs font-mono">{auth.email ?? "E-mail não informado"}</p>
                   </div>
                 </div>
                 <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
-                <div className="mt-3"><Btn full size="sm" variant="ghost" onClick={() => navigate("share-invite")}><Send size={14} />Convite compartilhÃ¡vel</Btn></div>
+                <div className="mt-3"><Btn full size="sm" variant="ghost" onClick={() => navigate("share-invite")}><Send size={14} />Convite compartilhável</Btn></div>
               </div>
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Status do pagamento</p>
@@ -3299,12 +3299,12 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
                   <div className="flex items-center gap-3 mb-4">
                     {hasApprovedTicket ? <CheckCircle size={24} className="text-[#2d6a4f]" /> : <Clock size={24} className="text-[#c9a84c]" />}
                     <div>
-                      <p className="text-[#f0ebe0] font-semibold">{hasApprovedTicket ? "Pagamento aprovado" : "Pagamento ainda nÃ£o aprovado"}</p>
-                      <p className="text-[#7a9a7a] text-xs font-mono">{mainTicket.orders?.payment_method ?? "MÃ©todo nÃ£o informado"} Â· {formatDateTimeBR(mainTicket.orders?.paid_at) || "Sem confirmaÃ§Ã£o de pagamento"}</p>
+                      <p className="text-[#f0ebe0] font-semibold">{hasApprovedTicket ? "Pagamento aprovado" : "Pagamento ainda não aprovado"}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono">{mainTicket.orders?.payment_method ?? "Método não informado"} · {formatDateTimeBR(mainTicket.orders?.paid_at) || "Sem confirmação de pagamento"}</p>
                     </div>
                   </div>
                 ) : (
-                  <EmptyState title="Sem pedido vinculado" subtitle="Compre um ingresso ou confira se vocÃª estÃ¡ usando o mesmo e-mail informado na compra." />
+                  <EmptyState title="Sem pedido vinculado" subtitle="Compre um ingresso ou confira se você está usando o mesmo e-mail informado na compra." />
                 )}
                 {mainTicket && <StatusBadge status={paymentStatus} />}
               </div>
@@ -3315,7 +3315,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Fotos em que apareci</p>
                 <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Ver mural</button>
               </div>
-              <EmptyState title="MarcaÃ§Ãµes ainda nÃ£o vinculadas" subtitle="Quando houver marcaÃ§Ãµes aprovadas em fotos usando seu perfil, elas aparecerÃ£o aqui." />
+              <EmptyState title="Marcações ainda não vinculadas" subtitle="Quando houver marcações aprovadas em fotos usando seu perfil, elas aparecerão aqui." />
               <div className="mt-4">
                 <Btn full size="sm" variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={14} />Enviar foto antiga</Btn>
               </div>
@@ -3327,7 +3327,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
   );
 }
 
-// â”€â”€â”€ EDIT PROFILE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── EDIT PROFILE ─────────────────────────────────────────────────────────────
 
 function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> }) | null>(null);
@@ -3380,7 +3380,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   useEffect(() => { loadProfile(); }, [auth.userId]);
 
   async function save() {
-    if (!profile) { setError("Reivindique seu perfil antes de editar os dados pÃºblicos."); return; }
+    if (!profile) { setError("Reivindique seu perfil antes de editar os dados públicos."); return; }
     setBusy(true);
     setError("");
     try {
@@ -3436,7 +3436,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
-          <ArrowLeft size={16} /> Minha Ã¡rea
+          <ArrowLeft size={16} /> Minha área
         </button>
         <SectionLabel>Perfil</SectionLabel>
         <DisplayTitle className="text-3xl md:text-4xl mb-10">Editar meu perfil</DisplayTitle>
@@ -3445,7 +3445,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         {error && <ErrorState message={error} onRetry={loadProfile} />}
         {!loading && !profile && !error && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Perfil ainda nÃ£o reivindicado" subtitle="Para editar dados pÃºblicos, primeiro vincule sua conta ao seu nome na lista da turma." action={<Btn onClick={() => navigate("claim-profile")}><UserCheck size={16} />Reivindicar perfil</Btn>} />
+            <EmptyState title="Perfil ainda não reivindicado" subtitle="Para editar dados públicos, primeiro vincule sua conta ao seu nome na lista da turma." action={<Btn onClick={() => navigate("claim-profile")}><UserCheck size={16} />Reivindicar perfil</Btn>} />
           </div>
         )}
         {!loading && profile && (
@@ -3478,17 +3478,17 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               </div>
             </div>
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">InformaÃ§Ãµes pessoais</p>
-              <Field label="Nome de exibiÃ§Ã£o" value={form.displayName} onChange={v => setForm(f => ({ ...f, displayName: v }))} placeholder="Como vocÃª quer aparecer" />
-              <InfoRow label="Apelido da Ã©poca" value={profile.people?.nickname_at_school ?? "NÃ£o informado"} />
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Informações pessoais</p>
+              <Field label="Nome de exibição" value={form.displayName} onChange={v => setForm(f => ({ ...f, displayName: v }))} placeholder="Como você quer aparecer" />
+              <InfoRow label="Apelido da época" value={profile.people?.nickname_at_school ?? "Não informado"} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Cidade atual" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} placeholder="Onde vocÃª mora hoje" icon={<MapPin size={14} />} />
+                <Field label="Cidade atual" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} placeholder="Onde você mora hoje" icon={<MapPin size={14} />} />
                 <Field label="Estado" value={form.state} onChange={v => setForm(f => ({ ...f, state: v }))} placeholder="UF/estado" />
               </div>
-              <Field label="PaÃ­s" value={form.country} onChange={v => setForm(f => ({ ...f, country: v }))} placeholder="Brasil" />
-              <Field label="ProfissÃ£o" value={form.profession} onChange={v => setForm(f => ({ ...f, profession: v }))} placeholder="O que vocÃª faz hoje" />
-              <FieldArea label="Mini bio" value={form.bio} onChange={v => setForm(f => ({ ...f, bio: v }))} placeholder="Conte um pouco sobre vocÃª hoje..." />
-              <FieldArea label="MemÃ³ria favorita do HC" value={form.memoryText} onChange={v => setForm(f => ({ ...f, memoryText: v }))} placeholder="Uma memÃ³ria que vocÃª nunca vai esquecer..." rows={2} />
+              <Field label="País" value={form.country} onChange={v => setForm(f => ({ ...f, country: v }))} placeholder="Brasil" />
+              <Field label="Profissão" value={form.profession} onChange={v => setForm(f => ({ ...f, profession: v }))} placeholder="O que você faz hoje" />
+              <FieldArea label="Mini bio" value={form.bio} onChange={v => setForm(f => ({ ...f, bio: v }))} placeholder="Conte um pouco sobre você hoje..." />
+              <FieldArea label="Memória favorita do HC" value={form.memoryText} onChange={v => setForm(f => ({ ...f, memoryText: v }))} placeholder="Uma memória que você nunca vai esquecer..." rows={2} />
             </div>
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Redes sociais</p>
@@ -3502,9 +3502,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
                   ["showInList",     "Aparecer na lista de confirmados"],
                   ["showCurrentPhoto", "Exibir foto atual"],
                   ["showCity",       "Exibir cidade atual"],
-                  ["showProfession", "Exibir profissÃ£o"],
+                  ["showProfession", "Exibir profissão"],
                   ["showSocial",     "Exibir redes sociais"],
-                  ["allowTagging",   "Permitir marcaÃ§Ãµes em fotos"],
+                  ["allowTagging",   "Permitir marcações em fotos"],
                 ] as [keyof typeof privacy, string][]).map(([key, label]) => (
                   <label key={key} className="flex items-center justify-between cursor-pointer">
                     <span className="text-[#f0ebe0] text-sm">{label}</span>
@@ -3516,7 +3516,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
                 ))}
               </div>
             </div>
-            <Btn full size="lg" onClick={save} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><Save size={16} />Salvar alteraÃ§Ãµes</>}</Btn>
+            <Btn full size="lg" onClick={save} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><Save size={16} />Salvar alterações</>}</Btn>
           </div>
         )}
       </div>
@@ -3524,7 +3524,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   );
 }
 
-// â”€â”€â”€ ADMIN PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 
 
 function AdminReviewList<T>({ title, items, getTitle, getSubtitle, getStatus, onApprove, onReject }: {
@@ -3627,7 +3627,9 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
     contactEmail: "", contactPhone: "", description: "", rules: "", companionPolicy: "", refundPolicy: "",
   });
 
-  const role = auth.role ?? "viewer";
+    const [homeDraft, setHomeDraft] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
+
+const role = auth.role ?? "viewer";
   const canManageEvent = role === "superadmin" || role === "admin";
   const canManageAdmins = role === "superadmin";
   const canModerate = role === "superadmin" || role === "admin" || role === "moderator";
@@ -3637,15 +3639,14 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const tabs = [
     { id:"dashboard", label:"Dashboard", icon:<BarChart3 size={13} /> },
     { id:"home-content", label:"Home", icon:<Pencil size={13} />, disabled: !canManageEvent },
-    { id:"home-content", label:"Home", icon:<Pencil size={13} />, disabled: !canManageEvent },
     { id:"orders", label:"Pedidos", icon:<Ticket size={13} /> },
     { id:"lots", label:"Lotes", icon:<Package size={13} />, disabled: !canManageEvent },
     { id:"reports", label:"Relatorios", icon:<Download size={13} /> },
     { id:"participants", label:"Participantes", icon:<Users size={13} /> },
     { id:"photos", label:"Fotos", icon:<Camera size={13} />, disabled: !canModerate },
     { id:"tag-mod", label:"Marcacoes", icon:<Tag size={13} />, disabled: !canModerate },
-    { id:"photo-comments", label:"ComentÃ¡rios", icon:<MessageCircle size={13} />, disabled: !canModerate },
-    { id:"memories", label:"MemÃ³rias", icon:<Star size={13} />, disabled: !canModerate },
+    { id:"photo-comments", label:"Comentários", icon:<MessageCircle size={13} />, disabled: !canModerate },
+    { id:"memories", label:"Memórias", icon:<Star size={13} />, disabled: !canModerate },
     { id:"polls", label:"Enquetes", icon:<BarChart3 size={13} />, disabled: !canManageEvent },
     { id:"claims", label:"Perfis", icon:<UserCheck size={13} />, disabled: !canModerate },
     { id:"removals", label:"Remocoes", icon:<AlertCircle size={13} />, disabled: !canModerate },
@@ -3704,6 +3705,9 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
           companionPolicy: eventData.companion_policy ?? "",
           refundPolicy: eventData.refund_policy ?? "",
         });
+        const homeData = await getHomePageContent(eventData.id);
+        setHomeDraft(homeData);
+        onHomeContentUpdated(homeData);
         setReports(await getReports(eventData.id));
       }
     } catch (err) {
@@ -3779,7 +3783,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
     if (!canManageEvent) return;
     const options = pollDraft.optionsText.split("\n").map(o => o.trim()).filter(Boolean);
     if (!pollDraft.question.trim() || options.length < 2) {
-      setError("Informe a pergunta e pelo menos duas opÃ§Ãµes.");
+      setError("Informe a pergunta e pelo menos duas opções.");
       return;
     }
     await runAction("poll-create", async () => {
@@ -3811,10 +3815,10 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
         {canCheckin && <Btn size="sm" onClick={() => navigate("checkin")}><Scan size={14} />Check-in</Btn>}
       </div>
 
-      <div className="flex overflow-x-auto border-b border-[#2d6a4f]/20 px-2">
+      <div className="flex gap-1 overflow-x-auto border-b border-[#2d6a4f]/20 px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map(t => (
           <button key={t.id} disabled={t.disabled} onClick={() => !t.disabled && setTab(t.id)}
-            className={"flex items-center gap-1.5 px-4 py-4 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
+            className={"shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-4 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
             {t.icon}{t.label}
           </button>
         ))}
@@ -3861,43 +3865,43 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
             <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
                 <div>
-                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Textos da pÃ¡gina inicial</p>
-                  <p className="text-[#3a5a3a] text-xs mt-1">Edite os textos exibidos na landing page pÃºblica.</p>
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Textos da página inicial</p>
+                  <p className="text-[#3a5a3a] text-xs mt-1">Edite os textos exibidos na landing page pública.</p>
                 </div>
                 <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar textos</Btn>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Chamada superior do hero" value={homeDraft.hero_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, hero_eyebrow: v }))} />
-                <Field label="TÃ­tulo principal" value={homeDraft.hero_title} onChange={v => setHomeDraft(s => ({ ...s, hero_title: v }))} />
-                <Field label="Linha de apoio do tÃ­tulo" value={homeDraft.hero_tagline} onChange={v => setHomeDraft(s => ({ ...s, hero_tagline: v }))} />
+                <Field label="Título principal" value={homeDraft.hero_title} onChange={v => setHomeDraft(s => ({ ...s, hero_title: v }))} />
+                <Field label="Linha de apoio do título" value={homeDraft.hero_tagline} onChange={v => setHomeDraft(s => ({ ...s, hero_tagline: v }))} />
                 <Field label="Data/local no hero" value={homeDraft.hero_event_line} onChange={v => setHomeDraft(s => ({ ...s, hero_event_line: v }))} />
                 <Field label="CTA principal" value={homeDraft.primary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, primary_cta_label: v }))} />
-                <Field label="CTA secundÃ¡rio" value={homeDraft.secondary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, secondary_cta_label: v }))} />
+                <Field label="CTA secundário" value={homeDraft.secondary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, secondary_cta_label: v }))} />
                 <div className="md:col-span-2">
-                  <FieldArea rows={3} label="SubtÃ­tulo do hero" value={homeDraft.hero_subtitle} onChange={v => setHomeDraft(s => ({ ...s, hero_subtitle: v }))} />
+                  <FieldArea rows={3} label="Subtítulo do hero" value={homeDraft.hero_subtitle} onChange={v => setHomeDraft(s => ({ ...s, hero_subtitle: v }))} />
                 </div>
               </div>
             </div>
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">SeÃ§Ãµes da home</p>
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Seções da home</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Eyebrow sobre" value={homeDraft.about_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, about_eyebrow: v }))} />
-                <Field label="TÃ­tulo sobre" value={homeDraft.about_title} onChange={v => setHomeDraft(s => ({ ...s, about_title: v }))} />
+                <Field label="Título sobre" value={homeDraft.about_title} onChange={v => setHomeDraft(s => ({ ...s, about_title: v }))} />
                 <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 1" value={homeDraft.about_body_1} onChange={v => setHomeDraft(s => ({ ...s, about_body_1: v }))} /></div>
                 <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 2" value={homeDraft.about_body_2} onChange={v => setHomeDraft(s => ({ ...s, about_body_2: v }))} /></div>
-                <Field label="Eyebrow informaÃ§Ãµes" value={homeDraft.info_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, info_eyebrow: v }))} />
-                <Field label="TÃ­tulo informaÃ§Ãµes" value={homeDraft.info_title} onChange={v => setHomeDraft(s => ({ ...s, info_title: v }))} />
+                <Field label="Eyebrow informações" value={homeDraft.info_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, info_eyebrow: v }))} />
+                <Field label="Título informações" value={homeDraft.info_title} onChange={v => setHomeDraft(s => ({ ...s, info_title: v }))} />
                 <Field label="Eyebrow ingressos" value={homeDraft.tickets_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, tickets_eyebrow: v }))} />
-                <Field label="TÃ­tulo ingressos" value={homeDraft.tickets_title} onChange={v => setHomeDraft(s => ({ ...s, tickets_title: v }))} />
+                <Field label="Título ingressos" value={homeDraft.tickets_title} onChange={v => setHomeDraft(s => ({ ...s, tickets_title: v }))} />
                 <Field label="Eyebrow confirmados" value={homeDraft.confirmed_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, confirmed_eyebrow: v }))} />
-                <Field label="TÃ­tulo confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
+                <Field label="Título confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
                 <Field label="Eyebrow fotos" value={homeDraft.photos_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, photos_eyebrow: v }))} />
-                <Field label="TÃ­tulo fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
+                <Field label="Título fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
                 <Field label="Eyebrow timeline" value={homeDraft.timeline_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, timeline_eyebrow: v }))} />
-                <Field label="TÃ­tulo timeline" value={homeDraft.timeline_title} onChange={v => setHomeDraft(s => ({ ...s, timeline_title: v }))} />
+                <Field label="Título timeline" value={homeDraft.timeline_title} onChange={v => setHomeDraft(s => ({ ...s, timeline_title: v }))} />
                 <Field label="Eyebrow FAQ" value={homeDraft.faq_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, faq_eyebrow: v }))} />
-                <Field label="TÃ­tulo FAQ" value={homeDraft.faq_title} onChange={v => setHomeDraft(s => ({ ...s, faq_title: v }))} />
+                <Field label="Título FAQ" value={homeDraft.faq_title} onChange={v => setHomeDraft(s => ({ ...s, faq_title: v }))} />
               </div>
               <div className="mt-6">
                 <Btn onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar textos da home</Btn>
@@ -4006,7 +4010,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
                   <div className="aspect-[4/3] overflow-hidden"><img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80" /></div>
                   <div className="p-4">
                     <p className="text-[#f0ebe0] text-sm font-semibold mb-1">{p.caption}</p>
-                    <p className="text-[#7a9a7a] text-xs mb-3">{p.year_approx} Â· {p.location_text}</p>
+                    <p className="text-[#7a9a7a] text-xs mb-3">{p.year_approx} · {p.location_text}</p>
                     <div className="flex gap-2">
                       <Btn size="sm" full onClick={() => runAction("photo-approve", () => moderatePhoto(p.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn>
                       <Btn size="sm" full variant="danger" onClick={() => runAction("photo-reject", () => moderatePhoto(p.id, "rejected", auth.userId))}><X size={12} /></Btn>
@@ -4058,11 +4062,11 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
                 </button>
               ))}
             </div>
-            {comments.length === 0 ? <EmptyState title="Nenhum comentÃ¡rio encontrado" /> : comments.map(comment => (
+            {comments.length === 0 ? <EmptyState title="Nenhum comentário encontrado" /> : comments.map(comment => (
               <div key={comment.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex-1">
                   <p className="text-[#f0ebe0] text-sm leading-relaxed">{comment.comment_text}</p>
-                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{comment.author_name ?? comment.user_id ?? "Ex-aluno"} Â· {comment.photos?.caption ?? "Foto"} Â· {comment.created_at?.slice(0,10)}</p>
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{comment.author_name ?? comment.user_id ?? "Ex-aluno"} · {comment.photos?.caption ?? "Foto"} · {comment.created_at?.slice(0,10)}</p>
                 </div>
                 <StatusBadge status={comment.status} />
                 <div className="flex flex-wrap gap-2">
@@ -4085,11 +4089,11 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
                 </button>
               ))}
             </div>
-            {memories.length === 0 ? <EmptyState title="Nenhuma memÃ³ria encontrada" /> : memories.map(memory => (
+            {memories.length === 0 ? <EmptyState title="Nenhuma memória encontrada" /> : memories.map(memory => (
               <div key={memory.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex-1">
                   <p className="text-[#f0ebe0] text-sm leading-relaxed">{memory.memory_text}</p>
-                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "AnÃ´nimo" : (memory.author_name ?? "Ex-aluno")} Â· {memory.created_at?.slice(0,10)}</p>
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {memory.created_at?.slice(0,10)}</p>
                 </div>
                 <div className="flex items-center gap-2"><StatusBadge status={memory.status} />{memory.is_featured && <StatusBadge status="featured" />}</div>
                 <div className="flex flex-wrap gap-2">
@@ -4107,8 +4111,8 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
           <div className="flex flex-col gap-6">
             <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Pergunta" value={pollDraft.question} onChange={v => setPollDraft(s => ({ ...s, question: v }))} />
-              <Field label="DescriÃ§Ã£o" value={pollDraft.description} onChange={v => setPollDraft(s => ({ ...s, description: v }))} />
-              <FieldArea label="OpÃ§Ãµes, uma por linha" value={pollDraft.optionsText} onChange={v => setPollDraft(s => ({ ...s, optionsText: v }))} rows={5} />
+              <Field label="Descrição" value={pollDraft.description} onChange={v => setPollDraft(s => ({ ...s, description: v }))} />
+              <FieldArea label="Opções, uma por linha" value={pollDraft.optionsText} onChange={v => setPollDraft(s => ({ ...s, optionsText: v }))} rows={5} />
               <div className="flex flex-col gap-4">
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Status inicial</label>
@@ -4119,7 +4123,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
                 </div>
                 <label className="flex items-center gap-3 text-[#f0ebe0] text-sm">
                   <input type="checkbox" checked={pollDraft.allowMultiple} onChange={e => setPollDraft(s => ({ ...s, allowMultiple: e.target.checked }))} className="accent-[#2d6a4f]" />
-                  Permitir mÃºltiplos votos
+                  Permitir múltiplos votos
                 </label>
                 <Btn onClick={createAdminPoll} disabled={busy === "poll-create"}><BarChart3 size={14} />Criar enquete</Btn>
               </div>
@@ -4130,7 +4134,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
                 <div className="flex-1">
                   <p className="text-[#f0ebe0] font-semibold">{poll.question}</p>
                   {poll.description && <p className="text-[#7a9a7a] text-sm mt-1">{poll.description}</p>}
-                  <p className="text-[#7a9a7a] font-mono text-xs mt-2">{poll.poll_options?.length ?? 0} opÃ§Ãµes Â· {poll.allow_multiple_votes ? "mÃºltiplos votos" : "voto Ãºnico"}</p>
+                  <p className="text-[#7a9a7a] font-mono text-xs mt-2">{poll.poll_options?.length ?? 0} opções · {poll.allow_multiple_votes ? "múltiplos votos" : "voto único"}</p>
                 </div>
                 <StatusBadge status={poll.status} />
                 <div className="flex flex-wrap gap-2">
@@ -4150,7 +4154,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
             {claims.map(c => (
               <div key={c.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="w-10 h-10 bg-[#1a2e1a] border border-[#2d6a4f]/30 flex items-center justify-center text-[#7a9a7a] font-bold font-mono text-sm shrink-0">{initials(c.requester_name)}</div>
-                <div className="flex-1"><p className="text-[#f0ebe0] font-semibold text-sm">{c.requester_name}</p><p className="text-[#7a9a7a] text-xs font-mono">{c.people?.full_name} Â· score {c.verification_score ?? 0}</p></div>
+                <div className="flex-1"><p className="text-[#f0ebe0] font-semibold text-sm">{c.requester_name}</p><p className="text-[#7a9a7a] text-xs font-mono">{c.people?.full_name} · score {c.verification_score ?? 0}</p></div>
                 <StatusBadge status={c.status} />
                 <div className="flex gap-2"><Btn size="sm" onClick={() => runAction("claim-approve", () => moderateClaim(c.id, "approved", auth.userId))}><Check size={12} />Aprovar</Btn><Btn size="sm" variant="danger" onClick={() => runAction("claim-reject", () => moderateClaim(c.id, "rejected", auth.userId, "Rejeitado pelo admin"))}><X size={12} /></Btn></div>
               </div>
@@ -4159,11 +4163,11 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
         ))}
 
         {!loading && tab === "removals" && (!canModerate ? <PermissionState /> : (
-          <AdminReviewList title="Solicitacoes de remocao" items={removals} getTitle={r => r.requester_name} getSubtitle={r => (r.photos?.caption ?? "Foto") + " Â· " + r.reason} getStatus={r => r.status} onApprove={r => runAction("removal-approve", () => reviewPhotoRemovalRequest(r.id, "approved", auth.userId))} onReject={r => runAction("removal-reject", () => reviewPhotoRemovalRequest(r.id, "rejected", auth.userId))} />
+          <AdminReviewList title="Solicitacoes de remocao" items={removals} getTitle={r => r.requester_name} getSubtitle={r => (r.photos?.caption ?? "Foto") + " · " + r.reason} getStatus={r => r.status} onApprove={r => runAction("removal-approve", () => reviewPhotoRemovalRequest(r.id, "approved", auth.userId))} onReject={r => runAction("removal-reject", () => reviewPhotoRemovalRequest(r.id, "rejected", auth.userId))} />
         ))}
 
         {!loading && tab === "disputes" && (!canModerate ? <PermissionState /> : (
-          <AdminReviewList title="Disputas de perfil" items={disputes} getTitle={d => d.requester_name} getSubtitle={d => (d.people?.full_name ?? d.person_id) + " Â· " + d.reason} getStatus={d => d.status} onApprove={d => runAction("dispute-approve", () => reviewProfileClaimDispute(d.id, "approved", auth.userId))} onReject={d => runAction("dispute-reject", () => reviewProfileClaimDispute(d.id, "rejected", auth.userId))} />
+          <AdminReviewList title="Disputas de perfil" items={disputes} getTitle={d => d.requester_name} getSubtitle={d => (d.people?.full_name ?? d.person_id) + " · " + d.reason} getStatus={d => d.status} onApprove={d => runAction("dispute-approve", () => reviewProfileClaimDispute(d.id, "approved", auth.userId))} onReject={d => runAction("dispute-reject", () => reviewProfileClaimDispute(d.id, "rejected", auth.userId))} />
         ))}
 
         {!loading && tab === "admins" && (!canManageAdmins ? <PermissionState /> : (
@@ -4287,7 +4291,7 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
   }
 
   const modes = [
-    { id:"qr" as const,    label:"QR / CÃ³digo",  placeholder:"Digite ou leia o codigo do ingresso" },
+    { id:"qr" as const,    label:"QR / Código",  placeholder:"Digite ou leia o codigo do ingresso" },
     { id:"name" as const,  label:"Nome",          placeholder:"Nome do participante"  },
     { id:"email" as const, label:"E-mail",        placeholder:"email@exemplo.com"     },
     { id:"phone" as const, label:"Telefone",      placeholder:"(84) 9 9999-0000"      },
@@ -4302,7 +4306,7 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
           <button onClick={() => navigate("admin")} className="text-[#7a9a7a] hover:text-[#f0ebe0]"><ArrowLeft size={20} /></button>
           <div>
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold">Check-in</p>
-            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">ValidaÃ§Ã£o real por tabela tickets</p>
+            <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Validação real por tabela tickets</p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-[#0d2e1a] border border-[#2d6a4f]/40 px-4 py-2">
@@ -4315,10 +4319,10 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 mb-6 text-center">
           <div className="w-44 h-44 bg-[#1a2e1a] border-2 border-dashed border-[#2d6a4f]/40 flex flex-col items-center justify-center mx-auto mb-4">
             <Scan size={48} className="text-[#2d6a4f] mb-2" />
-            <p className="text-[#7a9a7a] text-xs font-mono">Leitura por cÃ¢mera</p>
+            <p className="text-[#7a9a7a] text-xs font-mono">Leitura por câmera</p>
             <p className="text-[#3a5a3a] text-[10px] font-mono">use a busca manual</p>
           </div>
-          <p className="text-[#7a9a7a] text-sm">Digite o cÃ³digo textual do ingresso ou busque por nome, e-mail ou telefone.</p>
+          <p className="text-[#7a9a7a] text-sm">Digite o código textual do ingresso ou busque por nome, e-mail ou telefone.</p>
         </div>
 
         <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-4">
@@ -4352,7 +4356,7 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
             <p className="text-[#74c69d] font-semibold text-lg mb-1">{selectedTicket.attendee_name}</p>
             <p className="text-[#7a9a7a] font-mono text-xs mb-1">Check-in realizado em {checkinTime}</p>
             <p className="text-[#3a5a3a] font-mono text-[10px] mb-6">Registrado por: {auth.name}</p>
-            <Btn full onClick={reset}>Nova verificaÃ§Ã£o</Btn>
+            <Btn full onClick={reset}>Nova verificação</Btn>
           </div>
         )}
 
@@ -4367,43 +4371,43 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
             {result === "valid" && selectedTicket && (
               <>
                 <CheckCircle2 size={48} className="text-[#2d6a4f] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-1">Ingresso vÃ¡lido</DisplayTitle>
+                <DisplayTitle className="text-2xl mb-1">Ingresso válido</DisplayTitle>
                 <p className="text-[#74c69d] font-semibold text-lg mb-1">{selectedTicket.attendee_name}</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mb-4">{ticketTypeName(selectedTicket)} Â· {selectedTicket.qr_code}</p>
+                <p className="text-[#7a9a7a] font-mono text-xs mb-4">{ticketTypeName(selectedTicket)} · {selectedTicket.qr_code}</p>
                 <Btn full className="mb-3" onClick={registerEntry} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Registrando...</> : <>Registrar entrada</>}</Btn>
               </>
             )}
             {result === "used" && selectedTicket && (
               <>
                 <AlertTriangle size={48} className="text-[#c9a84c] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-2">JÃ¡ utilizado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm mb-2">{checkinName} jÃ¡ registrou entrada em {formatDateTimeBR(selectedTicket.checked_in_at)}.</p>
-                <p className="text-[#7a9a7a] text-xs font-mono">Verifique duplicidade antes de qualquer liberaÃ§Ã£o manual.</p>
+                <DisplayTitle className="text-2xl mb-2">Já utilizado</DisplayTitle>
+                <p className="text-[#7a9a7a] text-sm mb-2">{checkinName} já registrou entrada em {formatDateTimeBR(selectedTicket.checked_in_at)}.</p>
+                <p className="text-[#7a9a7a] text-xs font-mono">Verifique duplicidade antes de qualquer liberação manual.</p>
               </>
             )}
             {(result === "pending" || result === "in_process") && (
               <>
                 <Clock size={48} className="text-[#c9a84c] mx-auto mb-4" />
                 <DisplayTitle className="text-2xl mb-2">Pagamento pendente</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">Status atual: {paymentStatus}. NÃ£o autorizar entrada sem aprovaÃ§Ã£o.</p>
+                <p className="text-[#7a9a7a] text-sm">Status atual: {paymentStatus}. Não autorizar entrada sem aprovação.</p>
               </>
             )}
             {!["valid","used","pending","in_process","invalid"].includes(result) && (
               <>
                 <XCircle size={48} className="text-[#c0392b] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-2">Entrada nÃ£o autorizada</DisplayTitle>
+                <DisplayTitle className="text-2xl mb-2">Entrada não autorizada</DisplayTitle>
                 <p className="text-[#7a9a7a] text-sm">Status de pagamento: <strong className="text-[#f0ebe0]">{paymentStatus}</strong>.</p>
               </>
             )}
             {result === "invalid" && (
               <>
                 <AlertCircle size={48} className="text-[#c0392b] mx-auto mb-4" />
-                <DisplayTitle className="text-2xl mb-2">NÃ£o encontrado</DisplayTitle>
-                <p className="text-[#7a9a7a] text-sm">Nenhum ingresso encontrado para â€œ{query}â€.</p>
+                <DisplayTitle className="text-2xl mb-2">Não encontrado</DisplayTitle>
+                <p className="text-[#7a9a7a] text-sm">Nenhum ingresso encontrado para “{query}”.</p>
               </>
             )}
             <button onClick={reset} className="mt-4 text-[#7a9a7a] text-xs font-mono uppercase tracking-wider hover:text-[#f0ebe0] transition-colors block mx-auto">
-              Nova verificaÃ§Ã£o
+              Nova verificação
             </button>
           </div>
         )}
@@ -4412,20 +4416,20 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
   );
 }
 
-// â”€â”€â”€ TERMS PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TERMS PAGE ───────────────────────────────────────────────────────────────
 
 function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
   const sections = [
-    { title: "1. AceitaÃ§Ã£o dos Termos",            body: "Ao utilizar o site do evento Turma 2006 â€” 20 anos depois, vocÃª concorda com estes Termos de Uso. Se nÃ£o concordar com qualquer parte, nÃ£o utilize o site." },
-    { title: "2. Ingressos e Pagamentos",           body: "Os ingressos sÃ£o pessoais e intransferÃ­veis, vinculados ao CPF do comprador. O pagamento Ã© processado pelo Mercado Pago. NÃ£o haverÃ¡ reembolso apÃ³s a confirmaÃ§Ã£o, exceto em caso de cancelamento do evento pela organizaÃ§Ã£o." },
-    { title: "3. Dados Pessoais",                   body: "A coleta e o uso de dados pessoais estÃ£o descritos na PolÃ­tica de Privacidade. Ao se cadastrar, vocÃª concorda com o tratamento dos seus dados para as finalidades descritas nessa polÃ­tica." },
-    { title: "4. Fotos e Imagens",                  body: "Ao enviar uma foto, vocÃª declara ter o direito de compartilhÃ¡-la e autoriza a exibiÃ§Ã£o no site e no evento. Fotos ofensivas, inadequadas ou que violem direitos de terceiros serÃ£o removidas. Qualquer pessoa pode solicitar a remoÃ§Ã£o da sua imagem." },
-    { title: "5. Perfis de Ex-Alunos",              body: "Os perfis foram criados com base em informaÃ§Ãµes histÃ³ricas. Cada ex-aluno pode reivindicar seu perfil via processo de verificaÃ§Ã£o. InformaÃ§Ãµes falsas resultarÃ£o no cancelamento do acesso." },
-    { title: "6. Conduta no Evento",                body: "Os participantes devem manter conduta respeitosa. A organizaÃ§Ã£o pode retirar qualquer participante com comportamento inadequado, sem direito a reembolso." },
-    { title: "7. Check-in",                         body: "O check-in Ã© realizado mediante apresentaÃ§Ã£o do QR Code do ingresso. Cada QR Code sÃ³ pode ser utilizado uma vez. A tentativa de uso duplicado serÃ¡ registrada." },
-    { title: "8. ModeraÃ§Ã£o de ConteÃºdo",            body: "Toda foto enviada passa por moderaÃ§Ã£o. A organizaÃ§Ã£o pode remover qualquer conteÃºdo sem aviso prÃ©vio caso viole estes termos ou a polÃ­tica de privacidade." },
-    { title: "9. Responsabilidade da OrganizaÃ§Ã£o",  body: "A organizaÃ§Ã£o nÃ£o se responsabiliza por objetos perdidos/roubados ou acidentes de percurso. O evento pode ser cancelado por forÃ§a maior, com comunicaÃ§Ã£o prÃ©via e reembolso integral." },
-    { title: "10. Contato",                         body: "DÃºvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
+    { title: "1. Aceitação dos Termos",            body: "Ao utilizar o site do evento Turma 2006 — 20 anos depois, você concorda com estes Termos de Uso. Se não concordar com qualquer parte, não utilize o site." },
+    { title: "2. Ingressos e Pagamentos",           body: "Os ingressos são pessoais e intransferíveis, vinculados ao CPF do comprador. O pagamento é processado pelo Mercado Pago. Não haverá reembolso após a confirmação, exceto em caso de cancelamento do evento pela organização." },
+    { title: "3. Dados Pessoais",                   body: "A coleta e o uso de dados pessoais estão descritos na Política de Privacidade. Ao se cadastrar, você concorda com o tratamento dos seus dados para as finalidades descritas nessa política." },
+    { title: "4. Fotos e Imagens",                  body: "Ao enviar uma foto, você declara ter o direito de compartilhá-la e autoriza a exibição no site e no evento. Fotos ofensivas, inadequadas ou que violem direitos de terceiros serão removidas. Qualquer pessoa pode solicitar a remoção da sua imagem." },
+    { title: "5. Perfis de Ex-Alunos",              body: "Os perfis foram criados com base em informações históricas. Cada ex-aluno pode reivindicar seu perfil via processo de verificação. Informações falsas resultarão no cancelamento do acesso." },
+    { title: "6. Conduta no Evento",                body: "Os participantes devem manter conduta respeitosa. A organização pode retirar qualquer participante com comportamento inadequado, sem direito a reembolso." },
+    { title: "7. Check-in",                         body: "O check-in é realizado mediante apresentação do QR Code do ingresso. Cada QR Code só pode ser utilizado uma vez. A tentativa de uso duplicado será registrada." },
+    { title: "8. Moderação de Conteúdo",            body: "Toda foto enviada passa por moderação. A organização pode remover qualquer conteúdo sem aviso prévio caso viole estes termos ou a política de privacidade." },
+    { title: "9. Responsabilidade da Organização",  body: "A organização não se responsabiliza por objetos perdidos/roubados ou acidentes de percurso. O evento pode ser cancelado por força maior, com comunicação prévia e reembolso integral." },
+    { title: "10. Contato",                         body: "Dúvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -4433,9 +4437,9 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
         </button>
-        <SectionLabel>ColÃ©gio Henrique Castriciano Â· Turma 2006</SectionLabel>
+        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl mb-3">Termos de Uso</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Ãšltima atualizaÃ§Ã£o: 1 de julho de 2026</p>
+        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 1 de julho de 2026</p>
         <div className="flex flex-col gap-8">
           {sections.map(s => (
             <div key={s.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
@@ -4445,7 +4449,7 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
           ))}
         </div>
         <div className="mt-12 flex flex-wrap gap-4">
-          <Btn variant="outline" onClick={() => navigate("privacy")}><FileText size={16} />PolÃ­tica de Privacidade</Btn>
+          <Btn variant="outline" onClick={() => navigate("privacy")}><FileText size={16} />Política de Privacidade</Btn>
           <Btn variant="ghost" onClick={() => navigate("home")}>Voltar ao site</Btn>
         </div>
       </div>
@@ -4453,19 +4457,19 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-// â”€â”€â”€ PRIVACY PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PRIVACY PAGE ─────────────────────────────────────────────────────────────
 
 function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   const sections = [
-    { title: "1. Dados que coletamos",               body: "Nome completo, e-mail, telefone/WhatsApp, CPF (para compra de ingresso), cidade de residÃªncia, profissÃ£o, fotos enviadas voluntariamente, respostas Ã s perguntas de verificaÃ§Ã£o de identidade, e dados de navegaÃ§Ã£o como logs de acesso." },
-    { title: "2. Como usamos seus dados",            body: "Processamento de ingressos e pagamentos, verificaÃ§Ã£o de identidade para reivindicaÃ§Ã£o de perfis, exibiÃ§Ã£o no mural e na lista de confirmados (somente com sua autorizaÃ§Ã£o), envio de comunicaÃ§Ãµes sobre o evento, e check-in no dia." },
-    { title: "3. Dados de ex-alunos prÃ©-cadastrados", body: "A lista foi constituÃ­da com base em registros histÃ³ricos do ColÃ©gio HC. Os dados iniciais incluem apenas nome, apelido e turma/sala. Nenhum dado sensÃ­vel foi incluÃ­do sem consentimento. Qualquer ex-aluno pode solicitar a remoÃ§Ã£o." },
-    { title: "4. Uso de dados de pagamento",         body: "Os dados de pagamento sÃ£o processados exclusivamente pelo Mercado Pago. NÃ£o armazenamos dados de cartÃ£o. O processamento segue a polÃ­tica de privacidade do Mercado Pago." },
-    { title: "5. Fotos e marcaÃ§Ãµes",                 body: "Fotos enviadas sÃ£o armazenadas com seguranÃ§a e exibidas apenas apÃ³s moderaÃ§Ã£o. Qualquer pessoa pode solicitar a remoÃ§Ã£o da sua imagem. As marcaÃ§Ãµes em fotos tambÃ©m podem ser removidas mediante solicitaÃ§Ã£o." },
-    { title: "6. Controles de privacidade",          body: "VocÃª pode escolher exibir ou ocultar sua cidade, profissÃ£o, redes sociais, e se deseja aparecer na lista de confirmados. VocÃª pode bloquear marcaÃ§Ãµes em fotos a qualquer momento nas configuraÃ§Ãµes do perfil." },
-    { title: "7. SolicitaÃ§Ãµes de remoÃ§Ã£o",           body: "VocÃª pode solicitar a remoÃ§Ã£o da sua imagem de qualquer foto ou marcaÃ§Ã£o diretamente na plataforma, ou via e-mail para turma2006.hc@gmail.com. As solicitaÃ§Ãµes serÃ£o processadas em atÃ© 48 horas." },
-    { title: "8. Seus direitos (LGPD)",              body: "Nos termos da Lei 13.709/2018 (LGPD), vocÃª tem direito a: acessar seus dados, corrigir informaÃ§Ãµes, solicitar exclusÃ£o, revogar consentimentos e receber cÃ³pia dos seus dados. Envie sua solicitaÃ§Ã£o para turma2006.hc@gmail.com." },
-    { title: "9. Contato",                           body: "Para exercer seus direitos ou tirar dÃºvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
+    { title: "1. Dados que coletamos",               body: "Nome completo, e-mail, telefone/WhatsApp, CPF (para compra de ingresso), cidade de residência, profissão, fotos enviadas voluntariamente, respostas Ã s perguntas de verificação de identidade, e dados de navegação como logs de acesso." },
+    { title: "2. Como usamos seus dados",            body: "Processamento de ingressos e pagamentos, verificação de identidade para reivindicação de perfis, exibição no mural e na lista de confirmados (somente com sua autorização), envio de comunicações sobre o evento, e check-in no dia." },
+    { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas nome, apelido e turma/sala. Nenhum dado sensível foi incluído sem consentimento. Qualquer ex-aluno pode solicitar a remoção." },
+    { title: "4. Uso de dados de pagamento",         body: "Os dados de pagamento são processados exclusivamente pelo Mercado Pago. Não armazenamos dados de cartão. O processamento segue a política de privacidade do Mercado Pago." },
+    { title: "5. Fotos e marcações",                 body: "Fotos enviadas são armazenadas com segurança e exibidas apenas após moderação. Qualquer pessoa pode solicitar a remoção da sua imagem. As marcações em fotos também podem ser removidas mediante solicitação." },
+    { title: "6. Controles de privacidade",          body: "Você pode escolher exibir ou ocultar sua cidade, profissão, redes sociais, e se deseja aparecer na lista de confirmados. Você pode bloquear marcações em fotos a qualquer momento nas configurações do perfil." },
+    { title: "7. Solicitações de remoção",           body: "Você pode solicitar a remoção da sua imagem de qualquer foto ou marcação diretamente na plataforma, ou via e-mail para turma2006.hc@gmail.com. As solicitações serão processadas em até 48 horas." },
+    { title: "8. Seus direitos (LGPD)",              body: "Nos termos da Lei 13.709/2018 (LGPD), você tem direito a: acessar seus dados, corrigir informações, solicitar exclusão, revogar consentimentos e receber cópia dos seus dados. Envie sua solicitação para turma2006.hc@gmail.com." },
+    { title: "9. Contato",                           body: "Para exercer seus direitos ou tirar dúvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -4473,9 +4477,9 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
         </button>
-        <SectionLabel>ColÃ©gio Henrique Castriciano Â· Turma 2006</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-3">PolÃ­tica de Privacidade</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Ãšltima atualizaÃ§Ã£o: 1 de julho de 2026 Â· Em conformidade com a LGPD</p>
+        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
+        <DisplayTitle className="text-4xl md:text-5xl mb-3">Política de Privacidade</DisplayTitle>
+        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 1 de julho de 2026 · Em conformidade com a LGPD</p>
         <div className="flex flex-col gap-8">
           {sections.map(s => (
             <div key={s.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
@@ -4493,7 +4497,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   );
 }
 
-// â”€â”€â”€ APP ROOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
 const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket"];
 const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
@@ -4551,14 +4555,14 @@ export default function App() {
   const [homeContent, setHomeContent] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // â”€â”€ Inicializa sessÃ£o Supabase e escuta mudanÃ§as â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const u = session.user;
         const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
         const admin  = !!adminUser;
-        const name   = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "UsuÃ¡rio";
+        const name   = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
         setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
       }
       setAuthLoading(false);
@@ -4569,7 +4573,7 @@ export default function App() {
         const u = session.user;
         const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
         const admin = !!adminUser;
-        const name  = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "UsuÃ¡rio";
+        const name  = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
         setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
       } else if (event === "SIGNED_OUT") {
         setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
@@ -4579,7 +4583,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // â”€â”€ Carrega dados reais do Supabase com fallback para mock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Carrega dados reais do Supabase com fallback para mock ────────────────
   useEffect(() => {
     getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getTicketTypes().then(setTicketTypes).catch(() => {});
