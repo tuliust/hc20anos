@@ -7,6 +7,7 @@ import './lib/profile-registration-runtime';
 import './lib/edit-profile-runtime';
 import './lib/edit-profile-avatar-runtime';
 import './lib/header-home-list-runtime';
+import './lib/superadmin-menu-fix-runtime';
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
