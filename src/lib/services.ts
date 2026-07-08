@@ -248,6 +248,8 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
     memory_text: patch.memory_text ?? current.memory_text,
     instagram_url: patch.instagram_url ?? current.instagram_url,
     linkedin_url: patch.linkedin_url ?? current.linkedin_url,
+    contact_email: patch.contact_email ?? current.contact_email,
+    contact_whatsapp: patch.contact_whatsapp ?? current.contact_whatsapp,
     show_current_photo: patch.show_current_photo ?? current.show_current_photo,
     show_city: patch.show_city ?? current.show_city,
     show_profession: patch.show_profession ?? current.show_profession,
@@ -265,6 +267,103 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
   if (error) throw error;
   await writeAudit("update_profile", "profiles", current.id, { fields: Object.keys(allowedPatch) });
   return data as DbProfile;
+}
+
+export async function getClassmates(classGroup?: string | null, currentPersonId?: string | null): Promise<DbPerson[]> {
+  if (!classGroup) return [];
+  return withFallback(async () => {
+    let q = supabase
+      .from("people")
+      .select("*")
+      .eq("class_group", classGroup)
+      .eq("is_visible", true)
+      .order("full_name")
+      .limit(8);
+    if (currentPersonId) q = q.neq("id", currentPersonId);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as DbPerson[]) ?? [];
+  }, []);
+}
+
+export async function saveMyPublicProfile(
+  userId: string,
+  profilePatch: Partial<DbProfile>,
+  peoplePatch: Pick<Partial<DbPerson>, "nickname_at_school" | "avatar_url"> = {}
+): Promise<DbProfile & { people?: Partial<DbPerson> | null }> {
+  const current = await getMyProfile(userId);
+  if (!current?.id) {
+    throw new Error("Perfil ainda não reivindicado. Reivindique seu perfil antes de editar os dados públicos.");
+  }
+
+  const profileKeys: (keyof DbProfile)[] = [
+    "display_name",
+    "current_photo_url",
+    "current_city",
+    "current_state",
+    "current_country",
+    "profession",
+    "bio",
+    "memory_text",
+    "instagram_url",
+    "linkedin_url",
+    "contact_email",
+    "contact_whatsapp",
+    "show_current_photo",
+    "show_city",
+    "show_profession",
+    "show_social_links",
+    "allow_photo_tags",
+    "show_confirmed_status",
+  ];
+  const allowedProfilePatch = profileKeys.reduce<Partial<DbProfile>>((acc, key) => {
+    if (Object.prototype.hasOwnProperty.call(profilePatch, key)) {
+      (acc as any)[key] = profilePatch[key];
+    }
+    return acc;
+  }, {});
+
+  let updatedProfile: DbProfile = current;
+  if (Object.keys(allowedProfilePatch).length > 0) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(allowedProfilePatch)
+      .eq("id", current.id)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (error) throw error;
+    updatedProfile = data as DbProfile;
+  }
+
+  const peopleKeys: (keyof Pick<DbPerson, "nickname_at_school" | "avatar_url">)[] = ["nickname_at_school", "avatar_url"];
+  const allowedPeoplePatch = peopleKeys.reduce<Partial<DbPerson>>((acc, key) => {
+    if (Object.prototype.hasOwnProperty.call(peoplePatch, key)) {
+      (acc as any)[key] = peoplePatch[key];
+    }
+    return acc;
+  }, {});
+
+  let updatedPeople = current.people ?? null;
+  if (Object.keys(allowedPeoplePatch).length > 0) {
+    const rpcPatch: Record<string, string> = {};
+    if (Object.prototype.hasOwnProperty.call(allowedPeoplePatch, "nickname_at_school")) {
+      rpcPatch.p_nickname_at_school = allowedPeoplePatch.nickname_at_school ?? "";
+    }
+    if (Object.prototype.hasOwnProperty.call(allowedPeoplePatch, "avatar_url")) {
+      rpcPatch.p_avatar_url = allowedPeoplePatch.avatar_url ?? "";
+    }
+    const { error } = await (supabase as any).rpc("update_my_public_profile", rpcPatch);
+    if (error) throw error;
+    updatedPeople = (await getMyProfile(userId))?.people ?? null;
+  }
+
+  await writeAudit("update_public_profile", "profiles", current.id, {
+    profile_fields: Object.keys(allowedProfilePatch),
+    people_fields: Object.keys(allowedPeoplePatch),
+  }).catch(() => {});
+
+  return { ...updatedProfile, people: updatedPeople };
 }
 
 export async function uploadProfileAvatar(userId: string, file: File): Promise<string> {
@@ -448,6 +547,35 @@ export async function getApprovedPhotos(eventId?: string): Promise<DbPhoto[]> {
     const { data, error } = await q;
     if (error) throw error;
     return (data as DbPhoto[]) ?? [];
+  }, []);
+}
+
+export async function getMyUploadedPhotos(userId: string): Promise<DbPhoto[]> {
+  if (!userId) return [];
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("photos")
+      .select("*")
+      .eq("uploaded_by_user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data as DbPhoto[]) ?? [];
+  }, []);
+}
+
+export async function getMyTaggedPhotos(personId: string): Promise<DbPhoto[]> {
+  if (!personId) return [];
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("photo_tags")
+      .select("*, photos(*)")
+      .eq("person_id", personId)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return ((data ?? []) as (DbPhotoTag & { photos?: DbPhoto | null })[])
+      .map(row => row.photos)
+      .filter((photo): photo is DbPhoto => Boolean(photo));
   }, []);
 }
 
@@ -1064,6 +1192,20 @@ export async function getApprovedMemories(eventId = DEFAULT_EVENT_ID, featuredOn
       .order("created_at", { ascending: false });
     if (featuredOnly) q = q.eq("is_featured", true);
     const { data, error } = await q;
+    if (error) throw error;
+    return (data as DbMemory[]) ?? [];
+  }, []);
+}
+
+export async function getMyMemories(userId: string): Promise<DbMemory[]> {
+  if (!userId) return [];
+  return withFallback(async () => {
+    const { data, error } = await supabase
+      .from("memories")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(6);
     if (error) throw error;
     return (data as DbMemory[]) ?? [];
   }, []);

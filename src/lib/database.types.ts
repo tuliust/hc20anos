@@ -69,6 +69,8 @@ export interface DbProfile {
   memory_text:          string | null;
   instagram_url:        string | null;
   linkedin_url:         string | null;
+  contact_email:        string | null;
+  contact_whatsapp:     string | null;
   show_current_photo:   boolean;
   show_city:            boolean;
   show_profession:      boolean;
