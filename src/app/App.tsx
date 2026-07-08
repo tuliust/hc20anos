@@ -222,7 +222,7 @@ function personToAlumni(p: DbPerson): Alumni {
   return {
     id:         p.id,
     name:       p.full_name,
-    nickname:   p.nickname_at_school ?? undefined,
+    nickname:   p.class_group ? `Turma ${p.class_group}` : `Turma ${p.class_year}`,
     sala:       p.class_group ?? undefined,
     city:       undefined,
     profession: undefined,
@@ -782,6 +782,7 @@ function Header({ page, navigate, auth, logout, content }: {
   const [headerProfile, setHeaderProfile] = useState<DbProfile | null>(null);
 
   const navLinks: { label: string; page: Page }[] = [
+    { label: "Home", page: "home" },
     { label: "Quem Vai", page: "who-going" },
     { label: "A Turma", page: "the-class" },
     { label: "Fotos", page: "photo-wall" },
@@ -913,6 +914,9 @@ function Header({ page, navigate, auth, logout, content }: {
                     </div>
 
                     <div className="pt-3 flex flex-col">
+                      {auth.role === "superadmin" && (
+                        <button onClick={() => go("admin")} className="text-left px-3 py-3 text-[#c9a84c] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">PAINEL ADMIN</button>
+                      )}
                       <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>
                       <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Alterar foto</button>
                       <button onClick={requestPasswordChange} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Mudar senha</button>
@@ -936,7 +940,7 @@ function Header({ page, navigate, auth, logout, content }: {
       {menuOpen && (
         <div className="fixed inset-0 z-40 bg-[#080f08] flex flex-col pt-24 px-6 pb-8">
           <div className="flex flex-col gap-1">
-            {[{ label: "Início", page: "home" as Page }, ...navLinks].map(l => (
+            {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
                 className="text-left py-5 border-b border-[#2d6a4f]/20 text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold hover:text-[#c9a84c] transition-colors">
                 {l.label}
@@ -1059,14 +1063,15 @@ function LoginPage({ navigate, onLogin }: {
       }
 
       const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
+      const adminUser = await getCurrentAdminUser(data.user.id).catch(() => null);
 
       onLogin({
         loggedIn: true,
-        isAdmin: false,
+        isAdmin: !!adminUser,
         name: displayName,
         userId: data.user.id,
         email: data.user.email,
-        role: null,
+        role: adminUser?.role ?? null,
       });
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -1136,130 +1141,6 @@ function LoginPage({ navigate, onLogin }: {
                 Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
               </p>
             )}
-          </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <button onClick={() => navigate("home")} className="text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors flex items-center gap-2 mx-auto">
-            <ArrowLeft size={16} />Voltar ao site
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AdminLoginPage({ navigate, onLogin }: {
-  navigate: (p: Page) => void;
-  onLogin: (auth: AuthState) => void;
-}) {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-
-  async function submit() {
-    setError("");
-    setLoading(true);
-
-    try {
-      if (!email.includes("@")) {
-        setError("Informe o e-mail da conta administrativa.");
-        setLoading(false);
-        return;
-      }
-
-      if (!password) {
-        setError("Informe a senha da conta administrativa.");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (authErr || !data.user) {
-        setError("Credenciais inválidas.");
-        setLoading(false);
-        return;
-      }
-
-      const admin = await getCurrentAdminUser(data.user.id);
-
-      if (!admin || !["admin", "superadmin"].includes(admin.role)) {
-        await supabase.auth.signOut().catch(() => {});
-        setError("Esta conta não tem permissão para acessar o painel administrativo.");
-        setLoading(false);
-        return;
-      }
-
-      onLogin({
-        loggedIn: true,
-        isAdmin: true,
-        name: data.user.user_metadata?.full_name ?? admin.display_name ?? data.user.email ?? "Admin",
-        userId: data.user.id,
-        email: data.user.email ?? admin.email ?? undefined,
-        role: admin.role,
-      });
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
-    }
-
-    setLoading(false);
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20"
-      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">
-            Painel administrativo
-          </p>
-          <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl uppercase mb-2">Admin</h1>
-          <p className="font-['Playfair_Display'] italic text-[#c9a84c] text-xl">Turma 2006</p>
-        </div>
-
-        <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-          <div className="flex flex-col gap-5">
-            <DisplayTitle className="text-xl">Acesso administrativo</DisplayTitle>
-
-            <Field
-              label="E-mail"
-              type="email"
-              placeholder="admin@email.com"
-              value={email}
-              onChange={setEmail}
-              icon={<Mail size={16} />}
-            />
-
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input
-                  type={showPw ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && submit()}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
-                />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-
-            <Btn full onClick={submit} disabled={loading}>
-              {loading ? <><RefreshCw size={16} className="animate-spin" />Verificando...</> : <><Key size={16} />Acessar painel</>}
-            </Btn>
-
-            <p className="text-[#7a9a7a] text-xs leading-relaxed">
-              O acesso administrativo usa exclusivamente uma conta real do Supabase Auth com registro em admin_users.
-            </p>
           </div>
         </div>
 
@@ -1441,8 +1322,7 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
             ))}
           </div>
           <div className="mt-8 text-center">
-            <p className="text-[#7a9a7a] text-sm mb-4 font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
-            <Btn variant="outline" onClick={() => navigate("who-going")}>Ver lista completa</Btn>
+            <p className="text-[#7a9a7a] text-sm font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
           </div>
         </div>
       </section>
@@ -5017,7 +4897,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
 const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket"];
-const PROTECTED_ADMIN:  Page[] = ["checkin"];
+const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
 
 const PAGE_PATHS: Record<Page, string> = {
   home: "/",
@@ -5160,17 +5040,29 @@ export default function App() {
 
   function handleLogin(nextAuth: AuthState) {
     setAuth(nextAuth);
-    const dest = returnPage !== "login" ? returnPage : nextAuth.isAdmin ? "admin" : "alumni-area";
+    const canUseReturnPage =
+      returnPage !== "login" &&
+      (!PROTECTED_ADMIN.includes(returnPage) || nextAuth.isAdmin) &&
+      (!PROTECTED_ALUMNI.includes(returnPage) || nextAuth.loggedIn);
+    const dest = canUseReturnPage ? returnPage : nextAuth.isAdmin ? "admin" : "alumni-area";
+    setReturnPage("home");
     setPage(dest);
     updateBrowserPath(dest);
     window.scrollTo(0, 0);
   }
 
   async function logout() {
-    await supabase.auth.signOut().catch(() => {});
-    setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
-    navigate("home");
-    await writeAudit("logout", "auth", null, {}).catch(() => {});
+    const previousUserId = auth.userId;
+    if (previousUserId) void writeAudit("logout", "auth", previousUserId, {}).catch(() => {});
+    try {
+      await supabase.auth.signOut().catch(() => {});
+    } finally {
+      setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
+      setReturnPage("home");
+      setPage("home");
+      updateBrowserPath("home");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   const isFullscreen = page === "admin" || page === "checkin";
@@ -5196,7 +5088,7 @@ export default function App() {
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
         {page === "alumni-area"   && <AlumniAreaPage     navigate={navigate} auth={auth}                          />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
-        {page === "admin"         && (auth.isAdmin ? <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} /> : <AdminLoginPage navigate={navigate} onLogin={handleLogin} />)}
+        {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} />}
         {page === "checkin"       && <CheckinPage        navigate={navigate} auth={auth}                           />}
         {page === "login"         && <LoginPage          navigate={navigate} onLogin={handleLogin}                 />}
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
