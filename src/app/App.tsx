@@ -329,7 +329,7 @@ function FieldArea({ label, placeholder, value, onChange, rows = 3 }: {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">{children}</p>;
+  return <p className="text-[#c9a84c] tracking-[0.32em] text-xs md:text-sm font-mono font-bold uppercase mb-5">{children}</p>;
 }
 
 function DisplayTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -1413,23 +1413,40 @@ function TicketsPreview({ navigate, content }: { navigate: (p: Page) => void; co
 }
 
 function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent }) {
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const confirmed = people.filter(a => a.profile_status === "confirmed" && a.is_visible).slice(0, 8);
+
   return (
-    <section className="bg-[#0d1a0f] py-20 md:py-28">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-          <div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div>
-          <Btn variant="ghost" onClick={() => navigate("who-going")}>Ver todos <ArrowRight size={16} /></Btn>
+    <>
+      <PersonDetailModal
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+      />
+
+      <section className="bg-[#0d1a0f] py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+            <div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div>
+            <Btn variant="ghost" onClick={() => navigate("who-going")}>Ver todos <ArrowRight size={16} /></Btn>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {confirmed.map(a => (
+              <AlumniCard
+                key={a.id}
+                alumni={personToAlumni(a)}
+                onOpen={() => setSelectedPerson(a)}
+                onClaim={() => navigate("claim-profile")}
+              />
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <p className="text-[#7a9a7a] text-sm mb-4 font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
+            <Btn variant="outline" onClick={() => navigate("who-going")}>Ver lista completa</Btn>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {confirmed.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
-        </div>
-        <div className="mt-8 text-center">
-          <p className="text-[#7a9a7a] text-sm mb-4 font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
-          <Btn variant="outline" onClick={() => navigate("who-going")}>Ver lista completa</Btn>
-        </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
