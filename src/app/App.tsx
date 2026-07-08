@@ -96,7 +96,7 @@ interface TagModItem {
 
 // ─── DATA ──────────────────────────────────────────────────────────────────────
 
-const EVENT_DATE = new Date("2026-10-17T19:00:00-03:00");
+const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";
 const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ALUMNI: Alumni[] = [
@@ -174,8 +174,16 @@ const CONFIRM_QUESTIONS = [
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────────
 
-function getTimeLeft() {
-  const diff = EVENT_DATE.getTime() - Date.now();
+function getEventDateTime(event?: DbEvent | null): Date {
+  const datePart = event?.event_date || "2026-10-17";
+  const rawTime = event?.event_time || "19:00:00";
+  const timePart = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
+  const candidate = new Date(`${datePart}T${timePart}-03:00`);
+  return Number.isNaN(candidate.getTime()) ? new Date(FALLBACK_EVENT_DATE_TIME) : candidate;
+}
+
+function getTimeLeft(targetDate: Date) {
+  const diff = targetDate.getTime() - Date.now();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
   return {
     days:    Math.floor(diff / 86400000),
@@ -183,6 +191,61 @@ function getTimeLeft() {
     minutes: Math.floor((diff % 3600000)  / 60000),
     seconds: Math.floor((diff % 60000)    / 1000),
   };
+}
+
+function formatLongDateBR(value?: string | null) {
+  if (!value) return "Sábado, 17 de outubro de 2026";
+  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  const formatted = date.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function formatTimeLabel(value?: string | null) {
+  if (!value) return "19h00";
+  const [hours = "19", minutes = "00"] = value.split(":");
+  return `${hours.padStart(2, "0")}h${minutes.padStart(2, "0")}`;
+}
+
+function addMinutesToTime(value?: string | null, offsetMinutes = 0) {
+  const [hoursRaw = "19", minutesRaw = "00"] = (value || "19:00:00").split(":");
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return formatTimeLabel(value);
+  const total = (((hours * 60 + minutes + offsetMinutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}h${String(total % 60).padStart(2, "0")}`;
+}
+
+function formatCurrencyBR(cents: number) {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function getTicketAvailability(ticket: DbTicketType) {
+  return Math.max(0, ticket.available_quantity - ticket.sold_quantity);
+}
+
+function isTicketVisibleOnHome(ticket: DbTicketType) {
+  return ticket.status === "open" || ticket.status === "sold_out";
+}
+
+function getTicketVisualStatus(ticket: DbTicketType): TicketItem["status"] {
+  const availability = getTicketAvailability(ticket);
+  if (ticket.status === "sold_out" || availability <= 0) return "sold-out";
+  if (availability <= 10) return "last-units";
+  return "available";
+}
+
+function getTicketDescriptionItems(description?: string | null) {
+  const items = (description ?? "")
+    .split(/\r?\n|;/)
+    .map(item => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : ["Detalhes do lote serão informados pela organização."];
 }
 
 function initials(name: string) {
@@ -1157,12 +1220,15 @@ function LoginPage({ navigate, onLogin }: {
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 
-function Hero({ navigate, content }: { navigate: (p: Page) => void; content: HomePageContent }) {
-  const [time, setTime] = useState(getTimeLeft());
+function Hero({ navigate, content, event }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null }) {
+  const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
+
   useEffect(() => {
-    const id = setInterval(() => setTime(getTimeLeft()), 1000);
+    const update = () => setTime(getTimeLeft(getEventDateTime(event)));
+    update();
+    const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [event?.event_date, event?.event_time]);
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
@@ -1230,18 +1296,26 @@ function AboutSection({ content }: { content: HomePageContent }) {
   );
 }
 
-function EventInfoSection({ content }: { content: HomePageContent }) {
+function EventInfoSection({ content, event }: { content: HomePageContent; event: DbEvent | null }) {
+  const dateLabel = formatLongDateBR(event?.event_date);
+  const timeLabel = formatTimeLabel(event?.event_time);
+  const hasLoadedEventTime = Boolean(event?.event_time);
+  const locationName = event?.location_name || "Espaço Cultural Ponta Negra";
+  const locationAddress = event?.location_address || "Av. Eng. Roberto Freire — Ponta Negra, Natal/RN";
+
+  const infoItems = [
+    { icon: <Calendar size={24} />, title: "Data", info: dateLabel, sub: `Portas abertas às ${addMinutesToTime(event?.event_time, -30)}` },
+    { icon: <Clock size={24} />, title: "Horário", info: hasLoadedEventTime ? timeLabel : "19h00 — 01h00", sub: `Jantar servido a partir das ${addMinutesToTime(event?.event_time, 60)}` },
+    { icon: <MapPin size={24} />, title: "Local", info: locationName, sub: locationAddress },
+  ];
+
   return (
     <section className="bg-[#f0ebe0] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.info_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-12">{content.info_title}</DisplayTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: <Calendar size={24} />, title: "Data", info: "Sábado, 17 de Outubro de 2026", sub: "Portas abertas Ã s 18h30" },
-            { icon: <Clock size={24} />, title: "Horário", info: "19h00 — 01h00", sub: "Jantar servido a partir das 20h" },
-            { icon: <MapPin size={24} />, title: "Local", info: "Espaço Cultural Ponta Negra", sub: "Av. Eng. Roberto Freire — Ponta Negra, Natal/RN" },
-          ].map(({ icon, title, info, sub }) => (
+          {infoItems.map(({ icon, title, info, sub }) => (
             <div key={title} className="bg-[#0d1a0f] p-8">
               <div className="text-[#c9a84c] mb-4">{icon}</div>
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-2">{title}</p>
@@ -1255,7 +1329,19 @@ function EventInfoSection({ content }: { content: HomePageContent }) {
   );
 }
 
-function TicketsPreview({ navigate, content }: { navigate: (p: Page) => void; content: HomePageContent }) {
+function TicketsPreview({
+  navigate,
+  content,
+  ticketTypes,
+  onSelectTicket,
+}: {
+  navigate: (p: Page) => void;
+  content: HomePageContent;
+  ticketTypes: DbTicketType[];
+  onSelectTicket: (id: string) => void;
+}) {
+  const publicTickets = ticketTypes.filter(isTicketVisibleOnHome);
+
   return (
     <section className="bg-[#0a120a] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
@@ -1263,32 +1349,62 @@ function TicketsPreview({ navigate, content }: { navigate: (p: Page) => void; co
           <div><SectionLabel>{content.tickets_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.tickets_title}</DisplayTitle></div>
           <Btn variant="ghost" onClick={() => navigate("tickets")}>Ver todos <ArrowRight size={16} /></Btn>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TICKETS.map(t => (
-            <div key={t.id} className={"bg-[#141f14] border p-8 flex flex-col gap-4 transition-colors " + (t.status === "sold-out" ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{t.lot}</p>
-                  <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mt-1">{t.type}</p>
+
+        {publicTickets.length === 0 ? (
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-center">
+            <Ticket size={36} className="text-[#c9a84c] mx-auto mb-4" />
+            <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-2xl mb-2">Ingressos em breve</p>
+            <p className="text-[#7a9a7a] text-sm mb-6">Os lotes ativos cadastrados no painel aparecerão aqui.</p>
+            <Btn variant="outline" onClick={() => navigate("tickets")}>Abrir página de ingressos</Btn>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {publicTickets.map(ticket => {
+              const availability = getTicketAvailability(ticket);
+              const visualStatus = getTicketVisualStatus(ticket);
+              const disabled = visualStatus === "sold-out";
+              const descriptionItems = getTicketDescriptionItems(ticket.description);
+
+              return (
+                <div key={ticket.id} className={"bg-[#141f14] border p-8 flex flex-col gap-4 transition-colors " + (disabled ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Lote ativo</p>
+                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mt-1">{ticket.name}</p>
+                    </div>
+                    <StatusBadge status={visualStatus} />
+                  </div>
+
+                  <div className="border-t border-[#2d6a4f]/20 pt-4">
+                    <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl">{formatCurrencyBR(ticket.price_cents)}</p>
+                    {ticket.available_quantity > 0 && (
+                      <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{availability}/{ticket.available_quantity} restantes</p>
+                    )}
+                  </div>
+
+                  <ul className="flex flex-col gap-2">
+                    {descriptionItems.map(item => (
+                      <li key={item} className="flex items-start gap-2 text-[#7a9a7a] text-xs">
+                        <Check size={12} className="text-[#2d6a4f] mt-0.5 shrink-0" />{item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-auto">
+                    <Btn
+                      full
+                      disabled={disabled}
+                      onClick={() => { onSelectTicket(ticket.id); navigate("checkout"); }}
+                      variant={visualStatus === "last-units" ? "gold" : "primary"}
+                    >
+                      {disabled ? "Esgotado" : "Comprar agora"}
+                    </Btn>
+                  </div>
                 </div>
-                <StatusBadge status={t.status} />
-              </div>
-              <div className="border-t border-[#2d6a4f]/20 pt-4">
-                <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl">R$ {t.price}<span className="text-base text-[#7a9a7a] font-light">,00</span></p>
-              </div>
-              <ul className="flex flex-col gap-2">
-                {t.includes.map(item => (
-                  <li key={item} className="flex items-start gap-2 text-[#7a9a7a] text-xs"><Check size={12} className="text-[#2d6a4f] mt-0.5 shrink-0" />{item}</li>
-                ))}
-              </ul>
-              <div className="mt-auto">
-                <Btn full disabled={t.status === "sold-out"} onClick={() => navigate("checkout")} variant={t.status === "last-units" ? "gold" : "primary"}>
-                  {t.status === "sold-out" ? "Esgotado" : "Comprar agora"}
-                </Btn>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1414,12 +1530,28 @@ function FAQSection({ content }: { content: HomePageContent }) {
   );
 }
 
-function LandingPage({ navigate, people, photos, content }: { navigate: (p: Page) => void; people: DbPerson[]; photos: DbPhoto[]; content: HomePageContent }) {
+function LandingPage({
+  navigate,
+  people,
+  photos,
+  content,
+  event,
+  ticketTypes,
+  onSelectTicket,
+}: {
+  navigate: (p: Page) => void;
+  people: DbPerson[];
+  photos: DbPhoto[];
+  content: HomePageContent;
+  event: DbEvent | null;
+  ticketTypes: DbTicketType[];
+  onSelectTicket: (id: string) => void;
+}) {
   return <>
-    <Hero navigate={navigate} content={content} />
+    <Hero navigate={navigate} content={content} event={event} />
     <AboutSection content={content} />
-    <EventInfoSection content={content} />
-    <TicketsPreview navigate={navigate} content={content} />
+    <EventInfoSection content={content} event={event} />
+    <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />
     <WhoGoingPreview navigate={navigate} people={people} content={content} />
     <PhotoWallPreview navigate={navigate} photos={photos} content={content} />
     <TimelineSection content={content} />
@@ -5244,6 +5376,7 @@ export default function App() {
   const [auth, setAuth]               = useState<AuthState>({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
   const [people, setPeople]           = useState<DbPerson[]>(MOCK_PEOPLE);
   const [ticketTypes, setTicketTypes] = useState<DbTicketType[]>([]);
+  const [event, setEvent] = useState<DbEvent | null>(null);
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string | null>(null);
   const [checkoutReturn, setCheckoutReturn] = useState<CheckoutReturnState>(null);
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
@@ -5280,11 +5413,16 @@ export default function App() {
   }, []);
 
   // ── Carrega dados reais do Supabase com fallback para mock ────────────────
+  function refreshPublicEventData() {
+    getEventSettings().then(setEvent).catch(() => setEvent(null));
+    getTicketTypes(DEFAULT_EVENT_ID).then(setTicketTypes).catch(() => setTicketTypes([]));
+    getHomePageContent(DEFAULT_EVENT_ID).then(setHomeContent).catch(() => {});
+  }
+
   useEffect(() => {
     getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
-    getTicketTypes().then(setTicketTypes).catch(() => {});
     getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
-    getHomePageContent(DEFAULT_EVENT_ID).then(setHomeContent).catch(() => {});
+    refreshPublicEventData();
   }, []);
 
   useEffect(() => {
@@ -5321,6 +5459,7 @@ export default function App() {
   function navigate(p: Page) {
     if (PROTECTED_ADMIN.includes(p)  && !auth.isAdmin)  { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
     if (PROTECTED_ALUMNI.includes(p) && !auth.loggedIn) { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
+    if (p === "home") refreshPublicEventData();
     setPage(p);
     updateBrowserPath(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -5370,7 +5509,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}
