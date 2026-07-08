@@ -52,6 +52,11 @@ header button.inline-flex.whitespace-nowrap {
   letter-spacing: 0.12em !important;
 }
 
+/* Corrige títulos em blocos claros da home, como Data, hora e local / Nossa História. */
+.bg-\[\#f0ebe0\] h2 {
+  color: #0d1a0f !important;
+}
+
 @media (min-width: 1280px) {
   header nav {
     gap: 1.4rem !important;
