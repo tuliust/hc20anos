@@ -157,10 +157,14 @@ async function getCachedAdminRole() {
   return cachedAdminRole;
 }
 
-function navigateToAdmin() {
-  window.history.pushState({}, "", "/admin");
+function navigateToPage(pathname: string) {
+  window.history.pushState({}, "", pathname);
   window.dispatchEvent(new PopStateEvent("popstate"));
   window.scrollTo(0, 0);
+}
+
+function navigateToAdmin() {
+  navigateToPage("/admin");
 }
 
 function addSuperadminHeaderMenuButton() {
@@ -320,6 +324,115 @@ function mirrorMemoriesOnHomeTimeline() {
   });
 }
 
+function normalizeLookup(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+}
+
+async function ensureSuperadminProfileLink() {
+  if (!window.location.pathname.includes("/editar-perfil")) return;
+  if (!document.body.innerText.includes("Perfil ainda não reivindicado")) return;
+  if (document.body.dataset.superadminProfileLink === "pending") return;
+
+  document.body.dataset.superadminProfileLink = "pending";
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const adminUser = await getCurrentAdminUser(session.user.id).catch(() => null);
+    if (adminUser?.role !== "superadmin") return;
+
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (currentProfile?.id) {
+      window.location.reload();
+      return;
+    }
+
+    const emailPrefix = normalizeLookup(session.user.email?.split("@")[0] ?? "");
+    const metadataName = normalizeLookup(session.user.user_metadata?.full_name ?? "");
+    const searchTokens = [
+      emailPrefix.slice(0, 6),
+      emailPrefix.slice(0, 5),
+      metadataName.slice(0, 8),
+      metadataName.slice(0, 6),
+    ].filter(token => token.length >= 5);
+
+    const people = await getCachedPeople();
+    const candidates = people.filter(person => {
+      const fullName = normalizeLookup(person.full_name);
+      return searchTokens.some(token => fullName.includes(token) || token.includes(fullName.slice(0, 6)));
+    });
+
+    if (candidates.length !== 1) return;
+
+    const person = candidates[0];
+    const now = new Date().toISOString();
+
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("person_id", person.id)
+      .maybeSingle();
+
+    if (existingProfile?.id) {
+      await supabase
+        .from("profiles")
+        .update({
+          user_id: session.user.id,
+          display_name: existingProfile.display_name ?? person.full_name,
+        })
+        .eq("id", existingProfile.id);
+    } else {
+      await supabase
+        .from("profiles")
+        .insert({
+          person_id: person.id,
+          user_id: session.user.id,
+          display_name: person.full_name,
+          current_country: "Brasil",
+        });
+    }
+
+    await supabase
+      .from("people")
+      .update({
+        claimed_by_user_id: session.user.id,
+        profile_status: "confirmed",
+        claimed_at: person.claimed_at ?? now,
+      })
+      .eq("id", person.id);
+
+    window.location.reload();
+  } finally {
+    delete document.body.dataset.superadminProfileLink;
+  }
+}
+
+async function redirectUnifiedLogin() {
+  if (!document.body.innerText.includes("Acesso administrativo")) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return;
+  const adminUser = await getCurrentAdminUser(session.user.id).catch(() => null);
+  if (!adminUser) return;
+  navigateToPage("/");
+}
+
+function installUnifiedLoginRedirect() {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event !== "SIGNED_IN") return;
+    window.setTimeout(() => navigateToPage("/"), 50);
+  });
+}
+
 function run() {
   replaceTicketQr();
   addInviteDownload();
@@ -327,9 +440,12 @@ function run() {
   addSuperadminHeaderMenuButton();
   updateHomePeopleCardsClassGroups();
   mirrorMemoriesOnHomeTimeline();
+  redirectUnifiedLogin().catch(() => {});
+  ensureSuperadminProfileLink().catch(() => {});
 }
 
 if (typeof window !== "undefined") {
+  installUnifiedLoginRedirect();
   window.addEventListener("DOMContentLoaded", () => {
     run();
     new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
