@@ -1,4 +1,6 @@
 import { downloadInviteImage, getTicketQrImageUrl, likelyTicketCode, startQrCameraScanner } from "./ticket-experience";
+import { getCurrentAdminUser } from "./services";
+import { supabase } from "./supabase";
 
 function replaceTicketQr() {
   const text = document.body.innerText;
@@ -136,10 +138,67 @@ function addCameraControls() {
   wrap.appendChild(controls);
 }
 
+let cachedAdminRole: string | null | undefined;
+
+async function getCachedAdminRole() {
+  if (cachedAdminRole !== undefined) return cachedAdminRole;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    cachedAdminRole = null;
+    return cachedAdminRole;
+  }
+
+  const adminUser = await getCurrentAdminUser(session.user.id).catch(() => null);
+  cachedAdminRole = adminUser?.role ?? null;
+  return cachedAdminRole;
+}
+
+function navigateToAdmin() {
+  window.history.pushState({}, "", "/admin");
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  window.scrollTo(0, 0);
+}
+
+function addSuperadminHeaderMenuButton() {
+  const dropdowns = Array.from(document.querySelectorAll<HTMLElement>("div"))
+    .filter(el =>
+      el.innerText.includes("Editar perfil") &&
+      el.innerText.includes("Ver meus pedidos") &&
+      el.querySelector("button")
+    );
+
+  for (const dropdown of dropdowns) {
+    if (dropdown.querySelector("[data-admin-panel-button='true']")) continue;
+    if (dropdown.dataset.adminPanelCheck === "pending") continue;
+    dropdown.dataset.adminPanelCheck = "pending";
+
+    getCachedAdminRole().then(role => {
+      delete dropdown.dataset.adminPanelCheck;
+      if (role !== "superadmin") return;
+      if (!document.body.contains(dropdown)) return;
+      if (dropdown.querySelector("[data-admin-panel-button='true']")) return;
+
+      const firstAction = Array.from(dropdown.querySelectorAll<HTMLButtonElement>("button"))
+        .find(button => button.innerText.trim().toLowerCase() === "editar perfil");
+      if (!firstAction) return;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.adminPanelButton = "true";
+      button.className = firstAction.className.replace("text-[#f0ebe0]", "text-[#c9a84c]");
+      button.textContent = "Painel administrativo";
+      button.onclick = navigateToAdmin;
+      firstAction.parentElement?.insertBefore(button, firstAction);
+    });
+  }
+}
+
 function run() {
   replaceTicketQr();
   addInviteDownload();
   addCameraControls();
+  addSuperadminHeaderMenuButton();
 }
 
 if (typeof window !== "undefined") {
