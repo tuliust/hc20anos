@@ -79,3 +79,4 @@ jobs:
             git commit -m "Refine header menu and nav sizing"
             git push
           fi
+# trigger: 2026-07-07
