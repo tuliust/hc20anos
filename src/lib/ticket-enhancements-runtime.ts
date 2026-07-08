@@ -1,6 +1,9 @@
 import { downloadInviteImage, getTicketQrImageUrl, likelyTicketCode, startQrCameraScanner } from "./ticket-experience";
-import { getCurrentAdminUser } from "./services";
+import { getApprovedMemories, getCurrentAdminUser, getPeople } from "./services";
 import { supabase } from "./supabase";
+import type { DbMemory, DbPerson } from "./database.types";
+
+const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 function replaceTicketQr() {
   const text = document.body.innerText;
@@ -194,11 +197,136 @@ function addSuperadminHeaderMenuButton() {
   }
 }
 
+let cachedPeople: DbPerson[] | null = null;
+let peopleLoading: Promise<DbPerson[]> | null = null;
+
+async function getCachedPeople() {
+  if (cachedPeople) return cachedPeople;
+  if (!peopleLoading) {
+    peopleLoading = getPeople().catch(() => [] as DbPerson[]);
+  }
+  cachedPeople = await peopleLoading;
+  return cachedPeople;
+}
+
+function findSectionByText(pattern: RegExp) {
+  return Array.from(document.querySelectorAll<HTMLElement>("section"))
+    .find(section => pattern.test(section.innerText));
+}
+
+function updateHomePeopleCardsClassGroups() {
+  const section = findSectionByText(/Quem já|Confirmados|lista completa|Apenas pessoas que autorizaram/i);
+  if (!section || section.dataset.classGroupAdjusted === "pending") return;
+
+  section.dataset.classGroupAdjusted = "pending";
+  getCachedPeople().then(people => {
+    const peopleByName = new Map(people.map(person => [person.full_name.trim().toLowerCase(), person]));
+    const cards = Array.from(section.querySelectorAll<HTMLElement>("[role='button'], div"))
+      .filter(card => Array.from(card.querySelectorAll("p")).some(p => peopleByName.has((p.textContent ?? "").trim().toLowerCase())));
+
+    for (const card of cards) {
+      if (card.dataset.classGroupLabelApplied === "true") continue;
+      const nameEl = Array.from(card.querySelectorAll<HTMLParagraphElement>("p"))
+        .find(p => peopleByName.has((p.textContent ?? "").trim().toLowerCase()));
+      if (!nameEl) continue;
+
+      const person = peopleByName.get((nameEl.textContent ?? "").trim().toLowerCase());
+      if (!person?.class_group) continue;
+
+      const parent = nameEl.parentElement;
+      if (!parent) continue;
+      const label = Array.from(parent.querySelectorAll<HTMLParagraphElement>("p"))[1] ?? document.createElement("p");
+      label.textContent = `Turma ${person.class_group}`;
+      label.className = "text-[#c9a84c] text-xs font-mono mt-0.5";
+      if (!label.parentElement) nameEl.insertAdjacentElement("afterend", label);
+      card.dataset.classGroupLabelApplied = "true";
+    }
+
+    delete section.dataset.classGroupAdjusted;
+  });
+}
+
+let cachedMemories: DbMemory[] | null = null;
+let memoriesLoading: Promise<DbMemory[]> | null = null;
+
+async function getCachedMemories() {
+  if (cachedMemories) return cachedMemories;
+  if (!memoriesLoading) {
+    memoriesLoading = getApprovedMemories(DEFAULT_EVENT_ID).catch(() => [] as DbMemory[]);
+  }
+  cachedMemories = await memoriesLoading;
+  return cachedMemories;
+}
+
+function buildMemoryCard(memory: DbMemory) {
+  const card = document.createElement("div");
+  card.className = "bg-[#141f14] border border-[#2d6a4f]/25 p-5";
+  const eyebrow = memory.is_featured ? "Memória destacada" : "Memória da turma";
+  const author = memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno");
+  card.innerHTML = `
+    <p class="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">${eyebrow}</p>
+    <p class="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“${escapeHtml(memory.memory_text)}”</p>
+    <p class="text-[#7a9a7a] font-mono text-xs mt-4">${escapeHtml(author)} · ${memory.created_at?.slice(0, 10) ?? ""}</p>
+  `;
+  return card;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function mirrorMemoriesOnHomeTimeline() {
+  const section = findSectionByText(/Nossa hist[oó]ria|linha do tempo|hist[oó]ria da turma/i);
+  if (!section || section.querySelector("[data-home-memories='true']")) return;
+
+  const root = section.querySelector<HTMLElement>(".max-w-7xl") ?? section;
+  const timeline = Array.from(root.children).find(child =>
+    child instanceof HTMLElement && child.className.includes("flex flex-col") && child.innerText.includes("2026")
+  ) as HTMLElement | undefined;
+  if (!timeline) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "grid grid-cols-1 lg:grid-cols-[1fr_0.95fr] gap-10 items-start";
+  timeline.parentElement?.insertBefore(wrapper, timeline);
+  wrapper.appendChild(timeline);
+
+  const aside = document.createElement("aside");
+  aside.dataset.homeMemories = "true";
+  aside.className = "bg-[#0d1a0f] border border-[#2d6a4f]/30 p-6";
+  aside.innerHTML = `
+    <p class="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Caixa de memórias</p>
+    <h3 class="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold mb-5">Memórias da turma</h3>
+    <div data-home-memories-list class="flex flex-col gap-4">
+      <p class="text-[#7a9a7a] text-sm">Carregando memórias aprovadas...</p>
+    </div>
+  `;
+  wrapper.appendChild(aside);
+
+  getCachedMemories().then(memories => {
+    const list = aside.querySelector<HTMLElement>("[data-home-memories-list]");
+    if (!list) return;
+    list.innerHTML = "";
+    const visible = memories.slice(0, 4);
+    if (visible.length === 0) {
+      list.innerHTML = '<p class="text-[#7a9a7a] text-sm">Nenhuma memória aprovada ainda.</p>';
+      return;
+    }
+    visible.forEach(memory => list.appendChild(buildMemoryCard(memory)));
+  });
+}
+
 function run() {
   replaceTicketQr();
   addInviteDownload();
   addCameraControls();
   addSuperadminHeaderMenuButton();
+  updateHomePeopleCardsClassGroups();
+  mirrorMemoriesOnHomeTimeline();
 }
 
 if (typeof window !== "undefined") {
