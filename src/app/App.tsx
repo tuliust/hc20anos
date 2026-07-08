@@ -847,10 +847,10 @@ function Header({ page, navigate, auth, logout, content }: {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-4 shrink-0 text-left">
             {headerLogoUrl ? (
-              <img src={headerLogoUrl} alt="Turma 2006" className="h-12 md:h-14 w-auto max-w-[190px] object-contain" />
+              <img src={headerLogoUrl} alt="Turma 2006" className="h-16 w-32 object-contain" />
             ) : (
               <>
                 <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
@@ -868,7 +868,7 @@ function Header({ page, navigate, auth, logout, content }: {
           <nav className="hidden md:flex items-center gap-5 xl:gap-6 min-w-0">
             {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
-                className={`text-[11px] xl:text-xs font-mono font-bold uppercase tracking-[0.16em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+                className={`text-sm xl:text-[15px] font-mono font-bold uppercase tracking-[0.12em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
                 {l.label}
               </button>
             ))}
