@@ -778,26 +778,79 @@ function Header({ page, navigate, auth, logout, content }: {
   page: Page; navigate: (p: Page) => void; auth: AuthState; logout: () => void; content?: HomePageContent;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [headerProfile, setHeaderProfile] = useState<DbProfile | null>(null);
+
   const navLinks: { label: string; page: Page }[] = [
-    { label: "Quem Vai",                            page: "who-going"   },
-    { label: "A Turma",                             page: "the-class"   },
-    { label: "Fotos",                               page: "photo-wall"  },
-    { label: "Memórias",                            page: "memories"    },
-    { label: "Enquetes",                             page: "polls"       },
-    { label: "Mapa",                                 page: "where-now"   },
-    { label: "Acervo",                               page: "archive"     },
-    { label: auth.loggedIn ? "Minha Área" : "Entrar", page: auth.loggedIn ? "alumni-area" : "login" },
+    { label: "Quem Vai", page: "who-going" },
+    { label: "A Turma", page: "the-class" },
+    { label: "Fotos", page: "photo-wall" },
+    { label: "Memórias", page: "memories" },
+    { label: "Enquetes", page: "polls" },
+    { label: "Mapa", page: "where-now" },
+    { label: "Acervo", page: "archive" },
   ];
 
-  function go(p: Page) { navigate(p); setMenuOpen(false); }
+  useEffect(() => {
+    let active = true;
+
+    if (!auth.loggedIn || !auth.userId) {
+      setHeaderProfile(null);
+      setProfileMenuOpen(false);
+      return;
+    }
+
+    getMyProfile(auth.userId)
+      .then(profile => {
+        if (active) setHeaderProfile(profile);
+      })
+      .catch(() => {
+        if (active) setHeaderProfile(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [auth.loggedIn, auth.userId]);
+
+  function go(p: Page) {
+    navigate(p);
+    setMenuOpen(false);
+    setProfileMenuOpen(false);
+  }
+
+  async function requestPasswordChange() {
+    if (!auth.email) {
+      window.alert("Não foi possível identificar o e-mail da sua conta.");
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(auth.email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+
+    if (error) {
+      window.alert("Não foi possível enviar o e-mail de redefinição de senha. Tente novamente.");
+      return;
+    }
+
+    setProfileMenuOpen(false);
+    window.alert(`Enviamos um link para redefinir sua senha para ${auth.email}.`);
+  }
+
+  const displayName = headerProfile?.display_name || auth.name || auth.email?.split("@")[0] || "Usuário";
+  const shortName = displayName.split(/\s+/).filter(Boolean).slice(0, 2).join(" ") || "Minha conta";
+  const email = auth.email ?? "";
+  const avatarUrl = headerProfile?.current_photo_url ?? null;
+  const headerLogoUrl = (content as any)?.header_logo_url ?? null;
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-4 shrink-0 text-left">
-            {content?.header_logo_url ? (
-              <img src={content.header_logo_url} alt="Turma 2006" className="h-12 md:h-14 w-auto max-w-[190px] object-contain" />
+            {headerLogoUrl ? (
+              <img src={headerLogoUrl} alt="Turma 2006" className="h-12 md:h-14 w-auto max-w-[190px] object-contain" />
             ) : (
               <>
                 <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
@@ -811,6 +864,7 @@ function Header({ page, navigate, auth, logout, content }: {
               </>
             )}
           </button>
+
           <nav className="hidden md:flex items-center gap-5 xl:gap-6 min-w-0">
             {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
@@ -819,13 +873,59 @@ function Header({ page, navigate, auth, logout, content }: {
               </button>
             ))}
           </nav>
+
           <div className="flex items-center gap-3 shrink-0">
             <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">Comprar ingresso</Btn>
-            {auth.loggedIn && (
-              <button onClick={logout} className="hidden md:flex text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors" title="Sair">
-                <LogOut size={18} />
-              </button>
+
+            {auth.loggedIn ? (
+              <div className="relative hidden md:block">
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen(open => !open)}
+                  className="flex items-center gap-3 border border-[#2d6a4f]/35 bg-[#0d1a0f] hover:bg-[#141f14] text-[#f0ebe0] px-3 py-2 transition-colors"
+                  aria-label="Abrir menu da conta"
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={shortName} className="h-9 w-9 rounded-full object-cover bg-[#1a2e1a]" />
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-[#2d6a4f] text-[#f0ebe0] flex items-center justify-center text-xs font-mono font-bold">
+                      {initials(shortName)}
+                    </div>
+                  )}
+                  <span className="max-w-[140px] truncate text-left text-xs xl:text-sm font-mono font-bold uppercase tracking-[0.08em]">{shortName}</span>
+                  <ChevronDown size={15} className={`text-[#c9a84c] transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-80 bg-[#080f08] border border-[#2d6a4f]/35 shadow-2xl p-4">
+                    <div className="flex items-center gap-4 pb-4 border-b border-[#2d6a4f]/20">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={shortName} className="h-16 w-16 rounded-full object-cover bg-[#1a2e1a]" />
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-[#2d6a4f] text-[#f0ebe0] flex items-center justify-center text-lg font-mono font-bold">
+                          {initials(shortName)}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[#f0ebe0] font-['Playfair_Display'] text-lg font-bold leading-tight truncate">{shortName}</p>
+                        <p className="text-[#7a9a7a] text-xs font-mono mt-1 truncate">{email}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 flex flex-col">
+                      <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>
+                      <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Alterar foto</button>
+                      <button onClick={requestPasswordChange} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Mudar senha</button>
+                      <button onClick={() => go("alumni-area")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Ver meus pedidos</button>
+                      <button onClick={() => { setProfileMenuOpen(false); logout(); }} className="text-left px-3 py-3 text-[#e74c3c] hover:bg-[#2e0a0a] text-xs font-mono uppercase tracking-wider transition-colors">Sair</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Btn size="sm" variant="outline" onClick={() => go("login")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-6 py-3">Login/Cadastro</Btn>
             )}
+
             <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-[#f0ebe0] p-2">
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -834,7 +934,7 @@ function Header({ page, navigate, auth, logout, content }: {
       </header>
 
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-[#080f08] flex flex-col pt-20 px-6 pb-8">
+        <div className="fixed inset-0 z-40 bg-[#080f08] flex flex-col pt-24 px-6 pb-8">
           <div className="flex flex-col gap-1">
             {[{ label: "Início", page: "home" as Page }, ...navLinks].map(l => (
               <button key={l.page} onClick={() => go(l.page)}
@@ -845,9 +945,14 @@ function Header({ page, navigate, auth, logout, content }: {
           </div>
           <div className="mt-auto pt-8 flex flex-col gap-3">
             <Btn full onClick={() => go("tickets")}>Comprar Ingresso</Btn>
-            {auth.loggedIn
-              ? <Btn full variant="outline" onClick={() => { logout(); setMenuOpen(false); }}>Sair da conta</Btn>
-              : <Btn full variant="outline" onClick={() => go("login")}>Entrar</Btn>}
+            {auth.loggedIn ? (
+              <>
+                <Btn full variant="outline" onClick={() => go("alumni-area")}>Minha área</Btn>
+                <Btn full variant="ghost" onClick={() => { logout(); setMenuOpen(false); }}>Sair da conta</Btn>
+              </>
+            ) : (
+              <Btn full variant="outline" onClick={() => go("login")}>Login/Cadastro</Btn>
+            )}
           </div>
         </div>
       )}
@@ -5051,7 +5156,7 @@ export default function App() {
     await writeAudit("logout", "auth", null, {}).catch(() => {});
   }
 
-  const isFullscreen = page === "admin" || page === "checkin" || page === "login";
+  const isFullscreen = page === "admin" || page === "checkin";
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
