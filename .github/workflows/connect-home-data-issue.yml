@@ -1,0 +1,65 @@
+name: Connect home data issue trigger
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  patch-build-commit:
+    if: contains(github.event.issue.title, 'Run home data patch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run embedded patch from previous temporary workflow
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/connect-home-data.yml')
+          text = workflow.read_text(encoding='utf-8')
+          marker = "          python <<'PY'\n"
+          start = text.index(marker) + len(marker)
+          end = text.index("\n          PY", start)
+          block = text[start:end]
+          script = "\n".join(line[10:] if line.startswith('          ') else line for line in block.splitlines())
+          exec(compile(script, '<embedded-home-patch>', 'exec'))
+          PY
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit and push patched files
+        run: |
+          git status --short
+          rm -f .github/workflows/connect-home-data.yml .github/workflows/connect-home-data-issue.yml
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Conecta home aos dados do evento e ingressos"
+          git push origin HEAD:main
+
+      - name: Close trigger issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close "${{ github.event.issue.number }}" --comment "Workflow temporário concluído."
