@@ -3,11 +3,333 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
+function replaceOnce(source: string, pattern: RegExp, replacement: string, label: string) {
+  const next = source.replace(pattern, replacement)
+  if (next === source) throw new Error(`[home-data-connector] Patch failed: ${label}`)
+  return next
+}
+
+function homeDataConnector() {
+  return {
+    name: 'home-data-connector',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      const normalized = id.split(path.sep).join('/')
+      if (!normalized.endsWith('/src/app/App.tsx')) return null
+
+      let source = code
+
+      source = replaceOnce(
+        source,
+        /const EVENT_DATE = new Date\("2026-10-17T19:00:00-03:00"\);/,
+        'const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";',
+        'EVENT_DATE constant',
+      )
+
+      source = replaceOnce(
+        source,
+        /function getTimeLeft\(\) \{[\s\S]*?\n\}/,
+        `function getEventDateTime(event?: DbEvent | null): Date {
+  const datePart = event?.event_date || "2026-10-17";
+  const rawTime = event?.event_time || "19:00:00";
+  const timePart = rawTime.length === 5 ? rawTime + ":00" : rawTime;
+  const candidate = new Date(datePart + "T" + timePart + "-03:00");
+  return Number.isNaN(candidate.getTime()) ? new Date(FALLBACK_EVENT_DATE_TIME) : candidate;
+}
+
+function getTimeLeft(targetDate: Date) {
+  const diff = targetDate.getTime() - Date.now();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  return {
+    days:    Math.floor(diff / 86400000),
+    hours:   Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000)  / 60000),
+    seconds: Math.floor((diff % 60000)    / 1000),
+  };
+}
+
+function formatLongDateBR(value?: string | null) {
+  if (!value) return "Sábado, 17 de outubro de 2026";
+  const date = value.includes("T") ? new Date(value) : new Date(value + "T12:00:00-03:00");
+  if (Number.isNaN(date.getTime())) return value;
+  const formatted = date.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function formatTimeLabel(value?: string | null) {
+  if (!value) return "19h00";
+  const [hours = "19", minutes = "00"] = value.split(":");
+  return hours.padStart(2, "0") + "h" + minutes.padStart(2, "0");
+}
+
+function addMinutesToTime(value?: string | null, offsetMinutes = 0) {
+  const [hoursRaw = "19", minutesRaw = "00"] = (value || "19:00:00").split(":");
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return formatTimeLabel(value);
+  const total = (((hours * 60 + minutes + offsetMinutes) % 1440) + 1440) % 1440;
+  return String(Math.floor(total / 60)).padStart(2, "0") + "h" + String(total % 60).padStart(2, "0");
+}
+
+function formatCurrencyBR(cents: number) {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function getTicketAvailability(ticket: DbTicketType) {
+  return Math.max(0, ticket.available_quantity - ticket.sold_quantity);
+}
+
+function isTicketVisibleOnHome(ticket: DbTicketType) {
+  return ticket.status === "open" || ticket.status === "sold_out";
+}
+
+function getTicketVisualStatus(ticket: DbTicketType): TicketItem["status"] {
+  const availability = getTicketAvailability(ticket);
+  if (ticket.status === "sold_out" || availability <= 0) return "sold-out";
+  if (availability <= 10) return "last-units";
+  return "available";
+}
+
+function getTicketDescriptionItems(description?: string | null) {
+  const items = (description ?? "")
+    .split(/\\r?\\n|;/)
+    .map(item => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : ["Detalhes do lote serão informados pela organização."];
+}`,
+        'time and ticket helpers',
+      )
+
+      source = replaceOnce(
+        source,
+        /function Hero\(\{ navigate, content \}: \{ navigate: \(p: Page\) => void; content: HomePageContent \}\) \{[\s\S]*?\n\}\n\nfunction AboutSection/,
+        `function Hero({ navigate, content, event }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null }) {
+  const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
+  useEffect(() => {
+    const update = () => setTime(getTimeLeft(getEventDateTime(event)));
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [event?.event_date, event?.event_time]);
+
+  return (
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
+      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
+      <div className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] pointer-events-none"
+        style={{ background: "#2d6a4f" }} />
+
+      <div className="relative z-10 text-center px-4 max-w-5xl w-full mx-auto">
+        <p className="text-[#c9a84c] tracking-[0.5em] text-[10px] md:text-xs font-mono font-bold uppercase mb-4 md:mb-5">{content.hero_eyebrow}</p>
+        <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] uppercase leading-[0.86] tracking-tight"
+          style={{ fontSize: "clamp(3rem, 10vw, 8rem)" }}>{content.hero_title}</h1>
+        <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2"
+          style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>{content.hero_tagline}</p>
+        <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>
+        <p className="text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 mt-1 mb-10 md:mb-12">{content.hero_event_line}</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 md:mb-12">
+          <Btn size="lg" onClick={() => navigate("tickets")}>{content.primary_cta_label}</Btn>
+          <Btn size="lg" variant="outline" onClick={() => navigate("who-going")}>{content.secondary_cta_label}</Btn>
+        </div>
+        <div className="inline-flex">
+          {[{ v: time.days, l: "Dias" }, { v: time.hours, l: "Horas" }, { v: time.minutes, l: "Min" }, { v: time.seconds, l: "Seg" }].map(({ v, l }, i) => (
+            <div key={l} className="flex items-center">
+              {i > 0 && <span className="text-[#2d6a4f] font-mono text-3xl md:text-4xl mx-3 md:mx-6 font-light">:</span>}
+              <div className="text-center">
+                <div className="font-['JetBrains_Mono'] text-4xl md:text-6xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
+                <div className="text-[#c9a84c] text-[9px] tracking-[0.3em] uppercase font-mono mt-1">{l}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="absolute bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
+        <ChevronDown className="text-[#c9a84c] opacity-50" size={20} />
+      </div>
+    </section>
+  );
+}
+
+function AboutSection`,
+        'Hero',
+      )
+
+      source = replaceOnce(
+        source,
+        /function EventInfoSection\(\{ content \}: \{ content: HomePageContent \}\) \{[\s\S]*?\n\}\n\nfunction WhoGoingPreview/,
+        `function EventInfoSection({ content, event }: { content: HomePageContent; event: DbEvent | null }) {
+  const dateLabel = formatLongDateBR(event?.event_date);
+  const timeLabel = formatTimeLabel(event?.event_time);
+  const hasLoadedEventTime = Boolean(event?.event_time);
+  const locationName = event?.location_name || "Espaço Cultural Ponta Negra";
+  const locationAddress = event?.location_address || "Av. Eng. Roberto Freire — Ponta Negra, Natal/RN";
+  const infoItems = [
+    { icon: <Calendar size={24} />, title: "Data", info: dateLabel, sub: "Portas abertas às " + addMinutesToTime(event?.event_time, -30) },
+    { icon: <Clock size={24} />, title: "Horário", info: hasLoadedEventTime ? timeLabel : "19h00 — 01h00", sub: "Jantar servido a partir das " + addMinutesToTime(event?.event_time, 60) },
+    { icon: <MapPin size={24} />, title: "Local", info: locationName, sub: locationAddress },
+  ];
+
+  return (
+    <section className="bg-[#f0ebe0] py-20 md:py-28">
+      <div className="max-w-7xl mx-auto px-4">
+        <SectionLabel>{content.info_eyebrow}</SectionLabel>
+        <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-12">{content.info_title}</DisplayTitle>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {infoItems.map(({ icon, title, info, sub }) => (
+            <div key={title} className="bg-[#0d1a0f] p-8">
+              <div className="text-[#c9a84c] mb-4">{icon}</div>
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-2">{title}</p>
+              <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-2">{info}</p>
+              <p className="text-[#7a9a7a] text-sm">{sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TicketsPreview({ navigate, content, ticketTypes, onSelectTicket }: { navigate: (p: Page) => void; content: HomePageContent; ticketTypes: DbTicketType[]; onSelectTicket: (id: string) => void }) {
+  const publicTickets = ticketTypes.filter(isTicketVisibleOnHome);
+
+  return (
+    <section className="bg-[#0a120a] py-20 md:py-28">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div><SectionLabel>{content.tickets_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.tickets_title}</DisplayTitle></div>
+          <Btn variant="ghost" onClick={() => navigate("tickets")}>Ver todos <ArrowRight size={16} /></Btn>
+        </div>
+
+        {publicTickets.length === 0 ? (
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-center">
+            <Ticket size={36} className="text-[#c9a84c] mx-auto mb-4" />
+            <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-2xl mb-2">Ingressos em breve</p>
+            <p className="text-[#7a9a7a] text-sm mb-6">Os lotes ativos cadastrados no painel aparecerão aqui.</p>
+            <Btn variant="outline" onClick={() => navigate("tickets")}>Abrir página de ingressos</Btn>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {publicTickets.map(ticket => {
+              const availability = getTicketAvailability(ticket);
+              const visualStatus = getTicketVisualStatus(ticket);
+              const disabled = visualStatus === "sold-out";
+              const descriptionItems = getTicketDescriptionItems(ticket.description);
+              return (
+                <div key={ticket.id} className={"bg-[#141f14] border p-8 flex flex-col gap-4 transition-colors " + (disabled ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Lote ativo</p>
+                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mt-1">{ticket.name}</p>
+                    </div>
+                    <StatusBadge status={visualStatus} />
+                  </div>
+                  <div className="border-t border-[#2d6a4f]/20 pt-4">
+                    <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl">{formatCurrencyBR(ticket.price_cents)}</p>
+                    {ticket.available_quantity > 0 && <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{availability}/{ticket.available_quantity} restantes</p>}
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {descriptionItems.map(item => (
+                      <li key={item} className="flex items-start gap-2 text-[#7a9a7a] text-xs"><Check size={12} className="text-[#2d6a4f] mt-0.5 shrink-0" />{item}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto">
+                    <Btn full disabled={disabled} onClick={() => { onSelectTicket(ticket.id); navigate("checkout"); }} variant={visualStatus === "last-units" ? "gold" : "primary"}>
+                      {disabled ? "Esgotado" : "Comprar agora"}
+                    </Btn>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function WhoGoingPreview`,
+        'EventInfoSection and TicketsPreview',
+      )
+
+      source = replaceOnce(
+        source,
+        /function LandingPage\(\{ navigate, people, photos, content \}: \{ navigate: \(p: Page\) => void; people: DbPerson\[\]; photos: DbPhoto\[\]; content: HomePageContent \}\) \{[\s\S]*?\n\}\n\n\nfunction TicketsPage/,
+        `function LandingPage({ navigate, people, photos, content, event, ticketTypes, onSelectTicket }: {
+  navigate: (p: Page) => void;
+  people: DbPerson[];
+  photos: DbPhoto[];
+  content: HomePageContent;
+  event: DbEvent | null;
+  ticketTypes: DbTicketType[];
+  onSelectTicket: (id: string) => void;
+}) {
+  return <>
+    <Hero navigate={navigate} content={content} event={event} />
+    <AboutSection content={content} />
+    <EventInfoSection content={content} event={event} />
+    <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />
+    <WhoGoingPreview navigate={navigate} people={people} content={content} />
+    <PhotoWallPreview navigate={navigate} photos={photos} content={content} />
+    <TimelineSection content={content} />
+    <FAQSection content={content} />
+  </>;
+}
+
+
+function TicketsPage`,
+        'LandingPage',
+      )
+
+      source = replaceOnce(
+        source,
+        /  const \[ticketTypes, setTicketTypes\] = useState<DbTicketType\[\]>\(\[\]\);/,
+        '  const [ticketTypes, setTicketTypes] = useState<DbTicketType[]>([]);\n  const [event, setEvent] = useState<DbEvent | null>(null);',
+        'event state',
+      )
+
+      source = replaceOnce(
+        source,
+        /  \/\/ ── Carrega dados reais do Supabase com fallback para mock ────────────────\n  useEffect\(\(\) => \{\n    getPeople\(\)\.then\(setPeople\)\.catch\(\(\) => DEV_MODE && setPeople\(MOCK_PEOPLE\)\);\n    getTicketTypes\(\)\.then\(setTicketTypes\)\.catch\(\(\) => \{\}\);\n    getApprovedPhotos\(DEFAULT_EVENT_ID\)\.then\(setApprovedPhotos\)\.catch\(\(\) => DEV_MODE && setApprovedPhotos\(\[\]\)\);\n    getHomePageContent\(DEFAULT_EVENT_ID\)\.then\(setHomeContent\)\.catch\(\(\) => \{\}\);\n  \}, \[\]\);/,
+        `  // ── Carrega dados reais do Supabase com fallback para mock ────────────────
+  function refreshPublicEventData() {
+    getEventSettings().then(setEvent).catch(() => setEvent(null));
+    getTicketTypes(DEFAULT_EVENT_ID).then(setTicketTypes).catch(() => setTicketTypes([]));
+    getHomePageContent(DEFAULT_EVENT_ID).then(setHomeContent).catch(() => {});
+  }
+
+  useEffect(() => {
+    getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
+    getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
+    refreshPublicEventData();
+  }, []);`,
+        'data loading',
+      )
+
+      source = replaceOnce(
+        source,
+        /    setPage\(p\);\n    updateBrowserPath\(p\);/,
+        '    if (p === "home") refreshPublicEventData();\n    setPage(p);\n    updateBrowserPath(p);',
+        'refresh on home navigation',
+      )
+
+      source = replaceOnce(
+        source,
+        /\{page === "home"          && <LandingPage      navigate=\{navigate\} people=\{people\} photos=\{approvedPhotos\} content=\{homeContent\} \/>\}/,
+        '{page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}',
+        'LandingPage render props',
+      )
+
+      return { code: source, map: null }
+    },
+  }
+}
 
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
-    resolveId(id) {
+    resolveId(id: string) {
       if (id.startsWith('figma:asset/')) {
         const filename = id.replace('figma:asset/', '')
         return path.resolve(__dirname, 'src/assets', filename)
@@ -18,6 +340,7 @@ function figmaAssetResolver() {
 
 export default defineConfig({
   plugins: [
+    homeDataConnector(),
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
