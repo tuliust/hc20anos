@@ -1,0 +1,71 @@
+name: Connect home data push trigger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/home-data-trigger.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run embedded patch
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/connect-home-data-issue.yml').read_text(encoding='utf-8')
+          marker = "          python <<'PY'\n"
+          start = text.index(marker) + len(marker)
+          end = text.index("\n          PY", start)
+          block = text[start:end]
+          script = "\n".join(line[10:] if line.startswith('          ') else line for line in block.splitlines())
+          exec(compile(script, '<embedded-home-patch>', 'exec'))
+          PY
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Build
+        shell: bash
+        run: |
+          set +e
+          npm run build > /tmp/build.log 2>&1
+          code=$?
+          cat /tmp/build.log
+          if [ "$code" -ne 0 ]; then
+            tail -n 200 /tmp/build.log > BUILD_FAILURE_HOME_DATA.log
+            git add BUILD_FAILURE_HOME_DATA.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Registra falha no build do ajuste da home" || true
+            git push origin HEAD:main || true
+            exit "$code"
+          fi
+
+      - name: Commit and push patched files
+        run: |
+          git status --short
+          rm -f .github/workflows/connect-home-data.yml .github/workflows/connect-home-data-issue.yml .github/workflows/connect-home-data-push.yml .github/home-data-trigger.txt
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Conecta home aos dados do evento e ingressos"
+          git push origin HEAD:main
