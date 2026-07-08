@@ -1,0 +1,81 @@
+name: Apply header refinements
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch App header
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/app/App.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          # Header nav: increase font for Quem Vai, A Turma, Fotos, Memórias, Enquetes, Mapa, Acervo.
+          s = s.replace(
+              'text-sm xl:text-[15px] font-mono font-bold uppercase tracking-[0.12em] whitespace-nowrap leading-none transition-colors',
+              'text-[15px] xl:text-base font-mono font-bold uppercase tracking-[0.1em] whitespace-nowrap leading-none transition-colors'
+          )
+          s = s.replace(
+              'text-[11px] xl:text-xs font-mono font-bold uppercase tracking-[0.16em] whitespace-nowrap leading-none transition-colors',
+              'text-[15px] xl:text-base font-mono font-bold uppercase tracking-[0.1em] whitespace-nowrap leading-none transition-colors'
+          )
+
+          # Header CTA and login/register: reduce size.
+          s = s.replace(
+              'className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3"',
+              'className="hidden md:inline-flex whitespace-nowrap text-[11px] xl:text-xs px-4 py-2"'
+          )
+          s = s.replace(
+              'className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-6 py-3"',
+              'className="hidden md:inline-flex whitespace-nowrap text-[11px] xl:text-xs px-4 py-2"'
+          )
+
+          # Superadmin-only admin panel button in avatar dropdown.
+          anchor = '''                    <div className="pt-3 flex flex-col">
+                      <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>'''
+          replacement = '''                    <div className="pt-3 flex flex-col">
+                      {auth.role === "superadmin" && (
+                        <button onClick={() => go("admin")} className="text-left px-3 py-3 text-[#c9a84c] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Painel administrativo</button>
+                      )}
+                      <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>'''
+          if 'Painel administrativo</button>' not in s:
+              if anchor not in s:
+                  raise RuntimeError('Dropdown anchor not found for admin panel button')
+              s = s.replace(anchor, replacement, 1)
+
+          # Enforce requested header and logo dimensions.
+          s = s.replace(
+              'className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between"',
+              'className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between"'
+          )
+          s = s.replace(
+              'className="h-12 md:h-14 w-auto max-w-[190px] object-contain"',
+              'className="h-16 w-32 object-contain"'
+          )
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit patch and remove workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-header-refinements.yml
+          git add src/app/App.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Refine header menu and nav sizing"
+            git push
+          fi
