@@ -12,7 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, TicketWithDetails,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent,
 } from "./database.types";
 
@@ -593,6 +593,55 @@ export async function getAlumniDirectoryStatuses(eventId = DEFAULT_HOME_EVENT_ID
     if (error) throw error;
     return ((data as AlumniDirectoryStatusRow[]) ?? []).filter(row => row);
   }, []);
+}
+
+export async function saveSchoolQuestionnaireAnswers(params: {
+  eventId?: string;
+  profileId: string;
+  personId: string;
+  answers: Record<string, string[]>;
+}): Promise<void> {
+  const rows = Object.entries(params.answers)
+    .map(([questionId, options]) => ({
+      event_id: params.eventId ?? DEFAULT_HOME_EVENT_ID,
+      profile_id: params.profileId,
+      person_id: params.personId,
+      question_id: questionId,
+      selected_options_json: Array.from(new Set((options ?? []).map(option => option.trim()).filter(Boolean))),
+      updated_at: new Date().toISOString(),
+    }))
+    .filter(row => row.question_id && row.selected_options_json.length > 0);
+
+  if (!rows.length) return;
+
+  const { error } = await (supabase as any)
+    .from("profile_school_questionnaire_answers")
+    .upsert(rows, { onConflict: "profile_id,question_id" });
+  if (error) throw error;
+}
+
+export async function getSchoolQuestionnaireOptionStats(eventId = DEFAULT_HOME_EVENT_ID): Promise<SchoolQuestionnaireOptionStatRow[]> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_school_questionnaire_option_stats")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("answer_count", { ascending: false });
+    if (error) throw error;
+    return (data as SchoolQuestionnaireOptionStatRow[]) ?? [];
+  }, []);
+}
+
+export async function getCuriosityProfileStats(eventId = DEFAULT_HOME_EVENT_ID): Promise<CuriosityProfileStatsRow | null> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_curiosity_profile_stats")
+      .select("*")
+      .eq("event_id", eventId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as CuriosityProfileStatsRow | null;
+  }, null);
 }
 
 export async function saveMyPublicProfile(

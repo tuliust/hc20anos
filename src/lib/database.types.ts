@@ -383,6 +383,45 @@ export interface AlumniDirectoryStatusRow {
   profession:                  string | null;
 }
 
+
+export interface CuriosityCountItem {
+  label: string;
+  count: number;
+}
+
+export interface SchoolQuestionnaireAnswerRow {
+  id:                    uuid;
+  event_id:              uuid;
+  profile_id:            uuid;
+  person_id:             uuid;
+  question_id:           string;
+  selected_options_json: string[];
+  created_at:            string;
+  updated_at:            string;
+}
+
+export interface SchoolQuestionnaireOptionStatRow {
+  event_id:      uuid;
+  question_id:   string;
+  option_label:  string;
+  answer_count:  number;
+}
+
+export interface CuriosityProfileStatsRow {
+  event_id:                    uuid;
+  total_people:                number;
+  total_registered:            number;
+  total_preconfirmed:          number;
+  total_confirmed:             number;
+  total_with_relationship:     number;
+  total_with_children:         number;
+  total_children_declared:     number;
+  relationship_status_counts:  CuriosityCountItem[];
+  children_status_counts:      CuriosityCountItem[];
+  children_count_distribution: CuriosityCountItem[];
+  profession_area_counts:      CuriosityCountItem[];
+}
+
 export interface LocationStat {
   key:      string;
   city:     string;
@@ -488,6 +527,9 @@ export interface Database {
       profiles:               { Row: DbProfile;            Insert: UpsertProfile;                 Update: Partial<DbProfile>            };
       public_profile_cards:   { Row: PublicProfileCardRow; Insert: never;                         Update: never                         };
       public_alumni_directory_status: { Row: AlumniDirectoryStatusRow; Insert: never;              Update: never                         };
+      profile_school_questionnaire_answers: { Row: SchoolQuestionnaireAnswerRow; Insert: Partial<SchoolQuestionnaireAnswerRow>; Update: Partial<SchoolQuestionnaireAnswerRow> };
+      public_school_questionnaire_option_stats: { Row: SchoolQuestionnaireOptionStatRow; Insert: never; Update: never };
+      public_curiosity_profile_stats: { Row: CuriosityProfileStatsRow; Insert: never; Update: never };
       ticket_types:           { Row: DbTicketType;         Insert: Partial<DbTicketType>;         Update: Partial<DbTicketType>         };
       orders:                 { Row: DbOrder;              Insert: InsertOrder;                   Update: Partial<DbOrder>              };
       tickets:                { Row: DbTicket;             Insert: InsertTicket;                  Update: Partial<DbTicket>             };

@@ -20,7 +20,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, importPeopleAdmin, completeProfileRegistration, type AdminImportPersonInput,
+  getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin, completeProfileRegistration, type AdminImportPersonInput,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
@@ -29,7 +29,7 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import {
@@ -54,7 +54,7 @@ type Page =
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
   | "login" | "terms" | "privacy" | "memories"
-  | "polls" | "where-now" | "share-invite"
+  | "curiosities" | "polls" | "where-now" | "share-invite"
   | "my-ticket" | "archive";
 
 interface AuthState {
@@ -208,7 +208,7 @@ const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "the-class", label: "A Turma" },
   { page: "photo-wall", label: "Nossa História" },
   { page: "memories", label: "Caixa de Memórias" },
-  { page: "polls", label: "Enquetes" },
+  { page: "curiosities", label: "Curiosidades" },
   { page: "where-now", label: "Mapa" },
   { page: "archive", label: "Pós-festa" },
   { page: "login", label: "Login/Cadastro" },
@@ -234,7 +234,7 @@ const FOOTER_LINK_DEFAULTS: FooterLinkContent[] = [
   { page: "the-class", label: "A Turma", is_visible: true },
   { page: "photo-wall", label: "Nossa História", is_visible: true },
   { page: "memories", label: "Caixa de Memórias", is_visible: false },
-  { page: "polls", label: "Enquetes", is_visible: true },
+  { page: "curiosities", label: "Curiosidades", is_visible: true },
   { page: "where-now", label: "Onde a turma está", is_visible: true },
   { page: "archive", label: "Pós-festa", is_visible: true },
 ];
@@ -333,7 +333,7 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_the_class_label: "A Turma",
   nav_photos_label: "Nossa História",
   nav_memories_label: "Caixa de Memórias",
-  nav_polls_label: "Enquetes",
+  nav_polls_label: "Curiosidades",
   nav_where_now_label: "Mapa",
   nav_archive_label: "Pós-festa",
   nav_home_visible: true,
@@ -421,6 +421,7 @@ function parseHomeJsonArray<T>(value: string | null | undefined, fallback: T[]):
 
 function normalizePage(value: unknown, fallback: Page): Page {
   const page = typeof value === "string" ? value : fallback;
+  if (page === "polls") return "curiosities";
   return PAGE_OPTIONS.some(option => option.page === page) ? page as Page : fallback;
 }
 
@@ -1748,7 +1749,7 @@ function Header({ page, navigate, auth, logout, content }: {
     { label: headerContent.nav_event_label, page: "event", visible: isContentVisible(headerContent.nav_event_visible) },
     { label: headerContent.nav_ex_alumni_label, page: "ex-alumni", visible: isContentVisible(headerContent.nav_ex_alumni_visible) },
     { label: headerContent.nav_photos_label, page: "photo-wall", visible: isContentVisible(headerContent.nav_photos_visible) },
-    { label: headerContent.nav_polls_label, page: "polls", visible: isContentVisible(headerContent.nav_polls_visible) },
+    { label: headerContent.nav_polls_label, page: "curiosities", visible: isContentVisible(headerContent.nav_polls_visible) },
     { label: headerContent.nav_archive_label, page: "archive", visible: isContentVisible(headerContent.nav_archive_visible) },
   ] as { label: string; page: Page; visible: boolean }[]).filter(item => item.visible && item.label.trim());
 
@@ -4014,7 +4015,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       }
 
       const photoUrl = photoFile && effectiveUserId ? await uploadProfileAvatar(effectiveUserId, photoFile) : null;
-      await completeProfileRegistration({
+      const completedProfile = await completeProfileRegistration({
         personId: selected.id,
         penultimateSurname: answers.penultimateSurname,
         classGroupConfirmation: answers.classGroup,
@@ -4044,6 +4045,12 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         allowPhotoTags: privacy.allowTagging,
         showConfirmedStatus: privacy.showInList,
       });
+      await saveSchoolQuestionnaireAnswers({
+        eventId: DEFAULT_EVENT_ID,
+        profileId: completedProfile.id,
+        personId: selected.id,
+        answers: bioAssistantAnswers,
+      }).catch(() => {});
       if (photoUrl && effectiveUserId) {
         await saveMyPublicProfile(effectiveUserId, { current_photo_url: photoUrl }, { avatar_url: photoUrl }).catch(() => {});
       }
@@ -4756,36 +4763,133 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   );
 }
 
-// ─── POLLS ────────────────────────────────────────────────────────────────────
 
-function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+// ─── CURIOSIDADES ─────────────────────────────────────────────────────────────
+
+type CuriosityChartMode = "questionnaire" | "life";
+
+function StatCard({ label, value, hint, icon }: { label: string; value: React.ReactNode; hint?: string; icon?: React.ReactNode }) {
+  return (
+    <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4">
+      <div>
+        <p className="text-[#c9a84c] font-mono text-3xl font-bold leading-none">{value}</p>
+        <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-2">{label}</p>
+        {hint && <p className="text-[#3a5a3a] text-xs mt-2 leading-relaxed">{hint}</p>}
+      </div>
+      {icon && <div className="text-[#2d6a4f] shrink-0">{icon}</div>}
+    </div>
+  );
+}
+
+function MiniBarChart({ title, description, rows, emptyLabel = "Dados ainda insuficientes." }: {
+  title: string;
+  description?: string;
+  rows: { label: string; count: number }[];
+  emptyLabel?: string;
+}) {
+  const cleanRows = rows.filter(row => row.count > 0).slice(0, 8);
+  const max = Math.max(...cleanRows.map(row => row.count), 1);
+  return (
+    <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Infográfico</p>
+      <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{title}</h3>
+      {description && <p className="text-[#7a9a7a] text-sm mt-2 mb-5 leading-relaxed">{description}</p>}
+      {!cleanRows.length ? (
+        <p className="text-[#7a9a7a] text-sm mt-5">{emptyLabel}</p>
+      ) : (
+        <div className="flex flex-col gap-4 mt-5">
+          {cleanRows.map(row => {
+            const width = Math.max(8, Math.round((row.count / max) * 100));
+            return (
+              <div key={row.label}>
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <span className="text-[#f0ebe0] text-sm font-semibold">{row.label}</span>
+                  <span className="text-[#c9a84c] font-mono text-xs">{row.count}</span>
+                </div>
+                <div className="h-2.5 bg-[#0d1a0f] border border-[#2d6a4f]/20 overflow-hidden">
+                  <div className="h-full bg-[#2d6a4f]" style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getQuestionTitle(questionId: string) {
+  return SCHOOL_PROFILE_QUESTIONS.find(question => question.id === questionId)?.title ?? questionId;
+}
+
+function groupQuestionnaireStats(rows: SchoolQuestionnaireOptionStatRow[]) {
+  const grouped = new Map<string, { label: string; count: number }[]>();
+  for (const row of rows) {
+    const current = grouped.get(row.question_id) ?? [];
+    current.push({ label: row.option_label, count: row.answer_count });
+    grouped.set(row.question_id, current);
+  }
+  return SCHOOL_PROFILE_QUESTIONS.map(question => ({
+    id: question.id,
+    title: question.title,
+    rows: (grouped.get(question.id) ?? []).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR")),
+  }));
+}
+
+function buildCuriosityInsight(stats: CuriosityProfileStatsRow | null, questionnaireRows: SchoolQuestionnaireOptionStatRow[], locations: LocationStat[]) {
+  const topQuestionnaire = [...questionnaireRows].sort((a, b) => b.answer_count - a.answer_count)[0];
+  const topProfession = stats?.profession_area_counts?.[0];
+  const topRelationship = stats?.relationship_status_counts?.[0];
+  const topLocation = locations[0];
+  const parts = [
+    topQuestionnaire ? `Nos registros do questionário, “${topQuestionnaire.option_label}” aparece entre as respostas mais citadas.` : "À medida que os cadastros avançarem, o questionário vai revelar como a turma se lembra da época do HC.",
+    topProfession ? `Entre as áreas profissionais informadas, ${topProfession.label.toLowerCase()} se destaca até agora.` : "As profissões ainda estão sendo preenchidas pelos ex-alunos.",
+    topRelationship ? `Sobre relacionamentos, a categoria mais comum no momento é ${topRelationship.label.toLowerCase()}.` : "Os dados de relacionamento aparecem apenas de forma agregada.",
+    topLocation ? `${topLocation.city} concentra o maior número de localizações públicas cadastradas.` : "O mapa será preenchido conforme as pessoas autorizarem a exibição da cidade.",
+  ];
+  return parts.join(" ");
+}
+
+function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
   const [results, setResults] = useState<Record<string, Record<string, number>>>({});
   const [myVotes, setMyVotes] = useState<DbPollVote[]>([]);
+  const [locations, setLocations] = useState<LocationStat[]>([]);
+  const [questionnaireStats, setQuestionnaireStats] = useState<SchoolQuestionnaireOptionStatRow[]>([]);
+  const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  async function loadPolls() {
+  async function loadCuriosities() {
     setLoading(true);
     setError("");
     try {
-      const data = await getPolls(DEFAULT_EVENT_ID);
-      setPolls(data);
+      const [pollData, questionnaireData, profileData, locationData] = await Promise.all([
+        getPolls(DEFAULT_EVENT_ID),
+        getSchoolQuestionnaireOptionStats(DEFAULT_EVENT_ID).catch(() => []),
+        getCuriosityProfileStats(DEFAULT_EVENT_ID).catch(() => null),
+        getPublicLocationStats().catch(() => []),
+      ]);
+      setPolls(pollData);
+      setQuestionnaireStats(questionnaireData);
+      setProfileStats(profileData);
+      setLocations(locationData);
+
       const nextResults: Record<string, Record<string, number>> = {};
-      for (const poll of data) nextResults[poll.id] = await getPollResults(poll.id);
+      for (const poll of pollData) nextResults[poll.id] = await getPollResults(poll.id);
       setResults(nextResults);
-      if (auth.loggedIn) setMyVotes(await getMyPollVotes(auth.userId, data.map(p => p.id)));
+      if (auth.loggedIn) setMyVotes(await getMyPollVotes(auth.userId, pollData.map(p => p.id)));
       else setMyVotes([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar enquetes.");
+      setError(err instanceof Error ? err.message : "Erro ao carregar curiosidades.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { loadPolls(); }, [auth.loggedIn, auth.userId]);
+  useEffect(() => { loadCuriosities(); }, [auth.loggedIn, auth.userId]);
 
   async function submitVote(poll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) {
     if (!auth.loggedIn) { navigate("login"); return; }
@@ -4795,7 +4899,7 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     try {
       await votePoll({ pollId: poll.id, optionId, userId: auth.userId, allowMultiple: poll.allow_multiple_votes });
       setMessage("Voto registrado.");
-      await loadPolls();
+      await loadCuriosities();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao registrar voto.");
     } finally {
@@ -4807,75 +4911,177 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
     return Object.values(results[pollId] ?? {}).reduce<number>((sum, value) => sum + Number(value), 0);
   }
 
+  const questionGroups = groupQuestionnaireStats(questionnaireStats);
+  const insight = buildCuriosityInsight(profileStats, questionnaireStats, locations);
+  const relationshipRows = profileStats?.relationship_status_counts ?? [];
+  const childrenRows = profileStats?.children_status_counts ?? [];
+  const professionRows = profileStats?.profession_area_counts ?? [];
+  const childrenCountRows = profileStats?.children_count_distribution ?? [];
+  const topLocations = locations.slice(0, 8);
+
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+      <div className="max-w-7xl mx-auto px-4">
+        <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-end mb-10">
           <div>
-            <SectionLabel>Enquetes nostálgicas</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-6xl">Vote nas memórias da turma</DisplayTitle>
-            <p className="text-[#7a9a7a] mt-3 max-w-2xl">Escolha músicas, lugares e lembranças que marcaram a Turma 2006. Os resultados são atualizados conforme os votos entram.</p>
+            <SectionLabel>Curiosidades da turma</SectionLabel>
+            <DisplayTitle className="text-5xl md:text-7xl">O raio-X da Turma 2006</DisplayTitle>
+            <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">
+              Dados, lembranças, mapa, profissões, relacionamentos e enquetes sobre quem a gente era no HC — e quem a turma se tornou 20 anos depois.
+            </p>
           </div>
-          <Btn variant="outline" onClick={() => navigate("where-now")}><MapPin size={16} />Onde estamos</Btn>
-        </div>
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
+            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Leitura por IA</p>
+            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold mb-3">O retrato da turma até agora</h3>
+            <p className="text-[#8ab89a] text-sm leading-relaxed">{insight}</p>
+            <p className="text-[#3a5a3a] text-[11px] font-mono mt-4 uppercase tracking-wider">Prévia local. A geração por IA poderá ser conectada em uma próxima etapa.</p>
+          </div>
+        </section>
 
-        {message && <div className="mb-6 bg-[#0d2e1a] border border-[#2d6a4f] p-4 text-[#74c69d] text-sm font-mono">{message}</div>}
-        {error && <ErrorState message={error} onRetry={loadPolls} />}
-        {loading && <LoadingState message="Carregando enquetes..." />}
+        {error && <ErrorState message={error} onRetry={loadCuriosities} />}
+        {loading && <LoadingState message="Carregando curiosidades..." />}
 
-        {!loading && polls.length === 0 && (
-          <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organização ainda não abriu votações para a turma." />
-        )}
+        {!loading && (
+          <>
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+              <StatCard label="Pré-cadastrados" value={profileStats?.total_people ?? "—"} icon={<Users size={28} />} />
+              <StatCard label="Cadastrados" value={profileStats?.total_registered ?? "—"} icon={<UserCheck size={28} />} />
+              <StatCard label="Pré-confirmados" value={profileStats?.total_preconfirmed ?? "—"} icon={<CheckCircle2 size={28} />} />
+              <StatCard label="Confirmados" value={profileStats?.total_confirmed ?? "—"} icon={<Ticket size={28} />} />
+              <StatCard label="Cidades" value={locations.length} hint="Com exibição autorizada" icon={<MapPin size={28} />} />
+              <StatCard label="Áreas profissionais" value={professionRows.filter(row => row.label !== "Não informado").length || "—"} icon={<BriefcaseIcon />} />
+              <StatCard label="Com filhos" value={profileStats?.total_with_children ?? "—"} icon={<Heart size={28} />} />
+              <StatCard label="Filhos declarados" value={profileStats?.total_children_declared ?? "—"} icon={<Users size={28} />} />
+            </section>
 
-        {!loading && polls.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {polls.map(poll => {
-              const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-              const total = Math.max(totalVotes(poll.id), 1);
-              const votedOptions = myVotes.filter(v => v.poll_id === poll.id).map(v => v.option_id);
-              return (
-                <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Enquete</p>
-                      <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{poll.question}</h3>
-                      {poll.description && <p className="text-[#7a9a7a] text-sm mt-2">{poll.description}</p>}
-                    </div>
-                    <StatusBadge status={poll.status} />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {options.map(option => {
-                      const count = results[poll.id]?.[option.id] ?? 0;
-                      const percent = Math.round((count / total) * 100);
-                      const voted = votedOptions.includes(option.id);
-                      const disabled = poll.status !== "open" || busy === option.id;
-                      return (
-                        <button key={option.id} disabled={disabled} onClick={() => submitVote(poll, option.id)}
-                          className={`text-left border p-4 transition-colors disabled:cursor-not-allowed ${voted ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
-                          <div className="flex items-center justify-between gap-3 mb-2">
-                            <span className="text-[#f0ebe0] text-sm font-semibold">{option.option_text}</span>
-                            <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>
-                          </div>
-                          <div className="h-2 bg-[#1a2e1a] overflow-hidden">
-                            <div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} />
-                          </div>
-                          <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar.</p>}
-                  {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
+            <section className="mb-12">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                <div>
+                  <SectionLabel>Tempos de escola</SectionLabel>
+                  <DisplayTitle className="text-4xl md:text-5xl">O que a turma contou no cadastro</DisplayTitle>
+                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 5 etapas da mini bio.</p>
                 </div>
-              );
-            })}
-          </div>
+                <Btn variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Responder questionário</Btn>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {questionGroups.map(group => (
+                  <MiniBarChart key={group.id} title={group.title} rows={group.rows} emptyLabel="Ainda não há respostas suficientes para esta pergunta." />
+                ))}
+              </div>
+            </section>
+
+            <section className="mb-12">
+              <SectionLabel>Como a vida seguiu</SectionLabel>
+              <DisplayTitle className="text-4xl md:text-5xl mb-6">Relacionamentos, filhos e profissões</DisplayTitle>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <MiniBarChart title="Relacionamentos" description="Distribuição agregada dos perfis cadastrados." rows={relationshipRows} />
+                <MiniBarChart title="Filhos" description="Dados declarados no cadastro, exibidos somente de forma agregada." rows={childrenRows} />
+                <MiniBarChart title="Profissões por área" description="Agrupamento aproximado das profissões informadas publicamente." rows={professionRows} />
+              </div>
+              {childrenCountRows.length > 0 && (
+                <div className="mt-5">
+                  <MiniBarChart title="Quantidade de filhos declarada" rows={childrenCountRows} />
+                </div>
+              )}
+            </section>
+
+            <section className="mb-12">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                <div>
+                  <SectionLabel>Mapa da turma</SectionLabel>
+                  <DisplayTitle className="text-4xl md:text-5xl">Onde a turma está hoje</DisplayTitle>
+                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas cidades autorizadas nos perfis aparecem aqui.</p>
+                </div>
+                <Btn variant="outline" onClick={() => navigate("ex-alumni")}><Users size={16} />Ver ex-alunos</Btn>
+              </div>
+              {topLocations.length === 0 ? (
+                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
+                  <EmptyState icon={<MapPin size={42} />} title="Mapa ainda sem dados públicos" subtitle="As cidades aparecerão conforme os ex-alunos autorizarem a exibição da localização." />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {topLocations.map(location => (
+                    <div key={location.key} className="bg-[#141f14] border border-[#2d6a4f]/30 p-5">
+                      <p className="text-[#f0ebe0] font-semibold text-lg">{location.city}</p>
+                      <p className="text-[#7a9a7a] text-xs font-mono mt-1">{[location.state, location.country].filter(Boolean).join(" · ")}</p>
+                      <p className="text-[#c9a84c] font-mono text-2xl font-bold mt-4">{location.count}</p>
+                      <p className="text-[#3a5a3a] text-xs mt-2 truncate">{location.people.map(person => person.display_name || person.full_name).slice(0, 4).join(" · ")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                <div>
+                  <SectionLabel>Enquetes da turma</SectionLabel>
+                  <DisplayTitle className="text-4xl md:text-5xl">Vote nas memórias da turma</DisplayTitle>
+                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">As enquetes continuam aqui, agora dentro do painel de curiosidades.</p>
+                </div>
+              </div>
+
+              {message && <div className="mb-6 bg-[#0d2e1a] border border-[#2d6a4f] p-4 text-[#74c69d] text-sm font-mono">{message}</div>}
+              {polls.length === 0 && (
+                <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organização ainda não abriu votações para a turma." />
+              )}
+
+              {polls.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {polls.map(poll => {
+                    const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+                    const total = Math.max(totalVotes(poll.id), 1);
+                    const votedOptions = myVotes.filter(v => v.poll_id === poll.id).map(v => v.option_id);
+                    return (
+                      <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Enquete</p>
+                            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{poll.question}</h3>
+                            {poll.description && <p className="text-[#7a9a7a] text-sm mt-2">{poll.description}</p>}
+                          </div>
+                          <StatusBadge status={poll.status} />
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          {options.map(option => {
+                            const count = results[poll.id]?.[option.id] ?? 0;
+                            const percent = Math.round((count / total) * 100);
+                            const voted = votedOptions.includes(option.id);
+                            const disabled = poll.status !== "open" || busy === option.id;
+                            return (
+                              <button key={option.id} disabled={disabled} onClick={() => submitVote(poll, option.id)}
+                                className={`text-left border p-4 transition-colors disabled:cursor-not-allowed ${voted ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                  <span className="text-[#f0ebe0] text-sm font-semibold">{option.option_text}</span>
+                                  <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>
+                                </div>
+                                <div className="h-2 bg-[#1a2e1a] overflow-hidden">
+                                  <div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} />
+                                </div>
+                                <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar.</p>}
+                        {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
         )}
       </div>
     </div>
   );
+}
+
+function BriefcaseIcon() {
+  return <FileText size={28} />;
 }
 
 // ─── WHERE NOW ────────────────────────────────────────────────────────────────
@@ -5818,7 +6024,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
               {openPolls.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {openPolls.map(poll => (
-                    <button key={poll.id} onClick={() => navigate("polls")} className="text-left border border-[#2d6a4f]/20 bg-[#0a120a] p-4 hover:border-[#2d6a4f]/60 transition-colors">
+                    <button key={poll.id} onClick={() => navigate("curiosities")} className="text-left border border-[#2d6a4f]/20 bg-[#0a120a] p-4 hover:border-[#2d6a4f]/60 transition-colors">
                       <p className="text-[#f0ebe0] text-sm font-semibold">{poll.question}</p>
                       <p className="text-[#7a9a7a] text-xs font-mono mt-1">{votedPollIds.has(poll.id) ? "Você já votou" : "Aberta para voto"}</p>
                     </button>
@@ -6645,7 +6851,7 @@ const role = auth.role ?? "viewer";
     { key: "nav_event_visible", label: "Evento", description: "Item Evento do menu principal." },
     { key: "nav_ex_alumni_visible", label: "Ex-alunos", description: "Item consolidado com Turma, Quem Vai e Mapa." },
     { key: "nav_photos_visible", label: "Nossa História", description: "Item Nossa História do menu principal." },
-    { key: "nav_polls_visible", label: "Enquetes", description: "Item Enquetes do menu principal." },
+    { key: "nav_polls_visible", label: "Curiosidades", description: "Item Curiosidades do menu principal." },
     { key: "nav_archive_visible", label: "Pós-festa", description: "Item Pós-festa do menu principal." },
   ];
 
@@ -6869,7 +7075,7 @@ const role = auth.role ?? "viewer";
                     <Field label="Evento" value={homeDraft.nav_event_label} onChange={v => setHomeDraft(s => ({ ...s, nav_event_label: v }))} />
                     <Field label="Ex-alunos" value={homeDraft.nav_ex_alumni_label} onChange={v => setHomeDraft(s => ({ ...s, nav_ex_alumni_label: v }))} />
                     <Field label="Nossa História" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
-                    <Field label="Enquetes" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
+                    <Field label="Curiosidades" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
                     <Field label="Pós-festa" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
                   </div>
                 </div>
@@ -7881,7 +8087,8 @@ const PAGE_PATHS: Record<Page, string> = {
   "photo-wall": "/nossa-historia",
   "photo-detail": "/foto",
   memories: "/nossa-historia/memorias",
-  polls: "/enquetes",
+  curiosities: "/curiosidades",
+  polls: "/curiosidades",
   "where-now": "/mapa",
   "share-invite": "/convite",
   "my-ticket": "/meu-ingresso",
@@ -7901,6 +8108,7 @@ function pageFromPathname(pathname: string): Page {
     "/fotos": "photo-wall",
     "/memorias": "memories",
     "/acervo": "archive",
+    "/enquetes": "curiosities",
   };
   if (legacyRoutes[normalized]) return legacyRoutes[normalized];
   const found = (Object.entries(PAGE_PATHS) as [Page, string][]).find(([, path]) => path === normalized);
@@ -8070,7 +8278,7 @@ export default function App() {
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
-        {page === "polls"         && <PollsPage          navigate={navigate} auth={auth}                              />}
+        {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth}                              />}
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
