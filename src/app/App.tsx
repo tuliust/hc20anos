@@ -206,8 +206,8 @@ const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "tickets", label: "Ingressos" },
   { page: "who-going", label: "Quem Vai" },
   { page: "the-class", label: "A Turma" },
-  { page: "photo-wall", label: "Fotos" },
-  { page: "memories", label: "Memórias" },
+  { page: "photo-wall", label: "Nossa História" },
+  { page: "memories", label: "Caixa de Memórias" },
   { page: "polls", label: "Enquetes" },
   { page: "where-now", label: "Mapa" },
   { page: "archive", label: "Acervo" },
@@ -232,8 +232,8 @@ const FOOTER_LINK_DEFAULTS: FooterLinkContent[] = [
   { page: "tickets", label: "Ingressos", is_visible: true },
   { page: "who-going", label: "Quem Vai", is_visible: true },
   { page: "the-class", label: "A Turma", is_visible: true },
-  { page: "photo-wall", label: "Mural de Fotos", is_visible: true },
-  { page: "memories", label: "Memórias", is_visible: true },
+  { page: "photo-wall", label: "Nossa História", is_visible: true },
+  { page: "memories", label: "Caixa de Memórias", is_visible: false },
   { page: "polls", label: "Enquetes", is_visible: true },
   { page: "where-now", label: "Onde a turma está", is_visible: true },
   { page: "archive", label: "Acervo Digital", is_visible: true },
@@ -331,8 +331,8 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_ex_alumni_label: "Ex-alunos",
   nav_who_going_label: "Quem Vai",
   nav_the_class_label: "A Turma",
-  nav_photos_label: "Fotos",
-  nav_memories_label: "Memórias",
+  nav_photos_label: "Nossa História",
+  nav_memories_label: "Caixa de Memórias",
   nav_polls_label: "Enquetes",
   nav_where_now_label: "Mapa",
   nav_archive_label: "Acervo",
@@ -342,7 +342,7 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_who_going_visible: false,
   nav_the_class_visible: false,
   nav_photos_visible: true,
-  nav_memories_visible: true,
+  nav_memories_visible: false,
   nav_polls_visible: true,
   nav_where_now_visible: false,
   nav_archive_visible: true,
@@ -1646,7 +1646,6 @@ function Header({ page, navigate, auth, logout, content }: {
     { label: headerContent.nav_event_label, page: "event", visible: isContentVisible(headerContent.nav_event_visible) },
     { label: headerContent.nav_ex_alumni_label, page: "ex-alumni", visible: isContentVisible(headerContent.nav_ex_alumni_visible) },
     { label: headerContent.nav_photos_label, page: "photo-wall", visible: isContentVisible(headerContent.nav_photos_visible) },
-    { label: headerContent.nav_memories_label, page: "memories", visible: isContentVisible(headerContent.nav_memories_visible) },
     { label: headerContent.nav_polls_label, page: "polls", visible: isContentVisible(headerContent.nav_polls_visible) },
     { label: headerContent.nav_archive_label, page: "archive", visible: isContentVisible(headerContent.nav_archive_visible) },
   ] as { label: string; page: Page; visible: boolean }[]).filter(item => item.visible && item.label.trim());
@@ -2521,7 +2520,7 @@ function TimelineSection({ content, memories = [] }: { content: HomePageContent;
           <aside className="bg-[#0d1a0f] border border-[#2d6a4f]/30 p-6 md:p-8 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Caixa de memórias</p>
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Caixa de Memórias</p>
                 <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">Memórias da turma</h3>
               </div>
               <MessageCircle size={22} className="text-[#2d6a4f] shrink-0" />
@@ -4059,12 +4058,12 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
             <div>
-              <SectionLabel>Mural de Memórias</SectionLabel>
+              <SectionLabel>Nossa História</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Fotos da Época</DisplayTitle>
               <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · curtidas e comentários moderados</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de memórias</Btn>
+              <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de Memórias</Btn>
               <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto antiga</Btn>
             </div>
           </div>
@@ -4318,7 +4317,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
     return (
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-5xl mx-auto px-4">
-          <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
+          <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar à Nossa História</button>
           <EmptyState title="Foto não encontrada" />
         </div>
       </div>
@@ -4329,7 +4328,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
     <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
-          <ArrowLeft size={16} /> Voltar ao mural
+          <ArrowLeft size={16} /> Voltar à Nossa História
         </button>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
@@ -5143,8 +5142,8 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
   return (
     <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar ao mural</button>
-        <SectionLabel>Caixa de memórias</SectionLabel>
+        <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar à Nossa História</button>
+        <SectionLabel>Caixa de Memórias</SectionLabel>
         <DisplayTitle className="text-4xl md:text-6xl mb-4">O que ficou daquele tempo?</DisplayTitle>
         <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembrança curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereça ficar no acervo do reencontro.</p>
 
@@ -5289,7 +5288,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Fotos em que apareci</p>
-                <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Ver mural</button>
+                <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Ver Nossa História</button>
               </div>
               <EmptyState title="Marcações ainda não vinculadas" subtitle="Quando houver marcações aprovadas em fotos usando seu perfil, elas aparecerão aqui." />
               <div className="mt-4">
@@ -5439,7 +5438,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Minhas fotos</p>
-                <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Mural</button>
+                <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Nossa História</button>
               </div>
               {allPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -5448,7 +5447,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
                   ))}
                 </div>
               ) : (
-                <EmptyState title="Sem fotos ainda" subtitle="Suas fotos e marcações aparecerão aqui." action={<Btn size="sm" variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={14} />Ir ao mural</Btn>} />
+                <EmptyState title="Sem fotos ainda" subtitle="Suas fotos e marcações aparecerão aqui." action={<Btn size="sm" variant="ghost" onClick={() => navigate("photo-wall")}><Upload size={14} />Ir para Nossa História</Btn>} />
               )}
             </div>
 
@@ -6301,8 +6300,7 @@ const role = auth.role ?? "viewer";
     { key: "nav_home_visible", label: "Home", description: "Item Home do menu principal." },
     { key: "nav_event_visible", label: "Evento", description: "Item Evento do menu principal." },
     { key: "nav_ex_alumni_visible", label: "Ex-alunos", description: "Item consolidado com Turma, Quem Vai e Mapa." },
-    { key: "nav_photos_visible", label: "Fotos", description: "Item Fotos do menu principal." },
-    { key: "nav_memories_visible", label: "Memórias", description: "Item Memórias do menu principal." },
+    { key: "nav_photos_visible", label: "Nossa História", description: "Item Nossa História do menu principal." },
     { key: "nav_polls_visible", label: "Enquetes", description: "Item Enquetes do menu principal." },
     { key: "nav_archive_visible", label: "Acervo", description: "Item Acervo do menu principal." },
   ];
@@ -6526,8 +6524,7 @@ const role = auth.role ?? "viewer";
                     <Field label="Home" value={homeDraft.nav_home_label} onChange={v => setHomeDraft(s => ({ ...s, nav_home_label: v }))} />
                     <Field label="Evento" value={homeDraft.nav_event_label} onChange={v => setHomeDraft(s => ({ ...s, nav_event_label: v }))} />
                     <Field label="Ex-alunos" value={homeDraft.nav_ex_alumni_label} onChange={v => setHomeDraft(s => ({ ...s, nav_ex_alumni_label: v }))} />
-                    <Field label="Fotos" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
-                    <Field label="Memórias" value={homeDraft.nav_memories_label} onChange={v => setHomeDraft(s => ({ ...s, nav_memories_label: v }))} />
+                    <Field label="Nossa História" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
                     <Field label="Enquetes" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
                     <Field label="Acervo" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
                   </div>
@@ -7539,9 +7536,9 @@ const PAGE_PATHS: Record<Page, string> = {
   "the-class": "/turma",
   "ex-alumni": "/ex-alunos",
   "claim-profile": "/reivindicar-perfil",
-  "photo-wall": "/fotos",
+  "photo-wall": "/nossa-historia",
   "photo-detail": "/foto",
-  memories: "/memorias",
+  memories: "/nossa-historia/memorias",
   polls: "/enquetes",
   "where-now": "/mapa",
   "share-invite": "/convite",
@@ -7558,6 +7555,11 @@ const PAGE_PATHS: Record<Page, string> = {
 
 function pageFromPathname(pathname: string): Page {
   const normalized = pathname.replace(/\/+$/, "") || "/";
+  const legacyRoutes: Record<string, Page> = {
+    "/fotos": "photo-wall",
+    "/memorias": "memories",
+  };
+  if (legacyRoutes[normalized]) return legacyRoutes[normalized];
   const found = (Object.entries(PAGE_PATHS) as [Page, string][]).find(([, path]) => path === normalized);
   return found?.[0] ?? "home";
 }
