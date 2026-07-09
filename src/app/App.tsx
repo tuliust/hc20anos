@@ -20,7 +20,8 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin, completeProfileRegistration, type AdminImportPersonInput,
+  getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
+  getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
@@ -29,7 +30,7 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import {
@@ -751,6 +752,9 @@ function normalizeParticipantHeader(value: string) {
     nome: "full_name",
     nome_completo: "full_name",
     full_name: "full_name",
+    nome_exibicao: "display_name",
+    nome_de_exibicao: "display_name",
+    display_name: "display_name",
     ano_nascimento: "birth_year",
     ano_de_nascimento: "birth_year",
     nascimento: "birth_year",
@@ -775,7 +779,7 @@ function rowsToParticipantImport(matrix: string[][]) {
   if (matrix.length < 2) return [];
   const header = matrix[0].map(cell => normalizeParticipantHeader(cell));
   return matrix.slice(1).map(row => {
-    const item: AdminImportPersonInput = { full_name: "", birth_year: null, class_group: "" };
+    const item: AdminImportPersonInput = { full_name: "", display_name: "", birth_year: null, class_group: "" };
     row.forEach((value, index) => {
       const key = header[index];
       if (!key) return;
@@ -783,7 +787,7 @@ function rowsToParticipantImport(matrix: string[][]) {
         const year = Number(String(value).replace(/\D/g, ""));
         item.birth_year = Number.isInteger(year) && year > 1900 ? year : null;
       } else {
-        (item as Record<string, string | number | null | undefined>)[key] = value.trim();
+        (item as unknown as Record<string, string | number | null | undefined>)[key] = value.trim();
       }
     });
     return item;
@@ -896,11 +900,29 @@ function ticketPaymentStatus(ticket?: TicketWithDetails | null) {
   return ticket?.orders?.payment_status ?? "pending";
 }
 
+function formatWhatsappInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function firstAndLastName(fullName?: string | null) {
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+function displayNameForPerson(person: Pick<DbPerson, "full_name" | "display_name">, profileDisplayName?: string | null) {
+  return profileDisplayName?.trim() || person.display_name?.trim() || firstAndLastName(person.full_name) || person.full_name;
+}
+
 // Mapeia DbPerson para Alumni, interface legada dos componentes visuais.
-function personToAlumni(p: DbPerson): Alumni {
+function personToAlumni(p: DbPerson, displayName?: string | null): Alumni {
+  const name = displayNameForPerson(p, displayName);
   return {
     id:         p.id,
-    name:       p.full_name,
+    name,
     nickname:   p.class_group ? `Turma ${p.class_group}` : `Turma ${p.class_year}`,
     sala:       p.class_group ?? undefined,
     city:       undefined,
@@ -3562,7 +3584,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   }, []);
 
   const visiblePeople = people.filter(person => person.is_visible !== false);
-  const statusMap = new Map(directoryRows.map(row => [row.person_id, row]));
+  const statusMap = new Map<string, AlumniDirectoryStatusRow>(directoryRows.map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]));
   const shouldUseFallbackStatus = !loadingStatuses && directoryRows.length === 0;
 
   function getDirectoryStatus(person: DbPerson) {
@@ -3574,13 +3596,15 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       city: row?.current_city ?? null,
       state: row?.current_state ?? null,
       country: row?.current_country ?? null,
+      displayName: row?.display_name ?? null,
     };
   }
 
   const filtered = visiblePeople.filter(person => {
     const status = getDirectoryStatus(person);
     const normalizedSearch = search.trim().toLowerCase();
-    const matchesSearch = !normalizedSearch || person.full_name.toLowerCase().includes(normalizedSearch);
+    const cardName = displayNameForPerson(person, status.displayName);
+    const matchesSearch = !normalizedSearch || person.full_name.toLowerCase().includes(normalizedSearch) || cardName.toLowerCase().includes(normalizedSearch);
     const matchesClass = classFilter === "all" || (person.class_group ?? "").toUpperCase() === classFilter;
     const matchesAttendance =
       attendanceFilter === "all" ||
@@ -3596,15 +3620,6 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     return status.intendsToAttend && !status.hasApprovedTicket;
   }).length;
   const registeredCount = visiblePeople.filter(person => getDirectoryStatus(person).hasCompletedRegistration).length;
-  const locatedRows = directoryRows.filter(row => row.current_city);
-  const locationGroups = locatedRows.reduce<Record<string, { city: string; state: string | null; country: string | null; people: AlumniDirectoryStatusRow[] }>>((acc, row) => {
-    const key = [row.current_city, row.current_state, row.current_country].filter(Boolean).join("|");
-    if (!key || !row.current_city) return acc;
-    if (!acc[key]) acc[key] = { city: row.current_city, state: row.current_state ?? null, country: row.current_country ?? null, people: [] };
-    acc[key].people.push(row);
-    return acc;
-  }, {});
-  const locationList = Object.values(locationGroups).sort((a, b) => b.people.length - a.people.length || a.city.localeCompare(b.city, "pt-BR"));
 
   const classButtons: { value: AlumniClassFilter; label: string }[] = [
     { value: "all", label: "Todas as turmas" },
@@ -3697,74 +3712,32 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
             </div>
           </section>
 
-          <section className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</p>
-                {loadingStatuses && <p className="text-[#3a5a3a] font-mono text-[10px] uppercase tracking-wider">Carregando status...</p>}
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {filtered.map(person => {
-                  const status = getDirectoryStatus(person);
-                  return (
-                    <div key={person.id} className="relative">
-                      <AlumniCard
-                        alumni={personToAlumni(person)}
-                        onOpen={() => setSelectedPerson(person)}
-                        onClaim={() => navigate("claim-profile")}
-                      />
-                      <div className="absolute right-2 top-2 flex gap-1">
-                        {status.hasApprovedTicket && <span title="Ingresso comprado" className="bg-[#c9a84c] text-[#0d1a0f] p-1"><Ticket size={11} /></span>}
-                        {!status.hasApprovedTicket && status.intendsToAttend && <span title="Pretende ir" className="bg-[#2d6a4f] text-[#f0ebe0] p-1"><CheckCircle2 size={11} /></span>}
-                        {status.hasCompletedRegistration && <span title="Cadastro feito" className="bg-[#1a3a2a] text-[#74c69d] p-1"><UserCheck size={11} /></span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {filtered.length === 0 && (
-                <div className="text-center py-20 text-[#7a9a7a]">
-                  <Users size={40} className="mx-auto mb-4 opacity-40" />
-                  <p className="font-mono text-sm">Nenhum resultado para os filtros selecionados.</p>
-                </div>
-              )}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</p>
+              {loadingStatuses && <p className="text-[#3a5a3a] font-mono text-[10px] uppercase tracking-wider">Carregando status...</p>}
             </div>
 
-            <aside className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 xl:sticky xl:top-28">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Mapa da turma</p>
-                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">Onde estão hoje</h3>
-                </div>
-                <MapPin size={28} className="text-[#2d6a4f]" />
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {filtered.map(person => {
+                const status = getDirectoryStatus(person);
+                return (
+                  <AlumniCard
+                    key={person.id}
+                    alumni={personToAlumni(person, status.displayName)}
+                    onOpen={() => setSelectedPerson(person)}
+                    onClaim={() => navigate("claim-profile")}
+                  />
+                );
+              })}
+            </div>
 
-              {locationList.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {locationList.slice(0, 8).map(location => (
-                    <div key={[location.city, location.state, location.country].filter(Boolean).join("-")} className="border border-[#2d6a4f]/20 bg-[#0d1a0f] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[#f0ebe0] font-semibold">{location.city}</p>
-                          <p className="text-[#7a9a7a] text-xs font-mono">{[location.state, location.country].filter(Boolean).join(" · ")}</p>
-                        </div>
-                        <span className="text-[#c9a84c] font-mono text-xs">{location.people.length}</span>
-                      </div>
-                      <p className="text-[#3a5a3a] text-xs mt-2 truncate">{location.people.map(item => item.display_name || item.full_name).slice(0, 4).join(" · ")}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[#7a9a7a] text-sm leading-relaxed">As cidades aparecerão aqui conforme os ex-alunos autorizarem a exibição da localização no cadastro.</p>
-              )}
-
-              <div className="border-t border-[#2d6a4f]/20 mt-6 pt-5 flex flex-col gap-3">
-                <Btn full variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Fazer meu cadastro</Btn>
-                <Btn full onClick={() => navigate("tickets")}><Ticket size={16} />Comprar ingresso</Btn>
+            {filtered.length === 0 && (
+              <div className="text-center py-20 text-[#7a9a7a]">
+                <Users size={40} className="mx-auto mb-4 opacity-40" />
+                <p className="font-mono text-sm">Nenhum resultado para os filtros selecionados.</p>
               </div>
-            </aside>
+            )}
           </section>
         </div>
       </div>
@@ -6383,7 +6356,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 
 function emptyAdminPersonRow(): AdminImportPersonInput {
-  return { full_name: "", birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
+  return { full_name: "", display_name: "", birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
 }
 
 function AdminPeopleImportModal({
@@ -6400,6 +6373,7 @@ function AdminPeopleImportModal({
   const [rows, setRows] = useState<AdminImportPersonInput[]>([emptyAdminPersonRow()]);
   const [bulkText, setBulkText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -6407,6 +6381,7 @@ function AdminPeopleImportModal({
     setRows([emptyAdminPersonRow()]);
     setBulkText("");
     setError("");
+    setPhotoBusy(null);
   }, [open]);
 
   function updateRow(index: number, patch: Partial<AdminImportPersonInput>) {
@@ -6416,7 +6391,7 @@ function AdminPeopleImportModal({
   function addBulkTextRows() {
     try {
       const imported = parseParticipantsCsv(bulkText);
-      if (!imported.length) throw new Error("Nenhuma linha válida encontrada. Use as colunas: nome_completo; ano_nascimento; turma; foto; whatsapp; email.");
+      if (!imported.length) throw new Error("Nenhuma linha válida encontrada. Use as colunas: nome_completo; nome_exibicao; ano_nascimento; turma; foto; whatsapp; email.");
       setRows(current => [...current.filter(row => row.full_name.trim()), ...imported]);
       setBulkText("");
       setError("");
@@ -6440,6 +6415,19 @@ function AdminPeopleImportModal({
     }
   }
 
+  async function handleRowAvatar(index: number, file: File) {
+    setPhotoBusy(index);
+    setError("");
+    try {
+      const url = await uploadAdminPersonAvatar(adminId, file);
+      updateRow(index, { avatar_url: url });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar foto.");
+    } finally {
+      setPhotoBusy(null);
+    }
+  }
+
   async function save() {
     const validRows = rows.filter(row => row.full_name.trim() && row.birth_year && row.class_group?.trim());
     if (!validRows.length) {
@@ -6449,7 +6437,7 @@ function AdminPeopleImportModal({
     setBusy(true);
     setError("");
     try {
-      const imported = await importPeopleAdmin(validRows, adminId);
+      const imported = await importPeopleAdmin(validRows.map(row => ({ ...row, contact_whatsapp: formatWhatsappInput(row.contact_whatsapp ?? "") })), adminId);
       onImported(imported);
       onClose();
     } catch (err) {
@@ -6473,17 +6461,30 @@ function AdminPeopleImportModal({
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Cadastro manual</p>
             <Btn size="sm" variant="ghost" onClick={() => setRows(current => [...current, emptyAdminPersonRow()])}>Adicionar linha</Btn>
           </div>
-          <div className="flex flex-col gap-3 max-h-[360px] overflow-y-auto pr-1">
+          <div className="flex flex-col gap-4 max-h-[560px] overflow-y-auto pr-1">
             {rows.map((row, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-[1.4fr_110px_90px_1fr] gap-3 bg-[#0d1a0f] border border-[#2d6a4f]/20 p-4">
-                <Field label="Nome completo *" value={row.full_name} onChange={v => updateRow(index, { full_name: v })} />
-                <Field label="Ano *" type="number" value={row.birth_year ? String(row.birth_year) : ""} onChange={v => updateRow(index, { birth_year: Number(v.replace(/\D/g, "").slice(0, 4)) || null })} />
-                <Field label="Turma *" value={row.class_group ?? ""} onChange={v => updateRow(index, { class_group: v.toUpperCase().slice(0, 3) })} />
-                <Field label="Foto URL" value={row.avatar_url ?? ""} onChange={v => updateRow(index, { avatar_url: v })} />
-                <Field label="WhatsApp" value={row.contact_whatsapp ?? ""} onChange={v => updateRow(index, { contact_whatsapp: v })} />
-                <Field label="E-mail" value={row.contact_email ?? ""} onChange={v => updateRow(index, { contact_email: v })} />
-                <div className="md:col-span-2 flex items-end justify-end">
-                  <Btn size="sm" variant="danger" onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))}><X size={12} />Remover</Btn>
+              <div key={index} className="bg-[#0d1a0f] border border-[#2d6a4f]/20 p-4 flex flex-col gap-4">
+                <AvatarCropUpload
+                  currentImageUrl={row.avatar_url ?? null}
+                  fallbackLabel={initials(row.display_name || row.full_name || "AL")}
+                  uploading={photoBusy === index}
+                  disabled={busy || photoBusy === index}
+                  onCroppedFile={(file) => handleRowAvatar(index, file)}
+                  onRemove={row.avatar_url ? () => updateRow(index, { avatar_url: "" }) : undefined}
+                  helperText="Use o recorte com zoom e posição para padronizar a foto do pré-cadastro."
+                />
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_110px_90px] gap-3">
+                  <Field label="Nome completo *" value={row.full_name} onChange={v => updateRow(index, { full_name: v })} />
+                  <Field label="Nome de exibição" value={row.display_name ?? ""} onChange={v => updateRow(index, { display_name: v })} />
+                  <Field label="Ano *" type="number" value={row.birth_year ? String(row.birth_year) : ""} onChange={v => updateRow(index, { birth_year: Number(v.replace(/\D/g, "").slice(0, 4)) || null })} />
+                  <Field label="Turma *" value={row.class_group ?? ""} onChange={v => updateRow(index, { class_group: v.toUpperCase().slice(0, 3) })} />
+                  <Field label="WhatsApp" value={row.contact_whatsapp ?? ""} onChange={v => updateRow(index, { contact_whatsapp: formatWhatsappInput(v) })} />
+                  <div className="md:col-span-2">
+                    <Field label="E-mail" type="email" value={row.contact_email ?? ""} onChange={v => updateRow(index, { contact_email: v })} />
+                  </div>
+                  <div className="flex items-end justify-end">
+                    <Btn size="sm" variant="danger" onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))}><X size={12} />Remover</Btn>
+                  </div>
                 </div>
               </div>
             ))}
@@ -6493,7 +6494,7 @@ function AdminPeopleImportModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-[#2d6a4f]/20 pt-6">
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Colar múltiplos participantes</p>
-            <FieldArea rows={7} label="Dados em CSV" value={bulkText} onChange={setBulkText} placeholder={'nome_completo;ano_nascimento;turma;foto;whatsapp;email\nMaria Silva;1988;A;;84999990000;maria@email.com'} />
+            <FieldArea rows={7} label="Dados em CSV" value={bulkText} onChange={setBulkText} placeholder={'nome_completo;nome_exibicao;ano_nascimento;turma;foto;whatsapp;email\nMaria Silva;Maria;1988;A;;(84) 99999-0000;maria@email.com'} />
             <div className="mt-3"><Btn size="sm" variant="ghost" onClick={addBulkTextRows}>Adicionar dados colados</Btn></div>
           </div>
           <div>
@@ -6508,7 +6509,291 @@ function AdminPeopleImportModal({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Btn full onClick={save} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><UserCheck size={16} />Cadastrar {rows.filter(row => row.full_name.trim()).length || ""} pessoas</>}</Btn>
+          <Btn full onClick={save} disabled={busy || photoBusy !== null}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><UserCheck size={16} />Cadastrar {rows.filter(row => row.full_name.trim()).length || ""} pessoas</>}</Btn>
+          <Btn full variant="ghost" onClick={onClose}>Cancelar</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+type AdminPersonForm = {
+  full_name: string;
+  display_name: string;
+  birth_year: string;
+  class_year: string;
+  class_group: string;
+  avatar_url: string;
+  contact_whatsapp: string;
+  contact_email: string;
+  nickname_at_school: string;
+  profile_status: ProfileStatus;
+  is_visible: boolean;
+  private_notes: string;
+};
+
+const EMPTY_ADMIN_PROFILE_DRAFT: AdminPersonProfileDraft = {
+  display_name: "",
+  current_photo_url: "",
+  current_city: "",
+  current_state: "",
+  current_country: "Brasil",
+  profession: "",
+  bio: "",
+  instagram_url: "",
+  linkedin_url: "",
+  contact_email: "",
+  contact_whatsapp: "",
+  relationship_status: null,
+  has_children: false,
+  children_count: null,
+  intends_to_attend: null,
+  show_current_photo: true,
+  show_city: true,
+  show_profession: true,
+  show_social_links: false,
+  allow_photo_tags: true,
+  show_confirmed_status: true,
+};
+
+function buildAdminPersonForm(person: DbPerson): AdminPersonForm {
+  return {
+    full_name: person.full_name ?? "",
+    display_name: person.display_name ?? "",
+    birth_year: person.birth_year ? String(person.birth_year) : "",
+    class_year: person.class_year ? String(person.class_year) : "2006",
+    class_group: person.class_group ?? "",
+    avatar_url: person.avatar_url ?? "",
+    contact_whatsapp: formatWhatsappInput(person.contact_whatsapp ?? ""),
+    contact_email: person.contact_email ?? "",
+    nickname_at_school: person.nickname_at_school ?? "",
+    profile_status: person.profile_status,
+    is_visible: person.is_visible !== false,
+    private_notes: person.private_notes ?? "",
+  };
+}
+
+function buildAdminProfileDraft(profile: DbProfile | null, person: DbPerson): AdminPersonProfileDraft {
+  if (!profile) return { ...EMPTY_ADMIN_PROFILE_DRAFT, display_name: person.display_name ?? "", current_photo_url: person.avatar_url ?? "", contact_email: person.contact_email ?? "", contact_whatsapp: formatWhatsappInput(person.contact_whatsapp ?? "") };
+  return {
+    display_name: profile.display_name ?? "",
+    current_photo_url: profile.current_photo_url ?? "",
+    current_city: profile.current_city ?? "",
+    current_state: profile.current_state ?? "",
+    current_country: profile.current_country ?? "Brasil",
+    profession: profile.profession ?? "",
+    bio: profile.bio ?? "",
+    instagram_url: profile.instagram_url ?? "",
+    linkedin_url: profile.linkedin_url ?? "",
+    contact_email: profile.contact_email ?? "",
+    contact_whatsapp: formatWhatsappInput(profile.contact_whatsapp ?? ""),
+    relationship_status: profile.relationship_status ?? null,
+    has_children: profile.has_children ?? false,
+    children_count: profile.children_count ?? null,
+    intends_to_attend: profile.intends_to_attend ?? null,
+    show_current_photo: profile.show_current_photo ?? true,
+    show_city: profile.show_city ?? true,
+    show_profession: profile.show_profession ?? true,
+    show_social_links: profile.show_social_links ?? false,
+    allow_photo_tags: profile.allow_photo_tags ?? true,
+    show_confirmed_status: profile.show_confirmed_status ?? true,
+  };
+}
+
+function AdminPersonEditModal({
+  person,
+  open,
+  adminId,
+  onClose,
+  onSaved,
+}: {
+  person: DbPerson | null;
+  open: boolean;
+  adminId: string;
+  onClose: () => void;
+  onSaved: (person: DbPerson) => void;
+}) {
+  const [personForm, setPersonForm] = useState<AdminPersonForm | null>(null);
+  const [profileDraft, setProfileDraft] = useState<AdminPersonProfileDraft>(EMPTY_ADMIN_PROFILE_DRAFT);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!open || !person) return;
+    setLoading(true);
+    setError("");
+    setPersonForm(buildAdminPersonForm(person));
+    setProfileDraft(buildAdminProfileDraft(null, person));
+    setHasProfile(false);
+
+    getAdminPersonDetails(person.id)
+      .then(details => {
+        if (!active) return;
+        setPersonForm(buildAdminPersonForm(details.person));
+        setProfileDraft(buildAdminProfileDraft(details.profile, details.person));
+        setHasProfile(Boolean(details.profile));
+      })
+      .catch(err => { if (active) setError(err instanceof Error ? err.message : "Não foi possível carregar os dados completos."); })
+      .finally(() => { if (active) setLoading(false); });
+
+    return () => { active = false; };
+  }, [open, person?.id]);
+
+  if (!person || !personForm) return null;
+
+  function updatePersonForm(patch: Partial<AdminPersonForm>) {
+    setPersonForm(current => current ? { ...current, ...patch } : current);
+  }
+
+  function updateProfileDraft(patch: Partial<AdminPersonProfileDraft>) {
+    setProfileDraft(current => ({ ...current, ...patch }));
+  }
+
+  async function handleAvatar(file: File) {
+    setPhotoBusy(true);
+    setError("");
+    try {
+      const url = await uploadAdminPersonAvatar(adminId, file, person.id);
+      updatePersonForm({ avatar_url: url });
+      updateProfileDraft({ current_photo_url: url });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar foto.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function save() {
+    if (!personForm.full_name.trim()) {
+      setError("Informe o nome completo.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const personPatch: Partial<DbPerson> = {
+        full_name: personForm.full_name.trim(),
+        display_name: personForm.display_name.trim() || null,
+        birth_year: Number(personForm.birth_year.replace(/\D/g, "")) || null,
+        class_year: Number(personForm.class_year.replace(/\D/g, "")) || 2006,
+        class_group: personForm.class_group.trim().toUpperCase() || null,
+        avatar_url: personForm.avatar_url.trim() || null,
+        contact_whatsapp: formatWhatsappInput(personForm.contact_whatsapp).trim() || null,
+        contact_email: personForm.contact_email.trim() || null,
+        nickname_at_school: personForm.nickname_at_school.trim() || null,
+        profile_status: personForm.profile_status,
+        is_visible: personForm.is_visible,
+        private_notes: personForm.private_notes.trim() || null,
+      } as Partial<DbPerson>;
+
+      const profilePatch: AdminPersonProfileDraft | null = hasProfile ? {
+        ...profileDraft,
+        display_name: String(profileDraft.display_name ?? "").trim() || null,
+        current_photo_url: String(profileDraft.current_photo_url ?? "").trim() || null,
+        current_city: String(profileDraft.current_city ?? "").trim() || null,
+        current_state: String(profileDraft.current_state ?? "").trim() || null,
+        current_country: String(profileDraft.current_country ?? "").trim() || null,
+        profession: String(profileDraft.profession ?? "").trim() || null,
+        bio: String(profileDraft.bio ?? "").trim() || null,
+        instagram_url: String(profileDraft.instagram_url ?? "").trim() || null,
+        linkedin_url: String(profileDraft.linkedin_url ?? "").trim() || null,
+        contact_email: String(profileDraft.contact_email ?? "").trim() || null,
+        contact_whatsapp: formatWhatsappInput(String(profileDraft.contact_whatsapp ?? "")).trim() || null,
+        children_count: profileDraft.has_children ? Number(profileDraft.children_count ?? 0) || 0 : null,
+      } : null;
+
+      const updated = await updateAdminPersonAndProfile({ personId: person.id, person: personPatch, profile: profilePatch, adminId });
+      onSaved(updated.person);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível salvar os dados.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Editar participante" wide>
+      <div className="flex flex-col gap-6">
+        {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+        {loading && <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Carregando dados completos...</p>}
+
+        <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+          <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Dados do pré-cadastro</p>
+          <p className="text-[#7a9a7a] text-xs leading-relaxed">Estes campos aparecem na lista de ex-alunos e no fluxo de reivindicação de perfil.</p>
+        </div>
+
+        <AvatarCropUpload
+          currentImageUrl={personForm.avatar_url || null}
+          fallbackLabel={initials(personForm.display_name || personForm.full_name)}
+          uploading={photoBusy}
+          disabled={busy || photoBusy}
+          onCroppedFile={handleAvatar}
+          onRemove={personForm.avatar_url ? () => { updatePersonForm({ avatar_url: "" }); updateProfileDraft({ current_photo_url: "" }); } : undefined}
+          helperText="Use a mesma ferramenta de crop/zoom para padronizar a foto exibida nos cards."
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-2"><Field label="Nome completo" value={personForm.full_name} onChange={v => updatePersonForm({ full_name: v })} /></div>
+          <div className="md:col-span-2"><Field label="Nome de exibição" value={personForm.display_name} onChange={v => updatePersonForm({ display_name: v })} /></div>
+          <Field label="Ano nascimento" type="number" value={personForm.birth_year} onChange={v => updatePersonForm({ birth_year: v.replace(/\D/g, "").slice(0, 4) })} />
+          <Field label="Ano turma" type="number" value={personForm.class_year} onChange={v => updatePersonForm({ class_year: v.replace(/\D/g, "").slice(0, 4) })} />
+          <Field label="Turma" value={personForm.class_group} onChange={v => updatePersonForm({ class_group: v.toUpperCase().slice(0, 3) })} />
+          <div>
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Status</label>
+            <select value={personForm.profile_status} onChange={e => updatePersonForm({ profile_status: e.target.value as ProfileStatus })} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+              <option value="unclaimed">Não reivindicado</option>
+              <option value="claimed">Reivindicado</option>
+              <option value="confirmed">Confirmado</option>
+            </select>
+          </div>
+          <Field label="Apelido na escola" value={personForm.nickname_at_school} onChange={v => updatePersonForm({ nickname_at_school: v })} />
+          <Field label="WhatsApp" value={personForm.contact_whatsapp} onChange={v => updatePersonForm({ contact_whatsapp: formatWhatsappInput(v) })} />
+          <div className="md:col-span-2"><Field label="E-mail" type="email" value={personForm.contact_email} onChange={v => updatePersonForm({ contact_email: v })} /></div>
+          <label className="flex items-center justify-between gap-3 bg-[#0a120a] border border-[#2d6a4f]/20 px-4 py-3 md:col-span-1">
+            <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Visível</span>
+            <button type="button" onClick={() => updatePersonForm({ is_visible: !personForm.is_visible })} className={`relative w-12 h-6 transition-colors ${personForm.is_visible ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}><span className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${personForm.is_visible ? "left-7" : "left-1"}`} /></button>
+          </label>
+          <div className="md:col-span-4"><FieldArea label="Notas internas" value={personForm.private_notes} onChange={v => updatePersonForm({ private_notes: v })} rows={3} /></div>
+        </div>
+
+        <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+          <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Dados do perfil reivindicado</p>
+          <p className="text-[#7a9a7a] text-xs leading-relaxed">{hasProfile ? "Estes dados foram preenchidos pelo usuário e podem ser corrigidos pelo admin." : "Este participante ainda não concluiu o cadastro. Dados públicos completos ficarão disponíveis após a reivindicação."}</p>
+        </div>
+
+        <fieldset disabled={!hasProfile} className={!hasProfile ? "opacity-45 pointer-events-none" : ""}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2"><Field label="Nome de exibição público" value={String(profileDraft.display_name ?? "")} onChange={v => updateProfileDraft({ display_name: v })} /></div>
+            <div className="md:col-span-2"><Field label="Profissão" value={String(profileDraft.profession ?? "")} onChange={v => updateProfileDraft({ profession: v })} /></div>
+            <Field label="Cidade" value={String(profileDraft.current_city ?? "")} onChange={v => updateProfileDraft({ current_city: v })} />
+            <Field label="Estado" value={String(profileDraft.current_state ?? "")} onChange={v => updateProfileDraft({ current_state: v })} />
+            <Field label="País" value={String(profileDraft.current_country ?? "")} onChange={v => updateProfileDraft({ current_country: v })} />
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Relacionamento</label>
+              <select value={profileDraft.relationship_status ?? ""} onChange={e => updateProfileDraft({ relationship_status: (e.target.value || null) as RelationshipStatus | null })} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                <option value="">Não informado</option>
+                <option value="single">Solteiro(a)</option>
+                <option value="dating">Namorando</option>
+                <option value="married">Casado(a)</option>
+              </select>
+            </div>
+            <Field label="WhatsApp público" value={String(profileDraft.contact_whatsapp ?? "")} onChange={v => updateProfileDraft({ contact_whatsapp: formatWhatsappInput(v) })} />
+            <div className="md:col-span-2"><Field label="E-mail público" type="email" value={String(profileDraft.contact_email ?? "")} onChange={v => updateProfileDraft({ contact_email: v })} /></div>
+            <Field label="Instagram" value={String(profileDraft.instagram_url ?? "")} onChange={v => updateProfileDraft({ instagram_url: v })} />
+            <Field label="LinkedIn" value={String(profileDraft.linkedin_url ?? "")} onChange={v => updateProfileDraft({ linkedin_url: v })} />
+            <label className="flex items-center justify-between gap-3 bg-[#0a120a] border border-[#2d6a4f]/20 px-4 py-3"><span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Tem filhos</span><button type="button" onClick={() => updateProfileDraft({ has_children: !profileDraft.has_children })} className={`relative w-12 h-6 transition-colors ${profileDraft.has_children ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}><span className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${profileDraft.has_children ? "left-7" : "left-1"}`} /></button></label>
+            <Field label="Qtd. filhos" type="number" value={profileDraft.children_count ? String(profileDraft.children_count) : ""} onChange={v => updateProfileDraft({ children_count: Number(v.replace(/\D/g, "")) || null })} />
+            <div className="md:col-span-4"><FieldArea label="Mini bio" value={String(profileDraft.bio ?? "")} onChange={v => updateProfileDraft({ bio: v })} rows={4} /></div>
+          </div>
+        </fieldset>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Btn full onClick={save} disabled={busy || photoBusy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><Save size={16} />Salvar alterações</>}</Btn>
           <Btn full variant="ghost" onClick={onClose}>Cancelar</Btn>
         </div>
       </div>
@@ -6597,6 +6882,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const [orders, setOrders] = useState<any[]>([]);
   const [peopleRows, setPeopleRows] = useState<DbPerson[]>([]);
   const [peopleImportOpen, setPeopleImportOpen] = useState(false);
+  const [selectedAdminPerson, setSelectedAdminPerson] = useState<DbPerson | null>(null);
   const [pendingPhotos, setPendingPhotos] = useState<DbPhoto[]>([]);
   const [tags, setTags] = useState<(DbPhotoTag & { photos: Pick<DbPhoto, "image_url" | "caption"> | null })[]>([]);
   const [claims, setClaims] = useState<(DbProfileClaim & { people: Pick<DbPerson, "full_name" | "nickname_at_school" | "class_group"> | null })[]>([]);
@@ -6900,6 +7186,13 @@ const role = auth.role ?? "viewer";
         onClose={() => setPeopleImportOpen(false)}
         adminId={auth.userId}
         onImported={(imported) => setPeopleRows(current => [...imported, ...current].sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR")))}
+      />
+      <AdminPersonEditModal
+        open={Boolean(selectedAdminPerson)}
+        person={selectedAdminPerson}
+        adminId={auth.userId}
+        onClose={() => setSelectedAdminPerson(null)}
+        onSaved={(updated) => setPeopleRows(current => current.map(person => person.id === updated.id ? updated : person).sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR")))}
       />
       <div className="bg-[#080f08] border-b border-[#2d6a4f]/20 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -7566,7 +7859,7 @@ const role = auth.role ?? "viewer";
             </div>
             {peopleRows.length === 0 ? <EmptyState title="Nenhum participante" /> : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
+                {peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} onOpen={() => setSelectedAdminPerson(a)} />)}
               </div>
             )}
           </div>

@@ -389,6 +389,7 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
 
 export interface AdminImportPersonInput {
   full_name: string;
+  display_name?: string | null;
   birth_year: number | null;
   class_group: string | null;
   avatar_url?: string | null;
@@ -399,6 +400,7 @@ export interface AdminImportPersonInput {
 function normalizeImportPerson(row: AdminImportPersonInput) {
   return {
     full_name: row.full_name.trim(),
+    display_name: row.display_name?.trim() || null,
     birth_year: row.birth_year ?? null,
     class_group: row.class_group?.trim() || null,
     avatar_url: row.avatar_url?.trim() || null,
@@ -425,6 +427,65 @@ export async function importPeopleAdmin(rows: AdminImportPersonInput[], adminId?
   }).catch(() => {});
 
   return (data as DbPerson[]) ?? [];
+}
+
+export interface AdminPersonProfileDraft {
+  display_name?: string | null;
+  current_photo_url?: string | null;
+  current_city?: string | null;
+  current_state?: string | null;
+  current_country?: string | null;
+  profession?: string | null;
+  bio?: string | null;
+  instagram_url?: string | null;
+  linkedin_url?: string | null;
+  contact_email?: string | null;
+  contact_whatsapp?: string | null;
+  relationship_status?: "single" | "dating" | "married" | null;
+  has_children?: boolean | null;
+  children_count?: number | null;
+  intends_to_attend?: boolean | null;
+  show_current_photo?: boolean | null;
+  show_city?: boolean | null;
+  show_profession?: boolean | null;
+  show_social_links?: boolean | null;
+  allow_photo_tags?: boolean | null;
+  show_confirmed_status?: boolean | null;
+}
+
+export interface AdminPersonDetails {
+  person: DbPerson;
+  profile: DbProfile | null;
+}
+
+export async function getAdminPersonDetails(personId: string): Promise<AdminPersonDetails> {
+  const { data, error } = await (supabase as any).rpc("admin_get_person_details", {
+    p_person_id: personId,
+  });
+  if (error) throw error;
+  return data as AdminPersonDetails;
+}
+
+export async function updateAdminPersonAndProfile(params: {
+  personId: string;
+  person: Partial<DbPerson>;
+  profile?: AdminPersonProfileDraft | null;
+  adminId?: string | null;
+}): Promise<AdminPersonDetails> {
+  const { data, error } = await (supabase as any).rpc("admin_update_person_and_profile", {
+    p_person_id: params.personId,
+    p_person: params.person,
+    p_profile: params.profile ?? {},
+  });
+  if (error) throw error;
+
+  await writeAudit("admin_update_person", "people", params.personId, {
+    person_fields: Object.keys(params.person ?? {}),
+    profile_fields: Object.keys(params.profile ?? {}),
+    admin_id: params.adminId ?? null,
+  }).catch(() => {});
+
+  return data as AdminPersonDetails;
 }
 
 export interface CompleteProfileRegistrationParams {
@@ -741,6 +802,25 @@ export async function uploadProfileAvatar(userId: string, file: File): Promise<s
 
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do avatar.");
+  return data.publicUrl;
+}
+
+export async function uploadAdminPersonAvatar(adminId: string, file: File, personId?: string | null): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no maximo 5 MB.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "jpg";
+  const owner = personId || adminId;
+  const path = `admin-people/${adminId}/${owner}-${Date.now()}.${safeExt}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL da foto.");
   return data.publicUrl;
 }
 

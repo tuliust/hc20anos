@@ -43,6 +43,7 @@ export interface DbEvent {
 export interface DbPerson {
   id:                   uuid;
   full_name:            string;
+  display_name?:        string | null;
   class_year:           number;
   class_group:          string | null;
   birth_year?:          number | null;
