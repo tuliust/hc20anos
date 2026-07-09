@@ -483,6 +483,100 @@ const CONFIRM_QUESTIONS = [
   { id: "q3", question: "Como chamávamos informalmente o pátio principal?",                    options: ["O Quadradão",           "O Jardim",              "A Quadra",               "O Corredor"]                 },
 ];
 
+type SchoolProfileQuestion = {
+  id: string;
+  title: string;
+  options: string[];
+};
+
+const SCHOOL_PROFILE_QUESTIONS: SchoolProfileQuestion[] = [
+  {
+    id: "school_personality",
+    title: "Como você era na época do HC?",
+    options: [
+      "Adorava me comunicar",
+      "Fazia todo mundo rir",
+      "Era mais na minha",
+      "Gostava de estudar",
+      "Vivia ajudando nos trabalhos",
+      "Circulava por vários grupos",
+      "Sempre tinha uma história boa",
+      "Participava de tudo",
+      "Era mais observador",
+      "Vivia chegando atrasado",
+      "Era parceria para qualquer coisa",
+    ],
+  },
+  {
+    id: "school_places",
+    title: "Onde você mais aparecia?",
+    options: [
+      "No intervalo",
+      "Na sala de aula",
+      "Na quadra",
+      "Nos corredores",
+      "Nas gincanas",
+      "Nos trabalhos em grupo",
+      "Nas conversas depois da aula",
+      "Nas festas da turma",
+      "Nas aulas de revisão",
+      "Na biblioteca ou estudando",
+      "Em todo canto um pouco",
+    ],
+  },
+  {
+    id: "school_memories",
+    title: "O que mais marcou essa época?",
+    options: [
+      "As amizades",
+      "As resenhas no intervalo",
+      "Os professores",
+      "As histórias engraçadas",
+      "As gincanas",
+      "As festas",
+      "As provas e simulados",
+      "A pressão do vestibular",
+      "Crescer junto com a turma",
+      "Ver todo mundo quase todo dia",
+      "A saudade de uma fase mais simples",
+    ],
+  },
+  {
+    id: "school_vibe",
+    title: "Qual era sua vibe na turma?",
+    options: [
+      "Mais brincadeira",
+      "Mais organização",
+      "Mais tranquilidade",
+      "Mais intensidade",
+      "Mais discrição",
+      "Mais parceria",
+      "Mais competição",
+      "Mais questionamento",
+      "Mais sonhador",
+      "Mais independente",
+      "Um pouco de tudo",
+    ],
+  },
+  {
+    id: "reunion_expectation",
+    title: "O que você quer viver no reencontro?",
+    options: [
+      "Rever quem fez parte da minha história",
+      "Matar a saudade",
+      "Dar boas risadas",
+      "Relembrar histórias antigas",
+      "Saber por onde anda todo mundo",
+      "Celebrar os 20 anos da turma",
+      "Reconectar com pessoas importantes",
+      "Mostrar quem me tornei",
+      "Viver uma noite leve",
+      "Criar novas memórias",
+      "Apenas aproveitar o momento",
+    ],
+  },
+];
+
 // ─── UTILS ─────────────────────────────────────────────────────────────────────
 
 function getEventDateTime(event?: DbEvent | null): Date {
@@ -3704,14 +3798,9 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   });
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: true, showInList: true, allowTagging: true });
   const [bioAssistantOpen, setBioAssistantOpen] = useState(false);
+  const [bioAssistantStep, setBioAssistantStep] = useState(0);
   const [bioGenerated, setBioGenerated] = useState(false);
-  const [bioAssistantAnswers, setBioAssistantAnswers] = useState({
-    today: "",
-    city: "",
-    memory: "",
-    interests: "",
-    tone: "",
-  });
+  const [bioAssistantAnswers, setBioAssistantAnswers] = useState<Record<string, string[]>>({});
   const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState(false);
   const { toast, show, hide } = useToast();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -3760,18 +3849,59 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     return message;
   }
 
+  function openBioAssistant() {
+    setBioAssistantStep(0);
+    setBioAssistantOpen(true);
+  }
+
+  function toggleBioAssistantOption(questionId: string, option: string) {
+    setBioAssistantAnswers(current => {
+      const selectedOptions = current[questionId] ?? [];
+      const nextOptions = selectedOptions.includes(option)
+        ? selectedOptions.filter(item => item !== option)
+        : [...selectedOptions, option];
+      return { ...current, [questionId]: nextOptions };
+    });
+  }
+
+  function goToBioAssistantStep(nextStep: number) {
+    setBioAssistantStep(Math.min(Math.max(nextStep, 0), SCHOOL_PROFILE_QUESTIONS.length - 1));
+  }
+
+  function formatBioList(items: string[]) {
+    const normalized = items.map(item => item.trim()).filter(Boolean);
+    if (normalized.length === 0) return "";
+    if (normalized.length === 1) return normalized[0].toLowerCase();
+    return `${normalized.slice(0, -1).map(item => item.toLowerCase()).join(", ")} e ${normalized[normalized.length - 1].toLowerCase()}`;
+  }
+
   function finishBioAssistant() {
-    const parts = [
-      bioAssistantAnswers.today.trim(),
-      bioAssistantAnswers.city.trim(),
-      bioAssistantAnswers.memory.trim(),
-      bioAssistantAnswers.interests.trim(),
-      bioAssistantAnswers.tone.trim(),
+    const name = (profileDraft.displayName || profileDraft.fullName || "Esse ex-aluno").trim();
+    const selectedByQuestion = Object.fromEntries(
+      SCHOOL_PROFILE_QUESTIONS.map(question => [question.id, bioAssistantAnswers[question.id] ?? []])
+    ) as Record<string, string[]>;
+
+    const sentences = [
+      selectedByQuestion.school_personality?.length
+        ? `Na época do HC, ${name} tinha um jeito bem próprio: ${formatBioList(selectedByQuestion.school_personality)}.`
+        : "",
+      selectedByQuestion.school_places?.length
+        ? `Aparecia muito ${formatBioList(selectedByQuestion.school_places)}.`
+        : "",
+      selectedByQuestion.school_memories?.length
+        ? `Guarda dessa fase ${formatBioList(selectedByQuestion.school_memories)}.`
+        : "",
+      selectedByQuestion.school_vibe?.length
+        ? `Sua vibe na turma era de ${formatBioList(selectedByQuestion.school_vibe)}.`
+        : "",
+      selectedByQuestion.reunion_expectation?.length
+        ? `No reencontro, quer ${formatBioList(selectedByQuestion.reunion_expectation)}.`
+        : "",
     ].filter(Boolean);
 
-    const generatedBio = parts.length > 0
-      ? parts.join(" · ").slice(0, 420)
-      : `${profileDraft.displayName || profileDraft.fullName || "Ex-aluno(a) da Turma 2006"} está atualizando seu perfil para reencontrar a turma.`;
+    const generatedBio = sentences.length > 0
+      ? sentences.join(" ").slice(0, 500)
+      : `${name} está atualizando seu perfil para reencontrar a turma, relembrar os tempos de HC e viver uma noite de boas histórias.`;
 
     setProfileDraft(f => ({ ...f, bio: generatedBio }));
     setBioGenerated(true);
@@ -4045,7 +4175,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             </div>
             <div>
               <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Mini bio</p>
-              <Btn variant="gold" onClick={() => setBioAssistantOpen(true)} className="w-full sm:w-auto">
+              <Btn variant="gold" onClick={openBioAssistant} className="w-full sm:w-auto">
                 <MessageCircle size={16} />{profileDraft.bio.trim() ? "Refazer mini bio com 5 perguntas" : "Apresente seu perfil com apenas 5 perguntas"}
               </Btn>
               <p className="text-[#7a9a7a] text-xs mt-2">A integração com IA será ativada depois. Por enquanto, o modal prepara uma prévia editável a partir das respostas.</p>
@@ -4147,20 +4277,48 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         )}
 
         <Modal open={bioAssistantOpen} onClose={() => setBioAssistantOpen(false)} title="Mini bio em 5 perguntas" wide>
-          <div className="flex flex-col gap-5">
-            <p className="text-[#8ab89a] text-sm leading-relaxed">
-              Responda às perguntas abaixo para montar uma primeira versão da sua apresentação. A geração com IA será conectada em uma próxima etapa; por enquanto, o texto é criado localmente e pode ser editado.
-            </p>
-            <Field label="1. O que você faz hoje?" value={bioAssistantAnswers.today} onChange={v => setBioAssistantAnswers(a => ({ ...a, today: v }))} placeholder="Ex.: Trabalho com comunicação, tecnologia, saúde..." />
-            <Field label="2. Onde você mora atualmente?" value={bioAssistantAnswers.city} onChange={v => setBioAssistantAnswers(a => ({ ...a, city: v }))} placeholder="Ex.: Porto Alegre, Natal, São Paulo..." />
-            <Field label="3. Que memória do HC você quer mencionar?" value={bioAssistantAnswers.memory} onChange={v => setBioAssistantAnswers(a => ({ ...a, memory: v }))} placeholder="Ex.: gincanas, sala, professores, amigos..." />
-            <Field label="4. O que gosta de fazer hoje?" value={bioAssistantAnswers.interests} onChange={v => setBioAssistantAnswers(a => ({ ...a, interests: v }))} placeholder="Ex.: viajar, cozinhar, esportes, família..." />
-            <Field label="5. Como quer ser apresentado(a)?" value={bioAssistantAnswers.tone} onChange={v => setBioAssistantAnswers(a => ({ ...a, tone: v }))} placeholder="Ex.: de forma leve, objetiva, divertida..." />
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Btn full onClick={finishBioAssistant}><MessageCircle size={16} />Gerar prévia</Btn>
-              <Btn full variant="ghost" onClick={() => setBioAssistantOpen(false)}>Cancelar</Btn>
-            </div>
-          </div>
+          {(() => {
+            const currentQuestion = SCHOOL_PROFILE_QUESTIONS[bioAssistantStep];
+            const selectedOptions = bioAssistantAnswers[currentQuestion.id] ?? [];
+            const isLastQuestion = bioAssistantStep === SCHOOL_PROFILE_QUESTIONS.length - 1;
+            const advance = () => isLastQuestion ? finishBioAssistant() : goToBioAssistantStep(bioAssistantStep + 1);
+
+            return (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-2">Pergunta {bioAssistantStep + 1} de {SCHOOL_PROFILE_QUESTIONS.length}</p>
+                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold mb-2">{currentQuestion.title}</h3>
+                  <p className="text-[#8ab89a] text-sm leading-relaxed">Esta etapa é opcional. Selecione quantas opções quiser ou use “Pular” para seguir sem responder.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {currentQuestion.options.map(option => (
+                    <OptionButton
+                      key={option}
+                      selected={selectedOptions.includes(option)}
+                      onClick={() => toggleBioAssistantOption(currentQuestion.id, option)}
+                    >
+                      {option}
+                    </OptionButton>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2" aria-hidden="true">
+                  {SCHOOL_PROFILE_QUESTIONS.map((question, index) => (
+                    <div key={question.id} className={`h-1 flex-1 ${index <= bioAssistantStep ? "bg-[#2d6a4f]" : "bg-[#1a2e1a]"}`} />
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Btn full variant="ghost" onClick={advance}>Pular</Btn>
+                  {bioAssistantStep > 0 && <Btn full variant="outline" onClick={() => goToBioAssistantStep(bioAssistantStep - 1)}>Voltar</Btn>}
+                  <Btn full onClick={advance}>
+                    <MessageCircle size={16} />{isLastQuestion ? "Gerar prévia" : "Continuar"}
+                  </Btn>
+                </div>
+              </div>
+            );
+          })()}
         </Modal>
       </div>
     </div>
