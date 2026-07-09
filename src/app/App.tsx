@@ -1388,7 +1388,7 @@ function AvatarCropUpload({
           </label>
           {currentImageUrl && onRemove && (
             <button onClick={onRemove} className="block mt-3 text-[#7a9a7a] hover:text-[#f0ebe0] text-xs font-mono">
-              Remover foto ao salvar
+              Apagar foto
             </button>
           )}
           <p className="text-[#7a9a7a] text-xs font-mono mt-2">{helperText}</p>
@@ -1638,7 +1638,15 @@ function Header({ page, navigate, auth, logout, content }: {
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [headerProfile, setHeaderProfile] = useState<DbProfile | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const { toast, show, hide } = useToast();
   const headerContent = getExtendedHomeContent(content);
 
   const navLinks: { label: string; page: Page; visible: boolean }[] = ([
@@ -1678,23 +1686,116 @@ function Header({ page, navigate, auth, logout, content }: {
     setProfileMenuOpen(false);
   }
 
+  function closePasswordModal() {
+    if (passwordBusy || resetBusy) return;
+    setPasswordModalOpen(false);
+    setPasswordError("");
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  }
+
   async function requestPasswordChange() {
     if (!auth.email) {
-      window.alert("Não foi possível identificar o e-mail da sua conta.");
+      show("Não foi possível identificar o e-mail da sua conta.", "error");
       return;
     }
 
+    setResetBusy(true);
+    setPasswordError("");
     const { error } = await supabase.auth.resetPasswordForEmail(auth.email, {
       redirectTo: `${window.location.origin}/login`,
     });
 
+    setResetBusy(false);
     if (error) {
-      window.alert("Não foi possível enviar o e-mail de redefinição de senha. Tente novamente.");
+      const message = error.message?.toLowerCase().includes("rate limit") || error.status === 429
+        ? "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente."
+        : "Não foi possível enviar o e-mail de redefinição de senha. Tente novamente.";
+      setPasswordError(message);
+      show(message, "error");
       return;
     }
 
-    setProfileMenuOpen(false);
-    window.alert(`Enviamos um link para redefinir sua senha para ${auth.email}.`);
+    show(`Enviamos um link para redefinir sua senha para ${auth.email}.`, "success");
+  }
+
+  async function handleAvatarUpload(file: File) {
+    if (!auth.userId) {
+      show("Faça login novamente para alterar sua foto.", "error");
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const publicUrl = await uploadProfileAvatar(auth.userId, file);
+      const updated = await saveMyPublicProfile(auth.userId, { current_photo_url: publicUrl }, { avatar_url: publicUrl });
+      setHeaderProfile(updated as DbProfile);
+      setPhotoModalOpen(false);
+      show("Foto atualizada com sucesso.", "success");
+    } catch (err) {
+      show(err instanceof Error ? err.message : "Não foi possível atualizar sua foto.", "error");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function handleAvatarRemove() {
+    if (!auth.userId) {
+      show("Faça login novamente para apagar sua foto.", "error");
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const updated = await saveMyPublicProfile(auth.userId, { current_photo_url: null }, { avatar_url: null });
+      setHeaderProfile(updated as DbProfile);
+      setPhotoModalOpen(false);
+      show("Foto apagada com sucesso.", "success");
+    } catch (err) {
+      show(err instanceof Error ? err.message : "Não foi possível apagar sua foto.", "error");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function handlePasswordSubmit() {
+    if (!auth.email) {
+      setPasswordError("Não foi possível identificar o e-mail da sua conta.");
+      return;
+    }
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError("Preencha todos os campos de senha.");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError("A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("A confirmação da nova senha não confere.");
+      return;
+    }
+
+    setPasswordBusy(true);
+    setPasswordError("");
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: auth.email,
+        password: passwordForm.currentPassword,
+      });
+      if (signInError) throw new Error("A senha atual está incorreta.");
+
+      const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword });
+      if (error) throw error;
+
+      closePasswordModal();
+      show("Senha alterada com sucesso.", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Não foi possível alterar a senha.";
+      setPasswordError(message);
+      show(message, "error");
+    } finally {
+      setPasswordBusy(false);
+    }
   }
 
   const displayName = headerProfile?.display_name || auth.name || auth.email?.split("@")[0] || "Usuário";
@@ -1778,9 +1879,9 @@ function Header({ page, navigate, auth, logout, content }: {
                         <button onClick={() => go("admin")} className="text-left px-3 py-3 text-[#c9a84c] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">PAINEL ADMIN</button>
                       )}
                       <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>
-                      <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Alterar foto</button>
-                      <button onClick={requestPasswordChange} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Mudar senha</button>
-                      <button onClick={() => go("alumni-area")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Ver meus pedidos</button>
+                      <button onClick={() => { setProfileMenuOpen(false); setPhotoModalOpen(true); }} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Alterar foto</button>
+                      <button onClick={() => { setProfileMenuOpen(false); setPasswordModalOpen(true); }} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Mudar senha</button>
+                      <button onClick={() => go("alumni-area")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Seus ingressos e atualizações</button>
                       <button onClick={() => { setProfileMenuOpen(false); logout(); }} className="text-left px-3 py-3 text-[#e74c3c] hover:bg-[#2e0a0a] text-xs font-mono uppercase tracking-wider transition-colors">Sair</button>
                     </div>
                   </div>
@@ -1821,6 +1922,60 @@ function Header({ page, navigate, auth, logout, content }: {
           )}
         </div>
       )}
+
+      <Modal open={photoModalOpen} onClose={() => !avatarUploading && setPhotoModalOpen(false)} title="Alterar foto" wide>
+        <AvatarCropUpload
+          currentImageUrl={avatarUrl}
+          fallbackLabel={initials(shortName)}
+          uploading={avatarUploading}
+          disabled={avatarUploading}
+          onCroppedFile={handleAvatarUpload}
+          onRemove={avatarUrl ? handleAvatarRemove : undefined}
+          helperText="Escolha uma foto, ajuste o recorte com zoom e posição, e salve. Você pode apagar a foto atual se preferir."
+        />
+      </Modal>
+
+      <Modal open={passwordModalOpen} onClose={closePasswordModal} title="Mudar senha">
+        <div className="flex flex-col gap-5">
+          <Field
+            label="Senha atual"
+            type="password"
+            value={passwordForm.currentPassword}
+            onChange={v => setPasswordForm(s => ({ ...s, currentPassword: v }))}
+            icon={<Lock size={16} />}
+          />
+          <Field
+            label="Nova senha"
+            type="password"
+            value={passwordForm.newPassword}
+            onChange={v => setPasswordForm(s => ({ ...s, newPassword: v }))}
+            icon={<Key size={16} />}
+            hint="Use pelo menos 6 caracteres."
+          />
+          <Field
+            label="Repetir nova senha"
+            type="password"
+            value={passwordForm.confirmPassword}
+            onChange={v => setPasswordForm(s => ({ ...s, confirmPassword: v }))}
+            icon={<Key size={16} />}
+          />
+
+          {passwordError && (
+            <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{passwordError}</p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Btn full onClick={handlePasswordSubmit} disabled={passwordBusy || resetBusy}>
+              {passwordBusy ? <><RefreshCw size={14} className="animate-spin" />Salvando...</> : "Salvar nova senha"}
+            </Btn>
+            <Btn full variant="ghost" onClick={requestPasswordChange} disabled={passwordBusy || resetBusy}>
+              {resetBusy ? <><RefreshCw size={14} className="animate-spin" />Enviando...</> : "Esqueci minha senha"}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
     </>
   );
 }
