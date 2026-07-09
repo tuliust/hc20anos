@@ -1369,8 +1369,8 @@ function AvatarCropUpload({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-6">
+    <div className="flex flex-col gap-5 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 min-w-0">
         <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0 overflow-hidden">
           {currentImageUrl ? <img src={currentImageUrl} alt="Foto de perfil" className="w-full h-full object-cover" /> : fallbackLabel}
         </div>
@@ -1396,8 +1396,8 @@ function AvatarCropUpload({
       </div>
 
       {source && (
-        <div className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4 flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 items-start">
+        <div className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4 flex flex-col gap-4 overflow-hidden min-w-0">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-5 items-start min-w-0">
             <div className="w-full max-w-[220px] aspect-square overflow-hidden bg-[#1a2e1a] border border-[#2d6a4f]/30 mx-auto relative">
               <img
                 src={source}
@@ -1408,18 +1408,18 @@ function AvatarCropUpload({
               <div className="absolute inset-0 border-2 border-[#c9a84c]/70 pointer-events-none" />
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 min-w-0">
               <div>
                 <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Zoom</span><span>{zoom.toFixed(1)}x</span></div>
-                <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={e => setZoom(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+                <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={e => setZoom(Number(e.target.value))} className="block w-full min-w-0 accent-[#2d6a4f]" />
               </div>
               <div>
                 <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Posição horizontal</span><span>{offsetX}</span></div>
-                <input type="range" min="-50" max="50" step="1" value={offsetX} onChange={e => setOffsetX(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+                <input type="range" min="-50" max="50" step="1" value={offsetX} onChange={e => setOffsetX(Number(e.target.value))} className="block w-full min-w-0 accent-[#2d6a4f]" />
               </div>
               <div>
                 <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Posição vertical</span><span>{offsetY}</span></div>
-                <input type="range" min="-50" max="50" step="1" value={offsetY} onChange={e => setOffsetY(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+                <input type="range" min="-50" max="50" step="1" value={offsetY} onChange={e => setOffsetY(Number(e.target.value))} className="block w-full min-w-0 accent-[#2d6a4f]" />
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Btn onClick={confirmCrop} disabled={uploading || processing}>{processing ? <><RefreshCw size={14} className="animate-spin" />Processando...</> : <><Check size={14} />Usar recorte</>}</Btn>
@@ -2637,6 +2637,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
   });
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-4xl mx-auto px-4">
         <div className="border-b border-[#2d6a4f]/20 pb-12 mb-12">
           <SectionLabel>17 de Outubro de 2026 · Natal, RN</SectionLabel>
@@ -2829,6 +2830,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => step > 1 ? setStep(s => s - 1) : navigate("tickets")}
           className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
@@ -3065,6 +3067,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
 function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-lg mx-auto px-4 text-center">
         <div className="mb-8">
           <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center mx-auto mb-6">
@@ -3123,6 +3126,7 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
           <SectionLabel>Reencontro 2026</SectionLabel>
@@ -3519,7 +3523,18 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     childrenCount: "",
     intendsToAttend: "" as "" | "yes" | "no",
   });
-  const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
+  const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: true, showInList: true, allowTagging: true });
+  const [bioAssistantOpen, setBioAssistantOpen] = useState(false);
+  const [bioGenerated, setBioGenerated] = useState(false);
+  const [bioAssistantAnswers, setBioAssistantAnswers] = useState({
+    today: "",
+    city: "",
+    memory: "",
+    interests: "",
+    tone: "",
+  });
+  const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState(false);
+  const { toast, show, hide } = useToast();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3533,6 +3548,58 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   const alreadyClaimed = selected && (selected.profile_status === "claimed" || selected.profile_status === "confirmed");
   const bars = 6;
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [step]);
+
+  function showError(message: string) {
+    setError(message);
+    show(message, "error");
+  }
+
+  function showSuccess(message: string) {
+    setError("");
+    show(message, "success");
+  }
+
+  function goToStep(nextStep: number) {
+    setError("");
+    setStep(nextStep);
+  }
+
+  function formatRegistrationError(error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro ao concluir cadastro.";
+    if (/for security purposes/i.test(message)) {
+      const seconds = message.match(/after\s+(\d+)\s+seconds/i)?.[1];
+      return seconds
+        ? `Por segurança, aguarde ${seconds} segundos antes de tentar criar a conta novamente.`
+        : "Por segurança, aguarde alguns segundos antes de tentar criar a conta novamente.";
+    }
+    if (/already registered|already exists|user already/i.test(message)) {
+      return "Este e-mail já está cadastrado. Entre com sua conta ou use outro e-mail.";
+    }
+    return message;
+  }
+
+  function finishBioAssistant() {
+    const parts = [
+      bioAssistantAnswers.today.trim(),
+      bioAssistantAnswers.city.trim(),
+      bioAssistantAnswers.memory.trim(),
+      bioAssistantAnswers.interests.trim(),
+      bioAssistantAnswers.tone.trim(),
+    ].filter(Boolean);
+
+    const generatedBio = parts.length > 0
+      ? parts.join(" · ").slice(0, 420)
+      : `${profileDraft.displayName || profileDraft.fullName || "Ex-aluno(a) da Turma 2006"} está atualizando seu perfil para reencontrar a turma.`;
+
+    setProfileDraft(f => ({ ...f, bio: generatedBio }));
+    setBioGenerated(true);
+    setBioAssistantOpen(false);
+    showSuccess("Mini bio gerada. Você pode revisar o texto antes de continuar.");
+  }
+
   function selectPerson(person: DbPerson) {
     setSelected(person);
     setProfileDraft(draft => ({
@@ -3543,8 +3610,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       nickname: person.nickname_at_school ?? "",
     }));
     setAnswers({ penultimateSurname: "", classGroup: "", birthYear: "" });
-    setError("");
-    setStep(2);
+    goToStep(2);
   }
 
   function normalizeUf(value: string) {
@@ -3609,7 +3675,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   async function completeRegistration() {
     if (!selected) return;
     const validationError = validateAccountStep();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { showError(validationError); return; }
 
     setBusy(true);
     setError("");
@@ -3624,7 +3690,11 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         if (signUpError) throw signUpError;
         effectiveUserId = data.user?.id ?? "";
         if (!data.session) {
-          throw new Error("Conta criada, mas o Supabase exige confirmação de e-mail antes de concluir o vínculo. Confirme o e-mail e entre novamente para finalizar o perfil.");
+          setPendingEmailConfirmation(true);
+          setDone(true);
+          goToStep(6);
+          showSuccess("Conta criada. Confirme seu e-mail para concluir o vínculo do perfil.");
+          return;
         }
       }
 
@@ -3659,10 +3729,12 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         allowPhotoTags: privacy.allowTagging,
         showConfirmedStatus: privacy.showInList,
       });
+      setPendingEmailConfirmation(false);
       setDone(true);
-      setStep(6);
+      goToStep(6);
+      showSuccess("Cadastro concluído com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao concluir cadastro.");
+      showError(formatRegistrationError(err));
     } finally {
       setBusy(false);
     }
@@ -3670,6 +3742,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => step > 1 && !done ? setStep(s => Math.max(1, s - 1)) : navigate("the-class")}
           className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
@@ -3719,7 +3792,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <AlertTriangle size={40} className="text-[#c9a84c] mx-auto" />
             <DisplayTitle className="text-xl">Perfil já vinculado</DisplayTitle>
             <p className="text-[#7a9a7a] text-sm">O perfil de <span className="text-[#f0ebe0] font-semibold">{selected.full_name}</span> já está vinculado a uma conta.</p>
-            <Btn full onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Buscar outro nome</Btn>
+            <Btn full onClick={() => { setSelected(null); setSearch(""); goToStep(1); }}>Buscar outro nome</Btn>
           </div>
         )}
 
@@ -3730,12 +3803,12 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               <div className="w-12 h-12 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono">{initials(selected.full_name)}</div>
               <div>
                 <p className="text-[#f0ebe0] font-semibold">{selected.full_name}</p>
-                <p className="text-[#c9a84c] text-xs font-mono">Turma {selected.class_group ?? "-"} · {selected.birth_year ?? "ano não informado"}</p>
+                <p className="text-[#c9a84c] text-xs font-mono">Turma {selected.class_group ?? "-"}</p>
               </div>
             </div>
             <div className="flex gap-3">
-              <Btn full onClick={() => setStep(3)}>Sim, sou eu <ArrowRight size={16} /></Btn>
-              <Btn full variant="ghost" onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Não</Btn>
+              <Btn full onClick={() => goToStep(3)}>Sim, sou eu <ArrowRight size={16} /></Btn>
+              <Btn full variant="ghost" onClick={() => { setSelected(null); setSearch(""); goToStep(1); }}>Não</Btn>
             </div>
           </div>
         )}
@@ -3749,7 +3822,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <Field label="Qual é seu penúltimo sobrenome?" value={answers.penultimateSurname} onChange={v => setAnswers(a => ({ ...a, penultimateSurname: v }))} placeholder="Ex.: Silva" />
             <Field label="Qual era sua turma?" value={answers.classGroup} onChange={v => setAnswers(a => ({ ...a, classGroup: v.toUpperCase().slice(0, 3) }))} placeholder="Ex.: A" />
             <Field label="Qual é seu ano de nascimento?" type="number" value={answers.birthYear} onChange={v => setAnswers(a => ({ ...a, birthYear: v.replace(/\D/g, "").slice(0, 4) }))} placeholder="Ex.: 1988" />
-            <Btn full onClick={() => { const validation = validateIdentity(); if (validation) { setError(validation); return; } setError(""); setStep(4); }}>
+            <Btn full onClick={() => { const validation = validateIdentity(); if (validation) { showError(validation); return; } goToStep(4); }}>
               Validar identidade <ArrowRight size={16} />
             </Btn>
           </div>
@@ -3781,7 +3854,18 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               <Field label="Instagram" value={profileDraft.instagram} onChange={v => setProfileDraft(f => ({ ...f, instagram: v }))} icon={<Instagram size={14} />} placeholder="@usuario ou URL" />
               <Field label="LinkedIn" value={profileDraft.linkedin} onChange={v => setProfileDraft(f => ({ ...f, linkedin: v }))} icon={<Linkedin size={14} />} placeholder="URL ou slug" />
             </div>
-            <FieldArea label="Mini bio" value={profileDraft.bio} onChange={v => setProfileDraft(f => ({ ...f, bio: v }))} rows={3} />
+            <div>
+              <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Mini bio</p>
+              <Btn variant="gold" onClick={() => setBioAssistantOpen(true)} className="w-full sm:w-auto">
+                <MessageCircle size={16} />{profileDraft.bio.trim() ? "Refazer mini bio com 5 perguntas" : "Apresente seu perfil com apenas 5 perguntas"}
+              </Btn>
+              <p className="text-[#7a9a7a] text-xs mt-2">A integração com IA será ativada depois. Por enquanto, o modal prepara uma prévia editável a partir das respostas.</p>
+              {(bioGenerated || profileDraft.bio.trim()) && (
+                <div className="mt-4">
+                  <FieldArea label="Texto da mini bio" value={profileDraft.bio} onChange={v => setProfileDraft(f => ({ ...f, bio: v }))} rows={3} />
+                </div>
+              )}
+            </div>
             <div>
               <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Relacionamento</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -3805,7 +3889,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
                 <OptionButton selected={profileDraft.intendsToAttend === "no"} onClick={() => setProfileDraft(f => ({ ...f, intendsToAttend: "no" }))}>Ainda não / não pretendo</OptionButton>
               </div>
             </div>
-            <Btn full onClick={() => { const validation = validateProfileStep(); if (validation) { setError(validation); return; } setError(""); setStep(5); }}>
+            <Btn full onClick={() => { const validation = validateProfileStep(); if (validation) { showError(validation); return; } goToStep(5); }}>
               Continuar <ArrowRight size={16} />
             </Btn>
           </div>
@@ -3851,14 +3935,44 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         {step === 6 && done && (
           <div className="bg-[#0d2e1a] border border-[#2d6a4f] p-8 flex flex-col gap-5 text-center">
             <div className="w-16 h-16 bg-[#2d6a4f] flex items-center justify-center mx-auto"><UserCheck size={32} className="text-[#f0ebe0]" /></div>
-            <DisplayTitle className="text-2xl">Perfil criado</DisplayTitle>
-            <p className="text-[#7a9a7a] text-sm">Seu perfil foi validado, vinculado à sua conta e atualizado com as preferências escolhidas.</p>
+            <DisplayTitle className="text-2xl">{pendingEmailConfirmation ? "Confirme seu e-mail" : "Perfil criado"}</DisplayTitle>
+            <p className="text-[#7a9a7a] text-sm">
+              {pendingEmailConfirmation
+                ? "Sua conta foi criada, mas o Supabase exige confirmação de e-mail antes de concluir o vínculo com o perfil. Confirme o e-mail e entre novamente para finalizar."
+                : "Seu perfil foi validado, vinculado à sua conta e atualizado com as preferências escolhidas."}
+            </p>
             <div className="flex flex-col gap-3">
-              <Btn full onClick={() => navigate("edit-profile")}>Editar meu perfil <ArrowRight size={16} /></Btn>
-              <Btn full variant="outline" onClick={() => navigate("tickets")}>Ver ingressos</Btn>
+              {pendingEmailConfirmation ? (
+                <>
+                  <Btn full onClick={() => navigate("login")}>Ir para login <ArrowRight size={16} /></Btn>
+                  <Btn full variant="outline" onClick={() => navigate("home")}>Voltar para início</Btn>
+                </>
+              ) : (
+                <>
+                  <Btn full onClick={() => navigate("edit-profile")}>Editar meu perfil <ArrowRight size={16} /></Btn>
+                  <Btn full variant="outline" onClick={() => navigate("tickets")}>Ver ingressos</Btn>
+                </>
+              )}
             </div>
           </div>
         )}
+
+        <Modal open={bioAssistantOpen} onClose={() => setBioAssistantOpen(false)} title="Mini bio em 5 perguntas" wide>
+          <div className="flex flex-col gap-5">
+            <p className="text-[#8ab89a] text-sm leading-relaxed">
+              Responda às perguntas abaixo para montar uma primeira versão da sua apresentação. A geração com IA será conectada em uma próxima etapa; por enquanto, o texto é criado localmente e pode ser editado.
+            </p>
+            <Field label="1. O que você faz hoje?" value={bioAssistantAnswers.today} onChange={v => setBioAssistantAnswers(a => ({ ...a, today: v }))} placeholder="Ex.: Trabalho com comunicação, tecnologia, saúde..." />
+            <Field label="2. Onde você mora atualmente?" value={bioAssistantAnswers.city} onChange={v => setBioAssistantAnswers(a => ({ ...a, city: v }))} placeholder="Ex.: Porto Alegre, Natal, São Paulo..." />
+            <Field label="3. Que memória do HC você quer mencionar?" value={bioAssistantAnswers.memory} onChange={v => setBioAssistantAnswers(a => ({ ...a, memory: v }))} placeholder="Ex.: gincanas, sala, professores, amigos..." />
+            <Field label="4. O que gosta de fazer hoje?" value={bioAssistantAnswers.interests} onChange={v => setBioAssistantAnswers(a => ({ ...a, interests: v }))} placeholder="Ex.: viajar, cozinhar, esportes, família..." />
+            <Field label="5. Como quer ser apresentado(a)?" value={bioAssistantAnswers.tone} onChange={v => setBioAssistantAnswers(a => ({ ...a, tone: v }))} placeholder="Ex.: de forma leve, objetiva, divertida..." />
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Btn full onClick={finishBioAssistant}><MessageCircle size={16} />Gerar prévia</Btn>
+              <Btn full variant="ghost" onClick={() => setBioAssistantOpen(false)}>Cancelar</Btn>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );
@@ -4348,6 +4462,7 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
           <div>
@@ -4602,6 +4717,7 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
@@ -4690,6 +4806,7 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha área</button>
         <SectionLabel>Meu ingresso</SectionLabel>
@@ -5094,6 +5211,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
           <div>
@@ -5260,6 +5378,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
           <div>
@@ -5608,6 +5727,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Minha área
@@ -7338,6 +7458,7 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-3xl mx-auto px-4">
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
@@ -7378,6 +7499,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-3xl mx-auto px-4">
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
