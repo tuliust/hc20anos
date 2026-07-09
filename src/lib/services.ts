@@ -12,7 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, TicketWithDetails,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent,
 } from "./database.types";
 
@@ -580,6 +580,19 @@ export async function getPublicProfileCardByPersonId(personId: string): Promise<
     if (error) throw error;
     return data as PublicProfileCardRow | null;
   }, null);
+}
+
+export async function getAlumniDirectoryStatuses(eventId = DEFAULT_HOME_EVENT_ID): Promise<AlumniDirectoryStatusRow[]> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_alumni_directory_status")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("full_name", { ascending: true });
+
+    if (error) throw error;
+    return ((data as AlumniDirectoryStatusRow[]) ?? []).filter(row => row);
+  }, []);
 }
 
 export async function saveMyPublicProfile(

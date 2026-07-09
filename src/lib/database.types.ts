@@ -366,6 +366,23 @@ export interface PublicProfileCardRow {
   intends_to_attend?:   boolean | null;
 }
 
+export interface AlumniDirectoryStatusRow {
+  event_id:                    uuid;
+  person_id:                   uuid;
+  full_name:                   string;
+  class_group:                 string | null;
+  profile_status:              ProfileStatus;
+  has_approved_ticket:         boolean;
+  has_completed_registration:  boolean;
+  intends_to_attend:           boolean;
+  display_name:                string | null;
+  avatar_url:                  string | null;
+  current_city:                string | null;
+  current_state:               string | null;
+  current_country:             string | null;
+  profession:                  string | null;
+}
+
 export interface LocationStat {
   key:      string;
   city:     string;
@@ -470,6 +487,7 @@ export interface Database {
       people:                 { Row: DbPerson;             Insert: Partial<DbPerson>;             Update: Partial<DbPerson>             };
       profiles:               { Row: DbProfile;            Insert: UpsertProfile;                 Update: Partial<DbProfile>            };
       public_profile_cards:   { Row: PublicProfileCardRow; Insert: never;                         Update: never                         };
+      public_alumni_directory_status: { Row: AlumniDirectoryStatusRow; Insert: never;              Update: never                         };
       ticket_types:           { Row: DbTicketType;         Insert: Partial<DbTicketType>;         Update: Partial<DbTicketType>         };
       orders:                 { Row: DbOrder;              Insert: InsertOrder;                   Update: Partial<DbOrder>              };
       tickets:                { Row: DbTicket;             Insert: InsertTicket;                  Update: Partial<DbTicket>             };

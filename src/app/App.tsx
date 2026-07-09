@@ -18,7 +18,7 @@ import {
   getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
   toggleFeaturedPhoto, toggleFeaturedMemory,
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
-  getPublicLocationStats, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
+  getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
   getPublicProfileCardByPersonId, importPeopleAdmin, completeProfileRegistration, type AdminImportPersonInput,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
@@ -29,7 +29,7 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import {
@@ -50,7 +50,7 @@ import {
 
 type Page =
   | "home" | "event" | "tickets" | "checkout" | "confirmation"
-  | "who-going" | "the-class" | "claim-profile"
+  | "who-going" | "the-class" | "ex-alumni" | "claim-profile"
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
   | "login" | "terms" | "privacy" | "memories"
@@ -202,6 +202,7 @@ type ContentAdminTab = "header" | "home" | "event" | "sections" | "labels" | "ti
 const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "home", label: "Home" },
   { page: "event", label: "Evento" },
+  { page: "ex-alumni", label: "Ex-alunos" },
   { page: "tickets", label: "Ingressos" },
   { page: "who-going", label: "Quem Vai" },
   { page: "the-class", label: "A Turma" },
@@ -251,6 +252,7 @@ type ExtendedHomePageContent = HomePageContent & {
   secondary_cta_page: Page;
   nav_home_label: string;
   nav_event_label: string;
+  nav_ex_alumni_label: string;
   nav_who_going_label: string;
   nav_the_class_label: string;
   nav_photos_label: string;
@@ -260,6 +262,7 @@ type ExtendedHomePageContent = HomePageContent & {
   nav_archive_label: string;
   nav_home_visible: boolean;
   nav_event_visible: boolean;
+  nav_ex_alumni_visible: boolean;
   nav_who_going_visible: boolean;
   nav_the_class_visible: boolean;
   nav_photos_visible: boolean;
@@ -322,9 +325,10 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   header_cta_visible: true,
   header_auth_visible: true,
   primary_cta_page: "tickets",
-  secondary_cta_page: "who-going",
+  secondary_cta_page: "ex-alumni",
   nav_home_label: "Home",
   nav_event_label: "Evento",
+  nav_ex_alumni_label: "Ex-alunos",
   nav_who_going_label: "Quem Vai",
   nav_the_class_label: "A Turma",
   nav_photos_label: "Fotos",
@@ -334,12 +338,13 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_archive_label: "Acervo",
   nav_home_visible: true,
   nav_event_visible: true,
-  nav_who_going_visible: true,
-  nav_the_class_visible: true,
+  nav_ex_alumni_visible: true,
+  nav_who_going_visible: false,
+  nav_the_class_visible: false,
   nav_photos_visible: true,
   nav_memories_visible: true,
   nav_polls_visible: true,
-  nav_where_now_visible: true,
+  nav_where_now_visible: false,
   nav_archive_visible: true,
   home_sections_json: JSON.stringify(HOME_SECTION_DEFAULTS, null, 2),
   countdown_days_label: "Dias",
@@ -1639,12 +1644,10 @@ function Header({ page, navigate, auth, logout, content }: {
   const navLinks: { label: string; page: Page; visible: boolean }[] = ([
     { label: headerContent.nav_home_label, page: "home", visible: isContentVisible(headerContent.nav_home_visible) },
     { label: headerContent.nav_event_label, page: "event", visible: isContentVisible(headerContent.nav_event_visible) },
-    { label: headerContent.nav_who_going_label, page: "who-going", visible: isContentVisible(headerContent.nav_who_going_visible) },
-    { label: headerContent.nav_the_class_label, page: "the-class", visible: isContentVisible(headerContent.nav_the_class_visible) },
+    { label: headerContent.nav_ex_alumni_label, page: "ex-alumni", visible: isContentVisible(headerContent.nav_ex_alumni_visible) },
     { label: headerContent.nav_photos_label, page: "photo-wall", visible: isContentVisible(headerContent.nav_photos_visible) },
     { label: headerContent.nav_memories_label, page: "memories", visible: isContentVisible(headerContent.nav_memories_visible) },
     { label: headerContent.nav_polls_label, page: "polls", visible: isContentVisible(headerContent.nav_polls_visible) },
-    { label: headerContent.nav_where_now_label, page: "where-now", visible: isContentVisible(headerContent.nav_where_now_visible) },
     { label: headerContent.nav_archive_label, page: "archive", visible: isContentVisible(headerContent.nav_archive_visible) },
   ] as { label: string; page: Page; visible: boolean }[]).filter(item => item.visible && item.label.trim());
 
@@ -3250,6 +3253,241 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
               <p className="font-mono text-sm">Nenhum resultado</p>
             </div>
           )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+// ─── EX-ALUNOS PAGE ──────────────────────────────────────────────────────────
+
+type AlumniClassFilter = "all" | "A" | "B" | "C" | "D";
+type AlumniAttendanceFilter = "all" | "confirmed" | "preconfirmed" | "registered";
+
+function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
+  const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState<AlumniClassFilter>("all");
+  const [attendanceFilter, setAttendanceFilter] = useState<AlumniAttendanceFilter>("all");
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
+  const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
+  const [loadingStatuses, setLoadingStatuses] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingStatuses(true);
+    getAlumniDirectoryStatuses(DEFAULT_EVENT_ID)
+      .then(rows => { if (active) setDirectoryRows(rows); })
+      .catch(() => { if (active) setDirectoryRows([]); })
+      .finally(() => { if (active) setLoadingStatuses(false); });
+    return () => { active = false; };
+  }, []);
+
+  const visiblePeople = people.filter(person => person.is_visible !== false);
+  const statusMap = new Map(directoryRows.map(row => [row.person_id, row]));
+  const shouldUseFallbackStatus = !loadingStatuses && directoryRows.length === 0;
+
+  function getDirectoryStatus(person: DbPerson) {
+    const row = statusMap.get(person.id);
+    return {
+      hasApprovedTicket: row?.has_approved_ticket ?? (shouldUseFallbackStatus && person.profile_status === "confirmed"),
+      intendsToAttend: row?.intends_to_attend === true,
+      hasCompletedRegistration: row?.has_completed_registration ?? (shouldUseFallbackStatus && Boolean(person.claimed_by_user_id)),
+      city: row?.current_city ?? null,
+      state: row?.current_state ?? null,
+      country: row?.current_country ?? null,
+    };
+  }
+
+  const filtered = visiblePeople.filter(person => {
+    const status = getDirectoryStatus(person);
+    const normalizedSearch = search.trim().toLowerCase();
+    const matchesSearch = !normalizedSearch || person.full_name.toLowerCase().includes(normalizedSearch);
+    const matchesClass = classFilter === "all" || (person.class_group ?? "").toUpperCase() === classFilter;
+    const matchesAttendance =
+      attendanceFilter === "all" ||
+      (attendanceFilter === "confirmed" && status.hasApprovedTicket) ||
+      (attendanceFilter === "preconfirmed" && status.intendsToAttend && !status.hasApprovedTicket) ||
+      (attendanceFilter === "registered" && status.hasCompletedRegistration);
+    return matchesSearch && matchesClass && matchesAttendance;
+  });
+
+  const confirmedCount = visiblePeople.filter(person => getDirectoryStatus(person).hasApprovedTicket).length;
+  const preconfirmedCount = visiblePeople.filter(person => {
+    const status = getDirectoryStatus(person);
+    return status.intendsToAttend && !status.hasApprovedTicket;
+  }).length;
+  const registeredCount = visiblePeople.filter(person => getDirectoryStatus(person).hasCompletedRegistration).length;
+  const locatedRows = directoryRows.filter(row => row.current_city);
+  const locationGroups = locatedRows.reduce<Record<string, { city: string; state: string | null; country: string | null; people: AlumniDirectoryStatusRow[] }>>((acc, row) => {
+    const key = [row.current_city, row.current_state, row.current_country].filter(Boolean).join("|");
+    if (!key || !row.current_city) return acc;
+    if (!acc[key]) acc[key] = { city: row.current_city, state: row.current_state ?? null, country: row.current_country ?? null, people: [] };
+    acc[key].people.push(row);
+    return acc;
+  }, {});
+  const locationList = Object.values(locationGroups).sort((a, b) => b.people.length - a.people.length || a.city.localeCompare(b.city, "pt-BR"));
+
+  const classButtons: { value: AlumniClassFilter; label: string }[] = [
+    { value: "all", label: "Todas as turmas" },
+    { value: "A", label: "Turma A" },
+    { value: "B", label: "Turma B" },
+    { value: "C", label: "Turma C" },
+    { value: "D", label: "Turma D" },
+  ];
+
+  const attendanceButtons: { value: AlumniAttendanceFilter; label: string; description: string }[] = [
+    { value: "all", label: "Todos", description: "Todos os pré-cadastrados" },
+    { value: "confirmed", label: "Confirmados", description: "Compraram o ingresso" },
+    { value: "preconfirmed", label: "Pré-confirmados", description: "Pretendem ir para a festa" },
+    { value: "registered", label: "Cadastrados", description: "Fizeram o cadastro no site" },
+  ];
+
+  return (
+    <>
+      <PersonDetailModal
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+      />
+
+      <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 items-end mb-10">
+            <div>
+              <SectionLabel>Turma 2006 · Diretório</SectionLabel>
+              <DisplayTitle className="text-5xl md:text-7xl">Ex-alunos</DisplayTitle>
+              <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">
+                Uma visão consolidada da turma, de quem comprou ingresso, quem pretende ir, quem já atualizou o cadastro e onde os ex-alunos estão hoje.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{visiblePeople.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Pré-cadastrados</p>
+              </div>
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{confirmedCount}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Confirmados</p>
+              </div>
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{preconfirmedCount}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Pré-confirmados</p>
+              </div>
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{registeredCount}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cadastrados</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-[#141f14] border border-[#2d6a4f]/30 mb-8 p-4 md:p-5 flex flex-col gap-4">
+            <div className="relative bg-[#0a120a] border border-[#2d6a4f]/20">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+              <input
+                placeholder="Buscar por nome..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none"
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {classButtons.map(button => (
+                <button
+                  key={button.value}
+                  onClick={() => setClassFilter(button.value)}
+                  className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${classFilter === button.value ? "bg-[#c9a84c] text-[#0d1a0f] border-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}
+                >
+                  {button.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {attendanceButtons.map(button => (
+                <button
+                  key={button.value}
+                  onClick={() => setAttendanceFilter(button.value)}
+                  className={`text-left border px-4 py-3 transition-colors ${attendanceFilter === button.value ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}
+                >
+                  <span className="block text-xs font-mono uppercase tracking-wider font-bold">{button.label}</span>
+                  <span className="block text-[11px] mt-1 opacity-80">{button.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</p>
+                {loadingStatuses && <p className="text-[#3a5a3a] font-mono text-[10px] uppercase tracking-wider">Carregando status...</p>}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {filtered.map(person => {
+                  const status = getDirectoryStatus(person);
+                  return (
+                    <div key={person.id} className="relative">
+                      <AlumniCard
+                        alumni={personToAlumni(person)}
+                        onOpen={() => setSelectedPerson(person)}
+                        onClaim={() => navigate("claim-profile")}
+                      />
+                      <div className="absolute right-2 top-2 flex gap-1">
+                        {status.hasApprovedTicket && <span title="Ingresso comprado" className="bg-[#c9a84c] text-[#0d1a0f] p-1"><Ticket size={11} /></span>}
+                        {!status.hasApprovedTicket && status.intendsToAttend && <span title="Pretende ir" className="bg-[#2d6a4f] text-[#f0ebe0] p-1"><CheckCircle2 size={11} /></span>}
+                        {status.hasCompletedRegistration && <span title="Cadastro feito" className="bg-[#1a3a2a] text-[#74c69d] p-1"><UserCheck size={11} /></span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filtered.length === 0 && (
+                <div className="text-center py-20 text-[#7a9a7a]">
+                  <Users size={40} className="mx-auto mb-4 opacity-40" />
+                  <p className="font-mono text-sm">Nenhum resultado para os filtros selecionados.</p>
+                </div>
+              )}
+            </div>
+
+            <aside className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 xl:sticky xl:top-28">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Mapa da turma</p>
+                  <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">Onde estão hoje</h3>
+                </div>
+                <MapPin size={28} className="text-[#2d6a4f]" />
+              </div>
+
+              {locationList.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {locationList.slice(0, 8).map(location => (
+                    <div key={[location.city, location.state, location.country].filter(Boolean).join("-")} className="border border-[#2d6a4f]/20 bg-[#0d1a0f] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[#f0ebe0] font-semibold">{location.city}</p>
+                          <p className="text-[#7a9a7a] text-xs font-mono">{[location.state, location.country].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <span className="text-[#c9a84c] font-mono text-xs">{location.people.length}</span>
+                      </div>
+                      <p className="text-[#3a5a3a] text-xs mt-2 truncate">{location.people.map(item => item.display_name || item.full_name).slice(0, 4).join(" · ")}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#7a9a7a] text-sm leading-relaxed">As cidades aparecerão aqui conforme os ex-alunos autorizarem a exibição da localização no cadastro.</p>
+              )}
+
+              <div className="border-t border-[#2d6a4f]/20 mt-6 pt-5 flex flex-col gap-3">
+                <Btn full variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Fazer meu cadastro</Btn>
+                <Btn full onClick={() => navigate("tickets")}><Ticket size={16} />Comprar ingresso</Btn>
+              </div>
+            </aside>
+          </section>
         </div>
       </div>
     </>
@@ -5942,12 +6180,10 @@ const role = auth.role ?? "viewer";
     { key: "header_auth_visible", label: "Login / Minha conta", description: "Botão de login ou menu do perfil no header." },
     { key: "nav_home_visible", label: "Home", description: "Item Home do menu principal." },
     { key: "nav_event_visible", label: "Evento", description: "Item Evento do menu principal." },
-    { key: "nav_who_going_visible", label: "Quem Vai", description: "Item Quem Vai do menu principal." },
-    { key: "nav_the_class_visible", label: "A Turma", description: "Item A Turma do menu principal." },
+    { key: "nav_ex_alumni_visible", label: "Ex-alunos", description: "Item consolidado com Turma, Quem Vai e Mapa." },
     { key: "nav_photos_visible", label: "Fotos", description: "Item Fotos do menu principal." },
     { key: "nav_memories_visible", label: "Memórias", description: "Item Memórias do menu principal." },
     { key: "nav_polls_visible", label: "Enquetes", description: "Item Enquetes do menu principal." },
-    { key: "nav_where_now_visible", label: "Mapa", description: "Item Mapa do menu principal." },
     { key: "nav_archive_visible", label: "Acervo", description: "Item Acervo do menu principal." },
   ];
 
@@ -6169,12 +6405,10 @@ const role = auth.role ?? "viewer";
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Home" value={homeDraft.nav_home_label} onChange={v => setHomeDraft(s => ({ ...s, nav_home_label: v }))} />
                     <Field label="Evento" value={homeDraft.nav_event_label} onChange={v => setHomeDraft(s => ({ ...s, nav_event_label: v }))} />
-                    <Field label="Quem vai" value={homeDraft.nav_who_going_label} onChange={v => setHomeDraft(s => ({ ...s, nav_who_going_label: v }))} />
-                    <Field label="A turma" value={homeDraft.nav_the_class_label} onChange={v => setHomeDraft(s => ({ ...s, nav_the_class_label: v }))} />
+                    <Field label="Ex-alunos" value={homeDraft.nav_ex_alumni_label} onChange={v => setHomeDraft(s => ({ ...s, nav_ex_alumni_label: v }))} />
                     <Field label="Fotos" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
                     <Field label="Memórias" value={homeDraft.nav_memories_label} onChange={v => setHomeDraft(s => ({ ...s, nav_memories_label: v }))} />
                     <Field label="Enquetes" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
-                    <Field label="Mapa" value={homeDraft.nav_where_now_label} onChange={v => setHomeDraft(s => ({ ...s, nav_where_now_label: v }))} />
                     <Field label="Acervo" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
                   </div>
                 </div>
@@ -7181,6 +7415,7 @@ const PAGE_PATHS: Record<Page, string> = {
   confirmation: "/confirmacao",
   "who-going": "/quem-vai",
   "the-class": "/turma",
+  "ex-alumni": "/ex-alunos",
   "claim-profile": "/reivindicar-perfil",
   "photo-wall": "/fotos",
   "photo-detail": "/foto",
@@ -7363,6 +7598,7 @@ export default function App() {
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}
         {page === "who-going"     && <WhoGoingPage      navigate={navigate} people={people}                       />}
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
+        {page === "ex-alumni"     && <ExAlumniPage      navigate={navigate} people={people}                       />}
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
