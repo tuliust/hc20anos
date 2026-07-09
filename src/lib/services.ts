@@ -12,7 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, TicketWithDetails,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, TicketWithDetails,
   DbEventArchiveSettings,
 } from "./database.types";
 
@@ -250,6 +250,9 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
     linkedin_url: patch.linkedin_url ?? current.linkedin_url,
     contact_email: patch.contact_email ?? current.contact_email,
     contact_whatsapp: patch.contact_whatsapp ?? current.contact_whatsapp,
+    relationship_status: patch.relationship_status ?? current.relationship_status,
+    has_children: patch.has_children ?? current.has_children,
+    children_count: patch.children_count ?? current.children_count,
     show_current_photo: patch.show_current_photo ?? current.show_current_photo,
     show_city: patch.show_city ?? current.show_city,
     show_profession: patch.show_profession ?? current.show_profession,
@@ -286,6 +289,22 @@ export async function getClassmates(classGroup?: string | null, currentPersonId?
   }, []);
 }
 
+
+export async function getPublicProfileCardByPersonId(personId: string): Promise<PublicProfileCardRow | null> {
+  if (!personId) return null;
+
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_profile_cards")
+      .select("*")
+      .eq("person_id", personId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as PublicProfileCardRow | null;
+  }, null);
+}
+
 export async function saveMyPublicProfile(
   userId: string,
   profilePatch: Partial<DbProfile>,
@@ -309,6 +328,9 @@ export async function saveMyPublicProfile(
     "linkedin_url",
     "contact_email",
     "contact_whatsapp",
+    "relationship_status",
+    "has_children",
+    "children_count",
     "show_current_photo",
     "show_city",
     "show_profession",

@@ -6,6 +6,7 @@
 export type EventStatus   = "draft" | "published" | "cancelled" | "completed";
 export type SalesStatus   = "open" | "paused" | "closed";
 export type ProfileStatus = "unclaimed" | "claimed" | "confirmed";
+export type RelationshipStatus = "single" | "dating" | "married";
 export type TicketStatus  = "draft" | "open" | "paused" | "sold_out" | "closed";
 export type PaymentStatus = "pending" | "in_process" | "approved" | "rejected" | "cancelled" | "refunded" | "expired" | "charged_back";
 export type PhotoStatus   = "pending" | "approved" | "rejected" | "removed";
@@ -71,6 +72,9 @@ export interface DbProfile {
   linkedin_url:         string | null;
   contact_email:        string | null;
   contact_whatsapp:     string | null;
+  relationship_status:  RelationshipStatus | null;
+  has_children:         boolean;
+  children_count:       number | null;
   show_current_photo:   boolean;
   show_city:            boolean;
   show_profession:      boolean;
@@ -338,6 +342,24 @@ export interface PublicLocationRow {
   show_profession:  boolean | null;
 }
 
+export interface PublicProfileCardRow {
+  profile_id:          uuid;
+  person_id:           uuid;
+  display_name:        string | null;
+  full_name:           string;
+  avatar_url:          string | null;
+  current_city:        string | null;
+  current_state:       string | null;
+  current_country:     string | null;
+  profession:          string | null;
+  instagram_url:       string | null;
+  linkedin_url:        string | null;
+  contact_whatsapp:    string | null;
+  relationship_status: RelationshipStatus | null;
+  has_children:        boolean;
+  children_count:      number | null;
+}
+
 export interface LocationStat {
   key:      string;
   city:     string;
@@ -402,6 +424,7 @@ export interface Database {
       events:                 { Row: DbEvent;              Insert: Partial<DbEvent>;              Update: Partial<DbEvent>              };
       people:                 { Row: DbPerson;             Insert: Partial<DbPerson>;             Update: Partial<DbPerson>             };
       profiles:               { Row: DbProfile;            Insert: UpsertProfile;                 Update: Partial<DbProfile>            };
+      public_profile_cards:   { Row: PublicProfileCardRow; Insert: never;                         Update: never                         };
       ticket_types:           { Row: DbTicketType;         Insert: Partial<DbTicketType>;         Update: Partial<DbTicketType>         };
       orders:                 { Row: DbOrder;              Insert: InsertOrder;                   Update: Partial<DbOrder>              };
       tickets:                { Row: DbTicket;             Insert: InsertTicket;                  Update: Partial<DbTicket>             };
