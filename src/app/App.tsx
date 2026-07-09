@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
@@ -180,7 +180,59 @@ interface FAQItemContent {
   is_visible?: boolean;
 }
 
-type ContentAdminTab = "header" | "home" | "timeline" | "faq" | "footer";
+type HomeSectionKey = "hero" | "about" | "info" | "tickets" | "confirmed" | "photos" | "timeline" | "faq";
+
+interface HomeSectionContent {
+  key: HomeSectionKey;
+  label: string;
+  is_visible?: boolean;
+  sort_order: number;
+}
+
+interface FooterLinkContent {
+  page: Page;
+  label: string;
+  is_visible?: boolean;
+}
+
+type ContentAdminTab = "header" | "home" | "sections" | "labels" | "timeline" | "faq" | "footer";
+
+const PAGE_OPTIONS: { page: Page; label: string }[] = [
+  { page: "home", label: "Home" },
+  { page: "tickets", label: "Ingressos" },
+  { page: "who-going", label: "Quem Vai" },
+  { page: "the-class", label: "A Turma" },
+  { page: "photo-wall", label: "Fotos" },
+  { page: "memories", label: "Memórias" },
+  { page: "polls", label: "Enquetes" },
+  { page: "where-now", label: "Mapa" },
+  { page: "archive", label: "Acervo" },
+  { page: "login", label: "Login/Cadastro" },
+  { page: "terms", label: "Termos" },
+  { page: "privacy", label: "Privacidade" },
+];
+
+const HOME_SECTION_DEFAULTS: HomeSectionContent[] = [
+  { key: "hero", label: "Hero", is_visible: true, sort_order: 10 },
+  { key: "about", label: "Sobre", is_visible: true, sort_order: 20 },
+  { key: "info", label: "Informações do evento", is_visible: true, sort_order: 30 },
+  { key: "tickets", label: "Ingressos", is_visible: true, sort_order: 40 },
+  { key: "confirmed", label: "Confirmados", is_visible: true, sort_order: 50 },
+  { key: "photos", label: "Fotos", is_visible: true, sort_order: 60 },
+  { key: "timeline", label: "Linha do tempo", is_visible: true, sort_order: 70 },
+  { key: "faq", label: "FAQ", is_visible: true, sort_order: 80 },
+];
+
+const FOOTER_LINK_DEFAULTS: FooterLinkContent[] = [
+  { page: "tickets", label: "Ingressos", is_visible: true },
+  { page: "who-going", label: "Quem Vai", is_visible: true },
+  { page: "the-class", label: "A Turma", is_visible: true },
+  { page: "photo-wall", label: "Mural de Fotos", is_visible: true },
+  { page: "memories", label: "Memórias", is_visible: true },
+  { page: "polls", label: "Enquetes", is_visible: true },
+  { page: "where-now", label: "Onde a turma está", is_visible: true },
+  { page: "archive", label: "Acervo Digital", is_visible: true },
+];
 
 type ExtendedHomePageContent = HomePageContent & {
   header_logo_alt: string;
@@ -189,6 +241,8 @@ type ExtendedHomePageContent = HomePageContent & {
   header_fallback_title: string;
   header_fallback_subtitle: string;
   header_cta_label: string;
+  primary_cta_page: Page;
+  secondary_cta_page: Page;
   nav_home_label: string;
   nav_who_going_label: string;
   nav_the_class_label: string;
@@ -197,8 +251,37 @@ type ExtendedHomePageContent = HomePageContent & {
   nav_polls_label: string;
   nav_where_now_label: string;
   nav_archive_label: string;
+  home_sections_json: string;
+  countdown_days_label: string;
+  countdown_hours_label: string;
+  countdown_minutes_label: string;
+  countdown_seconds_label: string;
+  info_date_label: string;
+  info_time_label: string;
+  info_location_label: string;
+  info_doors_subtitle_template: string;
+  info_dinner_subtitle_template: string;
+  info_time_fallback_label: string;
+  tickets_preview_limit: string;
+  tickets_view_all_label: string;
+  tickets_active_lot_label: string;
+  tickets_buy_label: string;
+  tickets_sold_out_label: string;
+  tickets_empty_title: string;
+  tickets_empty_subtitle: string;
+  tickets_empty_cta_label: string;
+  tickets_remaining_label_template: string;
+  confirmed_preview_limit: string;
+  confirmed_view_all_label: string;
+  confirmed_privacy_note: string;
+  photos_preview_limit: string;
+  photos_view_all_label: string;
+  photos_empty_title: string;
+  photos_empty_subtitle: string;
+  photos_empty_cta_label: string;
   timeline_items_json: string;
   faq_items_json: string;
+  footer_links_json: string;
   footer_eyebrow: string;
   footer_title: string;
   footer_body: string;
@@ -220,6 +303,8 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   header_fallback_title: "Turma 2006",
   header_fallback_subtitle: "20 anos",
   header_cta_label: "Comprar ingresso",
+  primary_cta_page: "tickets",
+  secondary_cta_page: "who-going",
   nav_home_label: "Home",
   nav_who_going_label: "Quem Vai",
   nav_the_class_label: "A Turma",
@@ -228,8 +313,37 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_polls_label: "Enquetes",
   nav_where_now_label: "Mapa",
   nav_archive_label: "Acervo",
+  home_sections_json: JSON.stringify(HOME_SECTION_DEFAULTS, null, 2),
+  countdown_days_label: "Dias",
+  countdown_hours_label: "Horas",
+  countdown_minutes_label: "Min",
+  countdown_seconds_label: "Seg",
+  info_date_label: "Data",
+  info_time_label: "Horário",
+  info_location_label: "Local",
+  info_doors_subtitle_template: "Portas abertas às {time}",
+  info_dinner_subtitle_template: "Jantar servido a partir das {time}",
+  info_time_fallback_label: "19h00 — 01h00",
+  tickets_preview_limit: "3",
+  tickets_view_all_label: "Ver todos",
+  tickets_active_lot_label: "Lote ativo",
+  tickets_buy_label: "Comprar agora",
+  tickets_sold_out_label: "Esgotado",
+  tickets_empty_title: "Ingressos em breve",
+  tickets_empty_subtitle: "Os lotes ativos cadastrados no painel aparecerão aqui.",
+  tickets_empty_cta_label: "Abrir página de ingressos",
+  tickets_remaining_label_template: "{available}/{total} restantes",
+  confirmed_preview_limit: "8",
+  confirmed_view_all_label: "Ver todos",
+  confirmed_privacy_note: "Apenas pessoas que autorizaram aparecem na lista.",
+  photos_preview_limit: "6",
+  photos_view_all_label: "Ver todas",
+  photos_empty_title: "Nenhuma foto aprovada ainda",
+  photos_empty_subtitle: "As fotos aprovadas pela moderação aparecerão aqui.",
+  photos_empty_cta_label: "Abrir mural",
   timeline_items_json: JSON.stringify(TIMELINE, null, 2),
   faq_items_json: JSON.stringify(FAQ_ITEMS, null, 2),
+  footer_links_json: JSON.stringify(FOOTER_LINK_DEFAULTS, null, 2),
   footer_eyebrow: "Colégio Henrique Castriciano",
   footer_title: "Turma 2006",
   footer_body: "O reencontro dos ex-alunos, 20 anos depois de uma época que ficou para sempre.",
@@ -260,6 +374,48 @@ function parseHomeJsonArray<T>(value: string | null | undefined, fallback: T[]):
   } catch {
     return fallback;
   }
+}
+
+function normalizePage(value: unknown, fallback: Page): Page {
+  const page = typeof value === "string" ? value : fallback;
+  return PAGE_OPTIONS.some(option => option.page === page) ? page as Page : fallback;
+}
+
+function parsePositiveInteger(value: string | number | null | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function applyTextTemplate(template: string | null | undefined, vars: Record<string, string | number>) {
+  return Object.entries(vars).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template || "");
+}
+
+function getHomeSections(content?: HomePageContent | null) {
+  const extendedContent = getExtendedHomeContent(content);
+  const parsed = parseHomeJsonArray<HomeSectionContent>(extendedContent.home_sections_json, HOME_SECTION_DEFAULTS);
+  const byKey = new Map<HomeSectionKey, HomeSectionContent>();
+  for (const item of parsed) {
+    if (HOME_SECTION_DEFAULTS.some(section => section.key === item.key)) byKey.set(item.key, item);
+  }
+  return HOME_SECTION_DEFAULTS
+    .map(defaultItem => ({ ...defaultItem, ...(byKey.get(defaultItem.key) ?? {}) }))
+    .filter(item => item.is_visible !== false)
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+function getFooterLinks(content?: HomePageContent | null) {
+  const extendedContent = getExtendedHomeContent(content);
+  return parseHomeJsonArray<FooterLinkContent>(extendedContent.footer_links_json, FOOTER_LINK_DEFAULTS)
+    .map(item => ({ ...item, page: normalizePage(item.page, "home") }))
+    .filter(item => item.is_visible !== false && item.label.trim());
+}
+
+function updateHomeSection(items: HomeSectionContent[], index: number, patch: Partial<HomeSectionContent>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
+function updateFooterLink(items: FooterLinkContent[], index: number, patch: Partial<FooterLinkContent>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
 function updateTimelineItem(items: TimelineItemContent[], index: number, patch: Partial<TimelineItemContent>) {
@@ -713,7 +869,7 @@ function PersonDetailModal({
           </div>
 
           {person.profile_status === "unclaimed" && onClaim && (
-            <Btn onClick={onClaim}><UserCheck size={16} />Reivindicar perfil</Btn>
+            <Btn onClick={onClaim}><UserCheck size={16} />Criar perfil</Btn>
           )}
         </div>
       </div>
@@ -741,6 +897,189 @@ function Modal({ open, onClose, title, children, wide = false }: {
         </div>
         <div className="p-6">{children}</div>
       </div>
+    </div>
+  );
+}
+
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
+    image.src = src;
+  });
+}
+
+async function createCroppedAvatarFile(
+  source: string,
+  zoom: number,
+  offsetX: number,
+  offsetY: number,
+  filename = "avatar-recortado.jpg"
+): Promise<File> {
+  const image = await loadImageElement(source);
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Seu navegador não conseguiu processar o recorte da imagem.");
+
+  ctx.fillStyle = "#0d1a0f";
+  ctx.fillRect(0, 0, size, size);
+
+  const baseScale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
+  const scale = baseScale * zoom;
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  const drawX = (size - drawWidth) / 2 + (offsetX / 100) * size;
+  const drawY = (size - drawHeight) / 2 + (offsetY / 100) * size;
+
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
+  if (!blob) throw new Error("Não foi possível gerar o arquivo recortado.");
+  return new File([blob], filename.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+
+function AvatarCropUpload({
+  currentImageUrl,
+  fallbackLabel,
+  uploading,
+  disabled = false,
+  onCroppedFile,
+  onRemove,
+  helperText = "JPG, PNG ou WebP. Use zoom e posição para ajustar o enquadramento antes de enviar.",
+}: {
+  currentImageUrl?: string | null;
+  fallbackLabel: string;
+  uploading?: boolean;
+  disabled?: boolean;
+  onCroppedFile: (file: File) => Promise<void> | void;
+  onRemove?: () => void;
+  helperText?: string;
+}) {
+  const [source, setSource] = useState<string | null>(null);
+  const [fileName, setFileName] = useState("avatar.jpg");
+  const [zoom, setZoom] = useState(1.2);
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState("");
+
+  function resetCrop() {
+    setSource(null);
+    setFileName("avatar.jpg");
+    setZoom(1.2);
+    setOffsetX(0);
+    setOffsetY(0);
+    setError("");
+  }
+
+  function handleFile(file: File | null) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Selecione um arquivo de imagem válido.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("A imagem deve ter no máximo 10 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSource(String(reader.result));
+      setFileName(file.name || "avatar.jpg");
+      setZoom(1.2);
+      setOffsetX(0);
+      setOffsetY(0);
+      setError("");
+    };
+    reader.onerror = () => setError("Não foi possível ler a imagem selecionada.");
+    reader.readAsDataURL(file);
+  }
+
+  async function confirmCrop() {
+    if (!source) return;
+    setProcessing(true);
+    setError("");
+    try {
+      const cropped = await createCroppedAvatarFile(source, zoom, offsetX, offsetY, fileName);
+      await onCroppedFile(cropped);
+      resetCrop();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao recortar a imagem.");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-6">
+        <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0 overflow-hidden">
+          {currentImageUrl ? <img src={currentImageUrl} alt="Foto de perfil" className="w-full h-full object-cover" /> : fallbackLabel}
+        </div>
+        <div className="flex-1">
+          <label className={`inline-flex items-center justify-center gap-2 bg-[#2d6a4f] text-[#f0ebe0] hover:bg-[#40916c] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition-all ${disabled || uploading || processing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+            {uploading || processing ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+            {uploading ? "Enviando..." : processing ? "Recortando..." : currentImageUrl ? "Trocar foto" : "Escolher foto"}
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              className="sr-only"
+              disabled={disabled || uploading || processing}
+              onChange={e => handleFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          {currentImageUrl && onRemove && (
+            <button onClick={onRemove} className="block mt-3 text-[#7a9a7a] hover:text-[#f0ebe0] text-xs font-mono">
+              Remover foto ao salvar
+            </button>
+          )}
+          <p className="text-[#7a9a7a] text-xs font-mono mt-2">{helperText}</p>
+        </div>
+      </div>
+
+      {source && (
+        <div className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4 flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 items-start">
+            <div className="w-full max-w-[220px] aspect-square overflow-hidden bg-[#1a2e1a] border border-[#2d6a4f]/30 mx-auto relative">
+              <img
+                src={source}
+                alt="Prévia do recorte"
+                className="absolute left-1/2 top-1/2 w-full h-full object-cover select-none pointer-events-none"
+                style={{ transform: `translate(calc(-50% + ${offsetX * 2}px), calc(-50% + ${offsetY * 2}px)) scale(${zoom})` }}
+              />
+              <div className="absolute inset-0 border-2 border-[#c9a84c]/70 pointer-events-none" />
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Zoom</span><span>{zoom.toFixed(1)}x</span></div>
+                <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={e => setZoom(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+              </div>
+              <div>
+                <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Posição horizontal</span><span>{offsetX}</span></div>
+                <input type="range" min="-50" max="50" step="1" value={offsetX} onChange={e => setOffsetX(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+              </div>
+              <div>
+                <div className="flex justify-between text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2"><span>Posição vertical</span><span>{offsetY}</span></div>
+                <input type="range" min="-50" max="50" step="1" value={offsetY} onChange={e => setOffsetY(Number(e.target.value))} className="w-full accent-[#2d6a4f]" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Btn onClick={confirmCrop} disabled={uploading || processing}>{processing ? <><RefreshCw size={14} className="animate-spin" />Processando...</> : <><Check size={14} />Usar recorte</>}</Btn>
+                <Btn variant="ghost" onClick={resetCrop} disabled={uploading || processing}>Cancelar</Btn>
+              </div>
+            </div>
+          </div>
+          {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+        </div>
+      )}
+
+      {!source && error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
     </div>
   );
 }
@@ -1137,16 +1476,7 @@ function Header({ page, navigate, auth, logout, content }: {
 
 function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: HomePageContent }) {
   const footerContent = getExtendedHomeContent(content);
-  const footerLinks: { page: Page; label: string }[] = [
-    { page: "tickets", label: "Ingressos" },
-    { page: "who-going", label: footerContent.nav_who_going_label },
-    { page: "the-class", label: footerContent.nav_the_class_label },
-    { page: "photo-wall", label: "Mural de Fotos" },
-    { page: "memories", label: footerContent.nav_memories_label },
-    { page: "polls", label: footerContent.nav_polls_label },
-    { page: "where-now", label: "Onde a turma está" },
-    { page: "archive", label: "Acervo Digital" },
-  ];
+  const footerLinks = getFooterLinks(content);
 
   return (
     <footer className="bg-[#080f08] border-t border-[#2d6a4f]/20 pt-16 pb-8">
@@ -1313,7 +1643,7 @@ function LoginPage({ navigate, onLogin }: {
             <p className="text-[#7a9a7a] text-xs text-center">
               Ainda não tem conta?{" "}
               <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
-                Reivindicar meu perfil
+                Criar meu perfil
               </button>
             </p>
 
@@ -1338,6 +1668,7 @@ function LoginPage({ navigate, onLogin }: {
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 
 function Hero({ navigate, content, event }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null }) {
+  const extendedContent = getExtendedHomeContent(content);
   const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
 
   useEffect(() => {
@@ -1365,11 +1696,16 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
         <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>
         <p className="text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 mt-1 mb-10 md:mb-12">{content.hero_event_line}</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 md:mb-12">
-          <Btn size="lg" onClick={() => navigate("tickets")}>{content.primary_cta_label}</Btn>
-          <Btn size="lg" variant="outline" onClick={() => navigate("who-going")}>{content.secondary_cta_label}</Btn>
+          <Btn size="lg" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
+          <Btn size="lg" variant="outline" onClick={() => navigate(normalizePage(extendedContent.secondary_cta_page, "who-going"))}>{content.secondary_cta_label}</Btn>
         </div>
         <div className="inline-flex">
-          {[{ v: time.days, l: "Dias" }, { v: time.hours, l: "Horas" }, { v: time.minutes, l: "Min" }, { v: time.seconds, l: "Seg" }].map(({ v, l }, i) => (
+          {[
+            { v: time.days, l: extendedContent.countdown_days_label },
+            { v: time.hours, l: extendedContent.countdown_hours_label },
+            { v: time.minutes, l: extendedContent.countdown_minutes_label },
+            { v: time.seconds, l: extendedContent.countdown_seconds_label },
+          ].map(({ v, l }, i) => (
             <div key={l} className="flex items-center">
               {i > 0 && <span className="text-[#2d6a4f] font-mono text-3xl md:text-4xl mx-3 md:mx-6 font-light">:</span>}
               <div className="text-center">
@@ -1414,6 +1750,7 @@ function AboutSection({ content }: { content: HomePageContent }) {
 }
 
 function EventInfoSection({ content, event }: { content: HomePageContent; event: DbEvent | null }) {
+  const extendedContent = getExtendedHomeContent(content);
   const dateLabel = formatLongDateBR(event?.event_date);
   const timeLabel = formatTimeLabel(event?.event_time);
   const hasLoadedEventTime = Boolean(event?.event_time);
@@ -1421,9 +1758,19 @@ function EventInfoSection({ content, event }: { content: HomePageContent; event:
   const locationAddress = event?.location_address || "Av. Eng. Roberto Freire — Ponta Negra, Natal/RN";
 
   const infoItems = [
-    { icon: <Calendar size={24} />, title: "Data", info: dateLabel, sub: `Portas abertas às ${addMinutesToTime(event?.event_time, -30)}` },
-    { icon: <Clock size={24} />, title: "Horário", info: hasLoadedEventTime ? timeLabel : "19h00 — 01h00", sub: `Jantar servido a partir das ${addMinutesToTime(event?.event_time, 60)}` },
-    { icon: <MapPin size={24} />, title: "Local", info: locationName, sub: locationAddress },
+    {
+      icon: <Calendar size={24} />,
+      title: extendedContent.info_date_label,
+      info: dateLabel,
+      sub: applyTextTemplate(extendedContent.info_doors_subtitle_template, { time: addMinutesToTime(event?.event_time, -30) }),
+    },
+    {
+      icon: <Clock size={24} />,
+      title: extendedContent.info_time_label,
+      info: hasLoadedEventTime ? timeLabel : extendedContent.info_time_fallback_label,
+      sub: applyTextTemplate(extendedContent.info_dinner_subtitle_template, { time: addMinutesToTime(event?.event_time, 60) }),
+    },
+    { icon: <MapPin size={24} />, title: extendedContent.info_location_label, info: locationName, sub: locationAddress },
   ];
 
   return (
@@ -1457,22 +1804,25 @@ function TicketsPreview({
   ticketTypes: DbTicketType[];
   onSelectTicket: (id: string) => void;
 }) {
-  const publicTickets = ticketTypes.filter(isTicketVisibleOnHome);
+  const extendedContent = getExtendedHomeContent(content);
+  const publicTickets = ticketTypes
+    .filter(isTicketVisibleOnHome)
+    .slice(0, parsePositiveInteger(extendedContent.tickets_preview_limit, 3));
 
   return (
     <section className="bg-[#0a120a] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
           <div><SectionLabel>{content.tickets_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.tickets_title}</DisplayTitle></div>
-          <Btn variant="ghost" onClick={() => navigate("tickets")}>Ver todos <ArrowRight size={16} /></Btn>
+          <Btn variant="ghost" onClick={() => navigate("tickets")}>{extendedContent.tickets_view_all_label} <ArrowRight size={16} /></Btn>
         </div>
 
         {publicTickets.length === 0 ? (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-center">
             <Ticket size={36} className="text-[#c9a84c] mx-auto mb-4" />
-            <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-2xl mb-2">Ingressos em breve</p>
-            <p className="text-[#7a9a7a] text-sm mb-6">Os lotes ativos cadastrados no painel aparecerão aqui.</p>
-            <Btn variant="outline" onClick={() => navigate("tickets")}>Abrir página de ingressos</Btn>
+            <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-2xl mb-2">{extendedContent.tickets_empty_title}</p>
+            <p className="text-[#7a9a7a] text-sm mb-6">{extendedContent.tickets_empty_subtitle}</p>
+            <Btn variant="outline" onClick={() => navigate("tickets")}>{extendedContent.tickets_empty_cta_label}</Btn>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1486,7 +1836,7 @@ function TicketsPreview({
                 <div key={ticket.id} className={"bg-[#141f14] border p-8 flex flex-col gap-4 transition-colors " + (disabled ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Lote ativo</p>
+                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{extendedContent.tickets_active_lot_label}</p>
                       <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mt-1">{ticket.name}</p>
                     </div>
                     <StatusBadge status={visualStatus} />
@@ -1495,7 +1845,7 @@ function TicketsPreview({
                   <div className="border-t border-[#2d6a4f]/20 pt-4">
                     <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl">{formatCurrencyBR(ticket.price_cents)}</p>
                     {ticket.available_quantity > 0 && (
-                      <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{availability}/{ticket.available_quantity} restantes</p>
+                      <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{applyTextTemplate(extendedContent.tickets_remaining_label_template, { available: availability, total: ticket.available_quantity })}</p>
                     )}
                   </div>
 
@@ -1514,7 +1864,7 @@ function TicketsPreview({
                       onClick={() => { onSelectTicket(ticket.id); navigate("checkout"); }}
                       variant={visualStatus === "last-units" ? "gold" : "primary"}
                     >
-                      {disabled ? "Esgotado" : "Comprar agora"}
+                      {disabled ? extendedContent.tickets_sold_out_label : extendedContent.tickets_buy_label}
                     </Btn>
                   </div>
                 </div>
@@ -1529,7 +1879,10 @@ function TicketsPreview({
 
 function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent }) {
   const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
-  const confirmed = people.filter(a => a.profile_status === "confirmed" && a.is_visible).slice(0, 8);
+  const extendedContent = getExtendedHomeContent(content);
+  const confirmed = people
+    .filter(a => a.profile_status === "confirmed" && a.is_visible)
+    .slice(0, parsePositiveInteger(extendedContent.confirmed_preview_limit, 8));
 
   return (
     <>
@@ -1543,7 +1896,7 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
             <div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div>
-            <Btn variant="ghost" onClick={() => navigate("who-going")}>Ver todos <ArrowRight size={16} /></Btn>
+            <Btn variant="ghost" onClick={() => navigate("who-going")}>{extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {confirmed.map(a => (
@@ -1556,7 +1909,7 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
             ))}
           </div>
           <div className="mt-8 text-center">
-            <p className="text-[#7a9a7a] text-sm font-mono">Apenas pessoas que autorizaram aparecem na lista.</p>
+            <p className="text-[#7a9a7a] text-sm font-mono">{extendedContent.confirmed_privacy_note}</p>
           </div>
         </div>
       </section>
@@ -1565,16 +1918,17 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
 }
 
 function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) => void; photos: DbPhoto[]; content: HomePageContent }) {
-  const previewPhotos = photos.slice(0, 6);
+  const extendedContent = getExtendedHomeContent(content);
+  const previewPhotos = photos.slice(0, parsePositiveInteger(extendedContent.photos_preview_limit, 6));
   return (
     <section className="bg-[#080f08] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
           <div><SectionLabel>{content.photos_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.photos_title}</DisplayTitle></div>
-          <Btn variant="ghost" onClick={() => navigate("photo-wall")}>Ver todas <ArrowRight size={16} /></Btn>
+          <Btn variant="ghost" onClick={() => navigate("photo-wall")}>{extendedContent.photos_view_all_label} <ArrowRight size={16} /></Btn>
         </div>
         {previewPhotos.length === 0 ? (
-          <EmptyState title="Nenhuma foto aprovada ainda" subtitle="As fotos aprovadas pela moderação aparecerão aqui." action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>Abrir mural</Btn>} />
+          <EmptyState title={extendedContent.photos_empty_title} subtitle={extendedContent.photos_empty_subtitle} action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>{extendedContent.photos_empty_cta_label}</Btn>} />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             {previewPhotos.map(p => (
@@ -1675,16 +2029,27 @@ function LandingPage({
   ticketTypes: DbTicketType[];
   onSelectTicket: (id: string) => void;
 }) {
-  return <>
-    <Hero navigate={navigate} content={content} event={event} />
-    <AboutSection content={content} />
-    <EventInfoSection content={content} event={event} />
-    <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />
-    <WhoGoingPreview navigate={navigate} people={people} content={content} />
-    <PhotoWallPreview navigate={navigate} photos={photos} content={content} />
-    <TimelineSection content={content} />
-    <FAQSection content={content} />
-  </>;
+  const sections = getHomeSections(content);
+  const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
+    hero: <Hero navigate={navigate} content={content} event={event} />,
+    about: <AboutSection content={content} />,
+    info: <EventInfoSection content={content} event={event} />,
+    tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
+    confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} />,
+    photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
+    timeline: <TimelineSection content={content} />,
+    faq: <FAQSection content={content} />,
+  };
+
+  return (
+    <>
+      {sections.map(section => (
+        <Fragment key={section.key}>
+          {sectionRenderers[section.key]}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 
@@ -2338,6 +2703,9 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   const [loading, setLoading]   = useState(false);
   const [claimEmail, setClaimEmail] = useState(auth.email ?? "");
   const [claimPhone, setClaimPhone] = useState("");
+  const [claimPhotoFile, setClaimPhotoFile] = useState<File | null>(null);
+  const [claimPhotoPreview, setClaimPhotoPreview] = useState("");
+  const [claimPhotoUploading, setClaimPhotoUploading] = useState(false);
   const [claimError, setClaimError] = useState("");
 
   const results = people
@@ -2364,6 +2732,24 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         phone: claimPhone,
         answers: scoreAnswers,
       });
+
+      if (result === "approved" && auth.loggedIn && claimPhotoFile) {
+        try {
+          setClaimPhotoUploading(true);
+          const publicUrl = await uploadProfileAvatar(auth.userId, claimPhotoFile);
+          await saveMyPublicProfile(auth.userId, {
+            display_name: selected.name,
+            current_photo_url: publicUrl,
+          }, {
+            avatar_url: publicUrl,
+          });
+        } catch (photoErr) {
+          console.error("Falha ao salvar foto do cadastro", photoErr);
+        } finally {
+          setClaimPhotoUploading(false);
+        }
+      }
+
       setClaimResult(result);
       setStep(7);
     } catch (err) {
@@ -2385,7 +2771,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         requesterName: auth.name || selected.name,
         requesterEmail: auth.email ?? claimEmail,
         requesterPhone: claimPhone,
-        reason: "Solicitacao de disputa aberta pelo fluxo de reivindicacao.",
+        reason: "Solicitacao de disputa aberta pelo fluxo de criacao de perfil.",
         evidenceText: "Usuario informa que o perfil reivindicado pertence a ele.",
       });
       setClaimResult("approved");
@@ -2395,6 +2781,13 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     } finally {
       setLoading(false);
     }
+  }
+
+  async function selectClaimPhoto(file: File) {
+    setClaimPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setClaimPhotoPreview(String(reader.result));
+    reader.readAsDataURL(file);
   }
 
   const bars = 7;
@@ -2407,7 +2800,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           <ArrowLeft size={16} /> Voltar
         </button>
         <SectionLabel>Perfil da Turma</SectionLabel>
-        <DisplayTitle className="text-3xl md:text-4xl mb-6">Reivindicar meu perfil</DisplayTitle>
+        <DisplayTitle className="text-3xl md:text-4xl mb-6">Criar meu perfil</DisplayTitle>
         <div className="flex gap-1.5 mb-10">
           {Array.from({ length: bars }).map((_, i) => (
             <div key={i} className={`flex-1 h-1 transition-all ${i + 1 <= step ? "bg-[#2d6a4f]" : "bg-[#1a2e1a]"}`} />
@@ -2501,6 +2894,24 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <Field label="E-mail" type="email" placeholder="seu@email.com" value={claimEmail} onChange={setClaimEmail} icon={<Mail size={16} />} />
             <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={claimPhone} onChange={setClaimPhone} icon={<Phone size={16} />}
               hint="Enviaremos um código de verificação via SMS ou WhatsApp" />
+            <div className="border-t border-[#2d6a4f]/20 pt-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Foto de perfil opcional</p>
+              {auth.loggedIn ? (
+                <AvatarCropUpload
+                  currentImageUrl={claimPhotoPreview}
+                  fallbackLabel={selected ? initials(selected.name) : initials(auth.name || "HC")}
+                  uploading={claimPhotoUploading}
+                  onCroppedFile={selectClaimPhoto}
+                  onRemove={() => { setClaimPhotoFile(null); setClaimPhotoPreview(""); }}
+                  helperText="Escolha uma imagem, ajuste zoom e recorte. A foto será salva quando o perfil for confirmado."
+                />
+              ) : (
+                <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex items-start gap-3">
+                  <Info size={14} className="text-[#2d6a4f] shrink-0 mt-0.5" />
+                  <p className="text-[#7a9a7a] text-xs leading-relaxed">Para enviar foto nesta etapa, entre com uma conta antes de criar o perfil. Você também poderá adicionar a foto depois em Editar perfil.</p>
+                </div>
+              )}
+            </div>
             <Btn full onClick={() => setStep(4)}>Enviar código de verificação <ArrowRight size={16} /></Btn>
           </div>
         )}
@@ -4334,37 +4745,21 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         {error && <ErrorState message={error} onRetry={loadProfile} />}
         {!loading && !profile && !error && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Perfil ainda não reivindicado" subtitle="Para editar dados públicos, primeiro vincule sua conta ao seu nome na lista da turma." action={<Btn onClick={() => navigate("claim-profile")}><UserCheck size={16} />Reivindicar perfil</Btn>} />
+            <EmptyState title="Perfil ainda não reivindicado" subtitle="Para editar dados públicos, primeiro vincule sua conta ao seu nome na lista da turma." action={<Btn onClick={() => navigate("claim-profile")}><UserCheck size={16} />Criar perfil</Btn>} />
           </div>
         )}
         {!loading && profile && (
           <div className="flex flex-col gap-6">
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Foto de perfil</p>
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0 overflow-hidden">
-                  {form.photoUrl ? <img src={form.photoUrl} alt={form.displayName || auth.name} className="w-full h-full object-cover" /> : avatarLabel}
-                </div>
-                <div className="flex-1">
-                  <label className="inline-flex items-center justify-center gap-2 bg-[#2d6a4f] text-[#f0ebe0] hover:bg-[#40916c] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition-all cursor-pointer">
-                    {avatarUploading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
-                    {avatarUploading ? "Enviando..." : "Enviar foto"}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
-                      className="sr-only"
-                      disabled={avatarUploading}
-                      onChange={e => uploadAvatar(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                  {form.photoUrl && (
-                    <button onClick={() => setForm(f => ({ ...f, photoUrl: "" }))} className="block mt-3 text-[#7a9a7a] hover:text-[#f0ebe0] text-xs font-mono">
-                      Remover foto ao salvar
-                    </button>
-                  )}
-                  <p className="text-[#7a9a7a] text-xs font-mono mt-2">JPG, PNG ou WebP ate 5 MB. A exibicao publica respeita a configuracao de privacidade abaixo.</p>
-                </div>
-              </div>
+              <AvatarCropUpload
+                currentImageUrl={form.photoUrl}
+                fallbackLabel={avatarLabel}
+                uploading={avatarUploading}
+                onCroppedFile={uploadAvatar}
+                onRemove={() => setForm(f => ({ ...f, photoUrl: "" }))}
+                helperText="JPG, PNG ou WebP até 10 MB. Ajuste zoom e recorte antes de enviar. A exibição pública respeita a configuração de privacidade abaixo."
+              />
             </div>
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Informações pessoais</p>
@@ -4716,6 +5111,8 @@ const role = auth.role ?? "viewer";
   const contentTabs: { id: ContentAdminTab; label: string }[] = [
     { id: "header", label: "Header" },
     { id: "home", label: "Home" },
+    { id: "sections", label: "Seções" },
+    { id: "labels", label: "Labels" },
     { id: "timeline", label: "Linha do tempo" },
     { id: "faq", label: "FAQ" },
     { id: "footer", label: "Rodapé" },
@@ -4723,6 +5120,8 @@ const role = auth.role ?? "viewer";
 
   const timelineDraftItems = parseHomeJsonArray<TimelineItemContent>(homeDraft.timeline_items_json, TIMELINE);
   const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, FAQ_ITEMS);
+  const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
+  const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
 
   function setTimelineDraftItems(items: TimelineItemContent[]) {
     setHomeDraft(s => ({ ...s, timeline_items_json: JSON.stringify(items, null, 2) }));
@@ -4730,6 +5129,14 @@ const role = auth.role ?? "viewer";
 
   function setFaqDraftItems(items: FAQItemContent[]) {
     setHomeDraft(s => ({ ...s, faq_items_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setSectionDraftItems(items: HomeSectionContent[]) {
+    setHomeDraft(s => ({ ...s, home_sections_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setFooterDraftLinks(items: FooterLinkContent[]) {
+    setHomeDraft(s => ({ ...s, footer_links_json: JSON.stringify(items, null, 2) }));
   }
 
   if (!auth.isAdmin) return <PermissionState />;
@@ -4914,6 +5321,20 @@ const role = auth.role ?? "viewer";
                     <Field label="Data/local no hero" value={homeDraft.hero_event_line} onChange={v => setHomeDraft(s => ({ ...s, hero_event_line: v }))} />
                     <Field label="CTA principal" value={homeDraft.primary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, primary_cta_label: v }))} />
                     <Field label="CTA secundário" value={homeDraft.secondary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, secondary_cta_label: v }))} />
+                    <div>
+                      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Destino CTA principal</label>
+                      <select value={homeDraft.primary_cta_page} onChange={e => setHomeDraft(s => ({ ...s, primary_cta_page: normalizePage(e.target.value, "tickets") }))}
+                        className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                        {PAGE_OPTIONS.map(option => <option key={option.page} value={option.page}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Destino CTA secundário</label>
+                      <select value={homeDraft.secondary_cta_page} onChange={e => setHomeDraft(s => ({ ...s, secondary_cta_page: normalizePage(e.target.value, "who-going") }))}
+                        className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                        {PAGE_OPTIONS.map(option => <option key={option.page} value={option.page}>{option.label}</option>)}
+                      </select>
+                    </div>
                     <div className="md:col-span-2">
                       <FieldArea rows={3} label="Subtítulo do hero" value={homeDraft.hero_subtitle} onChange={v => setHomeDraft(s => ({ ...s, hero_subtitle: v }))} />
                     </div>
@@ -4935,6 +5356,78 @@ const role = auth.role ?? "viewer";
                     <Field label="Título confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
                     <Field label="Eyebrow fotos" value={homeDraft.photos_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, photos_eyebrow: v }))} />
                     <Field label="Título fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contentTab === "sections" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Seções da Home</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Controle ordem e visibilidade dos blocos públicos da página inicial.</p>
+                  </div>
+                  <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar seções</Btn>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {sectionDraftItems.map((item, i) => (
+                    <div key={item.key} className="grid grid-cols-1 md:grid-cols-[1fr_140px_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                      <Field label="Nome interno da seção" value={item.label} onChange={v => setSectionDraftItems(updateHomeSection(sectionDraftItems, i, { label: v }))} />
+                      <Field label="Ordem" type="number" value={String(item.sort_order)} onChange={v => setSectionDraftItems(updateHomeSection(sectionDraftItems, i, { sort_order: Number(v) || 0 }))} />
+                      <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setSectionDraftItems(updateHomeSection(sectionDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
+                        {item.is_visible === false ? "Oculta" : "Visível"}
+                      </Btn>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {contentTab === "labels" && (
+              <div className="flex flex-col gap-6">
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Labels e textos auxiliares</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Edite botões, mensagens vazias, labels do countdown, cards de informações e limites da Home.</p>
+                    </div>
+                    <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar labels</Btn>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Countdown — dias" value={homeDraft.countdown_days_label} onChange={v => setHomeDraft(s => ({ ...s, countdown_days_label: v }))} />
+                    <Field label="Countdown — horas" value={homeDraft.countdown_hours_label} onChange={v => setHomeDraft(s => ({ ...s, countdown_hours_label: v }))} />
+                    <Field label="Countdown — minutos" value={homeDraft.countdown_minutes_label} onChange={v => setHomeDraft(s => ({ ...s, countdown_minutes_label: v }))} />
+                    <Field label="Countdown — segundos" value={homeDraft.countdown_seconds_label} onChange={v => setHomeDraft(s => ({ ...s, countdown_seconds_label: v }))} />
+
+                    <Field label="Info — label data" value={homeDraft.info_date_label} onChange={v => setHomeDraft(s => ({ ...s, info_date_label: v }))} />
+                    <Field label="Info — label horário" value={homeDraft.info_time_label} onChange={v => setHomeDraft(s => ({ ...s, info_time_label: v }))} />
+                    <Field label="Info — label local" value={homeDraft.info_location_label} onChange={v => setHomeDraft(s => ({ ...s, info_location_label: v }))} />
+                    <Field label="Info — fallback horário" value={homeDraft.info_time_fallback_label} onChange={v => setHomeDraft(s => ({ ...s, info_time_fallback_label: v }))} />
+                    <Field label="Info — subtítulo data" value={homeDraft.info_doors_subtitle_template} onChange={v => setHomeDraft(s => ({ ...s, info_doors_subtitle_template: v }))} hint="Use {time} para inserir o horário calculado." />
+                    <Field label="Info — subtítulo horário" value={homeDraft.info_dinner_subtitle_template} onChange={v => setHomeDraft(s => ({ ...s, info_dinner_subtitle_template: v }))} hint="Use {time} para inserir o horário calculado." />
+
+                    <Field label="Ingressos — limite na Home" type="number" value={homeDraft.tickets_preview_limit} onChange={v => setHomeDraft(s => ({ ...s, tickets_preview_limit: v }))} />
+                    <Field label="Ingressos — botão ver todos" value={homeDraft.tickets_view_all_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_view_all_label: v }))} />
+                    <Field label="Ingressos — label do lote" value={homeDraft.tickets_active_lot_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_active_lot_label: v }))} />
+                    <Field label="Ingressos — botão comprar" value={homeDraft.tickets_buy_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_buy_label: v }))} />
+                    <Field label="Ingressos — label esgotado" value={homeDraft.tickets_sold_out_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_sold_out_label: v }))} />
+                    <Field label="Ingressos — disponibilidade" value={homeDraft.tickets_remaining_label_template} onChange={v => setHomeDraft(s => ({ ...s, tickets_remaining_label_template: v }))} hint="Use {available} e {total}." />
+                    <Field label="Ingressos — vazio título" value={homeDraft.tickets_empty_title} onChange={v => setHomeDraft(s => ({ ...s, tickets_empty_title: v }))} />
+                    <Field label="Ingressos — vazio CTA" value={homeDraft.tickets_empty_cta_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_empty_cta_label: v }))} />
+                    <div className="md:col-span-2"><FieldArea rows={2} label="Ingressos — vazio texto" value={homeDraft.tickets_empty_subtitle} onChange={v => setHomeDraft(s => ({ ...s, tickets_empty_subtitle: v }))} /></div>
+
+                    <Field label="Confirmados — limite na Home" type="number" value={homeDraft.confirmed_preview_limit} onChange={v => setHomeDraft(s => ({ ...s, confirmed_preview_limit: v }))} />
+                    <Field label="Confirmados — botão ver todos" value={homeDraft.confirmed_view_all_label} onChange={v => setHomeDraft(s => ({ ...s, confirmed_view_all_label: v }))} />
+                    <div className="md:col-span-2"><FieldArea rows={2} label="Confirmados — nota de privacidade" value={homeDraft.confirmed_privacy_note} onChange={v => setHomeDraft(s => ({ ...s, confirmed_privacy_note: v }))} /></div>
+
+                    <Field label="Fotos — limite na Home" type="number" value={homeDraft.photos_preview_limit} onChange={v => setHomeDraft(s => ({ ...s, photos_preview_limit: v }))} />
+                    <Field label="Fotos — botão ver todas" value={homeDraft.photos_view_all_label} onChange={v => setHomeDraft(s => ({ ...s, photos_view_all_label: v }))} />
+                    <Field label="Fotos — vazio título" value={homeDraft.photos_empty_title} onChange={v => setHomeDraft(s => ({ ...s, photos_empty_title: v }))} />
+                    <Field label="Fotos — vazio CTA" value={homeDraft.photos_empty_cta_label} onChange={v => setHomeDraft(s => ({ ...s, photos_empty_cta_label: v }))} />
+                    <div className="md:col-span-2"><FieldArea rows={2} label="Fotos — vazio texto" value={homeDraft.photos_empty_subtitle} onChange={v => setHomeDraft(s => ({ ...s, photos_empty_subtitle: v }))} /></div>
                   </div>
                 </div>
               </div>
@@ -5049,6 +5542,36 @@ const role = auth.role ?? "viewer";
                   <Field label="Label termos" value={homeDraft.footer_terms_label} onChange={v => setHomeDraft(s => ({ ...s, footer_terms_label: v }))} />
                   <Field label="Label privacidade" value={homeDraft.footer_privacy_label} onChange={v => setHomeDraft(s => ({ ...s, footer_privacy_label: v }))} />
                   <Field label="Label admin" value={homeDraft.footer_admin_label} onChange={v => setHomeDraft(s => ({ ...s, footer_admin_label: v }))} />
+                </div>
+
+                <div className="border-t border-[#2d6a4f]/20 mt-6 pt-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Links do rodapé</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Controle label, destino e visibilidade dos links da coluna de navegação.</p>
+                    </div>
+                    <Btn size="sm" variant="ghost" onClick={() => setFooterDraftLinks([...footerDraftLinks, { page: "home", label: "Novo link", is_visible: true }])}>Adicionar link</Btn>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {footerDraftLinks.map((link, i) => (
+                      <div key={`${link.page}-${i}`} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                        <Field label="Label" value={link.label} onChange={v => setFooterDraftLinks(updateFooterLink(footerDraftLinks, i, { label: v }))} />
+                        <div>
+                          <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Destino</label>
+                          <select value={link.page} onChange={e => setFooterDraftLinks(updateFooterLink(footerDraftLinks, i, { page: normalizePage(e.target.value, "home") }))}
+                            className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                            {PAGE_OPTIONS.map(option => <option key={option.page} value={option.page}>{option.label}</option>)}
+                          </select>
+                        </div>
+                        <Btn size="sm" variant={link.is_visible === false ? "ghost" : "gold"} onClick={() => setFooterDraftLinks(updateFooterLink(footerDraftLinks, i, { is_visible: link.is_visible === false ? true : false }))}>
+                          {link.is_visible === false ? "Oculto" : "Visível"}
+                        </Btn>
+                        <Btn size="sm" variant="danger" onClick={() => setFooterDraftLinks(footerDraftLinks.filter((_, linkIndex) => linkIndex !== i))}>
+                          <X size={12} />Remover
+                        </Btn>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -5644,7 +6167,7 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
 
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
-const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket"];
+const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket", "checkout"];
 const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
 
 const PAGE_PATHS: Record<Page, string> = {
