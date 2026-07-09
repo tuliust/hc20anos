@@ -45,6 +45,10 @@ export interface DbPerson {
   full_name:            string;
   class_year:           number;
   class_group:          string | null;
+  birth_year?:          number | null;
+  verification_status?: string | null;
+  contact_email?:       string | null;
+  contact_whatsapp?:    string | null;
   nickname_at_school:   string | null;
   profile_status:       ProfileStatus;
   claimed_by_user_id:   uuid | null;
@@ -75,6 +79,7 @@ export interface DbProfile {
   relationship_status:  RelationshipStatus | null;
   has_children:         boolean;
   children_count:       number | null;
+  intends_to_attend?:   boolean | null;
   show_current_photo:   boolean;
   show_city:            boolean;
   show_profession:      boolean;
@@ -358,6 +363,7 @@ export interface PublicProfileCardRow {
   relationship_status: RelationshipStatus | null;
   has_children:        boolean;
   children_count:      number | null;
+  intends_to_attend?:   boolean | null;
 }
 
 export interface LocationStat {

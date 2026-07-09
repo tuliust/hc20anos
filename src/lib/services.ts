@@ -386,6 +386,116 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
   }, MOCK_PEOPLE.filter(p => p.is_visible));
 }
 
+
+export interface AdminImportPersonInput {
+  full_name: string;
+  birth_year: number | null;
+  class_group: string | null;
+  avatar_url?: string | null;
+  contact_whatsapp?: string | null;
+  contact_email?: string | null;
+}
+
+function normalizeImportPerson(row: AdminImportPersonInput) {
+  return {
+    full_name: row.full_name.trim(),
+    birth_year: row.birth_year ?? null,
+    class_group: row.class_group?.trim() || null,
+    avatar_url: row.avatar_url?.trim() || null,
+    contact_whatsapp: row.contact_whatsapp?.trim() || null,
+    contact_email: row.contact_email?.trim() || null,
+  };
+}
+
+export async function importPeopleAdmin(rows: AdminImportPersonInput[], adminId?: string): Promise<DbPerson[]> {
+  const payload = rows
+    .map(normalizeImportPerson)
+    .filter(row => row.full_name && row.birth_year && row.class_group);
+
+  if (payload.length === 0) throw new Error("Informe pelo menos uma pessoa com nome completo, ano de nascimento e turma.");
+
+  const { data, error } = await (supabase as any).rpc("admin_import_people", {
+    p_people: payload,
+  });
+  if (error) throw error;
+
+  await writeAudit("admin_import_people", "people", null, {
+    count: payload.length,
+    admin_id: adminId ?? null,
+  }).catch(() => {});
+
+  return (data as DbPerson[]) ?? [];
+}
+
+export interface CompleteProfileRegistrationParams {
+  personId: string;
+  penultimateSurname: string;
+  classGroupConfirmation: string;
+  birthYear: number;
+  fullName?: string | null;
+  displayName?: string | null;
+  classGroup?: string | null;
+  currentPhotoUrl?: string | null;
+  currentCity?: string | null;
+  currentState?: string | null;
+  currentCountry?: string | null;
+  profession?: string | null;
+  bio?: string | null;
+  nicknameAtSchool?: string | null;
+  instagramUrl?: string | null;
+  linkedinUrl?: string | null;
+  contactEmail?: string | null;
+  contactWhatsapp?: string | null;
+  relationshipStatus?: "single" | "dating" | "married" | null;
+  hasChildren?: boolean;
+  childrenCount?: number | null;
+  intendsToAttend?: boolean | null;
+  showCurrentPhoto?: boolean;
+  showCity?: boolean;
+  showProfession?: boolean;
+  showSocialLinks?: boolean;
+  allowPhotoTags?: boolean;
+  showConfirmedStatus?: boolean;
+}
+
+export async function completeProfileRegistration(params: CompleteProfileRegistrationParams): Promise<DbProfile> {
+  const { data, error } = await (supabase as any).rpc("complete_profile_registration_v2", {
+    p_person_id: params.personId,
+    p_penultimate_surname: params.penultimateSurname,
+    p_class_group_confirmation: params.classGroupConfirmation,
+    p_birth_year: params.birthYear,
+    p_full_name: params.fullName ?? null,
+    p_display_name: params.displayName ?? null,
+    p_class_group: params.classGroup ?? null,
+    p_current_photo_url: params.currentPhotoUrl ?? null,
+    p_current_city: params.currentCity ?? null,
+    p_current_state: params.currentState ?? null,
+    p_current_country: params.currentCountry ?? "Brasil",
+    p_profession: params.profession ?? null,
+    p_bio: params.bio ?? null,
+    p_nickname_at_school: params.nicknameAtSchool ?? null,
+    p_instagram_url: params.instagramUrl ?? null,
+    p_linkedin_url: params.linkedinUrl ?? null,
+    p_contact_email: params.contactEmail ?? null,
+    p_contact_whatsapp: params.contactWhatsapp ?? null,
+    p_relationship_status: params.relationshipStatus ?? null,
+    p_has_children: params.hasChildren ?? false,
+    p_children_count: params.childrenCount ?? null,
+    p_intends_to_attend: params.intendsToAttend ?? null,
+    p_show_current_photo: params.showCurrentPhoto ?? true,
+    p_show_city: params.showCity ?? true,
+    p_show_profession: params.showProfession ?? true,
+    p_show_social_links: params.showSocialLinks ?? false,
+    p_allow_photo_tags: params.allowPhotoTags ?? true,
+    p_show_confirmed_status: params.showConfirmedStatus ?? true,
+  });
+  if (error) throw error;
+  await writeAudit("complete_profile_registration", "profiles", (data as DbProfile)?.id ?? null, {
+    person_id: params.personId,
+  }).catch(() => {});
+  return data as DbProfile;
+}
+
 // ─── PROFILES ─────────────────────────────────────────────────────────────────
 
 export async function getMyProfile(userId: string): Promise<(DbProfile & { people?: Partial<DbPerson> }) | null> {
@@ -419,6 +529,7 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
     relationship_status: patch.relationship_status ?? current.relationship_status,
     has_children: patch.has_children ?? current.has_children,
     children_count: patch.children_count ?? current.children_count,
+    intends_to_attend: patch.intends_to_attend ?? current.intends_to_attend,
     show_current_photo: patch.show_current_photo ?? current.show_current_photo,
     show_city: patch.show_city ?? current.show_city,
     show_profession: patch.show_profession ?? current.show_profession,
@@ -497,6 +608,7 @@ export async function saveMyPublicProfile(
     "relationship_status",
     "has_children",
     "children_count",
+    "intends_to_attend",
     "show_current_photo",
     "show_city",
     "show_profession",

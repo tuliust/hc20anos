@@ -20,7 +20,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId,
+  getPublicProfileCardByPersonId, importPeopleAdmin, completeProfileRegistration, type AdminImportPersonInput,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
@@ -603,6 +603,175 @@ function whatsappLink(value?: string | null) {
   if (!digits) return null;
   const normalized = digits.startsWith("55") ? digits : `55${digits}`;
   return `https://wa.me/${normalized}`;
+}
+
+function normalizeLoose(value?: string | number | null) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function getPenultimateSurname(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
+}
+
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let current = "";
+  let insideQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (char === '"' && insideQuotes && next === '"') {
+      current += '"';
+      i += 1;
+      continue;
+    }
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+    if ((char === ";" || char === "," || char === "\t") && !insideQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function normalizeParticipantHeader(value: string) {
+  const normalized = normalizeLoose(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const map: Record<string, keyof AdminImportPersonInput> = {
+    nome: "full_name",
+    nome_completo: "full_name",
+    full_name: "full_name",
+    ano_nascimento: "birth_year",
+    ano_de_nascimento: "birth_year",
+    nascimento: "birth_year",
+    birth_year: "birth_year",
+    turma: "class_group",
+    sala: "class_group",
+    class_group: "class_group",
+    foto: "avatar_url",
+    url_foto: "avatar_url",
+    avatar_url: "avatar_url",
+    whatsapp: "contact_whatsapp",
+    telefone: "contact_whatsapp",
+    contact_whatsapp: "contact_whatsapp",
+    email: "contact_email",
+    e_mail: "contact_email",
+    contact_email: "contact_email",
+  };
+  return map[normalized] ?? null;
+}
+
+function rowsToParticipantImport(matrix: string[][]) {
+  if (matrix.length < 2) return [];
+  const header = matrix[0].map(cell => normalizeParticipantHeader(cell));
+  return matrix.slice(1).map(row => {
+    const item: AdminImportPersonInput = { full_name: "", birth_year: null, class_group: "" };
+    row.forEach((value, index) => {
+      const key = header[index];
+      if (!key) return;
+      if (key === "birth_year") {
+        const year = Number(String(value).replace(/\D/g, ""));
+        item.birth_year = Number.isInteger(year) && year > 1900 ? year : null;
+      } else {
+        (item as Record<string, string | number | null | undefined>)[key] = value.trim();
+      }
+    });
+    return item;
+  }).filter(row => row.full_name.trim() && row.birth_year && row.class_group?.trim());
+}
+
+function parseParticipantsCsv(text: string) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  return rowsToParticipantImport(lines.map(parseCsvLine));
+}
+
+async function inflateZipEntry(data: Uint8Array, method: number) {
+  if (method === 0) return data;
+  if (method !== 8) throw new Error("Formato de compressão do XLSX não suportado.");
+  const Decompression = (window as unknown as { DecompressionStream?: new (format: string) => TransformStream }).DecompressionStream;
+  if (!Decompression) throw new Error("Seu navegador não tem suporte nativo para leitura de XLSX. Salve a planilha como CSV e envie novamente.");
+  const stream = new Blob([data]).stream().pipeThrough(new Decompression("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function readXlsxEntries(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const view = new DataView(bytes.buffer);
+  const decoder = new TextDecoder("utf-8");
+  const entries = new Map<string, string>();
+  let offset = 0;
+
+  while (offset + 30 < bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const fileNameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const nameStart = offset + 30;
+    const name = decoder.decode(bytes.slice(nameStart, nameStart + fileNameLength));
+    const dataStart = nameStart + fileNameLength + extraLength;
+    const dataEnd = dataStart + compressedSize;
+    if (!compressedSize || dataEnd > bytes.length) break;
+    const raw = bytes.slice(dataStart, dataEnd);
+    if (!name.endsWith("/")) {
+      const inflated = await inflateZipEntry(raw, method);
+      entries.set(name, decoder.decode(inflated));
+    }
+    offset = dataEnd;
+  }
+  return entries;
+}
+
+function parseXlsxTextCell(cell: Element, sharedStrings: string[]) {
+  const type = cell.getAttribute("t");
+  if (type === "s") {
+    const index = Number(cell.getElementsByTagName("v")[0]?.textContent ?? "");
+    return Number.isInteger(index) ? sharedStrings[index] ?? "" : "";
+  }
+  if (type === "inlineStr") return cell.getElementsByTagName("t")[0]?.textContent ?? "";
+  return cell.getElementsByTagName("v")[0]?.textContent ?? "";
+}
+
+function columnIndexFromCellRef(ref: string) {
+  const letters = ref.replace(/[^A-Z]/gi, "").toUpperCase();
+  return letters.split("").reduce((sum, letter) => sum * 26 + letter.charCodeAt(0) - 64, 0) - 1;
+}
+
+async function parseParticipantsXlsx(file: File) {
+  const entries = await readXlsxEntries(file);
+  const parser = new DOMParser();
+  const sharedXml = entries.get("xl/sharedStrings.xml");
+  const sharedStrings = sharedXml
+    ? Array.from(parser.parseFromString(sharedXml, "application/xml").getElementsByTagName("si")).map(item => item.textContent ?? "")
+    : [];
+  const sheetXml = entries.get("xl/worksheets/sheet1.xml") ?? Array.from(entries.entries()).find(([name]) => name.startsWith("xl/worksheets/sheet"))?.[1];
+  if (!sheetXml) throw new Error("Não foi possível encontrar a primeira aba da planilha.");
+  const doc = parser.parseFromString(sheetXml, "application/xml");
+  const matrix = Array.from(doc.getElementsByTagName("row")).map(row => {
+    const cells: string[] = [];
+    Array.from(row.getElementsByTagName("c")).forEach(cell => {
+      const ref = cell.getAttribute("r") ?? "A";
+      cells[columnIndexFromCellRef(ref)] = parseXlsxTextCell(cell, sharedStrings);
+    });
+    return cells.map(value => value ?? "");
+  });
+  return rowsToParticipantImport(matrix);
+}
+
+async function parseParticipantImportFile(file: File) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".csv")) return parseParticipantsCsv(await file.text());
+  if (name.endsWith(".xlsx")) return parseParticipantsXlsx(file);
+  throw new Error("Envie um arquivo .xlsx ou .csv.");
 }
 
 function formatDateTimeBR(value?: string | null) {
@@ -3090,120 +3259,181 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 // ─── CLAIM PROFILE (COMPLETE) ─────────────────────────────────────────────────
 
 function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => void; people: DbPerson[]; auth: AuthState }) {
-  const [step, setStep]         = useState(1);
-  const [search, setSearch]     = useState("");
-  const [selected, setSelected] = useState<Alumni | null>(null);
-  const [code, setCode]         = useState("");
-  const [answers, setAnswers]   = useState<Record<string, string>>({});
-  const [claimResult, setClaimResult] = useState<"approved" | "rejected" | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [claimEmail, setClaimEmail] = useState(auth.email ?? "");
-  const [claimPhone, setClaimPhone] = useState("");
-  const [claimPhotoFile, setClaimPhotoFile] = useState<File | null>(null);
-  const [claimPhotoPreview, setClaimPhotoPreview] = useState("");
-  const [claimPhotoUploading, setClaimPhotoUploading] = useState(false);
-  const [claimError, setClaimError] = useState("");
-  const [claimRelationshipStatus, setClaimRelationshipStatus] = useState<RelationshipStatus | "">("");
-  const [claimHasChildren, setClaimHasChildren] = useState<"" | "yes" | "no">("");
-  const [claimChildrenCount, setClaimChildrenCount] = useState("");
+  const [step, setStep] = useState(1);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<DbPerson | null>(null);
+  const [answers, setAnswers] = useState({ penultimateSurname: "", classGroup: "", birthYear: "" });
+  const [account, setAccount] = useState({ email: auth.email ?? "", whatsapp: "", password: "", confirmPassword: "" });
+  const [profileDraft, setProfileDraft] = useState({
+    fullName: "",
+    displayName: "",
+    classGroup: "",
+    nickname: "",
+    city: "",
+    state: "",
+    country: "Brasil",
+    profession: "",
+    bio: "",
+    instagram: "",
+    linkedin: "",
+    relationshipStatus: "" as RelationshipStatus | "",
+    hasChildren: "" as "" | "yes" | "no",
+    childrenCount: "",
+    intendsToAttend: "" as "" | "yes" | "no",
+  });
+  const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
 
   const results = people
-    .filter(a => a.full_name.toLowerCase().includes(search.toLowerCase()) && search.length > 1)
-    .map(personToAlumni);
-  const alreadyClaimed = selected && (selected.status === "claimed" || selected.status === "confirmed");
+    .filter(person => person.is_visible !== false)
+    .filter(person => person.full_name.toLowerCase().includes(search.toLowerCase()) && search.length > 1)
+    .slice(0, 30);
+  const alreadyClaimed = selected && (selected.profile_status === "claimed" || selected.profile_status === "confirmed");
+  const bars = 6;
 
-  async function submitAnswers(result: "approved" | "rejected") {
-    setLoading(true);
-    setClaimError("");
-    try {
-      if (!selected) throw new Error("Selecione um perfil.");
-      if (!claimEmail.includes("@")) throw new Error("Informe um e-mail valido.");
-      if (!claimRelationshipStatus) throw new Error("Selecione seu estado civil.");
-      if (!claimHasChildren) throw new Error("Informe se você tem filhos.");
-      const childrenCount = Number(claimChildrenCount);
-      if (claimHasChildren === "yes" && claimChildrenCount.trim() && (!Number.isInteger(childrenCount) || childrenCount < 0)) {
-        throw new Error("Quantidade de filhos inválida.");
-      }
-      const scoreAnswers = CONFIRM_QUESTIONS.map(q => ({
-        key: q.id,
-        text: answers[q.id] ?? "",
-        score: answers[q.id] && answers[q.id] !== "Não me lembro" ? 1 : 0,
-      }));
-      await createFullProfileClaim({
-        personId: selected.id,
-        userId: auth.loggedIn ? auth.userId : null,
-        name: selected.name,
-        email: claimEmail,
-        phone: claimPhone,
-        answers: scoreAnswers,
-      });
-
-      if (result === "approved" && auth.loggedIn) {
-        try {
-          setClaimPhotoUploading(Boolean(claimPhotoFile));
-          const publicUrl = claimPhotoFile ? await uploadProfileAvatar(auth.userId, claimPhotoFile) : null;
-          await saveMyPublicProfile(auth.userId, {
-            display_name: selected.name,
-            current_photo_url: publicUrl,
-            relationship_status: claimRelationshipStatus || null,
-            has_children: claimHasChildren === "yes",
-            children_count: claimHasChildren === "yes" && claimChildrenCount.trim() ? Number(claimChildrenCount) : null,
-          }, publicUrl ? {
-            avatar_url: publicUrl,
-          } : {});
-        } catch (photoErr) {
-          console.error("Falha ao salvar dados públicos do cadastro", photoErr);
-        } finally {
-          setClaimPhotoUploading(false);
-        }
-      }
-
-      setClaimResult(result);
-      setStep(7);
-    } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "Erro ao enviar reivindicacao.");
-    } finally {
-      setLoading(false);
-    }
+  function selectPerson(person: DbPerson) {
+    setSelected(person);
+    setProfileDraft(draft => ({
+      ...draft,
+      fullName: person.full_name,
+      displayName: person.full_name,
+      classGroup: person.class_group ?? "",
+      nickname: person.nickname_at_school ?? "",
+    }));
+    setAnswers({ penultimateSurname: "", classGroup: "", birthYear: "" });
+    setError("");
+    setStep(2);
   }
 
-  async function submitDispute() {
-    if (!selected) return;
-    setLoading(true);
-    setClaimError("");
-    try {
-      await createProfileClaimDispute({
-        personId: selected.id,
-        userId: auth.loggedIn ? auth.userId : "",
-        currentClaimantUserId: null,
-        requesterName: auth.name || selected.name,
-        requesterEmail: auth.email ?? claimEmail,
-        requesterPhone: claimPhone,
-        reason: "Solicitacao de disputa aberta pelo fluxo de criacao de perfil.",
-        evidenceText: "Usuario informa que o perfil reivindicado pertence a ele.",
-      });
-      setClaimResult("approved");
-      setStep(7);
-    } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "Erro ao abrir disputa.");
-    } finally {
-      setLoading(false);
-    }
+  function normalizeUf(value: string) {
+    return value.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
   }
 
-  async function selectClaimPhoto(file: File) {
-    setClaimPhotoFile(file);
+  function formatWhatsapp(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits ? `(${digits}` : "";
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
+  function normalizeWhatsapp(value: string) {
+    const digits = value.replace(/\D/g, "");
+    return digits || null;
+  }
+
+  function normalizeSocialUrl(value: string, prefix: string) {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === prefix || trimmed.replace(/\/+$/, "") === prefix.replace(/\/+$/, "")) return null;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const handle = trimmed.replace(/^@+/, "");
+    return handle ? `${prefix}${handle}` : null;
+  }
+
+  function validateIdentity() {
+    if (!selected) return "Selecione seu nome na lista.";
+    const expectedSurname = getPenultimateSurname(selected.full_name);
+    if (normalizeLoose(answers.penultimateSurname) !== normalizeLoose(expectedSurname)) return "O penúltimo sobrenome não confere.";
+    if (normalizeLoose(answers.classGroup) !== normalizeLoose(selected.class_group)) return "A turma informada não confere.";
+    if (!selected.birth_year || Number(answers.birthYear) !== Number(selected.birth_year)) return "O ano de nascimento não confere.";
+    return "";
+  }
+
+  function validateProfileStep() {
+    if (!profileDraft.fullName.trim()) return "Informe seu nome completo.";
+    if (!profileDraft.classGroup.trim()) return "Informe sua turma.";
+    const childrenCount = Number(profileDraft.childrenCount);
+    if (profileDraft.hasChildren === "yes" && profileDraft.childrenCount.trim() && (!Number.isInteger(childrenCount) || childrenCount < 0)) {
+      return "Quantidade de filhos inválida.";
+    }
+    return "";
+  }
+
+  function validateAccountStep() {
+    const email = account.email.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Informe um e-mail válido.";
+    if (!account.whatsapp.replace(/\D/g, "")) return "Informe seu WhatsApp.";
+    if (!auth.loggedIn && account.password.length < 6) return "A senha deve ter pelo menos 6 caracteres.";
+    if (!auth.loggedIn && account.password !== account.confirmPassword) return "As senhas não conferem.";
+    return "";
+  }
+
+  async function selectPhoto(file: File) {
+    setPhotoFile(file);
     const reader = new FileReader();
-    reader.onload = () => setClaimPhotoPreview(String(reader.result));
+    reader.onload = () => setPhotoPreview(String(reader.result));
     reader.readAsDataURL(file);
   }
 
-  const bars = 7;
+  async function completeRegistration() {
+    if (!selected) return;
+    const validationError = validateAccountStep();
+    if (validationError) { setError(validationError); return; }
+
+    setBusy(true);
+    setError("");
+    try {
+      let effectiveUserId = auth.loggedIn ? auth.userId : "";
+      if (!auth.loggedIn) {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: account.email.trim(),
+          password: account.password,
+          options: { data: { full_name: profileDraft.displayName.trim() || profileDraft.fullName.trim() } },
+        });
+        if (signUpError) throw signUpError;
+        effectiveUserId = data.user?.id ?? "";
+        if (!data.session) {
+          throw new Error("Conta criada, mas o Supabase exige confirmação de e-mail antes de concluir o vínculo. Confirme o e-mail e entre novamente para finalizar o perfil.");
+        }
+      }
+
+      const photoUrl = photoFile && effectiveUserId ? await uploadProfileAvatar(effectiveUserId, photoFile) : null;
+      await completeProfileRegistration({
+        personId: selected.id,
+        penultimateSurname: answers.penultimateSurname,
+        classGroupConfirmation: answers.classGroup,
+        birthYear: Number(answers.birthYear),
+        fullName: profileDraft.fullName.trim(),
+        displayName: profileDraft.displayName.trim() || profileDraft.fullName.trim(),
+        classGroup: profileDraft.classGroup.trim(),
+        currentPhotoUrl: photoUrl,
+        currentCity: profileDraft.city.trim() || null,
+        currentState: profileDraft.state.trim() || null,
+        currentCountry: profileDraft.country.trim() || "Brasil",
+        profession: profileDraft.profession.trim() || null,
+        bio: profileDraft.bio.trim() || null,
+        nicknameAtSchool: profileDraft.nickname.trim() || null,
+        instagramUrl: normalizeSocialUrl(profileDraft.instagram, "https://instagram.com/"),
+        linkedinUrl: normalizeSocialUrl(profileDraft.linkedin, "https://linkedin.com/in/"),
+        contactEmail: account.email.trim(),
+        contactWhatsapp: normalizeWhatsapp(account.whatsapp),
+        relationshipStatus: profileDraft.relationshipStatus || null,
+        hasChildren: profileDraft.hasChildren === "yes",
+        childrenCount: profileDraft.hasChildren === "yes" && profileDraft.childrenCount.trim() ? Number(profileDraft.childrenCount) : null,
+        intendsToAttend: profileDraft.intendsToAttend ? profileDraft.intendsToAttend === "yes" : null,
+        showCurrentPhoto: privacy.showCurrentPhoto,
+        showCity: privacy.showCity,
+        showProfession: privacy.showProfession,
+        showSocialLinks: privacy.showSocial,
+        allowPhotoTags: privacy.allowTagging,
+        showConfirmedStatus: privacy.showInList,
+      });
+      setDone(true);
+      setStep(6);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao concluir cadastro.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-lg mx-auto px-4">
-        <button onClick={() => step > 1 ? setStep(s => Math.max(1, s - 1)) : navigate("the-class")}
+      <div className="max-w-2xl mx-auto px-4">
+        <button onClick={() => step > 1 && !done ? setStep(s => Math.max(1, s - 1)) : navigate("the-class")}
           className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
         </button>
@@ -3215,79 +3445,56 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           ))}
         </div>
 
-        {/* Step 1 — Search */}
+        {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3 mb-5">{error}</p>}
+
         {step === 1 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#f0ebe0] font-semibold">Busque seu nome na lista da turma</p>
+            <p className="text-[#f0ebe0] font-semibold">1. Encontre seu nome na lista pré-cadastrada</p>
             <div className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-              <input placeholder="Digite seu nome..." value={search} onChange={e => setSearch(e.target.value)}
+              <input placeholder="Digite seu nome completo..." value={search} onChange={e => setSearch(e.target.value)}
                 className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
             </div>
             {results.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {results.map(a => (
-                  <button key={a.id} onClick={() => { setSelected(a); setStep(2); }}
+              <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto">
+                {results.map(person => (
+                  <button key={person.id} onClick={() => selectPerson(person)}
                     className="flex items-center gap-3 p-4 border text-left hover:border-[#2d6a4f]/50 transition-colors border-[#2d6a4f]/20">
                     <div className="w-10 h-10 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold text-sm font-mono shrink-0">
-                      {initials(a.name)}
+                      {initials(person.full_name)}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-[#f0ebe0] font-semibold text-sm">{a.name}</p>
-                      {a.nickname && <p className="text-[#c9a84c] text-xs font-mono">&ldquo;{a.nickname}&rdquo; · Sala {a.sala}</p>}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#f0ebe0] font-semibold text-sm truncate">{person.full_name}</p>
+                      <p className="text-[#c9a84c] text-xs font-mono">Turma {person.class_group ?? "-"}</p>
                     </div>
-                    <StatusBadge status={a.status} />
+                    <StatusBadge status={person.profile_status} />
                   </button>
                 ))}
               </div>
             )}
-            {search.length > 1 && results.length === 0 && (
-              <p className="text-[#7a9a7a] text-sm text-center py-4">Nenhum perfil encontrado.</p>
-            )}
-            <p className="text-[#7a9a7a] text-xs text-center">
-              Não encontrou? <button className="text-[#2d6a4f] underline">Entre em contato</button>
-            </p>
+            {search.length > 1 && results.length === 0 && <p className="text-[#7a9a7a] text-sm text-center py-4">Nenhum perfil encontrado.</p>}
           </div>
         )}
 
-        {/* Step 2a — Already claimed */}
         {step === 2 && alreadyClaimed && selected && (
-          <div className="bg-[#141f14] border border-[#c9a84c]/40 p-8 flex flex-col gap-5">
-            <div className="text-center">
-              <AlertTriangle size={40} className="text-[#c9a84c] mx-auto mb-4" />
-              <DisplayTitle className="text-xl mb-2">Perfil já reivindicado</DisplayTitle>
-              <p className="text-[#7a9a7a] text-sm">
-                O perfil de <span className="text-[#f0ebe0] font-semibold">{selected.name}</span> já está vinculado a uma conta ativa.
-              </p>
-            </div>
-            <div className="bg-[#0a120a] border border-[#c9a84c]/20 p-5">
-              <p className="text-[#7a9a7a] text-sm mb-3">
-                Se este é realmente o seu perfil, entre em contato com a organização para abrir uma disputa:
-              </p>
-              <p className="text-[#f0ebe0] text-sm flex items-center gap-2"><Mail size={14} />turma2006.hc@gmail.com</p>
-              <p className="text-[#f0ebe0] text-sm flex items-center gap-2 mt-2"><Phone size={14} />(84) 99999-0206</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Btn full onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Buscar outro nome</Btn>
-              <Btn full variant="ghost" onClick={submitDispute} disabled={loading}><Mail size={16} />Abrir disputa de perfil</Btn>
-            </div>
+          <div className="bg-[#141f14] border border-[#c9a84c]/40 p-8 flex flex-col gap-5 text-center">
+            <AlertTriangle size={40} className="text-[#c9a84c] mx-auto" />
+            <DisplayTitle className="text-xl">Perfil já vinculado</DisplayTitle>
+            <p className="text-[#7a9a7a] text-sm">O perfil de <span className="text-[#f0ebe0] font-semibold">{selected.full_name}</span> já está vinculado a uma conta.</p>
+            <Btn full onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Buscar outro nome</Btn>
           </div>
         )}
 
-        {/* Step 2b — Confirm selection */}
         {step === 2 && !alreadyClaimed && selected && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Perfil selecionado</p>
+            <p className="text-[#f0ebe0] font-semibold">2. Confirme se este é seu cadastro</p>
             <div className="flex items-center gap-3 p-4 bg-[#1a2e1a] border border-[#2d6a4f]/30">
-              <div className="w-12 h-12 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono">
-                {initials(selected.name)}
-              </div>
+              <div className="w-12 h-12 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono">{initials(selected.full_name)}</div>
               <div>
-                <p className="text-[#f0ebe0] font-semibold">{selected.name}</p>
-                {selected.nickname && <p className="text-[#c9a84c] text-xs font-mono">&ldquo;{selected.nickname}&rdquo;</p>}
+                <p className="text-[#f0ebe0] font-semibold">{selected.full_name}</p>
+                <p className="text-[#c9a84c] text-xs font-mono">Turma {selected.class_group ?? "-"} · {selected.birth_year ?? "ano não informado"}</p>
               </div>
             </div>
-            <p className="text-[#f0ebe0] font-semibold">Este é você?</p>
             <div className="flex gap-3">
               <Btn full onClick={() => setStep(3)}>Sim, sou eu <ArrowRight size={16} /></Btn>
               <Btn full variant="ghost" onClick={() => { setSelected(null); setSearch(""); setStep(1); }}>Não</Btn>
@@ -3295,149 +3502,122 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           </div>
         )}
 
-        {/* Step 3 — Contact info */}
-        {step === 3 && (
+        {step === 3 && selected && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
-            <p className="text-[#f0ebe0] font-semibold">Informe seus contatos para verificação</p>
-            <Field label="E-mail" type="email" placeholder="seu@email.com" value={claimEmail} onChange={setClaimEmail} icon={<Mail size={16} />} />
-            <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={claimPhone} onChange={setClaimPhone} icon={<Phone size={16} />}
-              hint="Enviaremos um código de verificação via SMS ou WhatsApp" />
-            <div className="border-t border-[#2d6a4f]/20 pt-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Dados públicos do perfil</p>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Estado civil</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <OptionButton selected={claimRelationshipStatus === "single"} onClick={() => setClaimRelationshipStatus("single")}>Solteiro(a)</OptionButton>
-                    <OptionButton selected={claimRelationshipStatus === "dating"} onClick={() => setClaimRelationshipStatus("dating")}>Namorando</OptionButton>
-                    <OptionButton selected={claimRelationshipStatus === "married"} onClick={() => setClaimRelationshipStatus("married")}>Casado(a)</OptionButton>
-                  </div>
-                </div>
-                <div>
-                  <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Filhos</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <OptionButton selected={claimHasChildren === "yes"} onClick={() => setClaimHasChildren("yes")}>Tenho filhos</OptionButton>
-                    <OptionButton selected={claimHasChildren === "no"} onClick={() => { setClaimHasChildren("no"); setClaimChildrenCount(""); }}>Não tenho filhos</OptionButton>
-                  </div>
-                </div>
-                {claimHasChildren === "yes" && (
-                  <Field label="Quantidade de filhos" type="number" value={claimChildrenCount} onChange={v => setClaimChildrenCount(v.replace(/\D/g, "").slice(0, 2))} placeholder="Ex.: 2" />
-                )}
+            <div>
+              <p className="text-[#f0ebe0] font-semibold mb-1">3. Responda às perguntas de confirmação</p>
+              <p className="text-[#7a9a7a] text-sm">Esses dados são comparados ao pré-cadastro para evitar vínculo indevido.</p>
+            </div>
+            <Field label="Qual é seu penúltimo sobrenome?" value={answers.penultimateSurname} onChange={v => setAnswers(a => ({ ...a, penultimateSurname: v }))} placeholder="Ex.: Silva" />
+            <Field label="Qual era sua turma?" value={answers.classGroup} onChange={v => setAnswers(a => ({ ...a, classGroup: v.toUpperCase().slice(0, 3) }))} placeholder="Ex.: A" />
+            <Field label="Qual é seu ano de nascimento?" type="number" value={answers.birthYear} onChange={v => setAnswers(a => ({ ...a, birthYear: v.replace(/\D/g, "").slice(0, 4) }))} placeholder="Ex.: 1988" />
+            <Btn full onClick={() => { const validation = validateIdentity(); if (validation) { setError(validation); return; } setError(""); setStep(4); }}>
+              Validar identidade <ArrowRight size={16} />
+            </Btn>
+          </div>
+        )}
+
+        {step === 4 && selected && (
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
+            <div>
+              <p className="text-[#f0ebe0] font-semibold mb-1">4. Edite seus dados públicos</p>
+              <p className="text-[#7a9a7a] text-sm">Todos os campos são opcionais, exceto nome e turma. Se corrigir nome ou turma, o pré-cadastro também será atualizado.</p>
+            </div>
+            <AvatarCropUpload
+              currentImageUrl={photoPreview}
+              fallbackLabel={initials(profileDraft.displayName || selected.full_name)}
+              uploading={busy}
+              onCroppedFile={selectPhoto}
+              onRemove={() => { setPhotoFile(null); setPhotoPreview(""); }}
+              helperText="Foto opcional. Você poderá trocar depois em Editar perfil."
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Nome completo" value={profileDraft.fullName} onChange={v => setProfileDraft(f => ({ ...f, fullName: v, displayName: f.displayName || v }))} />
+              <Field label="Nome de exibição" value={profileDraft.displayName} onChange={v => setProfileDraft(f => ({ ...f, displayName: v }))} />
+              <Field label="Turma" value={profileDraft.classGroup} onChange={v => setProfileDraft(f => ({ ...f, classGroup: v.toUpperCase().slice(0, 3) }))} />
+              <Field label="Apelido da época" value={profileDraft.nickname} onChange={v => setProfileDraft(f => ({ ...f, nickname: v }))} />
+              <Field label="Cidade atual" value={profileDraft.city} onChange={v => setProfileDraft(f => ({ ...f, city: v }))} icon={<MapPin size={14} />} />
+              <Field label="Estado" value={profileDraft.state} onChange={v => setProfileDraft(f => ({ ...f, state: normalizeUf(v) }))} placeholder="UF" />
+              <Field label="País" value={profileDraft.country} onChange={v => setProfileDraft(f => ({ ...f, country: v }))} />
+              <Field label="Profissão" value={profileDraft.profession} onChange={v => setProfileDraft(f => ({ ...f, profession: v }))} />
+              <Field label="Instagram" value={profileDraft.instagram} onChange={v => setProfileDraft(f => ({ ...f, instagram: v }))} icon={<Instagram size={14} />} placeholder="@usuario ou URL" />
+              <Field label="LinkedIn" value={profileDraft.linkedin} onChange={v => setProfileDraft(f => ({ ...f, linkedin: v }))} icon={<Linkedin size={14} />} placeholder="URL ou slug" />
+            </div>
+            <FieldArea label="Mini bio" value={profileDraft.bio} onChange={v => setProfileDraft(f => ({ ...f, bio: v }))} rows={3} />
+            <div>
+              <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Relacionamento</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <OptionButton selected={profileDraft.relationshipStatus === "single"} onClick={() => setProfileDraft(f => ({ ...f, relationshipStatus: "single" }))}>Solteiro(a)</OptionButton>
+                <OptionButton selected={profileDraft.relationshipStatus === "dating"} onClick={() => setProfileDraft(f => ({ ...f, relationshipStatus: "dating" }))}>Namorando</OptionButton>
+                <OptionButton selected={profileDraft.relationshipStatus === "married"} onClick={() => setProfileDraft(f => ({ ...f, relationshipStatus: "married" }))}>Casado(a)</OptionButton>
               </div>
             </div>
-            <div className="border-t border-[#2d6a4f]/20 pt-5">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Foto de perfil opcional</p>
-              {auth.loggedIn ? (
-                <AvatarCropUpload
-                  currentImageUrl={claimPhotoPreview}
-                  fallbackLabel={selected ? initials(selected.name) : initials(auth.name || "HC")}
-                  uploading={claimPhotoUploading}
-                  onCroppedFile={selectClaimPhoto}
-                  onRemove={() => { setClaimPhotoFile(null); setClaimPhotoPreview(""); }}
-                  helperText="Escolha uma imagem, ajuste zoom e recorte. A foto será salva quando o perfil for confirmado."
-                />
-              ) : (
-                <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex items-start gap-3">
-                  <Info size={14} className="text-[#2d6a4f] shrink-0 mt-0.5" />
-                  <p className="text-[#7a9a7a] text-xs leading-relaxed">Para enviar foto nesta etapa, entre com uma conta antes de criar o perfil. Você também poderá adicionar a foto depois em Editar perfil.</p>
-                </div>
-              )}
-            </div>
-            <Btn full onClick={() => setStep(4)} disabled={!claimRelationshipStatus || !claimHasChildren}>Enviar código de verificação <ArrowRight size={16} /></Btn>
-          </div>
-        )}
-
-        {/* Step 4 — Verification code */}
-        {step === 4 && (
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6 text-center">
-            <Lock size={32} className="text-[#c9a84c] mx-auto" />
             <div>
-              <p className="text-[#f0ebe0] font-semibold mb-2">Código enviado por WhatsApp</p>
-              <p className="text-[#7a9a7a] text-sm">Digite o código de 6 dígitos enviado para o número informado.</p>
+              <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Filhos</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <OptionButton selected={profileDraft.hasChildren === "yes"} onClick={() => setProfileDraft(f => ({ ...f, hasChildren: "yes" }))}>Tenho filhos</OptionButton>
+                <OptionButton selected={profileDraft.hasChildren === "no"} onClick={() => setProfileDraft(f => ({ ...f, hasChildren: "no", childrenCount: "" }))}>Não tenho filhos</OptionButton>
+              </div>
             </div>
-            <input type="text" maxLength={6} value={code} onChange={e => setCode(e.target.value)}
-              className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-center font-['JetBrains_Mono'] text-2xl tracking-[0.5em] focus:outline-none focus:border-[#2d6a4f]"
-              placeholder="000000" />
-            <Btn full onClick={() => setStep(5)} disabled={code.length < 4}>Confirmar código</Btn>
-            <button className="text-[#7a9a7a] text-xs hover:text-[#f0ebe0] transition-colors">Reenviar código</button>
+            {profileDraft.hasChildren === "yes" && <Field label="Quantidade de filhos" type="number" value={profileDraft.childrenCount} onChange={v => setProfileDraft(f => ({ ...f, childrenCount: v.replace(/\D/g, "").slice(0, 2) }))} />}
+            <div>
+              <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Você pretende ir para a festa?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <OptionButton selected={profileDraft.intendsToAttend === "yes"} onClick={() => setProfileDraft(f => ({ ...f, intendsToAttend: "yes" }))}>Sim, pretendo ir</OptionButton>
+                <OptionButton selected={profileDraft.intendsToAttend === "no"} onClick={() => setProfileDraft(f => ({ ...f, intendsToAttend: "no" }))}>Ainda não / não pretendo</OptionButton>
+              </div>
+            </div>
+            <Btn full onClick={() => { const validation = validateProfileStep(); if (validation) { setError(validation); return; } setError(""); setStep(5); }}>
+              Continuar <ArrowRight size={16} />
+            </Btn>
           </div>
         )}
 
-        {/* Step 5 — Confirmation questions */}
         {step === 5 && (
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-6">
-            {claimError && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{claimError}</p>}
+          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 flex flex-col gap-5">
             <div>
-              <p className="text-[#f0ebe0] font-semibold mb-1">Perguntas de confirmação</p>
-              <p className="text-[#7a9a7a] text-sm">Para garantir sua identidade, responda Ã s perguntas sobre o HC. Apenas ex-alunos saberão as respostas.</p>
+              <p className="text-[#f0ebe0] font-semibold mb-1">5. Conta, contato e privacidade</p>
+              <p className="text-[#7a9a7a] text-sm">Defina o acesso ao site e escolha quais dados aparecem para a turma.</p>
             </div>
-            {CONFIRM_QUESTIONS.map(q => (
-              <div key={q.id}>
-                <p className="text-[#f0ebe0] text-sm font-semibold mb-3">{q.question}</p>
-                <div className="flex flex-col gap-2">
-                  {q.options.map(opt => (
-                    <label key={opt} className={`flex items-center gap-3 p-3 border cursor-pointer transition-colors ${answers[q.id] === opt ? "border-[#2d6a4f] bg-[#1a2e1a]" : "border-[#2d6a4f]/20 hover:border-[#2d6a4f]/40"}`}>
-                      <div className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${answers[q.id] === opt ? "border-[#2d6a4f] bg-[#2d6a4f]" : "border-[#3a5a3a]"}`}>
-                        {answers[q.id] === opt && <Check size={12} className="text-[#f0ebe0]" />}
-                      </div>
-                      <input type="radio" name={q.id} className="sr-only" onChange={() => setAnswers(a => ({ ...a, [q.id]: opt }))} />
-                      <span className="text-[#f0ebe0] text-sm">{opt}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="E-mail" type="email" value={account.email} onChange={v => setAccount(a => ({ ...a, email: v }))} icon={<Mail size={14} />} />
+              <Field label="WhatsApp" value={account.whatsapp} onChange={v => setAccount(a => ({ ...a, whatsapp: formatWhatsapp(v) }))} icon={<Phone size={14} />} />
+              {!auth.loggedIn && <Field label="Senha" type="password" value={account.password} onChange={v => setAccount(a => ({ ...a, password: v }))} />}
+              {!auth.loggedIn && <Field label="Confirmar senha" type="password" value={account.confirmPassword} onChange={v => setAccount(a => ({ ...a, confirmPassword: v }))} />}
+            </div>
+            <div className="border-t border-[#2d6a4f]/20 pt-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Preferências de exibição</p>
+              <div className="flex flex-col gap-4">
+                {([
+                  ["showInList", "Aparecer na lista de confirmados"],
+                  ["showCurrentPhoto", "Exibir foto atual"],
+                  ["showCity", "Exibir cidade atual"],
+                  ["showProfession", "Exibir profissão"],
+                  ["showSocial", "Exibir redes sociais e WhatsApp"],
+                  ["allowTagging", "Permitir marcações em fotos"],
+                ] as [keyof typeof privacy, string][]).map(([key, label]) => (
+                  <label key={key} className="flex items-center justify-between cursor-pointer">
+                    <span className="text-[#f0ebe0] text-sm">{label}</span>
+                    <button type="button" onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
+                      className={`relative w-12 h-6 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
+                      <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${privacy[key] ? "left-7" : "left-1"}`} />
+                    </button>
+                  </label>
+                ))}
               </div>
-            ))}
-            <div className="flex flex-col gap-3">
-              <Btn full onClick={() => submitAnswers("approved")} disabled={Object.keys(answers).length < CONFIRM_QUESTIONS.length || loading}>
-                {loading ? <><RefreshCw size={16} className="animate-spin" />Enviando...</> : "Enviar respostas"}
-              </Btn>
-              {DEV_MODE && (
-                <Btn full variant="ghost" onClick={() => submitAnswers("rejected")} disabled={loading}>
-                  Rejeitar teste local
-                </Btn>
-              )}
             </div>
+            <Btn full size="lg" onClick={completeRegistration} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Concluindo...</> : <><UserCheck size={16} />Concluir cadastro</>}</Btn>
           </div>
         )}
 
-        {/* Step 7 — Approved */}
-        {step === 7 && claimResult === "approved" && (
+        {step === 6 && done && (
           <div className="bg-[#0d2e1a] border border-[#2d6a4f] p-8 flex flex-col gap-5 text-center">
-            <div className="w-16 h-16 bg-[#2d6a4f] flex items-center justify-center mx-auto">
-              <UserCheck size={32} className="text-[#f0ebe0]" />
-            </div>
-            <DisplayTitle className="text-2xl">Perfil reivindicado!</DisplayTitle>
-            <p className="text-[#7a9a7a] text-sm">
-              Identidade confirmada com sucesso. Seu perfil de ex-aluno está vinculado Ã  sua conta.
-            </p>
-            <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
-              <StatusBadge status="confirmed" />
-              <p className="text-[#7a9a7a] text-xs mt-2">{selected?.name}</p>
-            </div>
+            <div className="w-16 h-16 bg-[#2d6a4f] flex items-center justify-center mx-auto"><UserCheck size={32} className="text-[#f0ebe0]" /></div>
+            <DisplayTitle className="text-2xl">Perfil criado</DisplayTitle>
+            <p className="text-[#7a9a7a] text-sm">Seu perfil foi validado, vinculado à sua conta e atualizado com as preferências escolhidas.</p>
             <div className="flex flex-col gap-3">
-              <Btn full onClick={() => navigate("edit-profile")}>Completar meu perfil <ArrowRight size={16} /></Btn>
-              <Btn full variant="outline" onClick={() => navigate("tickets")}>Comprar ingresso</Btn>
-            </div>
-          </div>
-        )}
-
-        {/* Step 7 — Rejected */}
-        {step === 7 && claimResult === "rejected" && (
-          <div className="bg-[#2e0a0a] border border-[#c0392b]/60 p-8 flex flex-col gap-5 text-center">
-            <div className="w-16 h-16 bg-[#c0392b] flex items-center justify-center mx-auto">
-              <UserX size={32} className="text-[#f0ebe0]" />
-            </div>
-            <DisplayTitle className="text-2xl">Solicitação rejeitada</DisplayTitle>
-            <p className="text-[#7a9a7a] text-sm">
-              Não foi possível confirmar sua identidade com base nas respostas. Se houve um erro, entre em contato com a organização.
-            </p>
-            <div className="bg-[#1a0505] border border-[#c0392b]/30 p-4 text-left">
-              <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2">Motivo</p>
-              <p className="text-[#e74c3c] text-sm">As respostas não correspondem Ã s informações esperadas para este perfil.</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Btn full onClick={() => { setStep(5); setClaimResult(null); setAnswers({}); }}>Tentar novamente</Btn>
-              <Btn full variant="ghost"><Mail size={16} />Contato com a organização</Btn>
+              <Btn full onClick={() => navigate("edit-profile")}>Editar meu perfil <ArrowRight size={16} /></Btn>
+              <Btn full variant="outline" onClick={() => navigate("tickets")}>Ver ingressos</Btn>
             </div>
           </div>
         )}
@@ -4989,6 +5169,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
     relationshipStatus: "" as RelationshipStatus | "",
     hasChildren: "" as "" | "yes" | "no",
     childrenCount: "",
+    intendsToAttend: "" as "" | "yes" | "no",
   });
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
   const [loading, setLoading] = useState(true);
@@ -5076,6 +5257,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
           relationshipStatus: data.relationship_status ?? "",
           hasChildren: data.has_children ? "yes" : "no",
           childrenCount: data.children_count ? String(data.children_count) : "",
+          intendsToAttend: data.intends_to_attend === true ? "yes" : data.intends_to_attend === false ? "no" : "",
         };
         const nextPrivacy = {
           showCurrentPhoto: data.show_current_photo,
@@ -5144,6 +5326,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         relationship_status: form.relationshipStatus || null,
         has_children: form.hasChildren === "yes",
         children_count: form.hasChildren === "yes" && form.childrenCount.trim() ? Number(form.childrenCount) : null,
+        intends_to_attend: form.intendsToAttend ? form.intendsToAttend === "yes" : null,
         show_current_photo: privacy.showCurrentPhoto,
         show_city: privacy.showCity,
         show_profession: privacy.showProfession,
@@ -5236,6 +5419,13 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               {form.hasChildren === "yes" && (
                 <Field label="Quantidade de filhos" type="number" value={form.childrenCount} onChange={v => setForm(f => ({ ...f, childrenCount: v.replace(/\D/g, "").slice(0, 2) }))} placeholder="Ex.: 2" />
               )}
+              <div>
+                <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Você pretende ir para a festa?</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <OptionButton selected={form.intendsToAttend === "yes"} onClick={() => setForm(f => ({ ...f, intendsToAttend: "yes" }))}>Sim, pretendo ir</OptionButton>
+                  <OptionButton selected={form.intendsToAttend === "no"} onClick={() => setForm(f => ({ ...f, intendsToAttend: "no" }))}>Ainda não / não pretendo</OptionButton>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="E-mail" value={form.contactEmail} onChange={v => setForm(f => ({ ...f, contactEmail: v }))} placeholder="seu@email.com" icon={<Mail size={14} />} />
                 <Field label="WhatsApp" value={form.contactWhatsapp} onChange={v => setForm(f => ({ ...f, contactWhatsapp: formatWhatsapp(v) }))} placeholder="(XX) XXXXX-XXXX" icon={<Phone size={14} />} />
@@ -5284,6 +5474,140 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 }
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
+
+function emptyAdminPersonRow(): AdminImportPersonInput {
+  return { full_name: "", birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
+}
+
+function AdminPeopleImportModal({
+  open,
+  onClose,
+  adminId,
+  onImported,
+}: {
+  open: boolean;
+  onClose: () => void;
+  adminId: string;
+  onImported: (rows: DbPerson[]) => void;
+}) {
+  const [rows, setRows] = useState<AdminImportPersonInput[]>([emptyAdminPersonRow()]);
+  const [bulkText, setBulkText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setRows([emptyAdminPersonRow()]);
+    setBulkText("");
+    setError("");
+  }, [open]);
+
+  function updateRow(index: number, patch: Partial<AdminImportPersonInput>) {
+    setRows(current => current.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  }
+
+  function addBulkTextRows() {
+    try {
+      const imported = parseParticipantsCsv(bulkText);
+      if (!imported.length) throw new Error("Nenhuma linha válida encontrada. Use as colunas: nome_completo; ano_nascimento; turma; foto; whatsapp; email.");
+      setRows(current => [...current.filter(row => row.full_name.trim()), ...imported]);
+      setBulkText("");
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao ler os dados colados.");
+    }
+  }
+
+  async function handleFile(file?: File | null) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const imported = await parseParticipantImportFile(file);
+      if (!imported.length) throw new Error("Nenhuma linha válida encontrada no arquivo.");
+      setRows(current => [...current.filter(row => row.full_name.trim()), ...imported]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao importar arquivo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    const validRows = rows.filter(row => row.full_name.trim() && row.birth_year && row.class_group?.trim());
+    if (!validRows.length) {
+      setError("Inclua pelo menos uma pessoa com nome completo, ano de nascimento e turma.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const imported = await importPeopleAdmin(validRows, adminId);
+      onImported(imported);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao cadastrar pessoas.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Cadastrar pessoas" wide>
+      <div className="flex flex-col gap-6">
+        {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
+        <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+          <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Pré-cadastro de ex-alunos</p>
+          <p className="text-[#7a9a7a] text-xs leading-relaxed">Essas pessoas entram como não reivindicadas e não confirmadas no evento. O usuário depois encontra o nome, valida identidade e completa o próprio perfil.</p>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Cadastro manual</p>
+            <Btn size="sm" variant="ghost" onClick={() => setRows(current => [...current, emptyAdminPersonRow()])}>Adicionar linha</Btn>
+          </div>
+          <div className="flex flex-col gap-3 max-h-[360px] overflow-y-auto pr-1">
+            {rows.map((row, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-[1.4fr_110px_90px_1fr] gap-3 bg-[#0d1a0f] border border-[#2d6a4f]/20 p-4">
+                <Field label="Nome completo *" value={row.full_name} onChange={v => updateRow(index, { full_name: v })} />
+                <Field label="Ano *" type="number" value={row.birth_year ? String(row.birth_year) : ""} onChange={v => updateRow(index, { birth_year: Number(v.replace(/\D/g, "").slice(0, 4)) || null })} />
+                <Field label="Turma *" value={row.class_group ?? ""} onChange={v => updateRow(index, { class_group: v.toUpperCase().slice(0, 3) })} />
+                <Field label="Foto URL" value={row.avatar_url ?? ""} onChange={v => updateRow(index, { avatar_url: v })} />
+                <Field label="WhatsApp" value={row.contact_whatsapp ?? ""} onChange={v => updateRow(index, { contact_whatsapp: v })} />
+                <Field label="E-mail" value={row.contact_email ?? ""} onChange={v => updateRow(index, { contact_email: v })} />
+                <div className="md:col-span-2 flex items-end justify-end">
+                  <Btn size="sm" variant="danger" onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))}><X size={12} />Remover</Btn>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-[#2d6a4f]/20 pt-6">
+          <div>
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Colar múltiplos participantes</p>
+            <FieldArea rows={7} label="Dados em CSV" value={bulkText} onChange={setBulkText} placeholder={'nome_completo;ano_nascimento;turma;foto;whatsapp;email\nMaria Silva;1988;A;;84999990000;maria@email.com'} />
+            <div className="mt-3"><Btn size="sm" variant="ghost" onClick={addBulkTextRows}>Adicionar dados colados</Btn></div>
+          </div>
+          <div>
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Upload Excel/CSV</p>
+            <label className="flex flex-col items-center justify-center gap-3 min-h-[180px] bg-[#0a120a] border border-dashed border-[#2d6a4f]/40 text-[#7a9a7a] cursor-pointer hover:border-[#2d6a4f] transition-colors p-6 text-center">
+              <Upload size={24} />
+              <span className="text-sm">Enviar arquivo .xlsx ou .csv</span>
+              <span className="text-[11px] text-[#3a5a3a]">Use o modelo base gerado para manter os cabeçalhos corretos.</span>
+              <input type="file" accept=".xlsx,.csv" className="sr-only" onChange={e => void handleFile(e.target.files?.[0])} />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Btn full onClick={save} disabled={busy}>{busy ? <><RefreshCw size={16} className="animate-spin" />Salvando...</> : <><UserCheck size={16} />Cadastrar {rows.filter(row => row.full_name.trim()).length || ""} pessoas</>}</Btn>
+          <Btn full variant="ghost" onClick={onClose}>Cancelar</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 
 function AdminReviewList<T>({ title, items, getTitle, getSubtitle, getStatus, onApprove, onReject }: {
@@ -5365,6 +5689,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const [lots, setLots] = useState<DbTicketType[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [peopleRows, setPeopleRows] = useState<DbPerson[]>([]);
+  const [peopleImportOpen, setPeopleImportOpen] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<DbPhoto[]>([]);
   const [tags, setTags] = useState<(DbPhotoTag & { photos: Pick<DbPhoto, "image_url" | "caption"> | null })[]>([]);
   const [claims, setClaims] = useState<(DbProfileClaim & { people: Pick<DbPerson, "full_name" | "nickname_at_school" | "class_group"> | null })[]>([]);
@@ -5666,6 +5991,12 @@ const role = auth.role ?? "viewer";
 
   return (
     <div className="min-h-screen bg-[#080f08]">
+      <AdminPeopleImportModal
+        open={peopleImportOpen}
+        onClose={() => setPeopleImportOpen(false)}
+        adminId={auth.userId}
+        onImported={(imported) => setPeopleRows(current => [...imported, ...current].sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR")))}
+      />
       <div className="bg-[#080f08] border-b border-[#2d6a4f]/20 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={20} /></button>
@@ -6320,11 +6651,25 @@ const role = auth.role ?? "viewer";
           </div>
         )}
 
-        {!loading && tab === "participants" && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {peopleRows.length === 0 ? <EmptyState title="Nenhum participante" /> : peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
+        {!loading && tab === "participants" && (!canManageEvent ? <PermissionState /> : (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Pessoas pré-cadastradas</p>
+                <p className="text-[#3a5a3a] text-xs mt-1">Cadastre ex-alunos que ainda não estão confirmados no evento. Eles aparecerão no fluxo de criação de perfil para validação.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {canExport && <Btn size="sm" variant="ghost" onClick={exportPeopleCSV}><Download size={14} />CSV ex-alunos</Btn>}
+                <Btn size="sm" onClick={() => setPeopleImportOpen(true)}><UserCheck size={14} />Cadastrar pessoas</Btn>
+              </div>
+            </div>
+            {peopleRows.length === 0 ? <EmptyState title="Nenhum participante" /> : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} />)}
+              </div>
+            )}
           </div>
-        )}
+        ))}
 
         {!loading && tab === "photos" && (!canModerate ? <PermissionState /> : (
           <div>
