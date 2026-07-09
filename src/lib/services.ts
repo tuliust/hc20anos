@@ -13,7 +13,7 @@ import type {
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
   DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, TicketWithDetails,
-  DbEventArchiveSettings,
+  DbEventArchiveSettings, DbEventPageContent,
 } from "./database.types";
 
 export interface HomePageContent {
@@ -76,7 +76,119 @@ export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {
   faq_title: "FAQ",
 };
 
+export interface EventPageGalleryItem {
+  image_url: string;
+  caption?: string | null;
+  alt?: string | null;
+}
 
+export interface EventPageInfoItem {
+  title: string;
+  description: string;
+}
+
+export interface EventPageScheduleItem {
+  time: string;
+  title: string;
+  description?: string | null;
+}
+
+export interface EventPageContent {
+  event_id: string;
+  hero_eyebrow: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  hero_image_url?: string | null;
+  gallery_json: string;
+  map_embed_url?: string | null;
+  map_link_url?: string | null;
+  venue_notes: string;
+  attractions_json: string;
+  schedule_json: string;
+  food_bar_text: string;
+  bathrooms_text: string;
+  security_text: string;
+  extra_info_json: string;
+  updated_at?: string | null;
+  updated_by_admin_id?: string | null;
+}
+
+export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {
+  event_id: DEFAULT_HOME_EVENT_ID,
+  hero_eyebrow: "O reencontro",
+  title: "O Evento",
+  subtitle: "Tudo sobre a noite em que a Turma 2006 volta a se encontrar.",
+  description: "Uma página central para reunir informações sobre local, programação, atrações, estrutura, serviço de bar/comidas, banheiros, segurança e orientações para os convidados.",
+  hero_image_url: null,
+  gallery_json: JSON.stringify([
+    { image_url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&h=800&fit=crop&auto=format", caption: "Clima de reencontro" },
+    { image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=800&fit=crop&auto=format", caption: "Celebração da turma" },
+    { image_url: "https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&h=800&fit=crop&auto=format", caption: "Estrutura para receber convidados" }
+  ], null, 2),
+  map_embed_url: "",
+  map_link_url: "",
+  venue_notes: "Local com estrutura para recepção, circulação dos convidados, área de alimentação, bar e apoio da organização durante todo o evento.",
+  attractions_json: JSON.stringify([
+    { title: "DJ e pista", description: "Trilha sonora para reencontrar amigos e celebrar os 20 anos da turma." },
+    { title: "Banda convidada", description: "Atração musical a confirmar pela organização." },
+    { title: "Espaço de fotos", description: "Área pensada para registros da turma e fotos comemorativas." }
+  ], null, 2),
+  schedule_json: JSON.stringify([
+    { time: "19h00", title: "Abertura da casa", description: "Recepção, check-in e primeiros reencontros." },
+    { time: "20h00", title: "Boas-vindas", description: "Mensagem da organização e início da programação principal." },
+    { time: "21h00", title: "Jantar e bar", description: "Serviço de alimentação e bebidas conforme estrutura contratada." },
+    { time: "22h00", title: "Atrações musicais", description: "DJ, banda e pista de dança." }
+  ], null, 2),
+  food_bar_text: "Serviço de bar e comidas com operação durante o evento. Detalhes de cardápio, bebidas inclusas e itens pagos à parte devem ser confirmados pela organização.",
+  bathrooms_text: "Banheiros disponíveis no local, com orientação da equipe de apoio para acesso durante todo o evento.",
+  security_text: "Equipe de segurança e apoio na entrada, circulação interna e encerramento do evento.",
+  extra_info_json: JSON.stringify([
+    { title: "Check-in", description: "Apresente seu ingresso ou QR Code na entrada." },
+    { title: "Acompanhantes", description: "A entrada de acompanhantes segue as regras do ingresso adquirido." }
+  ], null, 2),
+};
+
+function stringifyJsonField(value: unknown, fallback: string) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return JSON.stringify(value, null, 2);
+  if (value === null || value === undefined) return fallback;
+  return JSON.stringify(value, null, 2);
+}
+
+function parseJsonField(value: string, fallback: unknown[]) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeEventPageContent(data?: Partial<DbEventPageContent> | null, eventId = DEFAULT_HOME_EVENT_ID): EventPageContent {
+  return {
+    ...EVENT_PAGE_CONTENT_DEFAULTS,
+    event_id: eventId,
+    ...(data ?? {}),
+    hero_eyebrow: data?.hero_eyebrow ?? EVENT_PAGE_CONTENT_DEFAULTS.hero_eyebrow,
+    title: data?.title ?? EVENT_PAGE_CONTENT_DEFAULTS.title,
+    subtitle: data?.subtitle ?? EVENT_PAGE_CONTENT_DEFAULTS.subtitle,
+    description: data?.description ?? EVENT_PAGE_CONTENT_DEFAULTS.description,
+    hero_image_url: data?.hero_image_url ?? EVENT_PAGE_CONTENT_DEFAULTS.hero_image_url,
+    gallery_json: stringifyJsonField(data?.gallery_json, EVENT_PAGE_CONTENT_DEFAULTS.gallery_json),
+    map_embed_url: data?.map_embed_url ?? EVENT_PAGE_CONTENT_DEFAULTS.map_embed_url,
+    map_link_url: data?.map_link_url ?? EVENT_PAGE_CONTENT_DEFAULTS.map_link_url,
+    venue_notes: data?.venue_notes ?? EVENT_PAGE_CONTENT_DEFAULTS.venue_notes,
+    attractions_json: stringifyJsonField(data?.attractions_json, EVENT_PAGE_CONTENT_DEFAULTS.attractions_json),
+    schedule_json: stringifyJsonField(data?.schedule_json, EVENT_PAGE_CONTENT_DEFAULTS.schedule_json),
+    food_bar_text: data?.food_bar_text ?? EVENT_PAGE_CONTENT_DEFAULTS.food_bar_text,
+    bathrooms_text: data?.bathrooms_text ?? EVENT_PAGE_CONTENT_DEFAULTS.bathrooms_text,
+    security_text: data?.security_text ?? EVENT_PAGE_CONTENT_DEFAULTS.security_text,
+    extra_info_json: stringifyJsonField(data?.extra_info_json, EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json),
+    updated_at: data?.updated_at ?? null,
+    updated_by_admin_id: data?.updated_by_admin_id ?? null,
+  };
+}
 
 // ─── MOCK DATA (fallback) ─────────────────────────────────────────────────────
 
@@ -167,6 +279,60 @@ export async function updateHomePageContent(
   if (error) throw error;
   await writeAudit("update_home_page_content", "home_page_content", eventId, { patch }).catch(() => {});
   return { ...HOME_PAGE_CONTENT_DEFAULTS, ...(data ?? {}), event_id: eventId } as HomePageContent;
+}
+
+export async function getEventPageContent(eventId = DEFAULT_HOME_EVENT_ID): Promise<EventPageContent> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("event_page_content")
+      .select("*")
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return normalizeEventPageContent(data as DbEventPageContent | null, eventId);
+  }, EVENT_PAGE_CONTENT_DEFAULTS);
+}
+
+export async function updateEventPageContent(
+  eventId: string,
+  patch: Partial<EventPageContent>,
+  adminId?: string
+): Promise<EventPageContent> {
+  const fallbackGallery = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, []);
+  const fallbackAttractions = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.attractions_json, []);
+  const fallbackSchedule = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, []);
+  const fallbackExtra = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, []);
+
+  const payload: Partial<DbEventPageContent> = {
+    event_id: eventId,
+    hero_eyebrow: patch.hero_eyebrow ?? EVENT_PAGE_CONTENT_DEFAULTS.hero_eyebrow,
+    title: patch.title ?? EVENT_PAGE_CONTENT_DEFAULTS.title,
+    subtitle: patch.subtitle ?? EVENT_PAGE_CONTENT_DEFAULTS.subtitle,
+    description: patch.description ?? EVENT_PAGE_CONTENT_DEFAULTS.description,
+    hero_image_url: patch.hero_image_url ?? null,
+    gallery_json: parseJsonField(patch.gallery_json ?? EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, fallbackGallery),
+    map_embed_url: patch.map_embed_url ?? null,
+    map_link_url: patch.map_link_url ?? null,
+    venue_notes: patch.venue_notes ?? EVENT_PAGE_CONTENT_DEFAULTS.venue_notes,
+    attractions_json: parseJsonField(patch.attractions_json ?? EVENT_PAGE_CONTENT_DEFAULTS.attractions_json, fallbackAttractions),
+    schedule_json: parseJsonField(patch.schedule_json ?? EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, fallbackSchedule),
+    food_bar_text: patch.food_bar_text ?? EVENT_PAGE_CONTENT_DEFAULTS.food_bar_text,
+    bathrooms_text: patch.bathrooms_text ?? EVENT_PAGE_CONTENT_DEFAULTS.bathrooms_text,
+    security_text: patch.security_text ?? EVENT_PAGE_CONTENT_DEFAULTS.security_text,
+    extra_info_json: parseJsonField(patch.extra_info_json ?? EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, fallbackExtra),
+    updated_by_admin_id: adminId ?? null,
+  };
+
+  const { data, error } = await (supabase as any)
+    .from("event_page_content")
+    .upsert(payload, { onConflict: "event_id" })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  await writeAudit("update_event_page_content", "event_page_content", eventId, { patch }).catch(() => {});
+  return normalizeEventPageContent(data as DbEventPageContent, eventId);
 }
 
 

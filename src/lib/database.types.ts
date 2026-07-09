@@ -375,6 +375,45 @@ export interface ArchiveHighlightLink {
   description?: string | null;
 }
 
+
+export interface EventPageGalleryItem {
+  image_url: string;
+  caption?: string | null;
+  alt?: string | null;
+}
+
+export interface EventPageInfoItem {
+  title: string;
+  description: string;
+}
+
+export interface EventPageScheduleItem {
+  time: string;
+  title: string;
+  description?: string | null;
+}
+
+export interface DbEventPageContent {
+  event_id:             uuid;
+  hero_eyebrow:         string | null;
+  title:                string;
+  subtitle:             string | null;
+  description:          string | null;
+  hero_image_url:       string | null;
+  gallery_json:         EventPageGalleryItem[];
+  map_embed_url:        string | null;
+  map_link_url:         string | null;
+  venue_notes:          string | null;
+  attractions_json:     EventPageInfoItem[];
+  schedule_json:        EventPageScheduleItem[];
+  food_bar_text:        string | null;
+  bathrooms_text:       string | null;
+  security_text:        string | null;
+  extra_info_json:      EventPageInfoItem[];
+  updated_at:           string;
+  updated_by_admin_id:  uuid | null;
+}
+
 export interface DbEventArchiveSettings {
   event_id:             uuid;
   archive_enabled:      boolean;
@@ -437,7 +476,8 @@ export interface Database {
       polls:                  { Row: DbPoll;               Insert: InsertPoll;                    Update: Partial<DbPoll>               };
       poll_options:           { Row: DbPollOption;         Insert: InsertPollOption;              Update: Partial<DbPollOption>         };
       poll_votes:             { Row: DbPollVote;           Insert: InsertPollVote;                Update: never                         };
-      event_archive_settings: { Row: DbEventArchiveSettings; Insert: Partial<DbEventArchiveSettings>; Update: Partial<DbEventArchiveSettings> };
+      event_page_content:     { Row: DbEventPageContent;    Insert: Partial<DbEventPageContent>;    Update: Partial<DbEventPageContent>    };
+            event_archive_settings: { Row: DbEventArchiveSettings; Insert: Partial<DbEventArchiveSettings>; Update: Partial<DbEventArchiveSettings> };
       photo_removal_requests: { Row: DbPhotoRemovalRequest; Insert: Partial<DbPhotoRemovalRequest>; Update: Partial<DbPhotoRemovalRequest> };
       profile_claim_disputes: { Row: DbProfileClaimDispute; Insert: Partial<DbProfileClaimDispute>; Update: Partial<DbProfileClaimDispute> };
       profile_claims:         { Row: DbProfileClaim;       Insert: InsertProfileClaim;            Update: Partial<DbProfileClaim>       };

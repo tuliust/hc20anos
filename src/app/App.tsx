@@ -23,13 +23,14 @@ import {
   getPublicProfileCardByPersonId,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
   DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
-  DbEventArchiveSettings, RelationshipStatus,
+  DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -48,7 +49,7 @@ import {
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
 
 type Page =
-  | "home" | "tickets" | "checkout" | "confirmation"
+  | "home" | "event" | "tickets" | "checkout" | "confirmation"
   | "who-going" | "the-class" | "claim-profile"
   | "photo-wall" | "photo-detail" | "alumni-area"
   | "edit-profile" | "admin" | "checkin"
@@ -196,10 +197,11 @@ interface FooterLinkContent {
   is_visible?: boolean;
 }
 
-type ContentAdminTab = "header" | "home" | "sections" | "labels" | "timeline" | "faq" | "footer";
+type ContentAdminTab = "header" | "home" | "event" | "sections" | "labels" | "timeline" | "faq" | "footer";
 
 const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "home", label: "Home" },
+  { page: "event", label: "Evento" },
   { page: "tickets", label: "Ingressos" },
   { page: "who-going", label: "Quem Vai" },
   { page: "the-class", label: "A Turma" },
@@ -225,6 +227,7 @@ const HOME_SECTION_DEFAULTS: HomeSectionContent[] = [
 ];
 
 const FOOTER_LINK_DEFAULTS: FooterLinkContent[] = [
+  { page: "event", label: "Evento", is_visible: true },
   { page: "tickets", label: "Ingressos", is_visible: true },
   { page: "who-going", label: "Quem Vai", is_visible: true },
   { page: "the-class", label: "A Turma", is_visible: true },
@@ -245,6 +248,7 @@ type ExtendedHomePageContent = HomePageContent & {
   primary_cta_page: Page;
   secondary_cta_page: Page;
   nav_home_label: string;
+  nav_event_label: string;
   nav_who_going_label: string;
   nav_the_class_label: string;
   nav_photos_label: string;
@@ -307,6 +311,7 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   primary_cta_page: "tickets",
   secondary_cta_page: "who-going",
   nav_home_label: "Home",
+  nav_event_label: "Evento",
   nav_who_going_label: "Quem Vai",
   nav_the_class_label: "A Turma",
   nav_photos_label: "Fotos",
@@ -424,6 +429,14 @@ function updateTimelineItem(items: TimelineItemContent[], index: number, patch: 
 }
 
 function updateFaqItem(items: FAQItemContent[], index: number, patch: Partial<FAQItemContent>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
+function updateEventGalleryItem(items: EventPageGalleryItem[], index: number, patch: Partial<EventPageGalleryItem>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
+function updateEventInfoItem<T extends EventPageInfoItem | EventPageScheduleItem>(items: T[], index: number, patch: Partial<T>) {
   return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
@@ -1424,6 +1437,7 @@ function Header({ page, navigate, auth, logout, content }: {
 
   const navLinks: { label: string; page: Page }[] = [
     { label: headerContent.nav_home_label, page: "home" },
+    { label: headerContent.nav_event_label, page: "event" },
     { label: headerContent.nav_who_going_label, page: "who-going" },
     { label: headerContent.nav_the_class_label, page: "the-class" },
     { label: headerContent.nav_photos_label, page: "photo-wall" },
@@ -1922,6 +1936,187 @@ function EventInfoSection({ content, event }: { content: HomePageContent; event:
         </div>
       </div>
     </section>
+  );
+}
+
+
+function extractIframeSrc(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const match = raw.match(/src=["']([^"']+)["']/i);
+  return match?.[1] ?? raw;
+}
+
+function EventPage({ navigate, event }: { navigate: (p: Page) => void; event: DbEvent | null }) {
+  const [content, setContent] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getEventPageContent(DEFAULT_EVENT_ID)
+      .then(data => { if (active) setContent(data); })
+      .catch(() => { if (active) setContent(EVENT_PAGE_CONTENT_DEFAULTS); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const gallery = parseHomeJsonArray<EventPageGalleryItem>(content.gallery_json, parseHomeJsonArray<EventPageGalleryItem>(EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, []));
+  const attractions = parseHomeJsonArray<EventPageInfoItem>(content.attractions_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.attractions_json, []));
+  const schedule = parseHomeJsonArray<EventPageScheduleItem>(content.schedule_json, parseHomeJsonArray<EventPageScheduleItem>(EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, []));
+  const extraInfo = parseHomeJsonArray<EventPageInfoItem>(content.extra_info_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, []));
+  const heroImage = content.hero_image_url || gallery[0]?.image_url || null;
+  const mapSrc = extractIframeSrc(content.map_embed_url);
+  const locationName = event?.location_name || "Local do evento";
+  const locationAddress = event?.location_address || "Endereço a confirmar";
+
+  return (
+    <div className="bg-[#0d1a0f] min-h-screen pt-20">
+      <section className="relative min-h-[72vh] flex items-end overflow-hidden border-b border-[#2d6a4f]/20">
+        {heroImage && (
+          <img src={heroImage} alt={content.title} className="absolute inset-0 w-full h-full object-cover opacity-35" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1a0f] via-[#0d1a0f]/70 to-[#0d1a0f]/30" />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-28 w-full">
+          <div className="max-w-4xl">
+            <SectionLabel>{content.hero_eyebrow}</SectionLabel>
+            <h1 className="font-['Playfair_Display'] text-[#f0ebe0] text-5xl md:text-7xl font-black leading-none mb-6">{content.title}</h1>
+            <p className="text-[#c9a84c] text-xl md:text-2xl font-['Playfair_Display'] mb-6">{content.subtitle}</p>
+            <div className="flex flex-col sm:flex-row gap-3 text-[#8ab89a] text-sm mb-8">
+              <span className="inline-flex items-center gap-2"><Calendar size={16} />{formatLongDateBR(event?.event_date)}</span>
+              <span className="inline-flex items-center gap-2"><Clock size={16} />{formatTimeLabel(event?.event_time)}</span>
+              <span className="inline-flex items-center gap-2"><MapPin size={16} />{locationName}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Btn onClick={() => navigate("tickets")}><Ticket size={16} />Comprar ingresso</Btn>
+              <Btn variant="outline" onClick={() => navigate("who-going")}><Users size={16} />Ver confirmados</Btn>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-[1fr_0.8fr] gap-10 items-start">
+          <div>
+            <SectionLabel>Informações gerais</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-5xl mb-6">Sobre o reencontro</DisplayTitle>
+            <div className="flex flex-col gap-4 text-[#8ab89a] leading-relaxed">
+              {content.description.split(/\n+/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            </div>
+          </div>
+          <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6 md:p-8">
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-5">Serviço</p>
+            <div className="flex flex-col gap-5">
+              <InfoRow icon={<Calendar size={18} />} label="Data" value={formatLongDateBR(event?.event_date)} />
+              <InfoRow icon={<Clock size={18} />} label="Horário" value={formatTimeLabel(event?.event_time)} />
+              <InfoRow icon={<MapPin size={18} />} label="Local" value={`${locationName}${locationAddress ? ` · ${locationAddress}` : ""}`} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#f0ebe0] text-[#0d1a0f] py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-[0.8fr_1fr] gap-10 items-start">
+          <div>
+            <p className="text-[#2d6a4f] font-mono text-xs uppercase tracking-wider mb-4">Local</p>
+            <h2 className="font-['Playfair_Display'] text-4xl md:text-5xl font-black mb-5">Como chegar</h2>
+            <p className="text-[#35513f] leading-relaxed mb-6">{content.venue_notes}</p>
+            {content.map_link_url && <Btn variant="primary" onClick={() => window.open(normalizeExternalUrl(content.map_link_url) ?? content.map_link_url ?? "", "_blank", "noopener,noreferrer")}><MapPin size={16} />Abrir mapa</Btn>}
+          </div>
+          <div className="bg-[#0d1a0f] min-h-[320px] border border-[#2d6a4f]/20 overflow-hidden">
+            {mapSrc ? (
+              <iframe title="Mapa do evento" src={mapSrc} className="w-full h-[360px] border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+            ) : (
+              <div className="h-[360px] flex flex-col items-center justify-center gap-3 text-center p-8">
+                <MapPin size={36} className="text-[#c9a84c]" />
+                <p className="text-[#f0ebe0] font-semibold">{locationName}</p>
+                <p className="text-[#7a9a7a] text-sm">{locationAddress}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+            <div>
+              <SectionLabel>Programação</SectionLabel>
+              <DisplayTitle className="text-4xl md:text-5xl">Horários e atrações</DisplayTitle>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
+            <div className="flex flex-col gap-4">
+              {schedule.map((item, index) => (
+                <div key={`${item.time}-${index}`} className="bg-[#141f14] border border-[#2d6a4f]/25 p-5 flex gap-4">
+                  <div className="text-[#c9a84c] font-mono text-sm min-w-16">{item.time}</div>
+                  <div>
+                    <p className="text-[#f0ebe0] font-semibold mb-1">{item.title}</p>
+                    {item.description && <p className="text-[#7a9a7a] text-sm leading-relaxed">{item.description}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {attractions.map((item, index) => (
+                <div key={`${item.title}-${index}`} className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <Star size={22} className="text-[#c9a84c] mb-4" />
+                  <p className="text-[#f0ebe0] font-semibold mb-2">{item.title}</p>
+                  <p className="text-[#7a9a7a] text-sm leading-relaxed">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#0a120a] py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4">
+          <SectionLabel>Estrutura</SectionLabel>
+          <DisplayTitle className="text-4xl md:text-5xl mb-10">Bar, comidas, banheiros e segurança</DisplayTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6"><Ticket size={22} className="text-[#c9a84c] mb-4" /><p className="text-[#f0ebe0] font-semibold mb-2">Bar e comidas</p><p className="text-[#7a9a7a] text-sm leading-relaxed">{content.food_bar_text}</p></div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6"><Users size={22} className="text-[#c9a84c] mb-4" /><p className="text-[#f0ebe0] font-semibold mb-2">Banheiros</p><p className="text-[#7a9a7a] text-sm leading-relaxed">{content.bathrooms_text}</p></div>
+            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6"><Shield size={22} className="text-[#c9a84c] mb-4" /><p className="text-[#f0ebe0] font-semibold mb-2">Segurança</p><p className="text-[#7a9a7a] text-sm leading-relaxed">{content.security_text}</p></div>
+          </div>
+        </div>
+      </section>
+
+      {gallery.length > 0 && (
+        <section className="py-16 md:py-24">
+          <div className="max-w-7xl mx-auto px-4">
+            <SectionLabel>Fotos</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-5xl mb-10">Prévia do evento</DisplayTitle>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {gallery.slice(0, 6).map((item, index) => (
+                <figure key={`${item.image_url}-${index}`} className="bg-[#141f14] border border-[#2d6a4f]/20 overflow-hidden">
+                  <img src={item.image_url} alt={item.alt || item.caption || `Foto do evento ${index + 1}`} className="w-full aspect-[4/3] object-cover" loading="lazy" />
+                  {item.caption && <figcaption className="p-4 text-[#7a9a7a] text-sm">{item.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {extraInfo.length > 0 && (
+        <section className="bg-[#f0ebe0] text-[#0d1a0f] py-16 md:py-24">
+          <div className="max-w-7xl mx-auto px-4">
+            <p className="text-[#2d6a4f] font-mono text-xs uppercase tracking-wider mb-4">Orientações</p>
+            <h2 className="font-['Playfair_Display'] text-4xl md:text-5xl font-black mb-10">Informações importantes</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {extraInfo.map((item, index) => (
+                <div key={`${item.title}-${index}`} className="border border-[#2d6a4f]/20 bg-white/30 p-6">
+                  <p className="font-bold mb-2">{item.title}</p>
+                  <p className="text-[#35513f] text-sm leading-relaxed">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {loading && <div className="fixed bottom-4 right-4 bg-[#141f14] border border-[#2d6a4f]/30 text-[#7a9a7a] text-xs font-mono px-3 py-2">Carregando conteúdo...</div>}
+    </div>
   );
 }
 
@@ -4098,11 +4293,14 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
-      <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-[#f0ebe0] text-sm break-words">{value}</p>
+    <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
+      {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
+      <div>
+        <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-[#f0ebe0] text-sm break-words">{value}</p>
+      </div>
     </div>
   );
 }
@@ -5124,6 +5322,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   });
 
     const [homeDraft, setHomeDraft] = useState<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
+  const [eventDraft, setEventDraft] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
   const [contentTab, setContentTab] = useState<ContentAdminTab>("header");
 
 const role = auth.role ?? "viewer";
@@ -5203,7 +5402,9 @@ const role = auth.role ?? "viewer";
           refundPolicy: eventData.refund_policy ?? "",
         });
         const homeData = getExtendedHomeContent(await getHomePageContent(DEFAULT_EVENT_ID));
+        const eventPageData = await getEventPageContent(DEFAULT_EVENT_ID);
         setHomeDraft(homeData);
+        setEventDraft(eventPageData);
         onHomeContentUpdated(homeData);
         setReports(await getReports(eventData.id));
       }
@@ -5258,6 +5459,17 @@ const role = auth.role ?? "viewer";
       } as Partial<HomePageContent>, auth.userId));
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
+    });
+  }
+
+  async function saveEventContent() {
+    if (!canManageEvent) return;
+    await runAction("event-content", async () => {
+      const updated = await updateEventPageContent(DEFAULT_EVENT_ID, {
+        ...eventDraft,
+        event_id: DEFAULT_EVENT_ID,
+      }, auth.userId);
+      setEventDraft(updated);
     });
   }
 
@@ -5318,6 +5530,7 @@ const role = auth.role ?? "viewer";
   const contentTabs: { id: ContentAdminTab; label: string }[] = [
     { id: "header", label: "Header" },
     { id: "home", label: "Home" },
+    { id: "event", label: "Evento" },
     { id: "sections", label: "Seções" },
     { id: "labels", label: "Labels" },
     { id: "timeline", label: "Linha do tempo" },
@@ -5329,6 +5542,10 @@ const role = auth.role ?? "viewer";
   const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, FAQ_ITEMS);
   const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
   const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
+  const eventGalleryItems = parseHomeJsonArray<EventPageGalleryItem>(eventDraft.gallery_json, parseHomeJsonArray<EventPageGalleryItem>(EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, []));
+  const eventAttractionItems = parseHomeJsonArray<EventPageInfoItem>(eventDraft.attractions_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.attractions_json, []));
+  const eventScheduleItems = parseHomeJsonArray<EventPageScheduleItem>(eventDraft.schedule_json, parseHomeJsonArray<EventPageScheduleItem>(EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, []));
+  const eventExtraInfoItems = parseHomeJsonArray<EventPageInfoItem>(eventDraft.extra_info_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, []));
 
   function setTimelineDraftItems(items: TimelineItemContent[]) {
     setHomeDraft(s => ({ ...s, timeline_items_json: JSON.stringify(items, null, 2) }));
@@ -5344,6 +5561,22 @@ const role = auth.role ?? "viewer";
 
   function setFooterDraftLinks(items: FooterLinkContent[]) {
     setHomeDraft(s => ({ ...s, footer_links_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setEventGalleryItems(items: EventPageGalleryItem[]) {
+    setEventDraft(s => ({ ...s, gallery_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setEventAttractionItems(items: EventPageInfoItem[]) {
+    setEventDraft(s => ({ ...s, attractions_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setEventScheduleItems(items: EventPageScheduleItem[]) {
+    setEventDraft(s => ({ ...s, schedule_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setEventExtraInfoItems(items: EventPageInfoItem[]) {
+    setEventDraft(s => ({ ...s, extra_info_json: JSON.stringify(items, null, 2) }));
   }
 
   if (!auth.isAdmin) return <PermissionState />;
@@ -5498,6 +5731,7 @@ const role = auth.role ?? "viewer";
                   <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Menu principal</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Home" value={homeDraft.nav_home_label} onChange={v => setHomeDraft(s => ({ ...s, nav_home_label: v }))} />
+                    <Field label="Evento" value={homeDraft.nav_event_label} onChange={v => setHomeDraft(s => ({ ...s, nav_event_label: v }))} />
                     <Field label="Quem vai" value={homeDraft.nav_who_going_label} onChange={v => setHomeDraft(s => ({ ...s, nav_who_going_label: v }))} />
                     <Field label="A turma" value={homeDraft.nav_the_class_label} onChange={v => setHomeDraft(s => ({ ...s, nav_the_class_label: v }))} />
                     <Field label="Fotos" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
@@ -5563,6 +5797,117 @@ const role = auth.role ?? "viewer";
                     <Field label="Título confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
                     <Field label="Eyebrow fotos" value={homeDraft.photos_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, photos_eyebrow: v }))} />
                     <Field label="Título fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contentTab === "event" && (
+              <div className="flex flex-col gap-6">
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Página Evento</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Gerencie texto, galeria, mapa, atrações, horários e estrutura da página /evento.</p>
+                    </div>
+                    <Btn size="sm" onClick={saveEventContent} disabled={busy === "event-content"}><Save size={14} />Salvar evento</Btn>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Eyebrow" value={eventDraft.hero_eyebrow} onChange={v => setEventDraft(s => ({ ...s, hero_eyebrow: v }))} />
+                    <Field label="Título" value={eventDraft.title} onChange={v => setEventDraft(s => ({ ...s, title: v }))} />
+                    <Field label="Subtítulo" value={eventDraft.subtitle} onChange={v => setEventDraft(s => ({ ...s, subtitle: v }))} />
+                    <Field label="Imagem principal" value={eventDraft.hero_image_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, hero_image_url: v }))} placeholder="https://..." />
+                    <div className="md:col-span-2"><FieldArea rows={5} label="Descrição" value={eventDraft.description} onChange={v => setEventDraft(s => ({ ...s, description: v }))} /></div>
+                    <Field label="Google Maps embed ou src" value={eventDraft.map_embed_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, map_embed_url: v }))} placeholder="Cole a URL ou iframe do mapa" />
+                    <Field label="Link externo do mapa" value={eventDraft.map_link_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, map_link_url: v }))} placeholder="https://maps.google.com/..." />
+                    <div className="md:col-span-2"><FieldArea rows={3} label="Observações sobre o local" value={eventDraft.venue_notes} onChange={v => setEventDraft(s => ({ ...s, venue_notes: v }))} /></div>
+                  </div>
+                </div>
+
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Galeria</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Fotos de referência para a página Evento.</p>
+                    </div>
+                    <Btn size="sm" variant="ghost" onClick={() => setEventGalleryItems([...eventGalleryItems, { image_url: "", caption: "" }])}>Adicionar foto</Btn>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {eventGalleryItems.map((item, i) => (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                        <Field label="URL da imagem" value={item.image_url} onChange={v => setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, i, { image_url: v }))} />
+                        <Field label="Legenda" value={item.caption ?? ""} onChange={v => setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, i, { caption: v }))} />
+                        <Btn size="sm" variant="ghost" onClick={() => setEventGalleryItems(eventGalleryItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Programação</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Horários e descrição da noite.</p>
+                    </div>
+                    <Btn size="sm" variant="ghost" onClick={() => setEventScheduleItems([...eventScheduleItems, { time: "", title: "", description: "" }])}>Adicionar horário</Btn>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {eventScheduleItems.map((item, i) => (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                        <Field label="Horário" value={item.time} onChange={v => setEventScheduleItems(updateEventInfoItem(eventScheduleItems, i, { time: v }))} />
+                        <Field label="Título" value={item.title} onChange={v => setEventScheduleItems(updateEventInfoItem(eventScheduleItems, i, { title: v }))} />
+                        <Field label="Descrição" value={item.description ?? ""} onChange={v => setEventScheduleItems(updateEventInfoItem(eventScheduleItems, i, { description: v }))} />
+                        <Btn size="sm" variant="ghost" onClick={() => setEventScheduleItems(eventScheduleItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Atrações</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Bandas, DJ, experiências e outros destaques.</p>
+                    </div>
+                    <Btn size="sm" variant="ghost" onClick={() => setEventAttractionItems([...eventAttractionItems, { title: "", description: "" }])}>Adicionar atração</Btn>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {eventAttractionItems.map((item, i) => (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                        <Field label="Título" value={item.title} onChange={v => setEventAttractionItems(updateEventInfoItem(eventAttractionItems, i, { title: v }))} />
+                        <Field label="Descrição" value={item.description} onChange={v => setEventAttractionItems(updateEventInfoItem(eventAttractionItems, i, { description: v }))} />
+                        <Btn size="sm" variant="ghost" onClick={() => setEventAttractionItems(eventAttractionItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Estrutura e orientações</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Bar/comidas, banheiros, segurança e informações extras.</p>
+                    </div>
+                    <Btn size="sm" onClick={saveEventContent} disabled={busy === "event-content"}><Save size={14} />Salvar evento</Btn>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <FieldArea rows={4} label="Bar e comidas" value={eventDraft.food_bar_text} onChange={v => setEventDraft(s => ({ ...s, food_bar_text: v }))} />
+                    <FieldArea rows={4} label="Banheiros" value={eventDraft.bathrooms_text} onChange={v => setEventDraft(s => ({ ...s, bathrooms_text: v }))} />
+                    <FieldArea rows={4} label="Segurança" value={eventDraft.security_text} onChange={v => setEventDraft(s => ({ ...s, security_text: v }))} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Informações extras</p>
+                    <Btn size="sm" variant="ghost" onClick={() => setEventExtraInfoItems([...eventExtraInfoItems, { title: "", description: "" }])}>Adicionar item</Btn>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {eventExtraInfoItems.map((item, i) => (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
+                        <Field label="Título" value={item.title} onChange={v => setEventExtraInfoItems(updateEventInfoItem(eventExtraInfoItems, i, { title: v }))} />
+                        <Field label="Descrição" value={item.description} onChange={v => setEventExtraInfoItems(updateEventInfoItem(eventExtraInfoItems, i, { description: v }))} />
+                        <Btn size="sm" variant="ghost" onClick={() => setEventExtraInfoItems(eventExtraInfoItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -6379,6 +6724,7 @@ const PROTECTED_ADMIN:  Page[] = ["admin", "checkin"];
 
 const PAGE_PATHS: Record<Page, string> = {
   home: "/",
+  event: "/evento",
   tickets: "/ingressos",
   checkout: "/checkout",
   confirmation: "/confirmacao",
@@ -6557,6 +6903,7 @@ export default function App() {
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent} />}
       <main>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}
