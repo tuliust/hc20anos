@@ -245,6 +245,8 @@ type ExtendedHomePageContent = HomePageContent & {
   header_fallback_title: string;
   header_fallback_subtitle: string;
   header_cta_label: string;
+  header_cta_visible: boolean;
+  header_auth_visible: boolean;
   primary_cta_page: Page;
   secondary_cta_page: Page;
   nav_home_label: string;
@@ -256,6 +258,15 @@ type ExtendedHomePageContent = HomePageContent & {
   nav_polls_label: string;
   nav_where_now_label: string;
   nav_archive_label: string;
+  nav_home_visible: boolean;
+  nav_event_visible: boolean;
+  nav_who_going_visible: boolean;
+  nav_the_class_visible: boolean;
+  nav_photos_visible: boolean;
+  nav_memories_visible: boolean;
+  nav_polls_visible: boolean;
+  nav_where_now_visible: boolean;
+  nav_archive_visible: boolean;
   home_sections_json: string;
   countdown_days_label: string;
   countdown_hours_label: string;
@@ -308,6 +319,8 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   header_fallback_title: "Turma 2006",
   header_fallback_subtitle: "20 anos",
   header_cta_label: "Comprar ingresso",
+  header_cta_visible: true,
+  header_auth_visible: true,
   primary_cta_page: "tickets",
   secondary_cta_page: "who-going",
   nav_home_label: "Home",
@@ -319,6 +332,15 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_polls_label: "Enquetes",
   nav_where_now_label: "Mapa",
   nav_archive_label: "Acervo",
+  nav_home_visible: true,
+  nav_event_visible: true,
+  nav_who_going_visible: true,
+  nav_the_class_visible: true,
+  nav_photos_visible: true,
+  nav_memories_visible: true,
+  nav_polls_visible: true,
+  nav_where_now_visible: true,
+  nav_archive_visible: true,
   home_sections_json: JSON.stringify(HOME_SECTION_DEFAULTS, null, 2),
   countdown_days_label: "Dias",
   countdown_hours_label: "Horas",
@@ -370,6 +392,16 @@ function getExtendedHomeContent(content?: HomePageContent | null): ExtendedHomeP
     ...EXTENDED_HOME_CONTENT_DEFAULTS,
     ...(content ?? {}),
   } as ExtendedHomePageContent;
+}
+
+function isContentVisible(value: unknown) {
+  return value !== false;
+}
+
+function shouldShowHeroSubtitle(value?: string | null) {
+  const text = value?.trim() ?? "";
+  if (!text) return false;
+  return !/dados fict[ií]cios carregados para demonstrar a experi[eê]ncia completa do site do reencontro\.?/i.test(text);
 }
 
 function parseHomeJsonArray<T>(value: string | null | undefined, fallback: T[]): T[] {
@@ -1435,17 +1467,17 @@ function Header({ page, navigate, auth, logout, content }: {
   const [headerProfile, setHeaderProfile] = useState<DbProfile | null>(null);
   const headerContent = getExtendedHomeContent(content);
 
-  const navLinks: { label: string; page: Page }[] = [
-    { label: headerContent.nav_home_label, page: "home" },
-    { label: headerContent.nav_event_label, page: "event" },
-    { label: headerContent.nav_who_going_label, page: "who-going" },
-    { label: headerContent.nav_the_class_label, page: "the-class" },
-    { label: headerContent.nav_photos_label, page: "photo-wall" },
-    { label: headerContent.nav_memories_label, page: "memories" },
-    { label: headerContent.nav_polls_label, page: "polls" },
-    { label: headerContent.nav_where_now_label, page: "where-now" },
-    { label: headerContent.nav_archive_label, page: "archive" },
-  ];
+  const navLinks: { label: string; page: Page; visible: boolean }[] = ([
+    { label: headerContent.nav_home_label, page: "home", visible: isContentVisible(headerContent.nav_home_visible) },
+    { label: headerContent.nav_event_label, page: "event", visible: isContentVisible(headerContent.nav_event_visible) },
+    { label: headerContent.nav_who_going_label, page: "who-going", visible: isContentVisible(headerContent.nav_who_going_visible) },
+    { label: headerContent.nav_the_class_label, page: "the-class", visible: isContentVisible(headerContent.nav_the_class_visible) },
+    { label: headerContent.nav_photos_label, page: "photo-wall", visible: isContentVisible(headerContent.nav_photos_visible) },
+    { label: headerContent.nav_memories_label, page: "memories", visible: isContentVisible(headerContent.nav_memories_visible) },
+    { label: headerContent.nav_polls_label, page: "polls", visible: isContentVisible(headerContent.nav_polls_visible) },
+    { label: headerContent.nav_where_now_label, page: "where-now", visible: isContentVisible(headerContent.nav_where_now_visible) },
+    { label: headerContent.nav_archive_label, page: "archive", visible: isContentVisible(headerContent.nav_archive_visible) },
+  ] as { label: string; page: Page; visible: boolean }[]).filter(item => item.visible && item.label.trim());
 
   useEffect(() => {
     let active = true;
@@ -1531,9 +1563,11 @@ function Header({ page, navigate, auth, logout, content }: {
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
+            {isContentVisible(headerContent.header_cta_visible) && (
+              <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
+            )}
 
-            {auth.loggedIn ? (
+            {isContentVisible(headerContent.header_auth_visible) && (auth.loggedIn ? (
               <div className="relative hidden md:block">
                 <button
                   type="button"
@@ -1583,7 +1617,7 @@ function Header({ page, navigate, auth, logout, content }: {
               </div>
             ) : (
               <Btn size="sm" variant="outline" onClick={() => go("login")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-6 py-3">Login/Cadastro</Btn>
-            )}
+            ))}
 
             <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-[#f0ebe0] p-2">
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -1602,16 +1636,18 @@ function Header({ page, navigate, auth, logout, content }: {
               </button>
             ))}
           </div>
-          <div className="mt-auto pt-8 flex flex-col gap-3">
-            {auth.loggedIn ? (
-              <>
-                <Btn full variant="outline" onClick={() => go("alumni-area")}>Minha área</Btn>
-                <Btn full variant="ghost" onClick={() => { logout(); setMenuOpen(false); }}>Sair da conta</Btn>
-              </>
-            ) : (
-              <Btn full variant="outline" onClick={() => go("login")}>Login/Cadastro</Btn>
-            )}
-          </div>
+          {isContentVisible(headerContent.header_auth_visible) && (
+            <div className="mt-auto pt-8 flex flex-col gap-3">
+              {auth.loggedIn ? (
+                <>
+                  <Btn full variant="outline" onClick={() => go("alumni-area")}>Minha área</Btn>
+                  <Btn full variant="ghost" onClick={() => { logout(); setMenuOpen(false); }}>Sair da conta</Btn>
+                </>
+              ) : (
+                <Btn full variant="outline" onClick={() => go("login")}>Login/Cadastro</Btn>
+              )}
+            </div>
+          )}
         </div>
       )}
     </>
@@ -1815,6 +1851,7 @@ function LoginPage({ navigate, onLogin }: {
 
 function Hero({ navigate, content, event }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null }) {
   const extendedContent = getExtendedHomeContent(content);
+  const showSubtitle = shouldShowHeroSubtitle(content.hero_subtitle);
   const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
 
   useEffect(() => {
@@ -1839,8 +1876,8 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
         <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2"
           style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>{content.hero_tagline}</p>
         <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>
-        <p className="text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 mt-1 mb-10 md:mb-12">{content.hero_event_line}</p>
+        {showSubtitle && <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>}
+        <p className={`text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 ${showSubtitle ? "mt-1" : "mt-0"} mb-8 md:mb-10`}>{content.hero_event_line}</p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 md:mb-12">
           <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
           <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.secondary_cta_page, "who-going"))}>{content.secondary_cta_label}</Btn>
@@ -2278,33 +2315,60 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
   );
 }
 
-function TimelineSection({ content }: { content: HomePageContent }) {
+function TimelineSection({ content, memories = [] }: { content: HomePageContent; memories?: DbMemory[] }) {
   const extendedContent = getExtendedHomeContent(content);
   const timelineItems = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)
     .filter(item => item.is_visible !== false);
+  const previewMemories = memories.slice(0, 4);
 
   return (
     <section className="bg-[#f0ebe0] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.timeline_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-16">{content.timeline_title}</DisplayTitle>
-        <div className="flex flex-col">
-          {timelineItems.map((item, i) => {
-            const highlighted = item.highlight ?? item.year === "2026";
-            return (
-              <div key={`${item.year}-${i}`} className="flex gap-6 md:gap-12">
-                <div className="flex flex-col items-center">
-                  <div className={"w-12 h-12 flex items-center justify-center font-['JetBrains_Mono'] font-bold text-sm shrink-0 " + (highlighted ? "bg-[#2d6a4f] text-[#f0ebe0]" : "border-2 border-[#2d6a4f] text-[#2d6a4f]")}>{item.year.slice(-2)}</div>
-                  {i < timelineItems.length - 1 && <div className="w-px flex-1 bg-[#2d6a4f]/30 my-2" />}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.92fr] gap-12 items-start">
+          <div className="flex flex-col">
+            {timelineItems.map((item, i) => {
+              const highlighted = item.highlight ?? item.year === "2026";
+              return (
+                <div key={`${item.year}-${i}`} className="flex gap-6 md:gap-12">
+                  <div className="flex flex-col items-center">
+                    <div className={"w-12 h-12 flex items-center justify-center font-['JetBrains_Mono'] font-bold text-sm shrink-0 " + (highlighted ? "bg-[#2d6a4f] text-[#f0ebe0]" : "border-2 border-[#2d6a4f] text-[#2d6a4f]")}>{item.year.slice(-2)}</div>
+                    {i < timelineItems.length - 1 && <div className="w-px flex-1 bg-[#2d6a4f]/30 my-2" />}
+                  </div>
+                  <div className={i < timelineItems.length - 1 ? "pb-12" : ""}>
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">{item.year}</p>
+                    <p className="text-[#0d1a0f] font-['Playfair_Display'] font-bold text-xl mb-2">{item.label}</p>
+                    <p className="text-[#4a6a4a] text-sm leading-relaxed max-w-md">{item.desc}</p>
+                  </div>
                 </div>
-                <div className={i < timelineItems.length - 1 ? "pb-12" : ""}>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">{item.year}</p>
-                  <p className="text-[#0d1a0f] font-['Playfair_Display'] font-bold text-xl mb-2">{item.label}</p>
-                  <p className="text-[#4a6a4a] text-sm leading-relaxed max-w-md">{item.desc}</p>
-                </div>
+              );
+            })}
+          </div>
+
+          <aside className="bg-[#0d1a0f] border border-[#2d6a4f]/30 p-6 md:p-8 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Caixa de memórias</p>
+                <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">Memórias da turma</h3>
               </div>
-            );
-          })}
+              <MessageCircle size={22} className="text-[#2d6a4f] shrink-0" />
+            </div>
+
+            {previewMemories.length === 0 ? (
+              <p className="text-[#7a9a7a] text-sm leading-relaxed">As memórias aprovadas pela moderação aparecerão aqui, ao lado da linha do tempo da turma.</p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {previewMemories.map(memory => (
+                  <div key={memory.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-5">
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
+                    <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
+                    <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : memory.author_name ?? "Ex-aluno"} · {formatDateShortBR(memory.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </section>
@@ -2350,6 +2414,7 @@ function LandingPage({
   event,
   ticketTypes,
   onSelectTicket,
+  memories,
 }: {
   navigate: (p: Page) => void;
   people: DbPerson[];
@@ -2358,6 +2423,7 @@ function LandingPage({
   event: DbEvent | null;
   ticketTypes: DbTicketType[];
   onSelectTicket: (id: string) => void;
+  memories: DbMemory[];
 }) {
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
@@ -2367,7 +2433,7 @@ function LandingPage({
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} />,
     photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
-    timeline: <TimelineSection content={content} />,
+    timeline: <TimelineSection content={content} memories={memories} />,
     faq: <FAQSection content={content} />,
   };
 
@@ -5546,6 +5612,23 @@ const role = auth.role ?? "viewer";
   const eventAttractionItems = parseHomeJsonArray<EventPageInfoItem>(eventDraft.attractions_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.attractions_json, []));
   const eventScheduleItems = parseHomeJsonArray<EventPageScheduleItem>(eventDraft.schedule_json, parseHomeJsonArray<EventPageScheduleItem>(EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, []));
   const eventExtraInfoItems = parseHomeJsonArray<EventPageInfoItem>(eventDraft.extra_info_json, parseHomeJsonArray<EventPageInfoItem>(EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, []));
+  const headerVisibilityControls: { key: keyof ExtendedHomePageContent; label: string; description: string }[] = [
+    { key: "header_cta_visible", label: "CTA Comprar ingresso", description: "Botão principal do header desktop." },
+    { key: "header_auth_visible", label: "Login / Minha conta", description: "Botão de login ou menu do perfil no header." },
+    { key: "nav_home_visible", label: "Home", description: "Item Home do menu principal." },
+    { key: "nav_event_visible", label: "Evento", description: "Item Evento do menu principal." },
+    { key: "nav_who_going_visible", label: "Quem Vai", description: "Item Quem Vai do menu principal." },
+    { key: "nav_the_class_visible", label: "A Turma", description: "Item A Turma do menu principal." },
+    { key: "nav_photos_visible", label: "Fotos", description: "Item Fotos do menu principal." },
+    { key: "nav_memories_visible", label: "Memórias", description: "Item Memórias do menu principal." },
+    { key: "nav_polls_visible", label: "Enquetes", description: "Item Enquetes do menu principal." },
+    { key: "nav_where_now_visible", label: "Mapa", description: "Item Mapa do menu principal." },
+    { key: "nav_archive_visible", label: "Acervo", description: "Item Acervo do menu principal." },
+  ];
+
+  function toggleHeaderVisibility(key: keyof ExtendedHomePageContent) {
+    setHomeDraft(s => ({ ...s, [key]: !isContentVisible(s[key]) } as ExtendedHomePageContent));
+  }
 
   function setTimelineDraftItems(items: TimelineItemContent[]) {
     setHomeDraft(s => ({ ...s, timeline_items_json: JSON.stringify(items, null, 2) }));
@@ -5725,6 +5808,29 @@ const role = auth.role ?? "viewer";
                   <Field label="Fallback selo/ano" value={homeDraft.header_fallback_badge_year} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_badge_year: v }))} />
                   <Field label="Fallback título" value={homeDraft.header_fallback_title} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_title: v }))} />
                   <Field label="Fallback subtítulo" value={homeDraft.header_fallback_subtitle} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_subtitle: v }))} />
+                </div>
+
+                <div className="border-t border-[#2d6a4f]/20 mt-6 pt-6">
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Visibilidade dos botões do header</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {headerVisibilityControls.map(control => {
+                      const visible = isContentVisible(homeDraft[control.key]);
+                      return (
+                        <button
+                          key={String(control.key)}
+                          type="button"
+                          onClick={() => toggleHeaderVisibility(control.key)}
+                          className={"text-left border p-4 transition-colors " + (visible ? "bg-[#0a120a] border-[#2d6a4f]/50" : "bg-[#080f08] border-[#2d6a4f]/15 opacity-70")}
+                        >
+                          <span className={"inline-flex items-center px-2 py-1 text-[9px] font-mono uppercase tracking-wider mb-3 " + (visible ? "bg-[#2d6a4f]/30 text-[#74c69d]" : "bg-[#1e2a1e] text-[#7a9a7a]")}>
+                            {visible ? "Visível" : "Oculto"}
+                          </span>
+                          <p className="text-[#f0ebe0] font-semibold text-sm">{control.label}</p>
+                          <p className="text-[#7a9a7a] text-xs mt-1 leading-relaxed">{control.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="border-t border-[#2d6a4f]/20 mt-6 pt-6">
@@ -6773,6 +6879,7 @@ export default function App() {
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string | null>(null);
   const [checkoutReturn, setCheckoutReturn] = useState<CheckoutReturnState>(null);
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
+  const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [homeContent, setHomeContent] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
   const [authLoading, setAuthLoading] = useState(true);
@@ -6810,11 +6917,13 @@ export default function App() {
     getEventSettings().then(setEvent).catch(() => setEvent(null));
     getTicketTypes(DEFAULT_EVENT_ID).then(setTicketTypes).catch(() => setTicketTypes([]));
     getHomePageContent(DEFAULT_EVENT_ID).then(setHomeContent).catch(() => {});
+    getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => setApprovedMemories([]));
   }
 
   useEffect(() => {
     getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
+    getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => DEV_MODE && setApprovedMemories([]));
     refreshPublicEventData();
   }, []);
 
@@ -6902,7 +7011,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
