@@ -210,7 +210,7 @@ const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "memories", label: "Caixa de Memórias" },
   { page: "polls", label: "Enquetes" },
   { page: "where-now", label: "Mapa" },
-  { page: "archive", label: "Acervo" },
+  { page: "archive", label: "Pós-festa" },
   { page: "login", label: "Login/Cadastro" },
   { page: "terms", label: "Termos" },
   { page: "privacy", label: "Privacidade" },
@@ -236,7 +236,7 @@ const FOOTER_LINK_DEFAULTS: FooterLinkContent[] = [
   { page: "memories", label: "Caixa de Memórias", is_visible: false },
   { page: "polls", label: "Enquetes", is_visible: true },
   { page: "where-now", label: "Onde a turma está", is_visible: true },
-  { page: "archive", label: "Acervo Digital", is_visible: true },
+  { page: "archive", label: "Pós-festa", is_visible: true },
 ];
 
 type ExtendedHomePageContent = HomePageContent & {
@@ -335,7 +335,7 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   nav_memories_label: "Caixa de Memórias",
   nav_polls_label: "Enquetes",
   nav_where_now_label: "Mapa",
-  nav_archive_label: "Acervo",
+  nav_archive_label: "Pós-festa",
   nav_home_visible: true,
   nav_event_visible: true,
   nav_ex_alumni_visible: true,
@@ -5152,7 +5152,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
     return () => { active = false; };
   }, []);
 
-  const dateSource = event?.event_date ? new Date(`${event.event_date}T${event.event_time ?? "19:00:00"}-03:00`) : EVENT_DATE;
+  const dateSource = event ? getEventDateTime(event) : new Date(FALLBACK_EVENT_DATE_TIME);
   const archiveOpen = settings?.archive_enabled ?? Date.now() >= dateSource.getTime();
   const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 8);
   const officialPhotoIds = new Set(settings?.official_photo_ids ?? []);
@@ -5170,7 +5170,7 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
       <PhotoUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} auth={auth} navigate={navigate} />
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
-          <SectionLabel>Acervo Digital</SectionLabel>
+          <SectionLabel>Pós-festa</SectionLabel>
           <DisplayTitle className="text-4xl md:text-7xl mb-4">Memórias do reencontro</DisplayTitle>
           <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaço para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranças aprovadas pela organização.</p>
 
@@ -6488,7 +6488,7 @@ const role = auth.role ?? "viewer";
     { key: "nav_ex_alumni_visible", label: "Ex-alunos", description: "Item consolidado com Turma, Quem Vai e Mapa." },
     { key: "nav_photos_visible", label: "Nossa História", description: "Item Nossa História do menu principal." },
     { key: "nav_polls_visible", label: "Enquetes", description: "Item Enquetes do menu principal." },
-    { key: "nav_archive_visible", label: "Acervo", description: "Item Acervo do menu principal." },
+    { key: "nav_archive_visible", label: "Pós-festa", description: "Item Pós-festa do menu principal." },
   ];
 
   function toggleHeaderVisibility(key: keyof ExtendedHomePageContent) {
@@ -6712,7 +6712,7 @@ const role = auth.role ?? "viewer";
                     <Field label="Ex-alunos" value={homeDraft.nav_ex_alumni_label} onChange={v => setHomeDraft(s => ({ ...s, nav_ex_alumni_label: v }))} />
                     <Field label="Nossa História" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
                     <Field label="Enquetes" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
-                    <Field label="Acervo" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
+                    <Field label="Pós-festa" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
                   </div>
                 </div>
               </div>
@@ -7727,7 +7727,7 @@ const PAGE_PATHS: Record<Page, string> = {
   "where-now": "/mapa",
   "share-invite": "/convite",
   "my-ticket": "/meu-ingresso",
-  archive: "/acervo",
+  archive: "/pos-festa",
   "alumni-area": "/minha-area",
   "edit-profile": "/editar-perfil",
   admin: "/admin",
@@ -7742,6 +7742,7 @@ function pageFromPathname(pathname: string): Page {
   const legacyRoutes: Record<string, Page> = {
     "/fotos": "photo-wall",
     "/memorias": "memories",
+    "/acervo": "archive",
   };
   if (legacyRoutes[normalized]) return legacyRoutes[normalized];
   const found = (Object.entries(PAGE_PATHS) as [Page, string][]).find(([, path]) => path === normalized);
