@@ -166,6 +166,110 @@ const TIMELINE = [
   { year: "2026", label: "20 anos depois — aqui estamos", desc: "O reencontro que todos esperavam. Uma noite para celebrar quem a gente se tornou." },
 ];
 
+interface TimelineItemContent {
+  year: string;
+  label: string;
+  desc: string;
+  is_visible?: boolean;
+  highlight?: boolean;
+}
+
+interface FAQItemContent {
+  q: string;
+  a: string;
+  is_visible?: boolean;
+}
+
+type ContentAdminTab = "header" | "home" | "timeline" | "faq" | "footer";
+
+type ExtendedHomePageContent = HomePageContent & {
+  header_logo_alt: string;
+  header_fallback_badge_main: string;
+  header_fallback_badge_year: string;
+  header_fallback_title: string;
+  header_fallback_subtitle: string;
+  header_cta_label: string;
+  nav_home_label: string;
+  nav_who_going_label: string;
+  nav_the_class_label: string;
+  nav_photos_label: string;
+  nav_memories_label: string;
+  nav_polls_label: string;
+  nav_where_now_label: string;
+  nav_archive_label: string;
+  timeline_items_json: string;
+  faq_items_json: string;
+  footer_eyebrow: string;
+  footer_title: string;
+  footer_body: string;
+  footer_nav_title: string;
+  footer_contact_title: string;
+  footer_email: string;
+  footer_phone: string;
+  footer_location: string;
+  footer_copyright: string;
+  footer_terms_label: string;
+  footer_privacy_label: string;
+  footer_admin_label: string;
+};
+
+const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePageContent> = {
+  header_logo_alt: "Turma 2006",
+  header_fallback_badge_main: "HC",
+  header_fallback_badge_year: "20",
+  header_fallback_title: "Turma 2006",
+  header_fallback_subtitle: "20 anos",
+  header_cta_label: "Comprar ingresso",
+  nav_home_label: "Home",
+  nav_who_going_label: "Quem Vai",
+  nav_the_class_label: "A Turma",
+  nav_photos_label: "Fotos",
+  nav_memories_label: "Memórias",
+  nav_polls_label: "Enquetes",
+  nav_where_now_label: "Mapa",
+  nav_archive_label: "Acervo",
+  timeline_items_json: JSON.stringify(TIMELINE, null, 2),
+  faq_items_json: JSON.stringify(FAQ_ITEMS, null, 2),
+  footer_eyebrow: "Colégio Henrique Castriciano",
+  footer_title: "Turma 2006",
+  footer_body: "O reencontro dos ex-alunos, 20 anos depois de uma época que ficou para sempre.",
+  footer_nav_title: "Navegação",
+  footer_contact_title: "Contato",
+  footer_email: "turma2006.hc@gmail.com",
+  footer_phone: "(84) 99999-0206",
+  footer_location: "Natal, Rio Grande do Norte",
+  footer_copyright: "© 2026 Turma 2006 — Colégio Henrique Castriciano.",
+  footer_terms_label: "Termos de Uso",
+  footer_privacy_label: "Privacidade",
+  footer_admin_label: "Admin",
+};
+
+function getExtendedHomeContent(content?: HomePageContent | null): ExtendedHomePageContent {
+  return {
+    ...HOME_PAGE_CONTENT_DEFAULTS,
+    ...EXTENDED_HOME_CONTENT_DEFAULTS,
+    ...(content ?? {}),
+  } as ExtendedHomePageContent;
+}
+
+function parseHomeJsonArray<T>(value: string | null | undefined, fallback: T[]): T[] {
+  if (!value?.trim()) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as T[] : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function updateTimelineItem(items: TimelineItemContent[], index: number, patch: Partial<TimelineItemContent>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
+function updateFaqItem(items: FAQItemContent[], index: number, patch: Partial<FAQItemContent>) {
+  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
 const CONFIRM_QUESTIONS = [
   { id: "q1", question: "Qual era o nome do(a) diretor(a) ou coordenador(a) do HC em 2006?",  options: ["Prof. Rosângela Araújo", "Prof. Hélio Menezes",  "Prof. Carla Nóbrega",    "Não me lembro"]              },
   { id: "q2", question: "Em qual rua ficava o Colégio Henrique Castriciano?",                  options: ["Rua Apodi",             "Av. Deodoro",           "Rua Jundiaí",            "Av. Hermes da Fonseca"]      },
@@ -844,16 +948,17 @@ function Header({ page, navigate, auth, logout, content }: {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [headerProfile, setHeaderProfile] = useState<DbProfile | null>(null);
+  const headerContent = getExtendedHomeContent(content);
 
   const navLinks: { label: string; page: Page }[] = [
-    { label: "Home", page: "home" },
-    { label: "Quem Vai", page: "who-going" },
-    { label: "A Turma", page: "the-class" },
-    { label: "Fotos", page: "photo-wall" },
-    { label: "Memórias", page: "memories" },
-    { label: "Enquetes", page: "polls" },
-    { label: "Mapa", page: "where-now" },
-    { label: "Acervo", page: "archive" },
+    { label: headerContent.nav_home_label, page: "home" },
+    { label: headerContent.nav_who_going_label, page: "who-going" },
+    { label: headerContent.nav_the_class_label, page: "the-class" },
+    { label: headerContent.nav_photos_label, page: "photo-wall" },
+    { label: headerContent.nav_memories_label, page: "memories" },
+    { label: headerContent.nav_polls_label, page: "polls" },
+    { label: headerContent.nav_where_now_label, page: "where-now" },
+    { label: headerContent.nav_archive_label, page: "archive" },
   ];
 
   useEffect(() => {
@@ -907,24 +1012,24 @@ function Header({ page, navigate, auth, logout, content }: {
   const shortName = displayName.split(/\s+/).filter(Boolean).slice(0, 2).join(" ") || "Minha conta";
   const email = auth.email ?? "";
   const avatarUrl = headerProfile?.current_photo_url ?? null;
-  const headerLogoUrl = (content as any)?.header_logo_url ?? null;
+  const headerLogoUrl = headerContent.header_logo_url ?? null;
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => go("home")} aria-label="Início — Turma 2006" className="flex items-center gap-4 shrink-0 text-left">
+          <button onClick={() => go("home")} aria-label={`Início — ${headerContent.header_logo_alt}`} className="flex items-center gap-4 shrink-0 text-left">
             {headerLogoUrl ? (
-              <img src={headerLogoUrl} alt="Turma 2006" className="h-16 w-32 object-contain" />
+              <img src={headerLogoUrl} alt={headerContent.header_logo_alt} className="h-16 w-32 object-contain" />
             ) : (
               <>
                 <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center shadow-[0_0_0_3px_rgba(201,168,76,0.08)]">
-                  <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">HC</span>
-                  <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
+                  <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">{headerContent.header_fallback_badge_main}</span>
+                  <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">{headerContent.header_fallback_badge_year}</span>
                 </div>
                 <div className="hidden lg:block">
-                  <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">Turma 2006</p>
-                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
+                  <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">{headerContent.header_fallback_title}</p>
+                  <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">{headerContent.header_fallback_subtitle}</p>
                 </div>
               </>
             )}
@@ -940,7 +1045,7 @@ function Header({ page, navigate, auth, logout, content }: {
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">Comprar ingresso</Btn>
+            <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
 
             {auth.loggedIn ? (
               <div className="relative hidden md:block">
@@ -1012,7 +1117,7 @@ function Header({ page, navigate, auth, logout, content }: {
             ))}
           </div>
           <div className="mt-auto pt-8 flex flex-col gap-3">
-            <Btn full onClick={() => go("tickets")}>Comprar Ingresso</Btn>
+            <Btn full onClick={() => go("tickets")}>{headerContent.header_cta_label}</Btn>
             {auth.loggedIn ? (
               <>
                 <Btn full variant="outline" onClick={() => go("alumni-area")}>Minha área</Btn>
@@ -1030,41 +1135,53 @@ function Header({ page, navigate, auth, logout, content }: {
 
 // ─── FOOTER ───────────────────────────────────────────────────────────────────
 
-function Footer({ navigate }: { navigate: (p: Page) => void }) {
+function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: HomePageContent }) {
+  const footerContent = getExtendedHomeContent(content);
+  const footerLinks: { page: Page; label: string }[] = [
+    { page: "tickets", label: "Ingressos" },
+    { page: "who-going", label: footerContent.nav_who_going_label },
+    { page: "the-class", label: footerContent.nav_the_class_label },
+    { page: "photo-wall", label: "Mural de Fotos" },
+    { page: "memories", label: footerContent.nav_memories_label },
+    { page: "polls", label: footerContent.nav_polls_label },
+    { page: "where-now", label: "Onde a turma está" },
+    { page: "archive", label: "Acervo Digital" },
+  ];
+
   return (
     <footer className="bg-[#080f08] border-t border-[#2d6a4f]/20 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
-            <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.4em] uppercase mb-2">Colégio Henrique Castriciano</p>
-            <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-2xl uppercase mb-4">Turma 2006</p>
-            <p className="text-[#7a9a7a] text-sm leading-relaxed">O reencontro dos ex-alunos, 20 anos depois de uma época que ficou para sempre.</p>
+            <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.4em] uppercase mb-2">{footerContent.footer_eyebrow}</p>
+            <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-2xl uppercase mb-4">{footerContent.footer_title}</p>
+            <p className="text-[#7a9a7a] text-sm leading-relaxed">{footerContent.footer_body}</p>
           </div>
           <div>
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Navegação</p>
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">{footerContent.footer_nav_title}</p>
             <div className="flex flex-col gap-3">
-              {(["tickets","who-going","the-class","photo-wall","memories","polls","where-now","archive"] as Page[]).map(p => (
-                <button key={p} onClick={() => navigate(p)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
-                  {{ tickets:"Ingressos", "who-going":"Quem Vai", "the-class":"A Turma", "photo-wall":"Mural de Fotos", memories:"Memórias", polls:"Enquetes", "where-now":"Onde a turma está", archive:"Acervo Digital" }[p]}
+              {footerLinks.map(link => (
+                <button key={link.page} onClick={() => navigate(link.page)} className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors">
+                  {link.label}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">Contato</p>
+            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">{footerContent.footer_contact_title}</p>
             <div className="flex flex-col gap-3 text-sm text-[#7a9a7a]">
-              <p className="flex items-center gap-2"><Mail size={14} />turma2006.hc@gmail.com</p>
-              <p className="flex items-center gap-2"><Phone size={14} />(84) 99999-0206</p>
-              <p className="flex items-center gap-2"><MapPin size={14} />Natal, Rio Grande do Norte</p>
+              {footerContent.footer_email && <p className="flex items-center gap-2"><Mail size={14} />{footerContent.footer_email}</p>}
+              {footerContent.footer_phone && <p className="flex items-center gap-2"><Phone size={14} />{footerContent.footer_phone}</p>}
+              {footerContent.footer_location && <p className="flex items-center gap-2"><MapPin size={14} />{footerContent.footer_location}</p>}
             </div>
           </div>
         </div>
         <div className="border-t border-[#2d6a4f]/20 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#3a5a3a] font-mono">© 2026 Turma 2006 — Colégio Henrique Castriciano.</p>
+          <p className="text-xs text-[#3a5a3a] font-mono">{footerContent.footer_copyright}</p>
           <div className="flex items-center gap-6 text-xs font-mono">
-            <button onClick={() => navigate("terms")}   className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">Termos de Uso</button>
-            <button onClick={() => navigate("privacy")} className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">Privacidade</button>
-            <button onClick={() => navigate("admin")}   className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">Admin</button>
+            <button onClick={() => navigate("terms")}   className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">{footerContent.footer_terms_label}</button>
+            <button onClick={() => navigate("privacy")} className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">{footerContent.footer_privacy_label}</button>
+            <button onClick={() => navigate("admin")}   className="text-[#3a5a3a] hover:text-[#7a9a7a] uppercase tracking-widest transition-colors">{footerContent.footer_admin_label}</button>
           </div>
         </div>
       </div>
@@ -1478,25 +1595,32 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
 }
 
 function TimelineSection({ content }: { content: HomePageContent }) {
+  const extendedContent = getExtendedHomeContent(content);
+  const timelineItems = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)
+    .filter(item => item.is_visible !== false);
+
   return (
     <section className="bg-[#f0ebe0] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.timeline_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-16">{content.timeline_title}</DisplayTitle>
         <div className="flex flex-col">
-          {TIMELINE.map((item, i) => (
-            <div key={item.year} className="flex gap-6 md:gap-12">
-              <div className="flex flex-col items-center">
-                <div className={"w-12 h-12 flex items-center justify-center font-['JetBrains_Mono'] font-bold text-sm shrink-0 " + (item.year === "2026" ? "bg-[#2d6a4f] text-[#f0ebe0]" : "border-2 border-[#2d6a4f] text-[#2d6a4f]")}>{item.year.slice(2)}</div>
-                {i < TIMELINE.length - 1 && <div className="w-px flex-1 bg-[#2d6a4f]/30 my-2" />}
+          {timelineItems.map((item, i) => {
+            const highlighted = item.highlight ?? item.year === "2026";
+            return (
+              <div key={`${item.year}-${i}`} className="flex gap-6 md:gap-12">
+                <div className="flex flex-col items-center">
+                  <div className={"w-12 h-12 flex items-center justify-center font-['JetBrains_Mono'] font-bold text-sm shrink-0 " + (highlighted ? "bg-[#2d6a4f] text-[#f0ebe0]" : "border-2 border-[#2d6a4f] text-[#2d6a4f]")}>{item.year.slice(-2)}</div>
+                  {i < timelineItems.length - 1 && <div className="w-px flex-1 bg-[#2d6a4f]/30 my-2" />}
+                </div>
+                <div className={i < timelineItems.length - 1 ? "pb-12" : ""}>
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">{item.year}</p>
+                  <p className="text-[#0d1a0f] font-['Playfair_Display'] font-bold text-xl mb-2">{item.label}</p>
+                  <p className="text-[#4a6a4a] text-sm leading-relaxed max-w-md">{item.desc}</p>
+                </div>
               </div>
-              <div className={i < TIMELINE.length - 1 ? "pb-12" : ""}>
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">{item.year}</p>
-                <p className="text-[#0d1a0f] font-['Playfair_Display'] font-bold text-xl mb-2">{item.label}</p>
-                <p className="text-[#4a6a4a] text-sm leading-relaxed max-w-md">{item.desc}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1505,14 +1629,18 @@ function TimelineSection({ content }: { content: HomePageContent }) {
 
 function FAQSection({ content }: { content: HomePageContent }) {
   const [open, setOpen] = useState<number | null>(null);
+  const extendedContent = getExtendedHomeContent(content);
+  const faqItems = parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, FAQ_ITEMS)
+    .filter(item => item.is_visible !== false);
+
   return (
     <section className="bg-[#0d1a0f] py-20 md:py-28">
       <div className="max-w-3xl mx-auto px-4">
         <SectionLabel>{content.faq_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl mb-12">{content.faq_title}</DisplayTitle>
         <div className="flex flex-col gap-2">
-          {FAQ_ITEMS.map((item, i) => (
-            <div key={i} className="border border-[#2d6a4f]/25 bg-[#141f14]">
+          {faqItems.map((item, i) => (
+            <div key={`${item.q}-${i}`} className="border border-[#2d6a4f]/25 bg-[#141f14]">
               <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex items-center justify-between px-6 py-5 text-left gap-4">
                 <p className="text-[#f0ebe0] font-semibold text-sm">{item.q}</p>
                 <ChevronDown size={16} className={"text-[#c9a84c] shrink-0 transition-transform duration-200 " + (open === i ? "rotate-180" : "")} />
@@ -4393,7 +4521,8 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
     contactEmail: "", contactPhone: "", description: "", rules: "", companionPolicy: "", refundPolicy: "",
   });
 
-    const [homeDraft, setHomeDraft] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
+    const [homeDraft, setHomeDraft] = useState<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
+  const [contentTab, setContentTab] = useState<ContentAdminTab>("header");
 
 const role = auth.role ?? "viewer";
   const canManageEvent = role === "superadmin" || role === "admin";
@@ -4404,7 +4533,7 @@ const role = auth.role ?? "viewer";
 
   const tabs = [
     { id:"dashboard", label:"Dashboard", icon:<BarChart3 size={13} /> },
-    { id:"home-content", label:"Home", icon:<Pencil size={13} />, disabled: !canManageEvent },
+    { id:"home-content", label:"Conteúdo", icon:<Pencil size={13} />, disabled: !canManageEvent },
     { id:"orders", label:"Pedidos", icon:<Ticket size={13} /> },
     { id:"lots", label:"Lotes", icon:<Package size={13} />, disabled: !canManageEvent },
     { id:"reports", label:"Relatorios", icon:<Download size={13} /> },
@@ -4471,7 +4600,7 @@ const role = auth.role ?? "viewer";
           companionPolicy: eventData.companion_policy ?? "",
           refundPolicy: eventData.refund_policy ?? "",
         });
-        const homeData = await getHomePageContent(DEFAULT_EVENT_ID);
+        const homeData = getExtendedHomeContent(await getHomePageContent(DEFAULT_EVENT_ID));
         setHomeDraft(homeData);
         onHomeContentUpdated(homeData);
         setReports(await getReports(eventData.id));
@@ -4521,10 +4650,10 @@ const role = auth.role ?? "viewer";
   async function saveHomeContent() {
     if (!canManageEvent) return;
     await runAction("home-content", async () => {
-      const updated = await updateHomePageContent(DEFAULT_EVENT_ID, {
+      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
         ...homeDraft,
         event_id: DEFAULT_EVENT_ID,
-      }, auth.userId);
+      } as Partial<HomePageContent>, auth.userId));
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
     });
@@ -4534,11 +4663,11 @@ const role = auth.role ?? "viewer";
     if (!file || !canManageEvent) return;
     await runAction("header-logo", async () => {
       const logoUrl = await uploadHeaderLogo(file, auth.userId);
-      const updated = await updateHomePageContent(DEFAULT_EVENT_ID, {
+      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
         ...homeDraft,
         event_id: DEFAULT_EVENT_ID,
         header_logo_url: logoUrl,
-      }, auth.userId);
+      } as Partial<HomePageContent>, auth.userId));
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
     });
@@ -4581,6 +4710,26 @@ const role = auth.role ?? "viewer";
       });
       setPollDraft({ question: "", description: "", optionsText: "", status: "open", allowMultiple: false });
     });
+  }
+
+
+  const contentTabs: { id: ContentAdminTab; label: string }[] = [
+    { id: "header", label: "Header" },
+    { id: "home", label: "Home" },
+    { id: "timeline", label: "Linha do tempo" },
+    { id: "faq", label: "FAQ" },
+    { id: "footer", label: "Rodapé" },
+  ];
+
+  const timelineDraftItems = parseHomeJsonArray<TimelineItemContent>(homeDraft.timeline_items_json, TIMELINE);
+  const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, FAQ_ITEMS);
+
+  function setTimelineDraftItems(items: TimelineItemContent[]) {
+    setHomeDraft(s => ({ ...s, timeline_items_json: JSON.stringify(items, null, 2) }));
+  }
+
+  function setFaqDraftItems(items: FAQItemContent[]) {
+    setHomeDraft(s => ({ ...s, faq_items_json: JSON.stringify(items, null, 2) }));
   }
 
   if (!auth.isAdmin) return <PermissionState />;
@@ -4653,88 +4802,256 @@ const role = auth.role ?? "viewer";
         {!loading && tab === "home-content" && (!canManageEvent ? <PermissionState /> : (
           <div className="flex flex-col gap-6">
             <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
-                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Textos da página inicial</p>
-                  <p className="text-[#3a5a3a] text-xs mt-1">Edite os textos exibidos na landing page pública.</p>
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Conteúdo do site</p>
+                  <p className="text-[#3a5a3a] text-xs mt-1">Gerencie textos, navegação, linha do tempo, FAQ e rodapé da experiência pública.</p>
                 </div>
-                <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar textos</Btn>
+                <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar conteúdo</Btn>
               </div>
 
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
-                <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
-                  {homeDraft.header_logo_url ? (
-                    <img src={homeDraft.header_logo_url} alt="Logo atual do header" className="max-h-16 max-w-full object-contain" />
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center">
-                        <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">HC</span>
-                        <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">20</span>
+              <div className="flex flex-wrap gap-2">
+                {contentTabs.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setContentTab(item.id)}
+                    className={"px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-wider border transition-colors " + (contentTab === item.id ? "border-[#c9a84c] text-[#c9a84c] bg-[#0a120a]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:text-[#f0ebe0] hover:border-[#2d6a4f]/60")}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {contentTab === "header" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Header</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Logo, textos de fallback, CTA e labels do menu principal.</p>
+                  </div>
+                  <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar header</Btn>
+                </div>
+
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                  <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
+                    {homeDraft.header_logo_url ? (
+                      <img src={homeDraft.header_logo_url} alt={homeDraft.header_logo_alt} className="max-h-16 max-w-full object-contain" />
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center">
+                          <span className="font-['Playfair_Display'] text-[#c9a84c] text-xl font-black leading-none">{homeDraft.header_fallback_badge_main}</span>
+                          <span className="absolute -bottom-1 -right-1 bg-[#c9a84c] text-[#0d1a0f] font-mono text-[8px] font-black px-1 leading-4">{homeDraft.header_fallback_badge_year}</span>
+                        </div>
+                        <div>
+                          <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">{homeDraft.header_fallback_title}</p>
+                          <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">{homeDraft.header_fallback_subtitle}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-base leading-tight tracking-wide uppercase">Turma 2006</p>
-                        <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-[0.25em] leading-none mt-1">20 anos</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Logo do header</p>
+                    <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, JPG ou WEBP. O arquivo aparecerá no topo do site público.</p>
+                    <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] cursor-pointer transition-colors">
+                      <Upload size={14} />{busy === "header-logo" ? "Enviando..." : "Enviar logo"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="sr-only"
+                        disabled={busy === "header-logo"}
+                        onChange={e => {
+                          const file = e.currentTarget.files?.[0] ?? null;
+                          void handleHeaderLogoUpload(file);
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Texto alternativo do logo" value={homeDraft.header_logo_alt} onChange={v => setHomeDraft(s => ({ ...s, header_logo_alt: v }))} />
+                  <Field label="CTA do header" value={homeDraft.header_cta_label} onChange={v => setHomeDraft(s => ({ ...s, header_cta_label: v }))} />
+                  <Field label="Fallback símbolo principal" value={homeDraft.header_fallback_badge_main} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_badge_main: v }))} />
+                  <Field label="Fallback selo/ano" value={homeDraft.header_fallback_badge_year} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_badge_year: v }))} />
+                  <Field label="Fallback título" value={homeDraft.header_fallback_title} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_title: v }))} />
+                  <Field label="Fallback subtítulo" value={homeDraft.header_fallback_subtitle} onChange={v => setHomeDraft(s => ({ ...s, header_fallback_subtitle: v }))} />
+                </div>
+
+                <div className="border-t border-[#2d6a4f]/20 mt-6 pt-6">
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Menu principal</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Home" value={homeDraft.nav_home_label} onChange={v => setHomeDraft(s => ({ ...s, nav_home_label: v }))} />
+                    <Field label="Quem vai" value={homeDraft.nav_who_going_label} onChange={v => setHomeDraft(s => ({ ...s, nav_who_going_label: v }))} />
+                    <Field label="A turma" value={homeDraft.nav_the_class_label} onChange={v => setHomeDraft(s => ({ ...s, nav_the_class_label: v }))} />
+                    <Field label="Fotos" value={homeDraft.nav_photos_label} onChange={v => setHomeDraft(s => ({ ...s, nav_photos_label: v }))} />
+                    <Field label="Memórias" value={homeDraft.nav_memories_label} onChange={v => setHomeDraft(s => ({ ...s, nav_memories_label: v }))} />
+                    <Field label="Enquetes" value={homeDraft.nav_polls_label} onChange={v => setHomeDraft(s => ({ ...s, nav_polls_label: v }))} />
+                    <Field label="Mapa" value={homeDraft.nav_where_now_label} onChange={v => setHomeDraft(s => ({ ...s, nav_where_now_label: v }))} />
+                    <Field label="Acervo" value={homeDraft.nav_archive_label} onChange={v => setHomeDraft(s => ({ ...s, nav_archive_label: v }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contentTab === "home" && (
+              <div className="flex flex-col gap-6">
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Home / Hero</p>
+                      <p className="text-[#3a5a3a] text-xs mt-1">Textos principais da dobra inicial e chamadas de ação.</p>
+                    </div>
+                    <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar home</Btn>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Chamada superior do hero" value={homeDraft.hero_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, hero_eyebrow: v }))} />
+                    <Field label="Título principal" value={homeDraft.hero_title} onChange={v => setHomeDraft(s => ({ ...s, hero_title: v }))} />
+                    <Field label="Linha de apoio do título" value={homeDraft.hero_tagline} onChange={v => setHomeDraft(s => ({ ...s, hero_tagline: v }))} />
+                    <Field label="Data/local no hero" value={homeDraft.hero_event_line} onChange={v => setHomeDraft(s => ({ ...s, hero_event_line: v }))} />
+                    <Field label="CTA principal" value={homeDraft.primary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, primary_cta_label: v }))} />
+                    <Field label="CTA secundário" value={homeDraft.secondary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, secondary_cta_label: v }))} />
+                    <div className="md:col-span-2">
+                      <FieldArea rows={3} label="Subtítulo do hero" value={homeDraft.hero_subtitle} onChange={v => setHomeDraft(s => ({ ...s, hero_subtitle: v }))} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Seções da home</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Eyebrow sobre" value={homeDraft.about_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, about_eyebrow: v }))} />
+                    <Field label="Título sobre" value={homeDraft.about_title} onChange={v => setHomeDraft(s => ({ ...s, about_title: v }))} />
+                    <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 1" value={homeDraft.about_body_1} onChange={v => setHomeDraft(s => ({ ...s, about_body_1: v }))} /></div>
+                    <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 2" value={homeDraft.about_body_2} onChange={v => setHomeDraft(s => ({ ...s, about_body_2: v }))} /></div>
+                    <Field label="Eyebrow informações" value={homeDraft.info_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, info_eyebrow: v }))} />
+                    <Field label="Título informações" value={homeDraft.info_title} onChange={v => setHomeDraft(s => ({ ...s, info_title: v }))} />
+                    <Field label="Eyebrow ingressos" value={homeDraft.tickets_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, tickets_eyebrow: v }))} />
+                    <Field label="Título ingressos" value={homeDraft.tickets_title} onChange={v => setHomeDraft(s => ({ ...s, tickets_title: v }))} />
+                    <Field label="Eyebrow confirmados" value={homeDraft.confirmed_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, confirmed_eyebrow: v }))} />
+                    <Field label="Título confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
+                    <Field label="Eyebrow fotos" value={homeDraft.photos_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, photos_eyebrow: v }))} />
+                    <Field label="Título fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contentTab === "timeline" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Linha do tempo</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Edite os marcos exibidos na seção “Nossa história”.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Btn size="sm" variant="ghost" onClick={() => setTimelineDraftItems([...timelineDraftItems, { year: "2026", label: "Novo marco", desc: "Descreva este momento.", is_visible: true, highlight: false }])}>Adicionar marco</Btn>
+                    <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar timeline</Btn>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <Field label="Eyebrow timeline" value={homeDraft.timeline_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, timeline_eyebrow: v }))} />
+                  <Field label="Título timeline" value={homeDraft.timeline_title} onChange={v => setHomeDraft(s => ({ ...s, timeline_title: v }))} />
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {timelineDraftItems.map((item, i) => (
+                    <div key={`${item.year}-${i}`} className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4 mb-4">
+                        <Field label="Ano" value={item.year} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { year: v }))} />
+                        <Field label="Título do marco" value={item.label} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { label: v }))} />
+                        <div className="md:col-span-2">
+                          <FieldArea rows={3} label="Descrição" value={item.desc} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { desc: v }))} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
+                          {item.is_visible === false ? "Oculto" : "Visível"}
+                        </Btn>
+                        <Btn size="sm" variant={item.highlight ? "gold" : "ghost"} onClick={() => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { highlight: !item.highlight }))}>
+                          {item.highlight ? "Destaque ativo" : "Marcar destaque"}
+                        </Btn>
+                        <Btn size="sm" variant="danger" onClick={() => setTimelineDraftItems(timelineDraftItems.filter((_, itemIndex) => itemIndex !== i))}>
+                          <X size={12} />Remover
+                        </Btn>
                       </div>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Logo do header</p>
-                  <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, JPG ou WEBP. O arquivo aparecerá no topo do site público.</p>
-                  <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] cursor-pointer transition-colors">
-                    <Upload size={14} />{busy === "header-logo" ? "Enviando..." : "Enviar logo"}
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                      className="sr-only"
-                      disabled={busy === "header-logo"}
-                      onChange={e => {
-                        const file = e.currentTarget.files?.[0] ?? null;
-                        void handleHeaderLogoUpload(file);
-                        e.currentTarget.value = "";
-                      }}
-                    />
-                  </label>
+                  ))}
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Chamada superior do hero" value={homeDraft.hero_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, hero_eyebrow: v }))} />
-                <Field label="Título principal" value={homeDraft.hero_title} onChange={v => setHomeDraft(s => ({ ...s, hero_title: v }))} />
-                <Field label="Linha de apoio do título" value={homeDraft.hero_tagline} onChange={v => setHomeDraft(s => ({ ...s, hero_tagline: v }))} />
-                <Field label="Data/local no hero" value={homeDraft.hero_event_line} onChange={v => setHomeDraft(s => ({ ...s, hero_event_line: v }))} />
-                <Field label="CTA principal" value={homeDraft.primary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, primary_cta_label: v }))} />
-                <Field label="CTA secundário" value={homeDraft.secondary_cta_label} onChange={v => setHomeDraft(s => ({ ...s, secondary_cta_label: v }))} />
-                <div className="md:col-span-2">
-                  <FieldArea rows={3} label="Subtítulo do hero" value={homeDraft.hero_subtitle} onChange={v => setHomeDraft(s => ({ ...s, hero_subtitle: v }))} />
+            {contentTab === "faq" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">FAQ</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Gerencie perguntas frequentes, respostas e visibilidade.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Btn size="sm" variant="ghost" onClick={() => setFaqDraftItems([...faqDraftItems, { q: "Nova pergunta", a: "Nova resposta.", is_visible: true }])}>Adicionar pergunta</Btn>
+                    <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar FAQ</Btn>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <Field label="Eyebrow FAQ" value={homeDraft.faq_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, faq_eyebrow: v }))} />
+                  <Field label="Título FAQ" value={homeDraft.faq_title} onChange={v => setHomeDraft(s => ({ ...s, faq_title: v }))} />
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {faqDraftItems.map((item, i) => (
+                    <div key={`${item.q}-${i}`} className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                      <div className="flex flex-col gap-4 mb-4">
+                        <Field label="Pergunta" value={item.q} onChange={v => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { q: v }))} />
+                        <FieldArea rows={3} label="Resposta" value={item.a} onChange={v => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { a: v }))} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
+                          {item.is_visible === false ? "Oculta" : "Visível"}
+                        </Btn>
+                        <Btn size="sm" variant="danger" onClick={() => setFaqDraftItems(faqDraftItems.filter((_, itemIndex) => itemIndex !== i))}>
+                          <X size={12} />Remover
+                        </Btn>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Seções da home</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Eyebrow sobre" value={homeDraft.about_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, about_eyebrow: v }))} />
-                <Field label="Título sobre" value={homeDraft.about_title} onChange={v => setHomeDraft(s => ({ ...s, about_title: v }))} />
-                <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 1" value={homeDraft.about_body_1} onChange={v => setHomeDraft(s => ({ ...s, about_body_1: v }))} /></div>
-                <div className="md:col-span-2"><FieldArea rows={3} label="Texto sobre 2" value={homeDraft.about_body_2} onChange={v => setHomeDraft(s => ({ ...s, about_body_2: v }))} /></div>
-                <Field label="Eyebrow informações" value={homeDraft.info_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, info_eyebrow: v }))} />
-                <Field label="Título informações" value={homeDraft.info_title} onChange={v => setHomeDraft(s => ({ ...s, info_title: v }))} />
-                <Field label="Eyebrow ingressos" value={homeDraft.tickets_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, tickets_eyebrow: v }))} />
-                <Field label="Título ingressos" value={homeDraft.tickets_title} onChange={v => setHomeDraft(s => ({ ...s, tickets_title: v }))} />
-                <Field label="Eyebrow confirmados" value={homeDraft.confirmed_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, confirmed_eyebrow: v }))} />
-                <Field label="Título confirmados" value={homeDraft.confirmed_title} onChange={v => setHomeDraft(s => ({ ...s, confirmed_title: v }))} />
-                <Field label="Eyebrow fotos" value={homeDraft.photos_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, photos_eyebrow: v }))} />
-                <Field label="Título fotos" value={homeDraft.photos_title} onChange={v => setHomeDraft(s => ({ ...s, photos_title: v }))} />
-                <Field label="Eyebrow timeline" value={homeDraft.timeline_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, timeline_eyebrow: v }))} />
-                <Field label="Título timeline" value={homeDraft.timeline_title} onChange={v => setHomeDraft(s => ({ ...s, timeline_title: v }))} />
-                <Field label="Eyebrow FAQ" value={homeDraft.faq_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, faq_eyebrow: v }))} />
-                <Field label="Título FAQ" value={homeDraft.faq_title} onChange={v => setHomeDraft(s => ({ ...s, faq_title: v }))} />
+            {contentTab === "footer" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Rodapé</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Texto institucional, contatos, títulos e labels legais do footer.</p>
+                  </div>
+                  <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar rodapé</Btn>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Eyebrow do rodapé" value={homeDraft.footer_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, footer_eyebrow: v }))} />
+                  <Field label="Título do rodapé" value={homeDraft.footer_title} onChange={v => setHomeDraft(s => ({ ...s, footer_title: v }))} />
+                  <div className="md:col-span-2">
+                    <FieldArea rows={3} label="Texto institucional" value={homeDraft.footer_body} onChange={v => setHomeDraft(s => ({ ...s, footer_body: v }))} />
+                  </div>
+                  <Field label="Título da navegação" value={homeDraft.footer_nav_title} onChange={v => setHomeDraft(s => ({ ...s, footer_nav_title: v }))} />
+                  <Field label="Título do contato" value={homeDraft.footer_contact_title} onChange={v => setHomeDraft(s => ({ ...s, footer_contact_title: v }))} />
+                  <Field label="E-mail" value={homeDraft.footer_email} onChange={v => setHomeDraft(s => ({ ...s, footer_email: v }))} />
+                  <Field label="Telefone" value={homeDraft.footer_phone} onChange={v => setHomeDraft(s => ({ ...s, footer_phone: v }))} />
+                  <Field label="Localização" value={homeDraft.footer_location} onChange={v => setHomeDraft(s => ({ ...s, footer_location: v }))} />
+                  <Field label="Copyright" value={homeDraft.footer_copyright} onChange={v => setHomeDraft(s => ({ ...s, footer_copyright: v }))} />
+                  <Field label="Label termos" value={homeDraft.footer_terms_label} onChange={v => setHomeDraft(s => ({ ...s, footer_terms_label: v }))} />
+                  <Field label="Label privacidade" value={homeDraft.footer_privacy_label} onChange={v => setHomeDraft(s => ({ ...s, footer_privacy_label: v }))} />
+                  <Field label="Label admin" value={homeDraft.footer_admin_label} onChange={v => setHomeDraft(s => ({ ...s, footer_admin_label: v }))} />
+                </div>
               </div>
-              <div className="mt-6">
-                <Btn onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar textos da home</Btn>
-              </div>
-            </div>
+            )}
           </div>
         ))}
 
@@ -5532,7 +5849,7 @@ export default function App() {
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
         {page === "privacy"       && <PrivacyPage        navigate={navigate}                                        />}
       </main>
-      {!isFullscreen && <Footer navigate={navigate} />}
+      {!isFullscreen && <Footer navigate={navigate} content={homeContent} />}
     </div>
   );
 }
