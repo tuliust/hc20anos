@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 html {
   min-height: 100%;
@@ -70,3 +70,21 @@ header button.inline-flex.whitespace-nowrap {
     font-size: 12px !important;
   }
 }
+
+/* Modal: evita que o botão de fechar fique escondido em telas pequenas/notch. */
+[data-modal-root] {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Ajustes finos de campos numéricos em botões segmentados/formulários mobile. */
+input[type="number"] {
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+

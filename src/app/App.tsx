@@ -20,6 +20,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
+  getPublicProfileCardByPersonId,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
 } from "../lib/services";
@@ -27,8 +28,8 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
-  DbEventArchiveSettings,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus,
+  DbEventArchiveSettings, RelationshipStatus,
 } from "../lib/database.types";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
@@ -519,6 +520,46 @@ function formatDateBR(value?: string | null) {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+
+function formatDateShortBR(value?: string | null) {
+  if (!value) return "";
+  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function relationshipStatusLabel(value?: RelationshipStatus | null) {
+  const labels: Record<RelationshipStatus, string> = {
+    single: "Solteiro(a)",
+    dating: "Namorando",
+    married: "Casado(a)",
+  };
+  return value ? labels[value] : null;
+}
+
+function childrenStatusLabel(hasChildren?: boolean | null, childrenCount?: number | null) {
+  if (hasChildren === true) {
+    return childrenCount && childrenCount > 0
+      ? `${childrenCount} ${childrenCount === 1 ? "filho" : "filhos"}`
+      : "Tem filhos";
+  }
+  if (hasChildren === false) return "Sem filhos";
+  return null;
+}
+
+function normalizeExternalUrl(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function whatsappLink(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  if (!digits) return null;
+  const normalized = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${normalized}`;
+}
+
 function formatDateTimeBR(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -649,6 +690,27 @@ function FieldArea({ label, placeholder, value, onChange, rows = 3 }: {
       <textarea rows={rows} placeholder={placeholder} value={value} onChange={e => onChange?.(e.target.value)}
         className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f] resize-none" />
     </div>
+  );
+}
+
+
+function OptionButton({ selected, onClick, children }: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left px-4 py-3 border text-sm transition-colors ${
+        selected
+          ? "bg-[#2d6a4f] border-[#2d6a4f] text-[#f0ebe0]"
+          : "border-[#2d6a4f]/30 text-[#8ab89a] hover:border-[#2d6a4f]/70"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -827,11 +889,47 @@ function PersonDetailModal({
   onClose: () => void;
   onClaim?: () => void;
 }) {
+  const [publicProfile, setPublicProfile] = useState<PublicProfileCardRow | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setPublicProfile(null);
+
+    if (!person?.id) return;
+
+    setProfileLoading(true);
+    getPublicProfileCardByPersonId(person.id)
+      .then(data => {
+        if (active) setPublicProfile(data);
+      })
+      .catch(() => {
+        if (active) setPublicProfile(null);
+      })
+      .finally(() => {
+        if (active) setProfileLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [person?.id]);
+
   if (!person) return null;
 
-  const avatarUrl = person.avatar_url ?? profile?.avatar_url ?? null;
-  const displayName = profile?.display_name || person.full_name;
-  const location = [profile?.current_city, profile?.current_state, profile?.current_country].filter(Boolean).join(" · ");
+  const avatarUrl = publicProfile?.avatar_url ?? person.avatar_url ?? profile?.avatar_url ?? null;
+  const displayName = publicProfile?.display_name || profile?.display_name || person.full_name;
+  const location = [
+    publicProfile?.current_city ?? profile?.current_city,
+    publicProfile?.current_state ?? profile?.current_state,
+    publicProfile?.current_country ?? profile?.current_country,
+  ].filter(Boolean).join(" · ");
+  const profession = publicProfile ? publicProfile.profession : (profile?.show_profession ? profile?.profession : null);
+  const relationshipLabel = relationshipStatusLabel(publicProfile?.relationship_status ?? null);
+  const childrenLabel = publicProfile ? childrenStatusLabel(publicProfile.has_children, publicProfile.children_count) : null;
+  const instagramUrl = normalizeExternalUrl(publicProfile?.instagram_url);
+  const linkedinUrl = normalizeExternalUrl(publicProfile?.linkedin_url);
+  const whatsappUrl = whatsappLink(publicProfile?.contact_whatsapp);
 
   return (
     <Modal open={!!person} onClose={onClose} title="Perfil da turma" wide>
@@ -857,16 +955,40 @@ function PersonDetailModal({
             <StatusBadge status={person.profile_status} />
             {person.class_group && <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Sala {person.class_group}</span>}
             <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_year}</span>
+            {relationshipLabel && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#c9a84c] border border-[#c9a84c]/30"><Heart size={11} />{relationshipLabel}</span>}
+            {childrenLabel && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30"><User size={11} />{childrenLabel}</span>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InfoRow label="Nome completo" value={person.full_name} />
-            <InfoRow label="Apelido na escola" value={person.nickname_at_school} />
-            <InfoRow label="Sala" value={person.class_group ? `Sala ${person.class_group}` : null} />
             <InfoRow label="Status do perfil" value={person.profile_status} />
             <InfoRow label="Localização atual" value={location || null} />
-            <InfoRow label="Profissão" value={profile?.show_profession ? profile?.profession : null} />
+            <InfoRow label="Profissão" value={profession || null} />
+            <InfoRow label="Estado civil" value={relationshipLabel} />
+            <InfoRow label="Filhos" value={childrenLabel} />
           </div>
+
+          {profileLoading && <p className="text-[#7a9a7a] text-xs font-mono">Carregando dados públicos...</p>}
+
+          {(instagramUrl || linkedinUrl || whatsappUrl) && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {instagramUrl && (
+                <a href={instagramUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#2d6a4f]/40 text-[#f0ebe0] px-3 py-2 text-xs font-mono hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors">
+                  <Instagram size={14} />Instagram
+                </a>
+              )}
+              {linkedinUrl && (
+                <a href={linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#2d6a4f]/40 text-[#f0ebe0] px-3 py-2 text-xs font-mono hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors">
+                  <Linkedin size={14} />LinkedIn
+                </a>
+              )}
+              {whatsappUrl && (
+                <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#2d6a4f]/40 text-[#f0ebe0] px-3 py-2 text-xs font-mono hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors">
+                  <Phone size={14} />WhatsApp
+                </a>
+              )}
+            </div>
+          )}
 
           {person.profile_status === "unclaimed" && onClaim && (
             <Btn onClick={onClaim}><UserCheck size={16} />Criar perfil</Btn>
@@ -877,7 +999,7 @@ function PersonDetailModal({
   );
 }
 
-// Modal
+
 function Modal({ open, onClose, title, children, wide = false }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean;
 }) {
@@ -888,18 +1010,29 @@ function Modal({ open, onClose, title, children, wide = false }: {
   }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-      style={{ background: "rgba(8,15,8,0.88)" }}>
-      <div className={`bg-[#141f14] border border-[#2d6a4f]/40 w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[92vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#2d6a4f]/20 sticky top-0 bg-[#141f14] z-10">
-          <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-lg">{title}</p>
-          <button onClick={onClose} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors"><X size={20} /></button>
+    <div
+      data-modal-root="true"
+      className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-3 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      style={{ background: "rgba(8,15,8,0.88)" }}
+    >
+      <div className={`bg-[#141f14] border border-[#2d6a4f]/40 w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100svh-1.5rem)] sm:max-h-[92vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 sm:py-5 border-b border-[#2d6a4f]/20 sticky top-0 bg-[#141f14] z-20">
+          <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-lg leading-tight pr-2">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar modal"
+            className="w-10 h-10 shrink-0 inline-flex items-center justify-center text-[#7a9a7a] hover:text-[#f0ebe0] hover:bg-[#1a2e1a] transition-colors -mr-2"
+          >
+            <X size={22} />
+          </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );
 }
+
 
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -1456,7 +1589,6 @@ function Header({ page, navigate, auth, logout, content }: {
             ))}
           </div>
           <div className="mt-auto pt-8 flex flex-col gap-3">
-            <Btn full onClick={() => go("tickets")}>{headerContent.header_cta_label}</Btn>
             {auth.loggedIn ? (
               <>
                 <Btn full variant="outline" onClick={() => go("alumni-area")}>Minha área</Btn>
@@ -1695,9 +1827,9 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
         <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
         <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>
         <p className="text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 mt-1 mb-10 md:mb-12">{content.hero_event_line}</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 md:mb-12">
-          <Btn size="lg" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
-          <Btn size="lg" variant="outline" onClick={() => navigate(normalizePage(extendedContent.secondary_cta_page, "who-going"))}>{content.secondary_cta_label}</Btn>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 md:mb-12">
+          <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
+          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.secondary_cta_page, "who-going"))}>{content.secondary_cta_label}</Btn>
         </div>
         <div className="inline-flex">
           {[
@@ -1707,9 +1839,9 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
             { v: time.seconds, l: extendedContent.countdown_seconds_label },
           ].map(({ v, l }, i) => (
             <div key={l} className="flex items-center">
-              {i > 0 && <span className="text-[#2d6a4f] font-mono text-3xl md:text-4xl mx-3 md:mx-6 font-light">:</span>}
+              {i > 0 && <span className="text-[#2d6a4f] font-mono text-4xl md:text-4xl mx-2.5 md:mx-6 font-light">:</span>}
               <div className="text-center">
-                <div className="font-['JetBrains_Mono'] text-4xl md:text-6xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
+                <div className="font-['JetBrains_Mono'] text-5xl md:text-6xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
                 <div className="text-[#c9a84c] text-[9px] tracking-[0.3em] uppercase font-mono mt-1">{l}</div>
               </div>
             </div>
@@ -1717,7 +1849,7 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
         </div>
       </div>
       <div className="absolute bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
-        <ChevronDown className="text-[#c9a84c] opacity-50" size={20} />
+        <ChevronDown className="text-[#c9a84c] opacity-70" size={34} />
       </div>
     </section>
   );
@@ -1812,9 +1944,8 @@ function TicketsPreview({
   return (
     <section className="bg-[#0a120a] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+        <div className="mb-12">
           <div><SectionLabel>{content.tickets_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.tickets_title}</DisplayTitle></div>
-          <Btn variant="ghost" onClick={() => navigate("tickets")}>{extendedContent.tickets_view_all_label} <ArrowRight size={16} /></Btn>
         </div>
 
         {publicTickets.length === 0 ? (
@@ -1894,9 +2025,8 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
 
       <section className="bg-[#0d1a0f] py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div className="mb-12">
             <div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div>
-            <Btn variant="ghost" onClick={() => navigate("who-going")}>{extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {confirmed.map(a => (
@@ -1908,8 +2038,9 @@ function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) =>
               />
             ))}
           </div>
-          <div className="mt-8 text-center">
+          <div className="mt-10 flex flex-col items-center gap-4 text-center">
             <p className="text-[#7a9a7a] text-sm font-mono">{extendedContent.confirmed_privacy_note}</p>
+            <Btn variant="ghost" onClick={() => navigate("who-going")}>{extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>
           </div>
         </div>
       </section>
@@ -1923,25 +2054,29 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
   return (
     <section className="bg-[#080f08] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+        <div className="mb-12">
           <div><SectionLabel>{content.photos_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.photos_title}</DisplayTitle></div>
-          <Btn variant="ghost" onClick={() => navigate("photo-wall")}>{extendedContent.photos_view_all_label} <ArrowRight size={16} /></Btn>
         </div>
         {previewPhotos.length === 0 ? (
           <EmptyState title={extendedContent.photos_empty_title} subtitle={extendedContent.photos_empty_subtitle} action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>{extendedContent.photos_empty_cta_label}</Btn>} />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {previewPhotos.map(p => (
-              <div key={p.id} onClick={() => navigate("photo-detail")} className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-                <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto da turma"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                  <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "Memória da turma"}</p>
-                  <p className="text-[#c9a84c] font-mono text-xs">{p.year_approx ?? "HC"}</p>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              {previewPhotos.map(p => (
+                <div key={p.id} onClick={() => navigate("photo-detail")} className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
+                  <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto da turma"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                    <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "Memória da turma"}</p>
+                    <p className="text-[#c9a84c] font-mono text-xs">{p.year_approx ?? "HC"}</p>
+                  </div>
+                  {p.year_approx && <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>}
                 </div>
-                {p.year_approx && <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <Btn variant="ghost" onClick={() => navigate("photo-wall")}>{extendedContent.photos_view_all_label} <ArrowRight size={16} /></Btn>
+            </div>
+          </>
         )}
       </div>
     </section>
@@ -2707,6 +2842,9 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   const [claimPhotoPreview, setClaimPhotoPreview] = useState("");
   const [claimPhotoUploading, setClaimPhotoUploading] = useState(false);
   const [claimError, setClaimError] = useState("");
+  const [claimRelationshipStatus, setClaimRelationshipStatus] = useState<RelationshipStatus | "">("");
+  const [claimHasChildren, setClaimHasChildren] = useState<"" | "yes" | "no">("");
+  const [claimChildrenCount, setClaimChildrenCount] = useState("");
 
   const results = people
     .filter(a => a.full_name.toLowerCase().includes(search.toLowerCase()) && search.length > 1)
@@ -2719,6 +2857,12 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     try {
       if (!selected) throw new Error("Selecione um perfil.");
       if (!claimEmail.includes("@")) throw new Error("Informe um e-mail valido.");
+      if (!claimRelationshipStatus) throw new Error("Selecione seu estado civil.");
+      if (!claimHasChildren) throw new Error("Informe se você tem filhos.");
+      const childrenCount = Number(claimChildrenCount);
+      if (claimHasChildren === "yes" && claimChildrenCount.trim() && (!Number.isInteger(childrenCount) || childrenCount < 0)) {
+        throw new Error("Quantidade de filhos inválida.");
+      }
       const scoreAnswers = CONFIRM_QUESTIONS.map(q => ({
         key: q.id,
         text: answers[q.id] ?? "",
@@ -2733,18 +2877,21 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         answers: scoreAnswers,
       });
 
-      if (result === "approved" && auth.loggedIn && claimPhotoFile) {
+      if (result === "approved" && auth.loggedIn) {
         try {
-          setClaimPhotoUploading(true);
-          const publicUrl = await uploadProfileAvatar(auth.userId, claimPhotoFile);
+          setClaimPhotoUploading(Boolean(claimPhotoFile));
+          const publicUrl = claimPhotoFile ? await uploadProfileAvatar(auth.userId, claimPhotoFile) : null;
           await saveMyPublicProfile(auth.userId, {
             display_name: selected.name,
             current_photo_url: publicUrl,
-          }, {
+            relationship_status: claimRelationshipStatus || null,
+            has_children: claimHasChildren === "yes",
+            children_count: claimHasChildren === "yes" && claimChildrenCount.trim() ? Number(claimChildrenCount) : null,
+          }, publicUrl ? {
             avatar_url: publicUrl,
-          });
+          } : {});
         } catch (photoErr) {
-          console.error("Falha ao salvar foto do cadastro", photoErr);
+          console.error("Falha ao salvar dados públicos do cadastro", photoErr);
         } finally {
           setClaimPhotoUploading(false);
         }
@@ -2895,6 +3042,29 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={claimPhone} onChange={setClaimPhone} icon={<Phone size={16} />}
               hint="Enviaremos um código de verificação via SMS ou WhatsApp" />
             <div className="border-t border-[#2d6a4f]/20 pt-5">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Dados públicos do perfil</p>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Estado civil</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <OptionButton selected={claimRelationshipStatus === "single"} onClick={() => setClaimRelationshipStatus("single")}>Solteiro(a)</OptionButton>
+                    <OptionButton selected={claimRelationshipStatus === "dating"} onClick={() => setClaimRelationshipStatus("dating")}>Namorando</OptionButton>
+                    <OptionButton selected={claimRelationshipStatus === "married"} onClick={() => setClaimRelationshipStatus("married")}>Casado(a)</OptionButton>
+                  </div>
+                </div>
+                <div>
+                  <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Filhos</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <OptionButton selected={claimHasChildren === "yes"} onClick={() => setClaimHasChildren("yes")}>Tenho filhos</OptionButton>
+                    <OptionButton selected={claimHasChildren === "no"} onClick={() => { setClaimHasChildren("no"); setClaimChildrenCount(""); }}>Não tenho filhos</OptionButton>
+                  </div>
+                </div>
+                {claimHasChildren === "yes" && (
+                  <Field label="Quantidade de filhos" type="number" value={claimChildrenCount} onChange={v => setClaimChildrenCount(v.replace(/\D/g, "").slice(0, 2))} placeholder="Ex.: 2" />
+                )}
+              </div>
+            </div>
+            <div className="border-t border-[#2d6a4f]/20 pt-5">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Foto de perfil opcional</p>
               {auth.loggedIn ? (
                 <AvatarCropUpload
@@ -2912,7 +3082,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
                 </div>
               )}
             </div>
-            <Btn full onClick={() => setStep(4)}>Enviar código de verificação <ArrowRight size={16} /></Btn>
+            <Btn full onClick={() => setStep(4)} disabled={!claimRelationshipStatus || !claimHasChildren}>Enviar código de verificação <ArrowRight size={16} /></Btn>
           </div>
         )}
 
@@ -4205,7 +4375,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
                   {memory.is_featured && <Star size={14} className="text-[#c9a84c]" />}
                 </div>
                 <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {memory.created_at?.slice(0, 10)}</p>
+                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {formatDateShortBR(memory.created_at)}</p>
               </div>
             ))}
           </div>
@@ -4552,6 +4722,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
     displayName: "", nickname: "", photoUrl: "", city: "", state: "", country: "Brasil",
     profession: "", bio: "", memoryText: "", instagram: "", linkedin: "",
     contactEmail: "", contactWhatsapp: "",
+    relationshipStatus: "" as RelationshipStatus | "",
+    hasChildren: "" as "" | "yes" | "no",
+    childrenCount: "",
   });
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: false, showInList: true, allowTagging: true });
   const [loading, setLoading] = useState(true);
@@ -4602,6 +4775,16 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
     if (whatsappDigits && whatsappDigits.length !== 11) {
       return "WhatsApp inválido. Use o formato (XX) XXXXX-XXXX.";
     }
+    if (!form.relationshipStatus) {
+      return "Selecione seu estado civil.";
+    }
+    if (!form.hasChildren) {
+      return "Informe se você tem filhos.";
+    }
+    const childrenCount = Number(form.childrenCount);
+    if (form.hasChildren === "yes" && form.childrenCount.trim() && (!Number.isInteger(childrenCount) || childrenCount < 0)) {
+      return "Quantidade de filhos inválida.";
+    }
     return "";
   }
 
@@ -4626,6 +4809,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
           linkedin: socialDisplayValue(data.linkedin_url, "https://linkedin.com/in/"),
           contactEmail: data.contact_email ?? auth.email ?? "",
           contactWhatsapp: formatWhatsapp(data.contact_whatsapp ?? ""),
+          relationshipStatus: data.relationship_status ?? "",
+          hasChildren: data.has_children ? "yes" : "no",
+          childrenCount: data.children_count ? String(data.children_count) : "",
         };
         const nextPrivacy = {
           showCurrentPhoto: data.show_current_photo,
@@ -4691,6 +4877,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         linkedin_url: normalizeSocialUrl(form.linkedin, "https://linkedin.com/in/"),
         contact_email: form.contactEmail.trim() || null,
         contact_whatsapp: normalizeWhatsapp(form.contactWhatsapp),
+        relationship_status: form.relationshipStatus || null,
+        has_children: form.hasChildren === "yes",
+        children_count: form.hasChildren === "yes" && form.childrenCount.trim() ? Number(form.childrenCount) : null,
         show_current_photo: privacy.showCurrentPhoto,
         show_city: privacy.showCity,
         show_profession: privacy.showProfession,
@@ -4765,6 +4954,24 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Informações pessoais</p>
               <Field label="Nome de exibição" value={form.displayName} onChange={v => setForm(f => ({ ...f, displayName: v }))} placeholder="Como você quer aparecer" />
               <Field label="Apelido da época" value={form.nickname} onChange={v => setForm(f => ({ ...f, nickname: v }))} placeholder="Como te chamavam no HC" />
+              <div>
+                <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Estado civil</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <OptionButton selected={form.relationshipStatus === "single"} onClick={() => setForm(f => ({ ...f, relationshipStatus: "single" }))}>Solteiro(a)</OptionButton>
+                  <OptionButton selected={form.relationshipStatus === "dating"} onClick={() => setForm(f => ({ ...f, relationshipStatus: "dating" }))}>Namorando</OptionButton>
+                  <OptionButton selected={form.relationshipStatus === "married"} onClick={() => setForm(f => ({ ...f, relationshipStatus: "married" }))}>Casado(a)</OptionButton>
+                </div>
+              </div>
+              <div>
+                <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Filhos</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <OptionButton selected={form.hasChildren === "yes"} onClick={() => setForm(f => ({ ...f, hasChildren: "yes" }))}>Tenho filhos</OptionButton>
+                  <OptionButton selected={form.hasChildren === "no"} onClick={() => setForm(f => ({ ...f, hasChildren: "no", childrenCount: "" }))}>Não tenho filhos</OptionButton>
+                </div>
+              </div>
+              {form.hasChildren === "yes" && (
+                <Field label="Quantidade de filhos" type="number" value={form.childrenCount} onChange={v => setForm(f => ({ ...f, childrenCount: v.replace(/\D/g, "").slice(0, 2) }))} placeholder="Ex.: 2" />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="E-mail" value={form.contactEmail} onChange={v => setForm(f => ({ ...f, contactEmail: v }))} placeholder="seu@email.com" icon={<Mail size={14} />} />
                 <Field label="WhatsApp" value={form.contactWhatsapp} onChange={v => setForm(f => ({ ...f, contactWhatsapp: formatWhatsapp(v) }))} placeholder="(XX) XXXXX-XXXX" icon={<Phone size={14} />} />
