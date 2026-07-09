@@ -7,6 +7,7 @@ export type EventStatus   = "draft" | "published" | "cancelled" | "completed";
 export type SalesStatus   = "open" | "paused" | "closed";
 export type ProfileStatus = "unclaimed" | "claimed" | "confirmed";
 export type RelationshipStatus = "single" | "dating" | "married";
+export type Gender = "male" | "female";
 export type TicketStatus  = "draft" | "open" | "paused" | "sold_out" | "closed";
 export type PaymentStatus = "pending" | "in_process" | "approved" | "rejected" | "cancelled" | "refunded" | "expired" | "charged_back";
 export type PhotoStatus   = "pending" | "approved" | "rejected" | "removed";
@@ -44,6 +45,7 @@ export interface DbPerson {
   id:                   uuid;
   full_name:            string;
   display_name?:        string | null;
+  gender?:              Gender | null;
   class_year:           number;
   class_group:          string | null;
   birth_year?:          number | null;

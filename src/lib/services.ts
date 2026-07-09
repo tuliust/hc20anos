@@ -12,7 +12,7 @@ import type {
   DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
   DbEventArchiveSettings, DbEventPageContent,
 } from "./database.types";
 
@@ -390,6 +390,7 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
 export interface AdminImportPersonInput {
   full_name: string;
   display_name?: string | null;
+  gender?: Gender | null;
   birth_year: number | null;
   class_group: string | null;
   avatar_url?: string | null;
@@ -401,6 +402,7 @@ function normalizeImportPerson(row: AdminImportPersonInput) {
   return {
     full_name: row.full_name.trim(),
     display_name: row.display_name?.trim() || null,
+    gender: row.gender ?? null,
     birth_year: row.birth_year ?? null,
     class_group: row.class_group?.trim() || null,
     avatar_url: row.avatar_url?.trim() || null,

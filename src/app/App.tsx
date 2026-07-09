@@ -30,7 +30,7 @@ import type {
   DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
   DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus, Gender,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import {
@@ -674,13 +674,24 @@ function formatDateShortBR(value?: string | null) {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-function relationshipStatusLabel(value?: RelationshipStatus | null) {
-  const labels: Record<RelationshipStatus, string> = {
-    single: "Solteiro(a)",
-    dating: "Namorando",
-    married: "Casado(a)",
+function relationshipStatusLabel(value?: RelationshipStatus | null, gender?: Gender | null) {
+  if (!value) return null;
+  if (value === "dating") return "Namorando";
+  const labels: Record<Exclude<RelationshipStatus, "dating">, { male: string; female: string; fallback: string }> = {
+    single: { male: "Solteiro", female: "Solteira", fallback: "Solteiro(a)" },
+    married: { male: "Casado", female: "Casada", fallback: "Casado(a)" },
   };
-  return value ? labels[value] : null;
+  const label = labels[value];
+  return gender === "male" || gender === "female" ? label[gender] : label.fallback;
+}
+
+function profileStatusLabel(status?: ProfileStatus | string | null) {
+  const labels: Record<ProfileStatus, string> = {
+    confirmed: "Confirmado",
+    claimed: "Cadastrado",
+    unclaimed: "Não cadastrado",
+  };
+  return status && status in labels ? labels[status as ProfileStatus] : "Não cadastrado";
 }
 
 function childrenStatusLabel(hasChildren?: boolean | null, childrenCount?: number | null) {
@@ -755,6 +766,10 @@ function normalizeParticipantHeader(value: string) {
     nome_exibicao: "display_name",
     nome_de_exibicao: "display_name",
     display_name: "display_name",
+    genero: "gender",
+    gênero: "gender",
+    sexo: "gender",
+    gender: "gender",
     ano_nascimento: "birth_year",
     ano_de_nascimento: "birth_year",
     nascimento: "birth_year",
@@ -779,7 +794,7 @@ function rowsToParticipantImport(matrix: string[][]) {
   if (matrix.length < 2) return [];
   const header = matrix[0].map(cell => normalizeParticipantHeader(cell));
   return matrix.slice(1).map(row => {
-    const item: AdminImportPersonInput = { full_name: "", display_name: "", birth_year: null, class_group: "" };
+    const item: AdminImportPersonInput = { full_name: "", display_name: "", gender: null, birth_year: null, class_group: "" };
     row.forEach((value, index) => {
       const key = header[index];
       if (!key) return;
@@ -957,8 +972,8 @@ function Btn({ children, onClick, variant = "primary", size = "md", disabled = f
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    unclaimed:    { label: "Não reivindicado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    claimed:      { label: "Reivindicado",     color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
+    unclaimed:    { label: "Não cadastrado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
+    claimed:      { label: "Cadastrado",     color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
     confirmed:    { label: "Confirmado",       color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
     available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
@@ -1261,7 +1276,7 @@ function PersonDetailModal({
     publicProfile?.current_country ?? profile?.current_country,
   ].filter(Boolean).join(" · ");
   const profession = publicProfile ? publicProfile.profession : (profile?.show_profession ? profile?.profession : null);
-  const relationshipLabel = relationshipStatusLabel(publicProfile?.relationship_status ?? null);
+  const relationshipLabel = relationshipStatusLabel(publicProfile?.relationship_status ?? null, person.gender ?? null);
   const childrenLabel = publicProfile ? childrenStatusLabel(publicProfile.has_children, publicProfile.children_count) : null;
   const instagramUrl = normalizeExternalUrl(publicProfile?.instagram_url);
   const linkedinUrl = normalizeExternalUrl(publicProfile?.linkedin_url);
@@ -1289,15 +1304,13 @@ function PersonDetailModal({
 
           <div className="flex flex-wrap gap-2">
             <StatusBadge status={person.profile_status} />
-            {person.class_group && <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Sala {person.class_group}</span>}
+            {person.class_group && <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_group}</span>}
             <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_year}</span>
-            {relationshipLabel && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#c9a84c] border border-[#c9a84c]/30"><Heart size={11} />{relationshipLabel}</span>}
-            {childrenLabel && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30"><User size={11} />{childrenLabel}</span>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InfoRow label="Nome completo" value={person.full_name} />
-            <InfoRow label="Status do perfil" value={person.profile_status} />
+            <InfoRow label="Status do perfil" value={profileStatusLabel(person.profile_status)} />
             <InfoRow label="Localização atual" value={location || null} />
             <InfoRow label="Profissão" value={profession || null} />
             <InfoRow label="Estado civil" value={relationshipLabel} />
@@ -6356,7 +6369,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 
 function emptyAdminPersonRow(): AdminImportPersonInput {
-  return { full_name: "", display_name: "", birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
+  return { full_name: "", display_name: "", gender: null, birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
 }
 
 function AdminPeopleImportModal({
@@ -6391,7 +6404,7 @@ function AdminPeopleImportModal({
   function addBulkTextRows() {
     try {
       const imported = parseParticipantsCsv(bulkText);
-      if (!imported.length) throw new Error("Nenhuma linha válida encontrada. Use as colunas: nome_completo; nome_exibicao; ano_nascimento; turma; foto; whatsapp; email.");
+      if (!imported.length) throw new Error("Nenhuma linha válida encontrada. Use as colunas: nome_completo; nome_exibicao; genero; ano_nascimento; turma; foto; whatsapp; email.");
       setRows(current => [...current.filter(row => row.full_name.trim()), ...imported]);
       setBulkText("");
       setError("");
@@ -6473,13 +6486,21 @@ function AdminPeopleImportModal({
                   onRemove={row.avatar_url ? () => updateRow(index, { avatar_url: "" }) : undefined}
                   helperText="Use o recorte com zoom e posição para padronizar a foto do pré-cadastro."
                 />
-                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_110px_90px] gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_140px_110px_90px] gap-3">
                   <Field label="Nome completo *" value={row.full_name} onChange={v => updateRow(index, { full_name: v })} />
                   <Field label="Nome de exibição" value={row.display_name ?? ""} onChange={v => updateRow(index, { display_name: v })} />
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Gênero</label>
+                    <select value={row.gender ?? ""} onChange={e => updateRow(index, { gender: (e.target.value || null) as Gender | null })} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+                      <option value="">Não informado</option>
+                      <option value="male">Masculino</option>
+                      <option value="female">Feminino</option>
+                    </select>
+                  </div>
                   <Field label="Ano *" type="number" value={row.birth_year ? String(row.birth_year) : ""} onChange={v => updateRow(index, { birth_year: Number(v.replace(/\D/g, "").slice(0, 4)) || null })} />
                   <Field label="Turma *" value={row.class_group ?? ""} onChange={v => updateRow(index, { class_group: v.toUpperCase().slice(0, 3) })} />
                   <Field label="WhatsApp" value={row.contact_whatsapp ?? ""} onChange={v => updateRow(index, { contact_whatsapp: formatWhatsappInput(v) })} />
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <Field label="E-mail" type="email" value={row.contact_email ?? ""} onChange={v => updateRow(index, { contact_email: v })} />
                   </div>
                   <div className="flex items-end justify-end">
@@ -6494,7 +6515,7 @@ function AdminPeopleImportModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-[#2d6a4f]/20 pt-6">
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Colar múltiplos participantes</p>
-            <FieldArea rows={7} label="Dados em CSV" value={bulkText} onChange={setBulkText} placeholder={'nome_completo;nome_exibicao;ano_nascimento;turma;foto;whatsapp;email\nMaria Silva;Maria;1988;A;;(84) 99999-0000;maria@email.com'} />
+            <FieldArea rows={7} label="Dados em CSV" value={bulkText} onChange={setBulkText} placeholder={'nome_completo;nome_exibicao;genero;ano_nascimento;turma;foto;whatsapp;email\nMaria Silva;Maria;feminino;1988;A;;(84) 99999-0000;maria@email.com'} />
             <div className="mt-3"><Btn size="sm" variant="ghost" onClick={addBulkTextRows}>Adicionar dados colados</Btn></div>
           </div>
           <div>
@@ -6520,6 +6541,7 @@ function AdminPeopleImportModal({
 type AdminPersonForm = {
   full_name: string;
   display_name: string;
+  gender: Gender | null;
   birth_year: string;
   class_year: string;
   class_group: string;
@@ -6560,6 +6582,7 @@ function buildAdminPersonForm(person: DbPerson): AdminPersonForm {
   return {
     full_name: person.full_name ?? "",
     display_name: person.display_name ?? "",
+    gender: person.gender ?? null,
     birth_year: person.birth_year ? String(person.birth_year) : "",
     class_year: person.class_year ? String(person.class_year) : "2006",
     class_group: person.class_group ?? "",
@@ -6678,6 +6701,7 @@ function AdminPersonEditModal({
       const personPatch: Partial<DbPerson> = {
         full_name: personForm.full_name.trim(),
         display_name: personForm.display_name.trim() || null,
+        gender: personForm.gender,
         birth_year: Number(personForm.birth_year.replace(/\D/g, "")) || null,
         class_year: Number(personForm.class_year.replace(/\D/g, "")) || 2006,
         class_group: personForm.class_group.trim().toUpperCase() || null,
@@ -6739,15 +6763,23 @@ function AdminPersonEditModal({
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2"><Field label="Nome completo" value={personForm.full_name} onChange={v => updatePersonForm({ full_name: v })} /></div>
-          <div className="md:col-span-2"><Field label="Nome de exibição" value={personForm.display_name} onChange={v => updatePersonForm({ display_name: v })} /></div>
+          <div><Field label="Nome de exibição" value={personForm.display_name} onChange={v => updatePersonForm({ display_name: v })} /></div>
+          <div>
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Gênero</label>
+            <select value={personForm.gender ?? ""} onChange={e => updatePersonForm({ gender: (e.target.value || null) as Gender | null })} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
+              <option value="">Não informado</option>
+              <option value="male">Masculino</option>
+              <option value="female">Feminino</option>
+            </select>
+          </div>
           <Field label="Ano nascimento" type="number" value={personForm.birth_year} onChange={v => updatePersonForm({ birth_year: v.replace(/\D/g, "").slice(0, 4) })} />
           <Field label="Ano turma" type="number" value={personForm.class_year} onChange={v => updatePersonForm({ class_year: v.replace(/\D/g, "").slice(0, 4) })} />
           <Field label="Turma" value={personForm.class_group} onChange={v => updatePersonForm({ class_group: v.toUpperCase().slice(0, 3) })} />
           <div>
             <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Status</label>
             <select value={personForm.profile_status} onChange={e => updatePersonForm({ profile_status: e.target.value as ProfileStatus })} className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
-              <option value="unclaimed">Não reivindicado</option>
-              <option value="claimed">Reivindicado</option>
+              <option value="unclaimed">Não cadastrado</option>
+              <option value="claimed">Cadastrado</option>
               <option value="confirmed">Confirmado</option>
             </select>
           </div>
@@ -8430,6 +8462,7 @@ export default function App() {
   const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [homeContent, setHomeContent] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
+  const [homeContentLoaded, setHomeContentLoaded] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
@@ -8464,7 +8497,10 @@ export default function App() {
   function refreshPublicEventData() {
     getEventSettings().then(setEvent).catch(() => setEvent(null));
     getTicketTypes(DEFAULT_EVENT_ID).then(setTicketTypes).catch(() => setTicketTypes([]));
-    getHomePageContent(DEFAULT_EVENT_ID).then(setHomeContent).catch(() => {});
+    getHomePageContent(DEFAULT_EVENT_ID)
+      .then(setHomeContent)
+      .catch(() => {})
+      .finally(() => setHomeContentLoaded(true));
     getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => setApprovedMemories([]));
   }
 
@@ -8521,6 +8557,17 @@ export default function App() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin" />
           <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (page === "home" && !homeContentLoaded) {
+    return (
+      <div className="min-h-screen bg-[#0d1a0f] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Carregando conteúdo...</p>
         </div>
       </div>
     );
