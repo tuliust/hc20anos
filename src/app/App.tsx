@@ -2636,7 +2636,6 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
   });
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-4xl mx-auto px-4">
         <div className="border-b border-[#2d6a4f]/20 pb-12 mb-12">
           <SectionLabel>17 de Outubro de 2026 · Natal, RN</SectionLabel>
@@ -2829,7 +2828,6 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => step > 1 ? setStep(s => s - 1) : navigate("tickets")}
           className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
@@ -3066,7 +3064,6 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
 function ConfirmationPage({ navigate }: { navigate: (p: Page) => void }) {
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-lg mx-auto px-4 text-center">
         <div className="mb-8">
           <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center mx-auto mb-6">
@@ -3125,7 +3122,6 @@ function WhoGoingPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
           <SectionLabel>Reencontro 2026</SectionLabel>
@@ -4461,7 +4457,6 @@ function PollsPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
           <div>
@@ -4716,7 +4711,6 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
@@ -4805,7 +4799,6 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-5xl mx-auto px-4">
         <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha área</button>
         <SectionLabel>Meu ingresso</SectionLabel>
@@ -5210,7 +5203,6 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
           <div>
@@ -5377,7 +5369,6 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
           <div>
@@ -5726,7 +5717,6 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-2xl mx-auto px-4">
         <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Minha área
@@ -7455,7 +7445,6 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-3xl mx-auto px-4">
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
@@ -7496,7 +7485,6 @@ function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      {toast && <ToastNotification toast={toast} onClose={hide} />}
       <div className="max-w-3xl mx-auto px-4">
         <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
           <ArrowLeft size={16} /> Voltar
