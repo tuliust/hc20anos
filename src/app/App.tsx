@@ -2862,8 +2862,8 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
   checkoutReturn: CheckoutReturnState;
 }) {
   const [step, setStep]           = useState(1);
-  const [form, setForm]           = useState({ name: auth.name || "", email: auth.email || "", phone: "", alumni: "" });
-  const [companion, setCompanion] = useState(false);
+  const [form, setForm]           = useState({ name: auth.name || "", email: auth.email || "", phone: "" });
+  const [guestCount, setGuestCount] = useState(0);
   const [payment, setPayment]     = useState("pix");
   const [loading, setLoading]     = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState<PaymentStatus | "cancelled" | null>(checkoutReturn?.status ?? null);
@@ -2872,6 +2872,32 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
   const [payResult, setPayResult] = useState<"approved" | "declined" | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
 
+  function formatCheckoutWhatsapp(value?: string | null) {
+    let digits = String(value ?? "").replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+    digits = digits.slice(0, 11);
+    if (!digits) return "";
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
+  useEffect(() => {
+    if (!auth.loggedIn || !auth.userId) return;
+    let cancelled = false;
+    getMyProfile(auth.userId)
+      .then(profile => {
+        if (cancelled || !profile) return;
+        setForm(current => ({
+          name: current.name || profile.display_name || profile.people?.full_name || auth.name || "",
+          email: current.email || profile.contact_email || auth.email || "",
+          phone: current.phone || formatCheckoutWhatsapp(profile.contact_whatsapp || (profile.people as any)?.contact_whatsapp || ""),
+        }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [auth.loggedIn, auth.userId, auth.name, auth.email]);
+
   const steps = ["Seus dados", "Pagamento", "Processando"];
   const selectedTicket = ticketTypes.find(t => t.id === selectedTicketTypeId)
     ?? ticketTypes.find(t => t.status === "open")
@@ -2879,7 +2905,7 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
   const fallbackTicket = TICKETS.find(t => t.id === selectedTicketTypeId) ?? TICKETS[0];
   const ticketName = selectedTicket?.name ?? fallbackTicket.type;
   const ticketPriceCents = selectedTicket?.price_cents ?? fallbackTicket.price * 100;
-  const quantity = companion ? 2 : 1;
+  const quantity = Math.max(1, 1 + guestCount);
   const totalCents = ticketPriceCents * quantity;
   const selectedId = selectedTicket?.id ?? selectedTicketTypeId ?? fallbackTicket.id;
 
@@ -3022,19 +3048,22 @@ function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, check
             <Field label="Nome completo" placeholder="Como no documento" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} icon={<User size={16} />} />
             <Field label="E-mail" type="email" placeholder="seu@email.com" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} icon={<Mail size={16} />} />
             <Field label="WhatsApp" type="tel" placeholder="(84) 9 9999-0000" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} icon={<Phone size={16} />} />
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Buscar seu perfil na lista da turma</label>
-              <div className="relative">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input placeholder="Digite seu nome..." value={form.alumni} onChange={e => setForm(f => ({ ...f, alumni: e.target.value }))}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#2d6a4f]" />
+            <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-5">
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Convidados</label>
+              <p className="text-[#7a9a7a] text-xs mb-4">Informe quantas pessoas irão com você. O pedido será calculado como você + convidados.</p>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setGuestCount(count => Math.max(0, count - 1))} className="w-12 h-12 border border-[#2d6a4f]/40 text-[#f0ebe0] text-xl hover:bg-[#1a2e1a] transition-colors">−</button>
+                <input
+                  type="number"
+                  min="0"
+                  value={guestCount}
+                  onChange={event => setGuestCount(Math.max(0, Number.parseInt(event.target.value || "0", 10) || 0))}
+                  className="w-24 bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] text-center py-3 px-3 text-lg font-mono focus:outline-none focus:border-[#2d6a4f]"
+                />
+                <button type="button" onClick={() => setGuestCount(count => count + 1)} className="w-12 h-12 border border-[#2d6a4f]/40 text-[#f0ebe0] text-xl hover:bg-[#1a2e1a] transition-colors">+</button>
               </div>
+              <p className="text-[#c9a84c] text-xs font-mono mt-4 uppercase tracking-wider">Total: {quantity} {quantity === 1 ? "participante" : "participantes"}</p>
             </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={companion} onChange={e => setCompanion(e.target.checked)} className="w-4 h-4 accent-[#2d6a4f]" />
-              <span className="text-[#f0ebe0] text-sm">Levarei um acompanhante</span>
-            </label>
-            {companion && <Field label="Nome do acompanhante" placeholder="Nome completo" />}
             {/* Terms acceptance */}
             <label className="flex items-start gap-3 cursor-pointer p-4 bg-[#0a120a] border border-[#2d6a4f]/20">
               <div onClick={() => setAcceptTerms(!acceptTerms)}
@@ -3759,6 +3788,10 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       classGroup: person.class_group ?? "",
       nickname: person.nickname_at_school ?? "",
     }));
+    const prefilledWhatsapp = formatWhatsapp((person as any).contact_whatsapp ?? "");
+    if (prefilledWhatsapp) {
+      setAccount(current => ({ ...current, whatsapp: current.whatsapp || prefilledWhatsapp }));
+    }
     setAnswers({ penultimateSurname: "", classGroup: "", birthYear: "" });
     goToStep(2);
   }
@@ -3768,7 +3801,9 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
   }
 
   function formatWhatsapp(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
+    let digits = value.replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+    digits = digits.slice(0, 11);
     if (digits.length <= 2) return digits ? `(${digits}` : "";
     if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
@@ -3879,10 +3914,14 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         allowPhotoTags: privacy.allowTagging,
         showConfirmedStatus: privacy.showInList,
       });
+      if (photoUrl && effectiveUserId) {
+        await saveMyPublicProfile(effectiveUserId, { current_photo_url: photoUrl }, { avatar_url: photoUrl }).catch(() => {});
+      }
       setPendingEmailConfirmation(false);
       setDone(true);
       goToStep(6);
-      showSuccess("Cadastro concluído com sucesso.");
+      showSuccess("Cadastro concluído com sucesso. Redirecionando para a página principal...");
+      window.setTimeout(() => { window.location.assign("/"); }, 1200);
     } catch (err) {
       showError(formatRegistrationError(err));
     } finally {
@@ -4089,7 +4128,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <p className="text-[#7a9a7a] text-sm">
               {pendingEmailConfirmation
                 ? "Sua conta foi criada, mas o Supabase exige confirmação de e-mail antes de concluir o vínculo com o perfil. Confirme o e-mail e entre novamente para finalizar."
-                : "Seu perfil foi validado, vinculado à sua conta e atualizado com as preferências escolhidas."}
+                : "Seu perfil foi validado, vinculado à sua conta e atualizado com as preferências escolhidas. Você será redirecionado para a página principal."}
             </p>
             <div className="flex flex-col gap-3">
               {pendingEmailConfirmation ? (
@@ -5686,7 +5725,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
   }
 
   function formatWhatsapp(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
+    let digits = value.replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+    digits = digits.slice(0, 11);
     if (digits.length <= 2) return digits ? `(${digits}` : "";
     if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
