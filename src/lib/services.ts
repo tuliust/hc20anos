@@ -19,6 +19,7 @@ import type {
 export interface HomePageContent {
   event_id: string;
   header_logo_url?: string | null;
+  favicon_url?: string | null;
   hero_eyebrow: string;
   hero_title: string;
   hero_tagline: string;
@@ -51,6 +52,7 @@ const DEFAULT_HOME_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
   header_logo_url: null,
+  favicon_url: null,
   hero_eyebrow: "Colégio Henrique Castriciano · Natal, RN",
   hero_title: "Turma 2006 — 20 anos depois",
   hero_tagline: "20 anos depois",
@@ -843,6 +845,30 @@ export async function uploadHeaderLogo(file: File, adminId: string): Promise<str
   if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do logo.");
 
   await writeAudit("upload_header_logo", "home_page_content", DEFAULT_HOME_EVENT_ID, { path, admin_id: adminId }).catch(() => {});
+  return data.publicUrl;
+}
+
+export async function uploadFavicon(file: File, adminId: string): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const safeExt = ["ico", "jpg", "jpeg", "png", "svg", "webp"].includes(ext) ? ext : "png";
+  const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
+  const isAllowedMimeType = file.type ? allowedMimeTypes.includes(file.type) || file.type.startsWith("image/") : true;
+
+  if (!isAllowedMimeType) throw new Error("Selecione uma imagem valida para favicon.");
+  if (file.size > 1024 * 1024) throw new Error("O favicon deve ter no maximo 1 MB.");
+
+  const contentType = file.type || (safeExt === "ico" ? "image/x-icon" : safeExt === "svg" ? "image/svg+xml" : "image/png");
+  const path = `${adminId}/favicon-${Date.now()}.${safeExt}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do favicon.");
+
+  await writeAudit("upload_favicon", "home_page_content", DEFAULT_HOME_EVENT_ID, { path, admin_id: adminId }).catch(() => {});
   return data.publicUrl;
 }
 

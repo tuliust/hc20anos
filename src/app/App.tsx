@@ -23,7 +23,7 @@ import {
   getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
-  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
@@ -7198,6 +7198,35 @@ const role = auth.role ?? "viewer";
     });
   }
 
+  async function handleFaviconUpload(file?: File | null) {
+    if (!file || !canManageEvent) return;
+    await runAction("favicon", async () => {
+      const faviconUrl = await uploadFavicon(file, auth.userId);
+      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
+        ...homeDraft,
+        event_id: DEFAULT_EVENT_ID,
+        favicon_url: faviconUrl,
+      } as Partial<HomePageContent>, auth.userId));
+      setHomeDraft(updated);
+      onHomeContentUpdated(updated);
+      applyDocumentFavicon(faviconUrl);
+    });
+  }
+
+  async function handleFaviconRemove() {
+    if (!canManageEvent) return;
+    await runAction("favicon", async () => {
+      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
+        ...homeDraft,
+        event_id: DEFAULT_EVENT_ID,
+        favicon_url: null,
+      } as Partial<HomePageContent>, auth.userId));
+      setHomeDraft(updated);
+      onHomeContentUpdated(updated);
+      applyDocumentFavicon(null);
+    });
+  }
+
   async function createLot() {
     if (!event || !canManageEvent) return;
     await runAction("lot-create", async () => {
@@ -7453,6 +7482,49 @@ const role = auth.role ?? "viewer";
                         }}
                       />
                     </label>
+                  </div>
+                </div>
+
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                  <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
+                    {homeDraft.favicon_url ? (
+                      <img src={homeDraft.favicon_url} alt="Favicon atual" className="h-10 w-10 object-contain" />
+                    ) : (
+                      <div className="h-10 w-10 border border-[#c9a84c]/60 bg-[#0d1a0f] flex items-center justify-center">
+                        <Star size={20} className="text-[#c9a84c]" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Favicon do site</p>
+                    <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, SVG, ICO, JPG ou WEBP. Recomendado: imagem quadrada de 512×512 px ou SVG simplificado.</p>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] cursor-pointer transition-colors">
+                        <Upload size={14} />{busy === "favicon" ? "Enviando..." : "Enviar favicon"}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
+                          className="sr-only"
+                          disabled={busy === "favicon"}
+                          onChange={e => {
+                            const file = e.currentTarget.files?.[0] ?? null;
+                            void handleFaviconUpload(file);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                      {homeDraft.favicon_url && (
+                        <button
+                          type="button"
+                          onClick={handleFaviconRemove}
+                          disabled={busy === "favicon"}
+                          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#c0392b]/40 text-[#ffb4a8] hover:bg-[#c0392b]/10 disabled:opacity-50 transition-colors"
+                        >
+                          Remover favicon
+                        </button>
+                      )}
+                    </div>
+                    {homeDraft.favicon_url && <p className="text-[#3a5a3a] text-[11px] mt-3 break-all">URL atual: {homeDraft.favicon_url}</p>}
                   </div>
                 </div>
 
@@ -8541,7 +8613,34 @@ function updateBrowserPath(nextPage: Page) {
   if (window.location.pathname !== nextPath) window.history.pushState({}, "", nextPath);
 }
 
+function inferFaviconType(url: string) {
+  const cleanUrl = url.split("?")[0]?.toLowerCase() ?? "";
+  if (cleanUrl.endsWith(".svg")) return "image/svg+xml";
+  if (cleanUrl.endsWith(".ico")) return "image/x-icon";
+  if (cleanUrl.endsWith(".webp")) return "image/webp";
+  if (cleanUrl.endsWith(".jpg") || cleanUrl.endsWith(".jpeg")) return "image/jpeg";
+  return "image/png";
+}
 
+function applyDocumentFavicon(url?: string | null) {
+  if (typeof document === "undefined") return;
+
+  const faviconUrl = url?.trim();
+  const managedLink = document.querySelector<HTMLLinkElement>('link[data-managed-favicon="true"]');
+
+  if (!faviconUrl) {
+    managedLink?.remove();
+    return;
+  }
+
+  const link = managedLink ?? document.querySelector<HTMLLinkElement>('link[rel~="icon"]') ?? document.createElement("link");
+  link.rel = "icon";
+  link.type = inferFaviconType(faviconUrl);
+  link.href = faviconUrl;
+  link.dataset.managedFavicon = "true";
+
+  if (!link.parentNode) document.head.appendChild(link);
+}
 
 export default function App() {
   const initialPage = pageFromPathname(window.location.pathname);
@@ -8559,6 +8658,10 @@ export default function App() {
   const [homeContent, setHomeContent] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
   const [homeContentLoaded, setHomeContentLoaded] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    applyDocumentFavicon(homeContent.favicon_url ?? null);
+  }, [homeContent.favicon_url]);
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
   useEffect(() => {
