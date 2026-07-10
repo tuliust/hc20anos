@@ -6,11 +6,22 @@ import { getApprovedMemories, getHomePageContent, getPeople, HOME_PAGE_CONTENT_D
 
 const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
 const HOME_PATHS = new Set(['', '/', '/index.html']);
+const HOME_PROFESSOR_POLL_STORAGE_KEY = 'hc20anos:home-professor-poll-v1';
+const HOME_PROFESSOR_POLL_BASE_VOTES: Record<string, number> = {
+  Agamenon: 7,
+  Adailton: 5,
+  'Sérgio Trindade': 6,
+};
 
 interface MemoryPreviewItem {
   text: string;
   author: string;
   classLabel: string;
+}
+
+interface HomeProfessorPollState {
+  selected?: string;
+  votes?: Record<string, number>;
 }
 
 function currentPathname() {
@@ -88,11 +99,16 @@ function truncateMemoryText(value: string, maxLength = 190) {
   return `${normalized.slice(0, maxLength - 1).trim()}…`;
 }
 
-function findMemoryPreviewCard() {
+function findPreviewCardByLabel(label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
   const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('button'));
   return cards.find(card =>
-    Array.from(card.querySelectorAll('p')).some(node => node.textContent?.trim().toLowerCase() === 'memórias')
+    Array.from(card.querySelectorAll('p')).some(node => node.textContent?.trim().toLowerCase() === normalizedLabel)
   ) ?? null;
+}
+
+function findMemoryPreviewCard() {
+  return findPreviewCardByLabel('memórias');
 }
 
 function createMemoryCarouselShell() {
@@ -207,6 +223,131 @@ function installHomeMemoryPreviewCarousel() {
   void loadItems();
 }
 
+function loadHomeProfessorPollState(): HomeProfessorPollState {
+  try {
+    const raw = window.localStorage.getItem(HOME_PROFESSOR_POLL_STORAGE_KEY);
+    if (!raw) return { votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES } };
+    const parsed = JSON.parse(raw) as HomeProfessorPollState;
+    return {
+      selected: parsed.selected,
+      votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(parsed.votes ?? {}) },
+    };
+  } catch {
+    return { votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES } };
+  }
+}
+
+function saveHomeProfessorPollState(state: HomeProfessorPollState) {
+  try {
+    window.localStorage.setItem(HOME_PROFESSOR_POLL_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignora falhas de localStorage em modo privado/restrito.
+  }
+}
+
+function getHomeProfessorPollPercentages(votes: Record<string, number>) {
+  const total = Object.values(votes).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0) || 1;
+  return Object.fromEntries(
+    Object.entries(votes).map(([name, value]) => [name, Math.round((Math.max(0, Number(value) || 0) / total) * 100)])
+  );
+}
+
+function createPollOptionControl(option: string, onVote: (option: string) => void) {
+  const control = document.createElement('span');
+  control.dataset.professorPollOption = option;
+  control.role = 'button';
+  control.tabIndex = 0;
+  control.className = 'inline-flex items-center justify-center min-h-[42px] px-4 py-2 border border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]/60 hover:bg-[#1a2e1a] transition-colors text-[11px] font-mono uppercase tracking-[0.14em] text-center';
+  control.textContent = option;
+
+  const vote = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onVote(option);
+  };
+
+  control.addEventListener('click', vote);
+  control.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    vote(event);
+  });
+
+  return control;
+}
+
+function createProfessorPollShell(onVote: (option: string) => void) {
+  const shell = document.createElement('div');
+  shell.dataset.homeProfessorPoll = 'true';
+  shell.className = 'min-h-[116px] flex flex-col justify-between gap-4';
+
+  const question = document.createElement('p');
+  question.dataset.professorPollQuestion = 'true';
+  question.className = "font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold mb-1 leading-tight";
+  question.textContent = 'Qual professor te marcou?';
+
+  const options = document.createElement('div');
+  options.dataset.professorPollOptions = 'true';
+  options.className = 'grid grid-cols-1 gap-2';
+
+  ['Agamenon', 'Adailton', 'Sérgio Trindade'].forEach(option => {
+    options.appendChild(createPollOptionControl(option, onVote));
+  });
+
+  shell.append(question, options);
+  return shell;
+}
+
+function installHomeProfessorPollPreview() {
+  let state = loadHomeProfessorPollState();
+
+  const render = () => {
+    if (!HOME_PATHS.has(currentPathname())) return;
+
+    const card = findPreviewCardByLabel('enquetes');
+    if (!card) return;
+
+    const label = Array.from(card.querySelectorAll('p'))
+      .find(node => node.textContent?.trim().toLowerCase() === 'enquetes');
+    if (!label) return;
+
+    let shell = card.querySelector<HTMLDivElement>('[data-home-professor-poll="true"]');
+
+    if (!shell) {
+      let next = label.nextElementSibling;
+      while (next) {
+        const current = next;
+        next = next.nextElementSibling;
+        current.remove();
+      }
+      shell = createProfessorPollShell(option => {
+        if (state.selected) return;
+        const votes = { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(state.votes ?? {}) };
+        votes[option] = (votes[option] ?? 0) + 1;
+        state = { selected: option, votes };
+        saveHomeProfessorPollState(state);
+        render();
+      });
+      label.insertAdjacentElement('afterend', shell);
+    }
+
+    const votes = { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(state.votes ?? {}) };
+    const percentages = getHomeProfessorPollPercentages(votes);
+
+    shell.querySelectorAll<HTMLElement>('[data-professor-poll-option]').forEach(control => {
+      const option = control.dataset.professorPollOption ?? '';
+      const hasSelected = Boolean(state.selected);
+      control.textContent = hasSelected ? `${percentages[option] ?? 0}%` : option;
+      control.setAttribute('aria-label', hasSelected ? `${option}: ${percentages[option] ?? 0}% dos votos` : option);
+      control.classList.toggle('border-[#c9a84c]/70', state.selected === option);
+      control.classList.toggle('text-[#c9a84c]', state.selected === option);
+    });
+  };
+
+  const observer = new MutationObserver(render);
+  observer.observe(document.body, { childList: true, subtree: true });
+  render();
+}
+
 async function bootstrap() {
   await preloadHomeContent();
 
@@ -218,6 +359,7 @@ async function bootstrap() {
 
   installHeroScrollBehavior();
   installHomeMemoryPreviewCarousel();
+  installHomeProfessorPollPreview();
 }
 
 void bootstrap();
