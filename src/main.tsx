@@ -374,6 +374,137 @@ function installHomeProfessorPollPreview() {
   scheduleRender();
 }
 
+function createInlineIcon(name: 'graduation-cap' | 'baby' | 'venus') {
+  const span = document.createElement('span');
+  span.className = 'text-[#c9a84c] shrink-0 inline-flex items-center justify-center';
+  const paths: Record<typeof name, string> = {
+    'graduation-cap': '<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/><path d="M22 10v6"/>',
+    baby: '<path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 1 1-14 0"/><path d="M9 5a3 3 0 0 1 6 0"/>',
+    venus: '<circle cx="12" cy="8" r="5"/><path d="M12 13v8"/><path d="M8 17h8"/>',
+  };
+  span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
+  return span;
+}
+
+function clearCardAfterLabel(labelElement: Element, shellSelector: string, createShell: () => HTMLElement) {
+  let shell = labelElement.parentElement?.querySelector<HTMLElement>(shellSelector) ?? null;
+  if (shell) return shell;
+
+  let next = labelElement.nextElementSibling;
+  while (next) {
+    const current = next;
+    next = next.nextElementSibling;
+    current.remove();
+  }
+
+  shell = createShell();
+  labelElement.insertAdjacentElement('afterend', shell);
+  return shell;
+}
+
+function createProfileStatsShell() {
+  const shell = document.createElement('div');
+  shell.dataset.homeProfileStats = 'true';
+  shell.className = 'min-h-[116px] grid grid-cols-1 gap-2';
+
+  const stats: Array<{ icon: 'graduation-cap' | 'baby' | 'venus'; value: string; label: string }> = [
+    { icon: 'graduation-cap', value: '5%', label: 'trabalham na área do Direito' },
+    { icon: 'baby', value: '40%', label: 'tem filhos' },
+    { icon: 'venus', value: '55%', label: 'são mulheres' },
+  ];
+
+  stats.forEach(stat => {
+    const box = document.createElement('div');
+    box.className = 'flex items-center gap-3 border border-[#2d6a4f]/30 bg-[#0d1a0f]/70 px-3 py-2';
+
+    const value = document.createElement('p');
+    value.className = "font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-black leading-none min-w-[46px]";
+    value.textContent = stat.value;
+
+    const label = document.createElement('p');
+    label.className = 'text-[#7a9a7a] text-[11px] leading-tight';
+    label.textContent = stat.label;
+
+    box.append(createInlineIcon(stat.icon), value, label);
+    shell.appendChild(box);
+  });
+
+  return shell;
+}
+
+function createMapChartShell() {
+  const shell = document.createElement('div');
+  shell.dataset.homeMapChart = 'true';
+  shell.className = 'min-h-[116px] flex flex-col justify-between gap-3';
+
+  const rows = [
+    { label: 'Natal', value: 57 },
+    { label: 'Interior', value: 12 },
+    { label: 'Outro estado', value: 25 },
+    { label: 'Fora do país', value: 6 },
+  ];
+
+  rows.forEach(row => {
+    const item = document.createElement('div');
+    item.className = 'grid grid-cols-[auto_1fr_auto] items-center gap-3';
+
+    const label = document.createElement('p');
+    label.className = 'text-[#7a9a7a] text-[11px] font-mono uppercase tracking-[0.12em] min-w-[92px]';
+    label.textContent = row.label;
+
+    const track = document.createElement('div');
+    track.className = 'h-2 bg-[#0d1a0f] border border-[#2d6a4f]/25 overflow-hidden';
+
+    const bar = document.createElement('div');
+    bar.className = 'h-full bg-[#c9a84c]/80';
+    bar.style.width = `${row.value}%`;
+    track.appendChild(bar);
+
+    const value = document.createElement('p');
+    value.className = 'text-[#f0ebe0] text-xs font-mono tabular-nums min-w-[34px] text-right';
+    value.textContent = `${row.value}%`;
+
+    item.append(label, track, value);
+    shell.appendChild(item);
+  });
+
+  return shell;
+}
+
+function installHomeProfileAndMapPreview() {
+  let scheduled = false;
+
+  const render = () => {
+    scheduled = false;
+    if (!isHomePath()) return;
+
+    const chartCard = findPreviewCardByLabel('gráficos');
+    chartCard?.remove();
+
+    const profileCard = findPreviewCardByLabel('perfil');
+    const profileLabel = profileCard
+      ? Array.from(profileCard.querySelectorAll('p')).find(node => node.textContent?.trim().toLowerCase() === 'perfil')
+      : null;
+    if (profileLabel) clearCardAfterLabel(profileLabel, '[data-home-profile-stats="true"]', createProfileStatsShell);
+
+    const mapCard = findPreviewCardByLabel('mapa da turma');
+    const mapLabel = mapCard
+      ? Array.from(mapCard.querySelectorAll('p')).find(node => node.textContent?.trim().toLowerCase() === 'mapa da turma')
+      : null;
+    if (mapLabel) clearCardAfterLabel(mapLabel, '[data-home-map-chart="true"]', createMapChartShell);
+  };
+
+  const scheduleRender = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(render);
+  };
+
+  const observer = new MutationObserver(scheduleRender);
+  observer.observe(document.body, { childList: true, subtree: true });
+  scheduleRender();
+}
+
 async function bootstrap() {
   await preloadHomeContent();
 
@@ -386,6 +517,7 @@ async function bootstrap() {
   installHeroScrollBehavior();
   installHomeMemoryPreviewCarousel();
   installHomeProfessorPollPreview();
+  installHomeProfileAndMapPreview();
 }
 
 void bootstrap();
