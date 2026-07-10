@@ -28,6 +28,15 @@ function currentPathname() {
   return window.location.pathname.replace(/\/+$/, '') || '/';
 }
 
+function isHomePath() {
+  return HOME_PATHS.has(currentPathname());
+}
+
+function setTextIfChanged(element: HTMLElement | null, text: string) {
+  if (!element || element.textContent === text) return;
+  element.textContent = text;
+}
+
 async function preloadHomeContent() {
   const pathname = currentPathname();
   if (!HOME_PATHS.has(pathname)) return;
@@ -133,9 +142,11 @@ function installHomeMemoryPreviewCarousel() {
   let activeIndex = 0;
   let isLoading = false;
   let intervalId: number | null = null;
+  let scheduled = false;
 
   const render = () => {
-    if (!HOME_PATHS.has(currentPathname())) return;
+    scheduled = false;
+    if (!isHomePath()) return;
 
     const card = findMemoryPreviewCard();
     if (!card) return;
@@ -162,26 +173,32 @@ function installHomeMemoryPreviewCarousel() {
     if (!quote || !meta) return;
 
     if (!items.length) {
-      quote.textContent = '“As memórias da turma aparecerão aqui conforme forem publicadas.”';
-      meta.textContent = 'Turma 2006';
+      setTextIfChanged(quote, '“As memórias da turma aparecerão aqui conforme forem publicadas.”');
+      setTextIfChanged(meta, 'Turma 2006');
       return;
     }
 
     const item = items[activeIndex % items.length];
-    quote.textContent = `“${item.text}”`;
-    meta.textContent = `${item.author} · ${item.classLabel}`;
+    setTextIfChanged(quote, `“${item.text}”`);
+    setTextIfChanged(meta, `${item.author} · ${item.classLabel}`);
+  };
+
+  const scheduleRender = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(render);
   };
 
   const startAutoSlide = () => {
     if (intervalId || items.length <= 1) return;
     intervalId = window.setInterval(() => {
       activeIndex = (activeIndex + 1) % items.length;
-      render();
+      scheduleRender();
     }, 5200);
   };
 
   const loadItems = async () => {
-    if (isLoading) return;
+    if (isLoading || !isHomePath()) return;
     isLoading = true;
 
     try {
@@ -208,18 +225,18 @@ function installHomeMemoryPreviewCarousel() {
       items = [];
     } finally {
       isLoading = false;
-      render();
+      scheduleRender();
       startAutoSlide();
     }
   };
 
   const observer = new MutationObserver(() => {
-    render();
+    scheduleRender();
     void loadItems();
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  render();
+  scheduleRender();
   void loadItems();
 }
 
@@ -299,9 +316,11 @@ function createProfessorPollShell(onVote: (option: string) => void) {
 
 function installHomeProfessorPollPreview() {
   let state = loadHomeProfessorPollState();
+  let scheduled = false;
 
   const render = () => {
-    if (!HOME_PATHS.has(currentPathname())) return;
+    scheduled = false;
+    if (!isHomePath()) return;
 
     const card = findPreviewCardByLabel('enquetes');
     if (!card) return;
@@ -325,7 +344,7 @@ function installHomeProfessorPollPreview() {
         votes[option] = (votes[option] ?? 0) + 1;
         state = { selected: option, votes };
         saveHomeProfessorPollState(state);
-        render();
+        scheduleRender();
       });
       label.insertAdjacentElement('afterend', shell);
     }
@@ -336,16 +355,23 @@ function installHomeProfessorPollPreview() {
     shell.querySelectorAll<HTMLElement>('[data-professor-poll-option]').forEach(control => {
       const option = control.dataset.professorPollOption ?? '';
       const hasSelected = Boolean(state.selected);
-      control.textContent = hasSelected ? `${percentages[option] ?? 0}%` : option;
+      const text = hasSelected ? `${percentages[option] ?? 0}%` : option;
+      setTextIfChanged(control, text);
       control.setAttribute('aria-label', hasSelected ? `${option}: ${percentages[option] ?? 0}% dos votos` : option);
       control.classList.toggle('border-[#c9a84c]/70', state.selected === option);
       control.classList.toggle('text-[#c9a84c]', state.selected === option);
     });
   };
 
-  const observer = new MutationObserver(render);
+  const scheduleRender = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(render);
+  };
+
+  const observer = new MutationObserver(scheduleRender);
   observer.observe(document.body, { childList: true, subtree: true });
-  render();
+  scheduleRender();
 }
 
 async function bootstrap() {
