@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Baby, GraduationCap, Venus } from 'lucide-react';
+import { Baby, CheckCircle2, GraduationCap, Star, UserCheck, Users, Venus } from 'lucide-react';
 import App from './app/App';
 import './styles.css';
+import { supabase } from './lib/supabase';
 import { getApprovedMemories, getHomePageContent, getPeople, HOME_PAGE_CONTENT_DEFAULTS } from './lib/services';
 import type { DbMemory, DbPerson } from './lib/database.types';
 
@@ -60,6 +61,8 @@ const HOME_MAP_STATS = [
   { label: 'Outro estado', value: 25 },
   { label: 'Fora do país', value: 6 },
 ];
+
+const HOME_ALUMNI_CLASS_GROUPS = ['A', 'B', 'C', 'D'];
 
 function currentPathname() {
   return window.location.pathname.replace(/\/+$/, '') || '/';
@@ -389,16 +392,245 @@ function HomeMapStatsContent() {
   );
 }
 
+function getPersonDisplayName(person: DbPerson) {
+  const name = person.display_name?.trim() || person.full_name?.trim() || 'Ex-aluno(a)';
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) return name;
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+function getPersonInitials(person: DbPerson) {
+  const name = getPersonDisplayName(person);
+  const parts = name.split(/\s+/).filter(Boolean);
+  return `${parts[0]?.[0] ?? 'E'}${parts[parts.length - 1]?.[0] ?? 'A'}`.toUpperCase();
+}
+
+function getPersonClassLabel(person: DbPerson) {
+  return person.class_group ? `Turma ${person.class_group}` : 'Turma 2006';
+}
+
+function getPersonStatusLabel(person: DbPerson) {
+  if (person.profile_status === 'confirmed') return 'Confirmado';
+  if (person.profile_status === 'unclaimed') return 'Não cadastrado';
+  return 'Cadastrado';
+}
+
+function seededRandom(seed: number) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function getRotatingSample<T>(items: T[], count: number, seed: number) {
+  if (items.length <= count) return items;
+  return items
+    .map((item, index) => ({ item, rank: seededRandom(seed + index * 17) }))
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, count)
+    .map(entry => entry.item);
+}
+
+async function getAttendanceIntentPersonIds() {
+  try {
+    const { data, error } = await (supabase as any)
+      .from('profiles')
+      .select('person_id,intends_to_attend')
+      .eq('intends_to_attend', true);
+    if (error) return new Set<string>();
+    return new Set(((data ?? []) as { person_id?: string | null }[]).map(row => row.person_id).filter((id): id is string => Boolean(id)));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function AlumniAvatar({ person, size = 'sm' }: { person: DbPerson; size?: 'sm' | 'lg' }) {
+  const dimensionClass = size === 'lg' ? 'w-20 h-20 text-2xl' : 'w-11 h-11 text-xs';
+  return person.avatar_url ? (
+    <img src={person.avatar_url} alt={getPersonDisplayName(person)} className={`${dimensionClass} rounded-full object-cover border border-[#2d6a4f]/40 bg-[#0d1a0f]`} />
+  ) : (
+    <div className={`${dimensionClass} rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold`}>
+      {getPersonInitials(person)}
+    </div>
+  );
+}
+
+function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string> }) {
+  const [seed, setSeed] = useState(1);
+  const alumni = useMemo(() => people.filter(person => person.class_year === 2006), [people]);
+  const confirmed = alumni.filter(person => person.profile_status === 'confirmed');
+  const intending = alumni.filter(person => attendanceIntentPersonIds.has(person.id));
+  const samplePeople = useMemo(() => getRotatingSample(alumni, 8, seed), [alumni, seed]);
+  const featured = useMemo(() => getRotatingSample(alumni.filter(person => person.avatar_url), 1, seed + 99)[0] ?? getRotatingSample(alumni, 1, seed + 99)[0] ?? null, [alumni, seed]);
+  const classCounts = HOME_ALUMNI_CLASS_GROUPS.map(group => ({
+    group,
+    count: alumni.filter(person => person.class_group === group).length,
+  }));
+  const maxClassCount = Math.max(1, ...classCounts.map(item => item.count));
+  const confirmedPercent = alumni.length ? Math.round((confirmed.length / alumni.length) * 100) : 0;
+
+  useEffect(() => {
+    if (alumni.length <= 1) return;
+    const id = window.setInterval(() => setSeed(value => value + 1), 6200);
+    return () => window.clearInterval(id);
+  }, [alumni.length]);
+
+  return (
+    <div>
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-5">
+        <div>
+          <SectionLabelText>Ex-alunos</SectionLabelText>
+          <h2 className="font-['Playfair_Display'] text-[#f0ebe0] text-4xl md:text-5xl font-black leading-tight mt-6">A turma em movimento</h2>
+        </div>
+        <p className="text-[#7a9a7a] text-sm md:text-right max-w-md leading-relaxed">
+          Uma prévia compacta da página de ex-alunos, com amostras rotativas, presença no reencontro e distribuição por turma.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+        <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Amostra da turma</p>
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">{alumni.length} ex-alunos cadastrados</p>
+            </div>
+            <Users size={22} className="text-[#c9a84c] shrink-0" />
+          </div>
+          <div className="grid grid-cols-4 gap-3 mt-auto">
+            {samplePeople.map(person => (
+              <div key={person.id} className="flex flex-col items-center text-center gap-2">
+                <AlumniAvatar person={person} />
+                <p className="text-[#7a9a7a] text-[10px] leading-tight line-clamp-2">{getPersonDisplayName(person)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Presença</p>
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Reencontro em formação</p>
+            </div>
+            <UserCheck size={22} className="text-[#c9a84c] shrink-0" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-4xl font-black leading-none">{confirmed.length}</p>
+              <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-[0.18em] mt-2">Confirmados</p>
+            </div>
+            <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-4xl font-black leading-none">{intending.length}</p>
+              <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-[0.18em] mt-2">Pretendem ir</p>
+            </div>
+          </div>
+          <div className="mt-auto">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[#7a9a7a] text-xs">Confirmados sobre a base cadastrada</p>
+              <p className="text-[#c9a84c] font-mono text-xs">{confirmedPercent}%</p>
+            </div>
+            <div className="h-2 bg-[#0d1a0f] border border-[#2d6a4f]/25 overflow-hidden">
+              <div className="h-full bg-[#c9a84c]/80" style={{ width: `${confirmedPercent}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Turmas</p>
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Distribuição por sala</p>
+            </div>
+            <GraduationCap size={22} className="text-[#c9a84c] shrink-0" />
+          </div>
+          <div className="flex flex-col gap-3 mt-auto">
+            {classCounts.map(item => (
+              <div key={item.group}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[#f0ebe0] font-mono text-xs uppercase tracking-[0.18em]">Turma {item.group}</p>
+                  <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-none">{item.count}</p>
+                </div>
+                <div className="h-1.5 bg-[#0d1a0f] border border-[#2d6a4f]/20 overflow-hidden">
+                  <div className="h-full bg-[#c9a84c]/80" style={{ width: `${Math.max(8, Math.round((item.count / maxClassCount) * 100))}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Pessoa em destaque</p>
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Um rosto da turma</p>
+            </div>
+            <Star size={22} className="text-[#c9a84c] shrink-0" />
+          </div>
+          {featured ? (
+            <div className="mt-auto flex items-center gap-5">
+              <AlumniAvatar person={featured} size="lg" />
+              <div className="min-w-0">
+                <p className="font-['Playfair_Display'] text-[#f0ebe0] text-3xl font-bold leading-tight mb-2">{getPersonDisplayName(featured)}</p>
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.18em] mb-3">{getPersonClassLabel(featured)}</p>
+                <span className="inline-flex items-center gap-2 border border-[#2d6a4f]/35 bg-[#0d1a0f] px-3 py-2 text-[#7a9a7a] text-[10px] font-mono uppercase tracking-[0.14em]">
+                  <CheckCircle2 size={12} className="text-[#c9a84c]" />{getPersonStatusLabel(featured)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[#7a9a7a] text-sm leading-relaxed mt-auto">Os nomes da turma aparecerão aqui conforme a base for carregada.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-10 flex flex-col items-center gap-4 text-center">
+        <p className="text-[#7a9a7a] text-sm font-mono">Amostras rotativas com pessoas cadastradas na tabela da turma.</p>
+        <a href="/ex-alunos" className="inline-flex items-center gap-2 text-[#8ab89a] hover:text-[#c9a84c] transition-colors font-mono text-sm uppercase tracking-[0.22em]">
+          Ver todos <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabelText({ children }: { children: React.ReactNode }) {
+  return <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-[0.4em]">{children}</p>;
+}
+
+function findConfirmedPreviewSection() {
+  const label = Array.from(document.querySelectorAll('p'))
+    .find(node => node.textContent?.trim().toLowerCase() === 'confirmados');
+  const section = label?.closest('section');
+  return section instanceof HTMLElement ? section : null;
+}
+
+function replaceConfirmedPreviewWithAlumniPanel(people: DbPerson[], attendanceIntentPersonIds: Set<string>) {
+  const section = findConfirmedPreviewSection();
+  if (!section) return false;
+  if (section.querySelector('[data-home-alumni-overview-panel="true"]')) return true;
+
+  const container = section.querySelector<HTMLElement>('.max-w-7xl') ?? section;
+  const mount = document.createElement('div');
+  mount.dataset.homeAlumniOverviewPanel = 'true';
+  container.replaceChildren(mount);
+  createRoot(mount).render(<HomeAlumniOverviewPanel people={people} attendanceIntentPersonIds={attendanceIntentPersonIds} />);
+  return true;
+}
+
 async function installHomePreviewEnhancements() {
   if (!isHomePath()) return;
 
   let people: DbPerson[] = [];
   let memories: DbMemory[] = [];
+  let attendanceIntentPersonIds = new Set<string>();
   try {
-    [people, memories] = await Promise.all([getPeople(), getApprovedMemories(DEFAULT_EVENT_ID)]);
+    [people, memories, attendanceIntentPersonIds] = await Promise.all([
+      getPeople(),
+      getApprovedMemories(DEFAULT_EVENT_ID),
+      getAttendanceIntentPersonIds(),
+    ]);
   } catch {
     people = [];
     memories = [];
+    attendanceIntentPersonIds = new Set<string>();
   }
 
   let attempts = 0;
@@ -412,15 +644,21 @@ async function installHomePreviewEnhancements() {
     const profileCard = findPreviewCardByLabel('perfil');
     const mapCard = findPreviewCardByLabel('mapa da turma');
 
-    if (!timelineCard || !memoryCard || !pollCard || !profileCard || !mapCard) return attempts > 20;
+    const homeCardsReady = Boolean(timelineCard && memoryCard && pollCard && profileCard && mapCard);
+    const confirmedReady = Boolean(findConfirmedPreviewSection());
+    if ((!homeCardsReady || !confirmedReady) && attempts <= 20) return false;
 
-    removePreviewCard('gráficos');
-    mountAfterLabel(timelineCard, 'linha do tempo', <HomeClassDistributionContent people={people} />, { removeLabel: true });
-    mountAfterLabel(memoryCard, 'memórias', <HomeMemoryPreviewContent memories={memories} people={people} />);
-    mountAfterLabel(pollCard, 'enquetes', <HomeProfessorPollContent />);
-    mountAfterLabel(profileCard, 'perfil', <HomeProfileStatsContent />);
-    mountAfterLabel(mapCard, 'mapa da turma', <HomeMapStatsContent />);
-    replaceLeftStatsWithTimeline();
+    if (timelineCard && memoryCard && pollCard && profileCard && mapCard) {
+      removePreviewCard('gráficos');
+      mountAfterLabel(timelineCard, 'linha do tempo', <HomeClassDistributionContent people={people} />, { removeLabel: true });
+      mountAfterLabel(memoryCard, 'memórias', <HomeMemoryPreviewContent memories={memories} people={people} />);
+      mountAfterLabel(pollCard, 'enquetes', <HomeProfessorPollContent />);
+      mountAfterLabel(profileCard, 'perfil', <HomeProfileStatsContent />);
+      mountAfterLabel(mapCard, 'mapa da turma', <HomeMapStatsContent />);
+      replaceLeftStatsWithTimeline();
+    }
+
+    replaceConfirmedPreviewWithAlumniPanel(people, attendanceIntentPersonIds);
     return true;
   };
 
