@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Baby, GraduationCap, Venus } from 'lucide-react';
 import App from './app/App';
 import './styles.css';
 import { getApprovedMemories, getHomePageContent, getPeople, HOME_PAGE_CONTENT_DEFAULTS } from './lib/services';
+import type { DbMemory, DbPerson } from './lib/database.types';
 
 const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
 const HOME_PATHS = new Set(['', '/', '/index.html']);
@@ -13,16 +15,51 @@ const HOME_PROFESSOR_POLL_BASE_VOTES: Record<string, number> = {
   'Sérgio Trindade': 6,
 };
 
-interface MemoryPreviewItem {
-  text: string;
-  author: string;
-  classLabel: string;
-}
+const HOME_NOSTALGIA_TIMELINE = [
+  {
+    year: '1995',
+    visual: '☎',
+    title: 'Orelhão pra ligar pra casa',
+    description: 'Ainda na nossa época de alfabetização, o normal ainda era usar o orelhão para ligar pra casa.',
+  },
+  {
+    year: '1996',
+    visual: 'Cadê?',
+    title: 'Internet discada e Cadê?',
+    description: 'Quando entramos na 1ª série, começava-se a era da internet discada e das buscas no site Cadê?.',
+  },
+  {
+    year: '1999',
+    visual: 'ICQ',
+    title: 'mIRC e ICQ',
+    description: 'Na 4ª série, começaram os tempos de mIRC e ICQ.',
+  },
+  {
+    year: '2000',
+    visual: 'MSN',
+    title: 'MSN Messenger',
+    description: 'Boa parte do nosso Ensino Fundamental foi conversando pelo MSN Messenger.',
+  },
+  {
+    year: '2003',
+    visual: '📱',
+    title: 'Nokia e SMS',
+    description: 'Na 8ª série, passamos a mandar SMS com nossos Nokias.',
+  },
+  {
+    year: '2004',
+    visual: 'ORK',
+    title: 'Orkut e Fotolog',
+    description: 'No Ensino Médio, Orkut e Fotolog marcaram para sempre nossas vidas.',
+  },
+];
 
-interface HomeProfessorPollState {
-  selected?: string;
-  votes?: Record<string, number>;
-}
+const HOME_MAP_STATS = [
+  { label: 'Natal', value: 57 },
+  { label: 'Interior', value: 12 },
+  { label: 'Outro estado', value: 25 },
+  { label: 'Fora do país', value: 6 },
+];
 
 function currentPathname() {
   return window.location.pathname.replace(/\/+$/, '') || '/';
@@ -32,14 +69,8 @@ function isHomePath() {
   return HOME_PATHS.has(currentPathname());
 }
 
-function setTextIfChanged(element: HTMLElement | null, text: string) {
-  if (!element || element.textContent === text) return;
-  element.textContent = text;
-}
-
 async function preloadHomeContent() {
-  const pathname = currentPathname();
-  if (!HOME_PATHS.has(pathname)) return;
+  if (!isHomePath()) return;
 
   try {
     const content = await getHomePageContent(DEFAULT_EVENT_ID);
@@ -98,11 +129,10 @@ function installHeroScrollBehavior() {
   document.addEventListener('keydown', handleKeyDown);
 
   enhanceScrollTrigger();
-  const observer = new MutationObserver(enhanceScrollTrigger);
-  observer.observe(document.body, { childList: true, subtree: true });
+  window.setTimeout(enhanceScrollTrigger, 250);
 }
 
-function truncateMemoryText(value: string, maxLength = 190) {
+function truncateHomePreviewText(value: string, maxLength = 190) {
   const normalized = value.replace(/\s+/g, ' ').trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength - 1).trim()}…`;
@@ -110,399 +140,294 @@ function truncateMemoryText(value: string, maxLength = 190) {
 
 function findPreviewCardByLabel(label: string) {
   const normalizedLabel = label.trim().toLowerCase();
-  const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('button'));
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('[role="button"], button'));
   return cards.find(card =>
     Array.from(card.querySelectorAll('p')).some(node => node.textContent?.trim().toLowerCase() === normalizedLabel)
   ) ?? null;
 }
 
-function findMemoryPreviewCard() {
-  return findPreviewCardByLabel('memórias');
+function findCardLabel(card: HTMLElement, label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
+  return Array.from(card.querySelectorAll('p'))
+    .find(node => node.textContent?.trim().toLowerCase() === normalizedLabel) ?? null;
 }
 
-function createMemoryCarouselShell() {
-  const shell = document.createElement('div');
-  shell.dataset.homeMemoryCarousel = 'true';
-  shell.className = 'min-h-[116px] flex flex-col justify-between gap-4 transition-opacity duration-500';
+function mountAfterLabel(card: HTMLElement, labelText: string, element: React.ReactNode, options?: { removeLabel?: boolean }) {
+  const label = findCardLabel(card, labelText);
+  if (!label) return false;
 
-  const quote = document.createElement('p');
-  quote.dataset.memoryText = 'true';
-  quote.className = "font-['Playfair_Display'] text-[#f0ebe0] text-xl md:text-2xl font-bold leading-snug";
-
-  const meta = document.createElement('p');
-  meta.dataset.memoryMeta = 'true';
-  meta.className = 'text-[#7a9a7a] text-xs font-mono uppercase tracking-[0.18em] leading-relaxed';
-
-  shell.append(quote, meta);
-  return shell;
-}
-
-function installHomeMemoryPreviewCarousel() {
-  let items: MemoryPreviewItem[] = [];
-  let activeIndex = 0;
-  let isLoading = false;
-  let intervalId: number | null = null;
-  let scheduled = false;
-
-  const render = () => {
-    scheduled = false;
-    if (!isHomePath()) return;
-
-    const card = findMemoryPreviewCard();
-    if (!card) return;
-
-    const label = Array.from(card.querySelectorAll('p'))
-      .find(node => node.textContent?.trim().toLowerCase() === 'memórias');
-    if (!label) return;
-
-    let shell = card.querySelector<HTMLDivElement>('[data-home-memory-carousel="true"]');
-
-    if (!shell) {
-      let next = label.nextElementSibling;
-      while (next) {
-        const current = next;
-        next = next.nextElementSibling;
-        current.remove();
-      }
-      shell = createMemoryCarouselShell();
-      label.insertAdjacentElement('afterend', shell);
-    }
-
-    const quote = shell.querySelector<HTMLElement>('[data-memory-text="true"]');
-    const meta = shell.querySelector<HTMLElement>('[data-memory-meta="true"]');
-    if (!quote || !meta) return;
-
-    if (!items.length) {
-      setTextIfChanged(quote, '“As memórias da turma aparecerão aqui conforme forem publicadas.”');
-      setTextIfChanged(meta, 'Turma 2006');
-      return;
-    }
-
-    const item = items[activeIndex % items.length];
-    setTextIfChanged(quote, `“${item.text}”`);
-    setTextIfChanged(meta, `${item.author} · ${item.classLabel}`);
-  };
-
-  const scheduleRender = () => {
-    if (scheduled) return;
-    scheduled = true;
-    window.requestAnimationFrame(render);
-  };
-
-  const startAutoSlide = () => {
-    if (intervalId || items.length <= 1) return;
-    intervalId = window.setInterval(() => {
-      activeIndex = (activeIndex + 1) % items.length;
-      scheduleRender();
-    }, 5200);
-  };
-
-  const loadItems = async () => {
-    if (isLoading || !isHomePath()) return;
-    isLoading = true;
-
-    try {
-      const [memories, people] = await Promise.all([
-        getApprovedMemories(DEFAULT_EVENT_ID),
-        getPeople(),
-      ]);
-      const peopleById = new Map(people.map(person => [person.id, person]));
-
-      items = memories.slice(0, 10).map(memory => {
-        const person = memory.person_id ? peopleById.get(memory.person_id) : null;
-        const author = memory.is_anonymous
-          ? 'Autor(a) anônimo(a)'
-          : memory.author_name || person?.display_name || person?.full_name || 'Ex-aluno(a)';
-        const classLabel = person?.class_group ? `Turma ${person.class_group}` : 'Turma 2006';
-
-        return {
-          text: truncateMemoryText(memory.memory_text),
-          author,
-          classLabel,
-        };
-      });
-    } catch {
-      items = [];
-    } finally {
-      isLoading = false;
-      scheduleRender();
-      startAutoSlide();
-    }
-  };
-
-  const observer = new MutationObserver(() => {
-    scheduleRender();
-    void loadItems();
-  });
-
-  observer.observe(document.body, { childList: true, subtree: true });
-  scheduleRender();
-  void loadItems();
-}
-
-function loadHomeProfessorPollState(): HomeProfessorPollState {
-  try {
-    const raw = window.localStorage.getItem(HOME_PROFESSOR_POLL_STORAGE_KEY);
-    if (!raw) return { votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES } };
-    const parsed = JSON.parse(raw) as HomeProfessorPollState;
-    return {
-      selected: parsed.selected,
-      votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(parsed.votes ?? {}) },
-    };
-  } catch {
-    return { votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES } };
-  }
-}
-
-function saveHomeProfessorPollState(state: HomeProfessorPollState) {
-  try {
-    window.localStorage.setItem(HOME_PROFESSOR_POLL_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Ignora falhas de localStorage em modo privado/restrito.
-  }
-}
-
-function getHomeProfessorPollPercentages(votes: Record<string, number>) {
-  const total = Object.values(votes).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0) || 1;
-  return Object.fromEntries(
-    Object.entries(votes).map(([name, value]) => [name, Math.round((Math.max(0, Number(value) || 0) / total) * 100)])
-  );
-}
-
-function createPollOptionControl(option: string, onVote: (option: string) => void) {
-  const control = document.createElement('span');
-  control.dataset.professorPollOption = option;
-  control.role = 'button';
-  control.tabIndex = 0;
-  control.className = 'inline-flex items-center justify-center min-h-[42px] px-4 py-2 border border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]/60 hover:bg-[#1a2e1a] transition-colors text-[11px] font-mono uppercase tracking-[0.14em] text-center';
-  control.textContent = option;
-
-  const vote = (event: Event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onVote(option);
-  };
-
-  control.addEventListener('click', vote);
-  control.addEventListener('keydown', event => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    vote(event);
-  });
-
-  return control;
-}
-
-function createProfessorPollShell(onVote: (option: string) => void) {
-  const shell = document.createElement('div');
-  shell.dataset.homeProfessorPoll = 'true';
-  shell.className = 'min-h-[116px] flex flex-col justify-between gap-4';
-
-  const question = document.createElement('p');
-  question.dataset.professorPollQuestion = 'true';
-  question.className = "font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold mb-1 leading-tight";
-  question.textContent = 'Qual professor te marcou?';
-
-  const options = document.createElement('div');
-  options.dataset.professorPollOptions = 'true';
-  options.className = 'grid grid-cols-1 gap-2';
-
-  ['Agamenon', 'Adailton', 'Sérgio Trindade'].forEach(option => {
-    options.appendChild(createPollOptionControl(option, onVote));
-  });
-
-  shell.append(question, options);
-  return shell;
-}
-
-function installHomeProfessorPollPreview() {
-  let state = loadHomeProfessorPollState();
-  let scheduled = false;
-
-  const render = () => {
-    scheduled = false;
-    if (!isHomePath()) return;
-
-    const card = findPreviewCardByLabel('enquetes');
-    if (!card) return;
-
-    const label = Array.from(card.querySelectorAll('p'))
-      .find(node => node.textContent?.trim().toLowerCase() === 'enquetes');
-    if (!label) return;
-
-    let shell = card.querySelector<HTMLDivElement>('[data-home-professor-poll="true"]');
-
-    if (!shell) {
-      let next = label.nextElementSibling;
-      while (next) {
-        const current = next;
-        next = next.nextElementSibling;
-        current.remove();
-      }
-      shell = createProfessorPollShell(option => {
-        if (state.selected) return;
-        const votes = { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(state.votes ?? {}) };
-        votes[option] = (votes[option] ?? 0) + 1;
-        state = { selected: option, votes };
-        saveHomeProfessorPollState(state);
-        scheduleRender();
-      });
-      label.insertAdjacentElement('afterend', shell);
-    }
-
-    const votes = { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(state.votes ?? {}) };
-    const percentages = getHomeProfessorPollPercentages(votes);
-
-    shell.querySelectorAll<HTMLElement>('[data-professor-poll-option]').forEach(control => {
-      const option = control.dataset.professorPollOption ?? '';
-      const hasSelected = Boolean(state.selected);
-      const text = hasSelected ? `${percentages[option] ?? 0}%` : option;
-      setTextIfChanged(control, text);
-      control.setAttribute('aria-label', hasSelected ? `${option}: ${percentages[option] ?? 0}% dos votos` : option);
-      control.classList.toggle('border-[#c9a84c]/70', state.selected === option);
-      control.classList.toggle('text-[#c9a84c]', state.selected === option);
-    });
-  };
-
-  const scheduleRender = () => {
-    if (scheduled) return;
-    scheduled = true;
-    window.requestAnimationFrame(render);
-  };
-
-  const observer = new MutationObserver(scheduleRender);
-  observer.observe(document.body, { childList: true, subtree: true });
-  scheduleRender();
-}
-
-function createInlineIcon(name: 'graduation-cap' | 'baby' | 'venus') {
-  const span = document.createElement('span');
-  span.className = 'text-[#c9a84c] shrink-0 inline-flex items-center justify-center';
-  const paths: Record<typeof name, string> = {
-    'graduation-cap': '<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/><path d="M22 10v6"/>',
-    baby: '<path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 1 1-14 0"/><path d="M9 5a3 3 0 0 1 6 0"/>',
-    venus: '<circle cx="12" cy="8" r="5"/><path d="M12 13v8"/><path d="M8 17h8"/>',
-  };
-  span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
-  return span;
-}
-
-function clearCardAfterLabel(labelElement: Element, shellSelector: string, createShell: () => HTMLElement) {
-  let shell = labelElement.parentElement?.querySelector<HTMLElement>(shellSelector) ?? null;
-  if (shell) return shell;
-
-  let next = labelElement.nextElementSibling;
+  let next = label.nextElementSibling;
   while (next) {
     const current = next;
     next = next.nextElementSibling;
     current.remove();
   }
 
-  shell = createShell();
-  labelElement.insertAdjacentElement('afterend', shell);
-  return shell;
+  const mount = document.createElement('div');
+  mount.dataset.homePreviewReactMount = labelText;
+  if (options?.removeLabel) {
+    label.insertAdjacentElement('beforebegin', mount);
+    label.remove();
+  } else {
+    label.insertAdjacentElement('afterend', mount);
+  }
+
+  createRoot(mount).render(<>{element}</>);
+  return true;
 }
 
-function createProfileStatsShell() {
-  const shell = document.createElement('div');
-  shell.dataset.homeProfileStats = 'true';
-  shell.className = 'min-h-[116px] grid grid-cols-1 gap-2';
+function removePreviewCard(label: string) {
+  const card = findPreviewCardByLabel(label);
+  card?.remove();
+}
 
-  const stats: Array<{ icon: 'graduation-cap' | 'baby' | 'venus'; value: string; label: string }> = [
-    { icon: 'graduation-cap', value: '5%', label: 'trabalham na área do Direito' },
-    { icon: 'baby', value: '40%', label: 'tem filhos' },
-    { icon: 'venus', value: '55%', label: 'são mulheres' },
-  ];
+function replaceLeftStatsWithTimeline() {
+  const statLabel = Array.from(document.querySelectorAll('p'))
+    .find(node => node.textContent?.trim().toLowerCase() === 'ex-alunos na base');
+  if (!statLabel) return false;
 
-  stats.forEach(stat => {
-    const box = document.createElement('div');
-    box.className = 'flex items-center gap-3 border border-[#2d6a4f]/30 bg-[#0d1a0f]/70 px-3 py-2';
+  let grid = statLabel.parentElement;
+  while (grid && !String(grid.className).includes('grid-cols-3')) grid = grid.parentElement;
+  if (!grid || grid.querySelector('[data-home-nostalgia-timeline="true"]')) return false;
 
-    const value = document.createElement('p');
-    value.className = "font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-black leading-none min-w-[46px]";
-    value.textContent = stat.value;
+  const mount = document.createElement('div');
+  mount.dataset.homeNostalgiaTimeline = 'true';
+  mount.className = 'mb-8';
+  grid.replaceWith(mount);
+  createRoot(mount).render(<HomeNostalgiaTimeline />);
+  return true;
+}
 
-    const label = document.createElement('p');
-    label.className = 'text-[#7a9a7a] text-[11px] leading-tight';
-    label.textContent = stat.label;
+function HomeNostalgiaTimeline() {
+  return (
+    <div className="mt-8 border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
+      <div className="relative ml-5 border-l border-[#2d6a4f]/35 pl-8">
+        {HOME_NOSTALGIA_TIMELINE.map((item, index) => (
+          <div key={item.year} className={index < HOME_NOSTALGIA_TIMELINE.length - 1 ? 'relative pb-7' : 'relative'}>
+            <div className="absolute -left-[54px] top-0 w-10 h-10 rounded-full border border-[#2d6a4f]/50 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center text-[11px] font-mono font-bold text-center leading-none">
+              {item.visual}
+            </div>
+            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.24em] mb-1">{item.year}</p>
+            <p className="font-['Playfair_Display'] text-[#f0ebe0] text-xl font-bold leading-tight mb-2">{item.title}</p>
+            <p className="text-[#7a9a7a] text-sm leading-relaxed">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-    box.append(createInlineIcon(stat.icon), value, label);
-    shell.appendChild(box);
+function HomeMemoryPreviewContent({ memories, people }: { memories: DbMemory[]; people: DbPerson[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const peopleById = new Map(people.map(person => [person.id, person]));
+  const items = memories.slice(0, 10).map(memory => {
+    const person = memory.person_id ? peopleById.get(memory.person_id) : null;
+    const author = memory.is_anonymous
+      ? 'Autor(a) anônimo(a)'
+      : memory.author_name || person?.display_name || person?.full_name || 'Ex-aluno(a)';
+    const classLabel = person?.class_group ? `Turma ${person.class_group}` : 'Turma 2006';
+
+    return {
+      id: memory.id,
+      text: truncateHomePreviewText(memory.memory_text),
+      author,
+      classLabel,
+    };
   });
 
-  return shell;
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const id = window.setInterval(() => setActiveIndex(index => (index + 1) % items.length), 5200);
+    return () => window.clearInterval(id);
+  }, [items.length]);
+
+  const activeItem = items.length ? items[activeIndex % items.length] : null;
+
+  return (
+    <div className="min-h-[116px] flex flex-col justify-between gap-4">
+      <p className="font-['Playfair_Display'] text-[#f0ebe0] text-xl md:text-2xl font-bold leading-snug">
+        {activeItem ? `“${activeItem.text}”` : '“As memórias da turma aparecerão aqui conforme forem publicadas.”'}
+      </p>
+      <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-[0.18em] leading-relaxed">
+        {activeItem ? `${activeItem.author} · ${activeItem.classLabel}` : 'Turma 2006'}
+      </p>
+    </div>
+  );
 }
 
-function createMapChartShell() {
-  const shell = document.createElement('div');
-  shell.dataset.homeMapChart = 'true';
-  shell.className = 'min-h-[116px] flex flex-col justify-between gap-3';
+function getProfessorPollInitialState() {
+  const fallback = { votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES } };
+  try {
+    const raw = window.localStorage.getItem(HOME_PROFESSOR_POLL_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { selected?: string; votes?: Record<string, number> };
+    return { selected: parsed.selected, votes: { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(parsed.votes ?? {}) } };
+  } catch {
+    return fallback;
+  }
+}
 
-  const rows = [
-    { label: 'Natal', value: 57 },
-    { label: 'Interior', value: 12 },
-    { label: 'Outro estado', value: 25 },
-    { label: 'Fora do país', value: 6 },
+function getProfessorPollPercentages(votes: Record<string, number>) {
+  const total = Object.values(votes).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0) || 1;
+  return Object.fromEntries(
+    Object.entries(votes).map(([name, value]) => [name, Math.round((Math.max(0, Number(value) || 0) / total) * 100)])
+  );
+}
+
+function HomeProfessorPollContent() {
+  const [state, setState] = useState(getProfessorPollInitialState);
+  const votes = { ...HOME_PROFESSOR_POLL_BASE_VOTES, ...(state.votes ?? {}) };
+  const percentages = getProfessorPollPercentages(votes);
+  const hasSelected = Boolean(state.selected);
+
+  function selectOption(option: string) {
+    if (state.selected) return;
+    const nextVotes = { ...votes, [option]: (votes[option] ?? 0) + 1 };
+    const nextState = { selected: option, votes: nextVotes };
+    setState(nextState);
+    try {
+      window.localStorage.setItem(HOME_PROFESSOR_POLL_STORAGE_KEY, JSON.stringify(nextState));
+    } catch {
+      // Ignora falhas de localStorage em modo privado/restrito.
+    }
+  }
+
+  return (
+    <div className="min-h-[116px] flex flex-col justify-between gap-4">
+      <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold mb-1 leading-tight">Qual professor te marcou?</p>
+      <div className="grid grid-cols-1 gap-2">
+        {Object.keys(HOME_PROFESSOR_POLL_BASE_VOTES).map(option => (
+          <span
+            key={option}
+            role="button"
+            tabIndex={0}
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              selectOption(option);
+            }}
+            onKeyDown={event => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              event.stopPropagation();
+              selectOption(option);
+            }}
+            className={
+              "inline-flex items-center justify-center min-h-[42px] px-4 py-2 border border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]/60 hover:bg-[#1a2e1a] transition-colors text-[11px] font-mono uppercase tracking-[0.14em] text-center " +
+              (state.selected === option ? 'border-[#c9a84c]/70 text-[#c9a84c]' : '')
+            }
+            aria-label={hasSelected ? `${option}: ${percentages[option] ?? 0}% dos votos` : option}
+          >
+            {hasSelected ? `${percentages[option] ?? 0}%` : option}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HomeClassDistributionContent({ people }: { people: DbPerson[] }) {
+  const classGroups = ['A', 'B', 'C', 'D'];
+  const people2006 = people.filter(person => person.class_year === 2006 && person.class_group && classGroups.includes(person.class_group));
+  const counts = classGroups.map(group => ({ group, value: people2006.filter(person => person.class_group === group).length }));
+
+  return (
+    <div className="min-h-[116px] flex flex-col justify-between gap-5">
+      <div>
+        <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Formados em 2006</p>
+        <p className="font-['Playfair_Display'] text-[#f0ebe0] text-5xl font-black leading-none">{people2006.length}</p>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {counts.map(item => (
+          <div key={item.group} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-3">
+            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.18em] mb-1">Turma {item.group}</p>
+            <p className="font-['Playfair_Display'] text-[#f0ebe0] text-3xl font-bold leading-none">{item.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HomeProfileStatsContent() {
+  const stats = [
+    { icon: <GraduationCap size={16} />, value: '5%', label: 'trabalham na área do Direito' },
+    { icon: <Baby size={16} />, value: '40%', label: 'tem filhos' },
+    { icon: <Venus size={16} />, value: '55%', label: 'são mulheres' },
   ];
 
-  rows.forEach(row => {
-    const item = document.createElement('div');
-    item.className = 'grid grid-cols-[auto_1fr_auto] items-center gap-3';
-
-    const label = document.createElement('p');
-    label.className = 'text-[#7a9a7a] text-[11px] font-mono uppercase tracking-[0.12em] min-w-[92px]';
-    label.textContent = row.label;
-
-    const track = document.createElement('div');
-    track.className = 'h-2 bg-[#0d1a0f] border border-[#2d6a4f]/25 overflow-hidden';
-
-    const bar = document.createElement('div');
-    bar.className = 'h-full bg-[#c9a84c]/80';
-    bar.style.width = `${row.value}%`;
-    track.appendChild(bar);
-
-    const value = document.createElement('p');
-    value.className = 'text-[#f0ebe0] text-xs font-mono tabular-nums min-w-[34px] text-right';
-    value.textContent = `${row.value}%`;
-
-    item.append(label, track, value);
-    shell.appendChild(item);
-  });
-
-  return shell;
+  return (
+    <div className="min-h-[116px] grid grid-cols-1 gap-2">
+      {stats.map(stat => (
+        <div key={stat.label} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-3">
+          <div className="w-9 h-9 rounded-full border border-[#2d6a4f]/40 text-[#c9a84c] flex items-center justify-center shrink-0">{stat.icon}</div>
+          <div className="min-w-0">
+            <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-none">{stat.value}</p>
+            <p className="text-[#7a9a7a] text-xs leading-tight mt-1">{stat.label}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function installHomeProfileAndMapPreview() {
-  let scheduled = false;
+function HomeMapStatsContent() {
+  return (
+    <div className="min-h-[116px] flex flex-col justify-between gap-3">
+      {HOME_MAP_STATS.map(stat => (
+        <div key={stat.label}>
+          <div className="flex items-baseline justify-between gap-3 mb-1">
+            <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-none">{stat.value}%</p>
+            <p className="text-[#7a9a7a] text-[11px] font-mono uppercase tracking-[0.14em] text-right">{stat.label}</p>
+          </div>
+          <div className="h-1.5 bg-[#0d1a0f] border border-[#2d6a4f]/20 overflow-hidden">
+            <div className="h-full bg-[#c9a84c]/80" style={{ width: `${stat.value}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  const render = () => {
-    scheduled = false;
-    if (!isHomePath()) return;
+async function installHomePreviewEnhancements() {
+  if (!isHomePath()) return;
 
-    const chartCard = findPreviewCardByLabel('gráficos');
-    chartCard?.remove();
+  let people: DbPerson[] = [];
+  let memories: DbMemory[] = [];
+  try {
+    [people, memories] = await Promise.all([getPeople(), getApprovedMemories(DEFAULT_EVENT_ID)]);
+  } catch {
+    people = [];
+    memories = [];
+  }
 
+  let attempts = 0;
+  const apply = () => {
+    attempts += 1;
+    if (!isHomePath()) return true;
+
+    const timelineCard = findPreviewCardByLabel('linha do tempo');
+    const memoryCard = findPreviewCardByLabel('memórias');
+    const pollCard = findPreviewCardByLabel('enquetes');
     const profileCard = findPreviewCardByLabel('perfil');
-    const profileLabel = profileCard
-      ? Array.from(profileCard.querySelectorAll('p')).find(node => node.textContent?.trim().toLowerCase() === 'perfil')
-      : null;
-    if (profileLabel) clearCardAfterLabel(profileLabel, '[data-home-profile-stats="true"]', createProfileStatsShell);
-
     const mapCard = findPreviewCardByLabel('mapa da turma');
-    const mapLabel = mapCard
-      ? Array.from(mapCard.querySelectorAll('p')).find(node => node.textContent?.trim().toLowerCase() === 'mapa da turma')
-      : null;
-    if (mapLabel) clearCardAfterLabel(mapLabel, '[data-home-map-chart="true"]', createMapChartShell);
+
+    if (!timelineCard || !memoryCard || !pollCard || !profileCard || !mapCard) return attempts > 20;
+
+    removePreviewCard('gráficos');
+    mountAfterLabel(timelineCard, 'linha do tempo', <HomeClassDistributionContent people={people} />, { removeLabel: true });
+    mountAfterLabel(memoryCard, 'memórias', <HomeMemoryPreviewContent memories={memories} people={people} />);
+    mountAfterLabel(pollCard, 'enquetes', <HomeProfessorPollContent />);
+    mountAfterLabel(profileCard, 'perfil', <HomeProfileStatsContent />);
+    mountAfterLabel(mapCard, 'mapa da turma', <HomeMapStatsContent />);
+    replaceLeftStatsWithTimeline();
+    return true;
   };
 
-  const scheduleRender = () => {
-    if (scheduled) return;
-    scheduled = true;
-    window.requestAnimationFrame(render);
-  };
-
-  const observer = new MutationObserver(scheduleRender);
-  observer.observe(document.body, { childList: true, subtree: true });
-  scheduleRender();
+  if (apply()) return;
+  const retryId = window.setInterval(() => {
+    if (apply()) window.clearInterval(retryId);
+  }, 150);
 }
 
 async function bootstrap() {
@@ -515,9 +440,9 @@ async function bootstrap() {
   );
 
   installHeroScrollBehavior();
-  installHomeMemoryPreviewCarousel();
-  installHomeProfessorPollPreview();
-  installHomeProfileAndMapPreview();
+  window.requestAnimationFrame(() => {
+    void installHomePreviewEnhancements();
+  });
 }
 
 void bootstrap();
