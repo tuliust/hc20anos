@@ -2362,26 +2362,121 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
   );
 }
 
-function AboutSection({ content }: { content: HomePageContent }) {
+function AboutSection({
+  content,
+  navigate,
+  people,
+  memories,
+}: {
+  content: HomePageContent;
+  navigate: (p: Page) => void;
+  people: DbPerson[];
+  memories: DbMemory[];
+}) {
+  const totalPeople = people.length;
+  const confirmedPeople = people.filter(person => person.profile_status === "confirmed").length;
+  const registeredPeople = people.filter(person => person.profile_status !== "unclaimed").length;
+  const memoryCount = memories.length;
+  const extendedContent = getExtendedHomeContent(content);
+  const timelineCount = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)
+    .filter(item => item.is_visible !== false)
+    .length;
+
+  const curiosityCards = [
+    {
+      icon: <Clock size={20} />,
+      label: "Linha do tempo",
+      title: `${timelineCount || 4} marcos da turma`,
+      description: "Uma amostra dos momentos que conectam escola, reencontro e bastidores da turma.",
+    },
+    {
+      icon: <MessageCircle size={20} />,
+      label: "Memórias",
+      title: memoryCount > 0 ? `${memoryCount} memórias publicadas` : "Memórias em construção",
+      description: "Relatos curtos, lembranças de corredor e histórias que ajudam a reconstruir a época do HC.",
+    },
+    {
+      icon: <CheckCircle2 size={20} />,
+      label: "Enquetes",
+      title: "Perguntas da turma",
+      description: "Votações rápidas para descobrir preferências, expectativas e lembranças coletivas.",
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      label: "Gráficos",
+      title: "Raio-X em números",
+      description: "Respostas do questionário viram gráficos sobre perfil, histórias, expectativas e fase atual.",
+    },
+    {
+      icon: <Users size={20} />,
+      label: "Perfil",
+      title: `${registeredPeople || 0} perfis cadastrados`,
+      description: "Um retrato atualizado de quem confirmou, quem já se cadastrou e como a turma se apresenta hoje.",
+    },
+    {
+      icon: <MapPin size={20} />,
+      label: "Mapa da turma",
+      title: "Onde cada um está",
+      description: "Uma prévia da distribuição da turma por cidades, estados e países.",
+    },
+  ];
+
+  const previewStats = [
+    { label: "Ex-alunos na base", value: totalPeople || 0 },
+    { label: "Confirmados", value: confirmedPeople || 0 },
+    { label: "Memórias", value: memoryCount || 0 },
+  ];
+
   return (
     <section className="bg-[#0d1a0f] py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <div>
-            <SectionLabel>{content.about_eyebrow}</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title}</DisplayTitle>
+        <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-12 lg:gap-16 items-start">
+          <div className="lg:sticky lg:top-28">
+            <SectionLabel>{content.about_eyebrow || "Nossa história"}</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title || "Nossa história"}</DisplayTitle>
             <GoldRule />
             <p className="text-[#8ab89a] text-base leading-relaxed mb-4">{content.about_body_1}</p>
-            <p className="text-[#8ab89a] text-base leading-relaxed">{content.about_body_2}</p>
+            <p className="text-[#8ab89a] text-base leading-relaxed mb-8">{content.about_body_2}</p>
+
+            <div className="grid grid-cols-3 gap-3 mb-8">
+              {previewStats.map(stat => (
+                <div key={stat.label} className="border border-[#2d6a4f]/25 bg-[#141f14] p-4">
+                  <p className="font-['Playfair_Display'] font-black text-[#c9a84c] text-3xl leading-none mb-2">{stat.value}</p>
+                  <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider leading-tight">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[["84","Ex-alunos localizados"],["67%","Já confirmaram presença"],["12","Estados representados"],["2006","O ano que não esquecemos"]].map(([num, label]) => (
-              <div key={label} className="border border-[#2d6a4f]/30 p-6 bg-[#141f14]">
-                <p className="font-['Playfair_Display'] font-black text-[#c9a84c] text-4xl md:text-5xl mb-2">{num}</p>
-                <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider leading-tight">{label}</p>
-              </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {curiosityCards.map((item, index) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => navigate("curiosities")}
+                className={
+                  "group text-left border border-[#2d6a4f]/25 bg-[#141f14] hover:border-[#c9a84c]/50 hover:bg-[#182818] transition-all p-6 " +
+                  (index === 0 ? "sm:col-span-2" : "")
+                }
+              >
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div className="w-11 h-11 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center group-hover:border-[#c9a84c]/60 transition-colors">
+                    {item.icon}
+                  </div>
+                  <ArrowRight size={17} className="text-[#3a5a3a] group-hover:text-[#c9a84c] transition-colors" />
+                </div>
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">{item.label}</p>
+                <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold mb-3 leading-tight">{item.title}</p>
+                <p className="text-[#7a9a7a] text-sm leading-relaxed">{item.description}</p>
+              </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-10 md:mt-12 flex justify-center">
+          <Btn onClick={() => navigate("curiosities")}>
+            VER TUDO <ArrowRight size={16} />
+          </Btn>
         </div>
       </div>
     </section>
@@ -2884,7 +2979,7 @@ function LandingPage({
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
     hero: <Hero navigate={navigate} content={content} event={event} />,
-    about: <AboutSection content={content} />,
+    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} />,
     info: <EventInfoSection content={content} event={event} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} />,
