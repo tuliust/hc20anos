@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Baby, CheckCircle2, GraduationCap, Star, UserCheck, Users, Venus } from 'lucide-react';
+import { Baby, GraduationCap, UserCheck, Users, Venus } from 'lucide-react';
 import App from './app/App';
 import './styles.css';
 import { supabase } from './lib/supabase';
@@ -405,16 +405,6 @@ function getPersonInitials(person: DbPerson) {
   return `${parts[0]?.[0] ?? 'E'}${parts[parts.length - 1]?.[0] ?? 'A'}`.toUpperCase();
 }
 
-function getPersonClassLabel(person: DbPerson) {
-  return person.class_group ? `Turma ${person.class_group}` : 'Turma 2006';
-}
-
-function getPersonStatusLabel(person: DbPerson) {
-  if (person.profile_status === 'confirmed') return 'Confirmado';
-  if (person.profile_status === 'unclaimed') return 'Não cadastrado';
-  return 'Cadastrado';
-}
-
 function seededRandom(seed: number) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
@@ -442,8 +432,8 @@ async function getAttendanceIntentPersonIds() {
   }
 }
 
-function AlumniAvatar({ person, size = 'sm' }: { person: DbPerson; size?: 'sm' | 'lg' }) {
-  const dimensionClass = size === 'lg' ? 'w-20 h-20 text-2xl' : 'w-11 h-11 text-xs';
+function AlumniAvatar({ person, size = 'sm' }: { person: DbPerson; size?: 'xs' | 'sm' | 'lg' }) {
+  const dimensionClass = size === 'lg' ? 'w-20 h-20 text-2xl' : size === 'xs' ? 'w-9 h-9 text-[10px]' : 'w-11 h-11 text-xs';
   return person.avatar_url ? (
     <img src={person.avatar_url} alt={getPersonDisplayName(person)} className={`${dimensionClass} rounded-full object-cover border border-[#2d6a4f]/40 bg-[#0d1a0f]`} />
   ) : (
@@ -453,23 +443,114 @@ function AlumniAvatar({ person, size = 'sm' }: { person: DbPerson; size?: 'sm' |
   );
 }
 
+function HomeClassTabsContent({ alumni }: { alumni: DbPerson[] }) {
+  const [activeGroup, setActiveGroup] = useState('A');
+  const [page, setPage] = useState(0);
+  const classPeople = useMemo(() => (
+    alumni
+      .filter(person => person.class_group === activeGroup)
+      .sort((a, b) => getPersonDisplayName(a).localeCompare(getPersonDisplayName(b), 'pt-BR'))
+  ), [alumni, activeGroup]);
+  const totalPages = Math.max(1, Math.ceil(classPeople.length / 3));
+  const visiblePeople = classPeople.slice(page * 3, page * 3 + 3);
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeGroup]);
+
+  function changePage(direction: number) {
+    setPage(current => (current + direction + totalPages) % totalPages);
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {HOME_ALUMNI_CLASS_GROUPS.map(group => {
+          const count = alumni.filter(person => person.class_group === group).length;
+          const active = group === activeGroup;
+          return (
+            <button
+              key={group}
+              type="button"
+              onClick={() => setActiveGroup(group)}
+              className={
+                "px-3 py-2 border text-[10px] font-mono uppercase tracking-[0.18em] transition-colors " +
+                (active ? 'border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]' : 'border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]')
+              }
+            >
+              Turma {group} · {count}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-auto flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => changePage(-1)}
+          className="w-10 h-24 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors shrink-0"
+          aria-label="Ver pessoas anteriores"
+        >
+          ‹
+        </button>
+
+        <div className="grid grid-cols-1 gap-2 flex-1 min-w-0">
+          {visiblePeople.length > 0 ? visiblePeople.map(person => (
+            <div key={person.id} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-3 py-2 min-h-[50px]">
+              <AlumniAvatar person={person} size="xs" />
+              <p className="text-[#f0ebe0] text-sm font-semibold leading-tight truncate">{getPersonDisplayName(person)}</p>
+            </div>
+          )) : (
+            <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-[#7a9a7a] text-sm leading-relaxed">
+              Nenhum nome encontrado nesta turma.
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => changePage(1)}
+          className="w-10 h-24 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors shrink-0"
+          aria-label="Ver próximas pessoas"
+        >
+          ›
+        </button>
+      </div>
+
+      <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-[0.16em] mt-3 text-center">
+        {classPeople.length ? `Mostrando ${page * 3 + 1}-${Math.min(page * 3 + 3, classPeople.length)} de ${classPeople.length}` : 'Turma sem registros'}
+      </p>
+    </>
+  );
+}
+
+function HomeConfirmedPresenceGrid({ confirmed }: { confirmed: DbPerson[] }) {
+  const confirmedPreview = confirmed.slice(0, 30);
+
+  return confirmedPreview.length > 0 ? (
+    <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 mt-auto">
+      {confirmedPreview.map(person => (
+        <div key={person.id} className="flex justify-center" title={getPersonDisplayName(person)}>
+          <AlumniAvatar person={person} size="xs" />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-[#7a9a7a] text-sm leading-relaxed mt-auto">As fotos de quem confirmou presença aparecerão aqui.</p>
+  );
+}
+
 function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string> }) {
   const [seed, setSeed] = useState(1);
   const alumni = useMemo(() => people.filter(person => person.class_year === 2006), [people]);
   const confirmed = alumni.filter(person => person.profile_status === 'confirmed');
   const intending = alumni.filter(person => attendanceIntentPersonIds.has(person.id));
-  const samplePeople = useMemo(() => getRotatingSample(alumni, 8, seed), [alumni, seed]);
-  const featured = useMemo(() => getRotatingSample(alumni.filter(person => person.avatar_url), 1, seed + 99)[0] ?? getRotatingSample(alumni, 1, seed + 99)[0] ?? null, [alumni, seed]);
-  const classCounts = HOME_ALUMNI_CLASS_GROUPS.map(group => ({
-    group,
-    count: alumni.filter(person => person.class_group === group).length,
-  }));
-  const maxClassCount = Math.max(1, ...classCounts.map(item => item.count));
+  const samplePeople = useMemo(() => getRotatingSample(alumni, 12, seed), [alumni, seed]);
   const confirmedPercent = alumni.length ? Math.round((confirmed.length / alumni.length) * 100) : 0;
 
   useEffect(() => {
     if (alumni.length <= 1) return;
-    const id = window.setInterval(() => setSeed(value => value + 1), 6200);
+    const id = window.setInterval(() => setSeed(value => value + 1), 3000);
     return () => window.clearInterval(id);
   }, [alumni.length]);
 
@@ -494,7 +575,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds }: { people
             </div>
             <Users size={22} className="text-[#c9a84c] shrink-0" />
           </div>
-          <div className="grid grid-cols-4 gap-3 mt-auto">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mt-auto">
             {samplePeople.map(person => (
               <div key={person.id} className="flex flex-col items-center text-center gap-2">
                 <AlumniAvatar person={person} />
@@ -534,50 +615,25 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds }: { people
         </div>
 
         <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
-          <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Turmas</p>
               <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Distribuição por sala</p>
             </div>
             <GraduationCap size={22} className="text-[#c9a84c] shrink-0" />
           </div>
-          <div className="flex flex-col gap-3 mt-auto">
-            {classCounts.map(item => (
-              <div key={item.group}>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[#f0ebe0] font-mono text-xs uppercase tracking-[0.18em]">Turma {item.group}</p>
-                  <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-none">{item.count}</p>
-                </div>
-                <div className="h-1.5 bg-[#0d1a0f] border border-[#2d6a4f]/20 overflow-hidden">
-                  <div className="h-full bg-[#c9a84c]/80" style={{ width: `${Math.max(8, Math.round((item.count / maxClassCount) * 100))}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <HomeClassTabsContent alumni={alumni} />
         </div>
 
         <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-6 min-h-[260px] flex flex-col">
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Pessoa em destaque</p>
-              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Um rosto da turma</p>
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">Confirmados</p>
+              <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold leading-tight">Quem confirmou presença</p>
             </div>
-            <Star size={22} className="text-[#c9a84c] shrink-0" />
+            <UserCheck size={22} className="text-[#c9a84c] shrink-0" />
           </div>
-          {featured ? (
-            <div className="mt-auto flex items-center gap-5">
-              <AlumniAvatar person={featured} size="lg" />
-              <div className="min-w-0">
-                <p className="font-['Playfair_Display'] text-[#f0ebe0] text-3xl font-bold leading-tight mb-2">{getPersonDisplayName(featured)}</p>
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.18em] mb-3">{getPersonClassLabel(featured)}</p>
-                <span className="inline-flex items-center gap-2 border border-[#2d6a4f]/35 bg-[#0d1a0f] px-3 py-2 text-[#7a9a7a] text-[10px] font-mono uppercase tracking-[0.14em]">
-                  <CheckCircle2 size={12} className="text-[#c9a84c]" />{getPersonStatusLabel(featured)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[#7a9a7a] text-sm leading-relaxed mt-auto">Os nomes da turma aparecerão aqui conforme a base for carregada.</p>
-          )}
+          <HomeConfirmedPresenceGrid confirmed={confirmed} />
         </div>
       </div>
 
