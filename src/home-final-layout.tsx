@@ -63,6 +63,100 @@ function findSectionContaining(...needles: string[]) {
     }) ?? null;
 }
 
+function installDesktopViewportCalibration() {
+  if (document.querySelector('[data-home-desktop-viewport-calibration="true"]')) return true;
+
+  const style = document.createElement('style');
+  style.dataset.homeDesktopViewportCalibration = 'true';
+  style.textContent = `
+    @media (min-width: 1024px) {
+      header {
+        min-height: 70px !important;
+      }
+
+      header img {
+        max-height: 62px !important;
+        width: auto !important;
+      }
+
+      header nav,
+      header a,
+      header button {
+        letter-spacing: 0.16em !important;
+      }
+
+      [data-home-hero-compact="true"] {
+        min-height: 100svh !important;
+        padding-top: 5.25rem !important;
+        padding-bottom: 2rem !important;
+      }
+
+      [data-home-hero-compact="true"] > .relative.z-10 {
+        max-width: 72rem !important;
+        transform: translateY(0.75rem);
+      }
+
+      [data-home-hero-compact="true"] h1 {
+        font-size: clamp(4.5rem, 7.2vw, 7rem) !important;
+        letter-spacing: -0.035em !important;
+      }
+
+      [data-home-hero-compact="true"] h1 + p {
+        font-size: clamp(1.35rem, 2.35vw, 1.85rem) !important;
+      }
+
+      [data-home-hero-compact="true"] .font-mono.tracking-\[0\.24em\] {
+        font-size: 0.78rem !important;
+        letter-spacing: 0.22em !important;
+        margin-bottom: 2rem !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums {
+        font-size: clamp(3rem, 4.8vw, 4.1rem) !important;
+        line-height: 1 !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums + div {
+        font-size: 0.48rem !important;
+        letter-spacing: 0.28em !important;
+      }
+
+      [data-home-hero-compact="true"] .inline-flex > div > span {
+        font-size: 2.2rem !important;
+        margin-left: 1rem !important;
+        margin-right: 1rem !important;
+      }
+    }
+
+    @media (min-width: 1280px) and (max-height: 860px) {
+      [data-home-hero-compact="true"] > .relative.z-10 {
+        transform: translateY(1.15rem);
+      }
+
+      [data-home-hero-compact="true"] h1 {
+        font-size: clamp(4.25rem, 6.8vw, 6.35rem) !important;
+      }
+
+      [data-home-hero-compact="true"] h1 + p {
+        font-size: clamp(1.25rem, 2vw, 1.65rem) !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums {
+        font-size: clamp(2.75rem, 4.4vw, 3.75rem) !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  return true;
+}
+
+function compactHeroViewport() {
+  const heroSection = findSectionContaining('pré hc 2006', 'o reencontro de 20 anos');
+  if (!heroSection) return false;
+  heroSection.dataset.homeHeroCompact = 'true';
+  return true;
+}
+
 function removeStandaloneHistorySection() {
   const section = findSectionContaining('nossa história', 'a linha do tempo da turma', 'caixa de memórias');
   if (!section) return false;
@@ -159,6 +253,8 @@ function applyFinalHomeLayout() {
   if (!isHomePath()) return true;
 
   const results = [
+    installDesktopViewportCalibration(),
+    compactHeroViewport(),
     removeStandaloneHistorySection(),
     addEventInfoMoreButton(),
     removeClassDistributionOuterBox(),
