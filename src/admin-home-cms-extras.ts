@@ -5,36 +5,11 @@ const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
 const PANEL_ID = 'hc-admin-home-cms-extras';
 
 const FIELD_CONFIG = [
-  {
-    key: 'home_alumni_overview_json',
-    label: 'Painel “A turma em movimento”',
-    rows: 12,
-    help: 'Textos e labels dos 4 cards do preview de ex-alunos.',
-  },
-  {
-    key: 'home_nostalgia_timeline_json',
-    label: 'Timeline nostálgica',
-    rows: 10,
-    help: 'Itens da timeline. Ícones aceitos: phone-call, laptop, messages-square, proportions, smartphone, book-image.',
-  },
-  {
-    key: 'home_profile_stats_json',
-    label: 'Estatísticas do card Perfil',
-    rows: 8,
-    help: 'Use mode:auto para calcular por profiles/people ou mode:fixed com value.',
-  },
-  {
-    key: 'home_map_stats_json',
-    label: 'Estatísticas do card Mapa da turma',
-    rows: 8,
-    help: 'Use mode:auto para calcular por cidade/estado/país dos perfis ou mode:fixed com value.',
-  },
-  {
-    key: 'home_poll_fallback_json',
-    label: 'Fallback da enquete da Home',
-    rows: 6,
-    help: 'Usado quando não houver enquete aberta em Supabase polls.',
-  },
+  { key: 'home_alumni_overview_json', label: 'Painel “A turma em movimento”', rows: 12, help: 'Textos e labels dos 4 cards do preview de ex-alunos.' },
+  { key: 'home_nostalgia_timeline_json', label: 'Timeline nostálgica', rows: 10, help: 'Itens da timeline. Ícones aceitos: phone-call, laptop, messages-square, proportions, smartphone, book-image.' },
+  { key: 'home_profile_stats_json', label: 'Estatísticas do card Perfil', rows: 8, help: 'Use mode:auto para calcular por profiles/people ou mode:fixed com value.' },
+  { key: 'home_map_stats_json', label: 'Estatísticas do card Mapa da turma', rows: 8, help: 'Use mode:auto para calcular por cidade/estado/país dos perfis ou mode:fixed com value.' },
+  { key: 'home_poll_fallback_json', label: 'Fallback da enquete da Home', rows: 6, help: 'Usado quando não houver enquete aberta em Supabase polls.' },
 ] as const;
 
 function isAdminPath() {
@@ -43,15 +18,25 @@ function isAdminPath() {
 
 function findTextNode(text: string) {
   const normalized = text.trim().toLowerCase();
-  return Array.from(document.querySelectorAll('p, h1, h2, h3, button'))
+  return Array.from(document.querySelectorAll('p, h1, h2, h3, button, label'))
     .find(node => node.textContent?.trim().toLowerCase() === normalized) ?? null;
+}
+
+function closestPanel(element: HTMLElement | null) {
+  let current: HTMLElement | null = element;
+  while (current && current !== document.body) {
+    const className = typeof current.className === 'string' ? current.className : '';
+    if (className.includes('bg-[#141f14]') && className.includes('border')) return current;
+    current = current.parentElement;
+  }
+  return element?.parentElement ?? null;
 }
 
 function findHomeContentAnchor() {
   const homeSections = findTextNode('Seções da home');
-  if (homeSections instanceof HTMLElement) return homeSections.closest('.bg-[#141f14]') ?? homeSections.parentElement;
+  if (homeSections instanceof HTMLElement) return closestPanel(homeSections);
   const hero = findTextNode('Subtítulo do hero');
-  if (hero instanceof HTMLElement) return hero.closest('.bg-[#141f14]') ?? hero.parentElement;
+  if (hero instanceof HTMLElement) return closestPanel(hero);
   return null;
 }
 
@@ -65,13 +50,17 @@ function buttonClasses(primary = false) {
     : 'inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] transition-colors';
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function prettyJson(value: unknown) {
   if (typeof value === 'string') {
-    try {
-      return JSON.stringify(JSON.parse(value), null, 2);
-    } catch {
-      return value;
-    }
+    try { return JSON.stringify(JSON.parse(value), null, 2); } catch { return value; }
   }
   return JSON.stringify(value ?? null, null, 2);
 }
@@ -107,13 +96,13 @@ async function renderPanel(anchor: Element) {
     <div class="grid grid-cols-1 gap-5">
       <div>
         <label class="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">ID da enquete da Home</label>
-        <input data-hc-admin-home-cms-field="home_poll_id" class="${fieldBaseClasses()}" value="${content.home_poll_id ?? ''}" placeholder="Opcional. Se vazio, usa a primeira enquete aberta." />
+        <input data-hc-admin-home-cms-field="home_poll_id" class="${fieldBaseClasses()}" value="${escapeHtml(content.home_poll_id ?? '')}" placeholder="Opcional. Se vazio, usa a primeira enquete aberta." />
         <p class="text-[#3a5a3a] text-[11px] mt-2">A enquete usa as tabelas polls, poll_options e poll_votes. Crie a enquete na aba Enquetes e cole o ID aqui somente se quiser fixar uma específica.</p>
       </div>
       ${FIELD_CONFIG.map(field => `
         <div>
           <label class="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">${field.label}</label>
-          <textarea data-hc-admin-home-cms-field="${field.key}" rows="${field.rows}" class="${fieldBaseClasses()}">${prettyJson(content[field.key] ?? '')}</textarea>
+          <textarea data-hc-admin-home-cms-field="${field.key}" rows="${field.rows}" class="${fieldBaseClasses()}">${escapeHtml(prettyJson(content[field.key] ?? ''))}</textarea>
           <p class="text-[#3a5a3a] text-[11px] mt-2">${field.help}</p>
         </div>
       `).join('')}
