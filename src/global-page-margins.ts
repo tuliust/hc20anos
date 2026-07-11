@@ -5,24 +5,30 @@ function installGlobalPageMargins() {
   style.dataset.hcGlobalPageMargins = 'true';
   style.textContent = `
     :root {
-      --hc-page-gutter: clamp(2rem, 4.5vw, 5.5rem);
+      --hc-page-gutter: clamp(2.75rem, 6.25vw, 8.5rem);
     }
 
     @media (max-width: 767px) {
       :root {
-        --hc-page-gutter: clamp(1rem, 5vw, 1.5rem);
+        --hc-page-gutter: clamp(1.25rem, 6vw, 2rem);
       }
     }
 
     @media (min-width: 768px) and (max-width: 1023px) {
       :root {
-        --hc-page-gutter: clamp(1.75rem, 4vw, 3rem);
+        --hc-page-gutter: clamp(2.25rem, 5.25vw, 4.25rem);
       }
     }
 
     @media (min-width: 1024px) {
       :root {
-        --hc-page-gutter: clamp(3rem, 4.6vw, 5.75rem);
+        --hc-page-gutter: clamp(4.25rem, 6.6vw, 8.75rem);
+      }
+    }
+
+    @media (min-width: 1440px) {
+      :root {
+        --hc-page-gutter: clamp(5rem, 7vw, 10rem);
       }
     }
 
