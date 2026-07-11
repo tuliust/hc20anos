@@ -63,6 +63,15 @@ function findSectionContaining(...needles: string[]) {
     }) ?? null;
 }
 
+function findPanelCardContaining(...needles: string[]) {
+  const normalizedNeedles = needles.map(item => item.toLowerCase());
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-home-alumni-overview-panel="true"] div'))
+    .find(element => {
+      const text = normalizedText(element);
+      return normalizedNeedles.every(needle => text.includes(needle));
+    }) ?? null;
+}
+
 function installDesktopViewportCalibration() {
   if (document.querySelector('[data-home-desktop-viewport-calibration="true"]')) return true;
   document.documentElement.dataset.homeDesktopScale = 'true';
@@ -76,116 +85,136 @@ function installDesktopViewportCalibration() {
       }
 
       html[data-home-desktop-scale="true"] header {
-        height: 56px !important;
-        min-height: 56px !important;
-        max-height: 56px !important;
+        min-height: 4.5rem !important;
       }
 
       html[data-home-desktop-scale="true"] header > div {
-        height: 56px !important;
-        min-height: 56px !important;
-        max-height: 56px !important;
-        max-width: 76rem !important;
+        height: 4.5rem !important;
+        min-height: 4.5rem !important;
+        max-height: 4.5rem !important;
+        max-width: 84rem !important;
       }
 
       html[data-home-desktop-scale="true"] header button[aria-label^="Início"] {
-        transform: scale(0.82) !important;
-        transform-origin: left center !important;
-        margin-left: -0.65rem !important;
-        gap: 0.6rem !important;
+        height: 4.5rem !important;
+        overflow: visible !important;
+        transform: none !important;
+        margin-left: 0 !important;
+        gap: 0.8rem !important;
       }
 
       html[data-home-desktop-scale="true"] header button[aria-label^="Início"] img {
-        height: 44px !important;
-        width: 88px !important;
-        max-height: 44px !important;
-        max-width: 88px !important;
+        height: 4.5rem !important;
+        width: 10.25rem !important;
+        max-height: none !important;
+        max-width: none !important;
         object-fit: contain !important;
+        transform: scale(1.14);
+        transform-origin: left center;
       }
 
       html[data-home-desktop-scale="true"] header nav {
-        gap: 1rem !important;
+        gap: 1.35rem !important;
       }
 
       html[data-home-desktop-scale="true"] header nav button {
-        font-size: 0.72rem !important;
-        letter-spacing: 0.11em !important;
+        font-size: 0.95rem !important;
+        letter-spacing: 0.15em !important;
       }
 
       html[data-home-desktop-scale="true"] header > div > div:last-child {
-        gap: 0.55rem !important;
+        gap: 0.8rem !important;
       }
 
       html[data-home-desktop-scale="true"] header > div > div:last-child button,
       html[data-home-desktop-scale="true"] header > div > div:last-child a {
-        font-size: 0.72rem !important;
-        letter-spacing: 0.11em !important;
-        padding: 0.6rem 1.05rem !important;
+        font-size: 0.86rem !important;
+        letter-spacing: 0.14em !important;
+        padding: 0.82rem 1.45rem !important;
       }
 
       html[data-home-desktop-scale="true"] section:not([data-home-hero-compact="true"]) {
-        padding-top: 4.25rem !important;
-        padding-bottom: 4.25rem !important;
+        padding-top: 4rem !important;
+        padding-bottom: 4rem !important;
       }
 
       html[data-home-desktop-scale="true"] section:not([data-home-hero-compact="true"]) .max-w-7xl {
         max-width: 72rem !important;
       }
 
+      html[data-home-desktop-scale="true"] section:not([data-home-hero-compact="true"]) h2 {
+        font-size: clamp(2.25rem, 3.5vw, 3.2rem) !important;
+      }
+
       [data-home-hero-compact="true"] {
         min-height: 100svh !important;
-        padding-top: 4.25rem !important;
-        padding-bottom: 1.35rem !important;
+        padding-top: 4.15rem !important;
+        padding-bottom: 2rem !important;
       }
 
       [data-home-hero-compact="true"] > .relative.z-10 {
-        max-width: 68rem !important;
-        transform: translateY(0.35rem);
+        max-width: 70rem !important;
+        transform: translateY(-2.6rem) !important;
       }
 
       [data-home-hero-compact="true"] h1 {
-        font-size: clamp(3.85rem, 6.2vw, 5.85rem) !important;
-        letter-spacing: -0.04em !important;
+        font-size: clamp(4.45rem, 7.1vw, 6.75rem) !important;
+        letter-spacing: -0.035em !important;
       }
 
       [data-home-hero-compact="true"] h1 + p {
-        font-size: clamp(1.05rem, 1.85vw, 1.45rem) !important;
+        font-size: clamp(1.35rem, 2.35vw, 1.85rem) !important;
       }
 
       [data-home-hero-compact="true"] .w-20.h-px {
-        margin-top: 1.1rem !important;
-        margin-bottom: 1.1rem !important;
+        margin-top: 1.15rem !important;
+        margin-bottom: 1.15rem !important;
       }
 
       [data-home-hero-compact="true"] .font-mono.tracking-\[0\.24em\] {
-        font-size: 0.68rem !important;
-        letter-spacing: 0.20em !important;
-        margin-bottom: 1.55rem !important;
-      }
-
-      [data-home-hero-compact="true"] .flex.flex-col.sm\:flex-row {
+        font-size: 0.82rem !important;
+        letter-spacing: 0.24em !important;
         margin-bottom: 2rem !important;
       }
 
+      [data-home-hero-compact="true"] .flex.flex-col.sm\:flex-row {
+        margin-bottom: 2.15rem !important;
+      }
+
       [data-home-hero-compact="true"] .flex.flex-col.sm\:flex-row button {
-        padding: 0.9rem 2.15rem !important;
-        font-size: 0.78rem !important;
+        font-size: 0.92rem !important;
+        padding: 1rem 2.75rem !important;
       }
 
       [data-home-hero-compact="true"] .tabular-nums {
-        font-size: clamp(2.45rem, 3.9vw, 3.25rem) !important;
-        line-height: 0.95 !important;
+        font-size: clamp(3.7rem, 5.4vw, 5.25rem) !important;
+        line-height: 1 !important;
       }
 
       [data-home-hero-compact="true"] .tabular-nums + div {
-        font-size: 0.42rem !important;
-        letter-spacing: 0.26em !important;
+        font-size: 0.52rem !important;
+        letter-spacing: 0.3em !important;
       }
 
       [data-home-hero-compact="true"] .inline-flex > div > span {
-        font-size: 1.75rem !important;
-        margin-left: 0.85rem !important;
-        margin-right: 0.85rem !important;
+        font-size: 2.55rem !important;
+        margin-left: 1.15rem !important;
+        margin-right: 1.15rem !important;
+      }
+
+      [data-home-alumni-overview-panel="true"] .grid.lg\:grid-cols-2 > div {
+        min-height: 240px !important;
+        padding: 1.45rem !important;
+      }
+
+      [data-home-class-tabs-compact="true"] .home-class-tabs-list {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 0.75rem !important;
+      }
+
+      [data-home-class-tabs-compact="true"] .home-class-tabs-person-card {
+        min-height: 6.6rem !important;
       }
     }
 
@@ -195,19 +224,19 @@ function installDesktopViewportCalibration() {
       }
 
       [data-home-hero-compact="true"] > .relative.z-10 {
-        transform: translateY(0.6rem);
+        transform: translateY(-3.15rem) !important;
       }
 
       [data-home-hero-compact="true"] h1 {
-        font-size: clamp(3.65rem, 5.8vw, 5.45rem) !important;
+        font-size: clamp(4.35rem, 6.8vw, 6.45rem) !important;
       }
 
       [data-home-hero-compact="true"] h1 + p {
-        font-size: clamp(1rem, 1.65vw, 1.3rem) !important;
+        font-size: clamp(1.25rem, 2vw, 1.65rem) !important;
       }
 
       [data-home-hero-compact="true"] .tabular-nums {
-        font-size: clamp(2.2rem, 3.5vw, 2.95rem) !important;
+        font-size: clamp(3.35rem, 5.1vw, 4.75rem) !important;
       }
     }
   `;
@@ -268,6 +297,59 @@ function removeClassDistributionOuterBox() {
   return true;
 }
 
+function applyClassTabsEnhancements() {
+  const card = findPanelCardContaining('turmas', 'distribuição por sala');
+  if (!card) return false;
+
+  card.dataset.homeClassTabsCompact = 'true';
+
+  Array.from(card.querySelectorAll<HTMLButtonElement>('button')).forEach(button => {
+    const match = button.textContent?.match(/Turma\s+([ABCD])(?:\s*·\s*\d+)?/i);
+    if (match && !button.getAttribute('aria-label')?.toLowerCase().includes('pessoas')) {
+      button.textContent = `Turma ${match[1].toUpperCase()}`;
+    }
+  });
+
+  const previousButton = card.querySelector<HTMLButtonElement>('button[aria-label="Ver pessoas anteriores"]');
+  const nextButton = card.querySelector<HTMLButtonElement>('button[aria-label="Ver próximas pessoas"]');
+  const row = previousButton?.parentElement;
+  const list = previousButton?.nextElementSibling instanceof HTMLElement ? previousButton.nextElementSibling : null;
+
+  if (row) {
+    row.className = 'mt-auto grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-3';
+  }
+
+  [previousButton, nextButton].forEach(button => {
+    if (!button) return;
+    button.className = 'w-10 min-h-[6.6rem] border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors shrink-0';
+  });
+
+  if (list) {
+    list.className = 'home-class-tabs-list min-w-0';
+    Array.from(list.children).forEach(child => {
+      if (!(child instanceof HTMLElement)) return;
+      child.className = 'home-class-tabs-person-card flex flex-col items-center justify-center text-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-3 py-3 min-w-0';
+      const name = child.querySelector<HTMLElement>('p');
+      if (name) name.className = 'text-[#f0ebe0] text-sm font-semibold leading-tight line-clamp-2';
+    });
+  }
+
+  return true;
+}
+
+function installClassTabsClickReflow() {
+  if (document.documentElement.dataset.homeClassTabsClickReflow === 'true') return true;
+  document.documentElement.dataset.homeClassTabsClickReflow = 'true';
+  document.addEventListener('click', event => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (!target.closest('[data-home-alumni-overview-panel="true"]')) return;
+    window.setTimeout(applyClassTabsEnhancements, 0);
+    window.setTimeout(applyClassTabsEnhancements, 80);
+  });
+  return true;
+}
+
 function CompactNostalgiaTimeline() {
   const [openIndex, setOpenIndex] = useState(0);
 
@@ -324,6 +406,8 @@ function applyFinalHomeLayout() {
     addEventInfoMoreButton(),
     removeClassDistributionOuterBox(),
     replaceTimelineBoxWithCompactTimeline(),
+    installClassTabsClickReflow(),
+    applyClassTabsEnhancements(),
   ];
 
   return results.every(Boolean);
