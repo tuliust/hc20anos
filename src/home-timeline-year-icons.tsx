@@ -1,42 +1,58 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import {
+  BookImage,
+  Laptop,
+  MessagesSquare,
+  PhoneCall,
+  Proportions,
+  Smartphone,
+  type LucideIcon,
+} from 'lucide-react';
 
 const HOME_PATHS = new Set(['', '/', '/index.html']);
 
-const TIMELINE_ITEMS = [
+type TimelineItem = {
+  year: string;
+  Icon: LucideIcon;
+  title: string;
+  description: string;
+};
+
+const TIMELINE_ITEMS: TimelineItem[] = [
   {
     year: '1995',
-    visual: '☎',
+    Icon: PhoneCall,
     title: 'Orelhão pra ligar pra casa',
     description: 'Ainda na nossa época de alfabetização, o normal ainda era usar o orelhão para ligar pra casa.',
   },
   {
     year: '1996',
-    visual: 'Cadê?',
+    Icon: Laptop,
     title: 'Internet discada e Cadê?',
     description: 'Quando entramos na 1ª série, começava-se a era da internet discada e das buscas no site Cadê?.',
   },
   {
     year: '1999',
-    visual: 'ICQ',
+    Icon: MessagesSquare,
     title: 'mIRC e ICQ',
     description: 'Na 4ª série, começaram os tempos de mIRC e ICQ.',
   },
   {
     year: '2000',
-    visual: 'MSN',
+    Icon: Proportions,
     title: 'MSN Messenger',
     description: 'Boa parte do nosso Ensino Fundamental foi conversando pelo MSN Messenger.',
   },
   {
     year: '2003',
-    visual: '📱',
+    Icon: Smartphone,
     title: 'Nokia e SMS',
     description: 'Na 8ª série, passamos a mandar SMS com nossos Nokias.',
   },
   {
     year: '2004',
-    visual: 'ORK',
+    Icon: BookImage,
     title: 'Orkut e Fotolog',
     description: 'No Ensino Médio, Orkut e Fotolog marcaram para sempre nossas vidas.',
   },
@@ -55,52 +71,66 @@ function TimelineYearIconPreview() {
 
   return (
     <div className="mt-8 lg:pr-2" data-home-year-icon-timeline="true">
-      <div className="relative ml-7 border-l border-[#2d6a4f]/35 pl-10">
-        {TIMELINE_ITEMS.map((item, index) => {
-          const open = openIndex === index;
-          return (
-            <div key={item.year} className={index < TIMELINE_ITEMS.length - 1 ? 'relative pb-4 md:pb-5' : 'relative'}>
-              <button
-                type="button"
-                onClick={() => setOpenIndex(open ? -1 : index)}
-                className="w-full text-left group"
-                aria-expanded={open}
-              >
-                <span
-                  className={
-                    'absolute rounded-full border bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold text-center leading-none transition-all duration-300 ' +
-                    (open
-                      ? '-left-[76px] top-[-8px] w-16 h-16 border-[#c9a84c]/75 text-sm shadow-[0_0_0_5px_rgba(201,168,76,0.07)]'
-                      : '-left-[59px] top-0 w-12 h-12 border-[#2d6a4f]/50 text-[11px]')
-                  }
+      <div className="relative">
+        <div className="absolute left-9 top-0 bottom-0 w-px bg-[#2d6a4f]/35" aria-hidden="true" />
+
+        <div className="space-y-5 md:space-y-6">
+          {TIMELINE_ITEMS.map((item, index) => {
+            const open = openIndex === index;
+            const Icon = item.Icon;
+
+            return (
+              <div key={item.year} className="relative grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 md:gap-6">
+                <div className="relative flex justify-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setOpenIndex(open ? -1 : index)}
+                    className={
+                      'relative z-10 rounded-full border bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold leading-none transition-all duration-300 ' +
+                      (open
+                        ? 'w-16 h-16 border-[#c9a84c]/75 text-sm shadow-[0_0_0_8px_rgba(201,168,76,0.07)]'
+                        : 'w-12 h-12 border-[#2d6a4f]/50 text-[11px] hover:border-[#c9a84c]/55')
+                    }
+                    aria-expanded={open}
+                    aria-label={`${open ? 'Recolher' : 'Abrir'} marco de ${item.year}`}
+                  >
+                    {item.year}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setOpenIndex(open ? -1 : index)}
+                  className="w-full text-left group pt-1"
+                  aria-expanded={open}
                 >
-                  {item.year}
-                </span>
-                <span
-                  className={
-                    'block text-[#c9a84c] font-mono uppercase leading-none mb-2 transition-all duration-300 ' +
-                    (open ? 'text-sm tracking-[0.24em]' : 'text-[10px] tracking-[0.2em]')
-                  }
-                >
-                  {item.visual}
-                </span>
-                <span
-                  className={
-                    'block font-[\'Playfair_Display\'] font-bold leading-tight transition-colors ' +
-                    (open ? 'text-[#f0ebe0] text-2xl md:text-[1.7rem]' : 'text-[#f0ebe0] text-xl group-hover:text-[#c9a84c]')
-                  }
-                >
-                  {item.title}
-                </span>
-              </button>
-              {open && (
-                <p className="text-[#7a9a7a] text-sm md:text-[15px] leading-relaxed mt-3 max-w-md">
-                  {item.description}
-                </p>
-              )}
-            </div>
-          );
-        })}
+                  <span className="block mb-2 text-[#c9a84c] transition-all duration-300">
+                    <Icon
+                      size={open ? 30 : 21}
+                      strokeWidth={open ? 2.1 : 1.8}
+                      className={open ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span
+                    className={
+                      'block font-[\'Playfair_Display\'] font-bold leading-tight transition-colors ' +
+                      (open ? 'text-[#f0ebe0] text-2xl md:text-[1.7rem]' : 'text-[#f0ebe0] text-xl group-hover:text-[#c9a84c]')
+                    }
+                  >
+                    {item.title}
+                  </span>
+                </button>
+
+                {open && (
+                  <p className="col-start-2 text-[#7a9a7a] text-sm md:text-[15px] leading-relaxed -mt-3 max-w-md">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
