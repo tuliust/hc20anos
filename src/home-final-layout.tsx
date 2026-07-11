@@ -73,29 +73,80 @@ function findPanelCardContaining(...needles: string[]) {
 }
 
 function installDesktopViewportCalibration() {
+  document.documentElement.dataset.hcGlobalHeader = 'true';
+  if (isHomePath()) document.documentElement.dataset.homeDesktopScale = 'true';
+
   if (document.querySelector('[data-home-desktop-viewport-calibration="true"]')) return true;
-  document.documentElement.dataset.homeDesktopScale = 'true';
 
   const style = document.createElement('style');
   style.dataset.homeDesktopViewportCalibration = 'true';
   style.textContent = `
+    [data-home-header-buy-cta-hidden="true"] {
+      display: none !important;
+    }
+
+    [data-home-confirmed-presence-card="true"] [data-home-confirmed-presence-grid="true"] {
+      width: 100%;
+      margin-top: auto;
+      align-items: center;
+    }
+
+    [data-home-confirmed-presence-card="true"] [data-home-confirmed-presence-grid="true"] > div {
+      align-items: center;
+      justify-content: center;
+    }
+
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="1"] [data-home-confirmed-presence-grid="true"] {
+      min-height: 9.5rem;
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+    }
+
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="1"] [data-home-confirmed-presence-grid="true"] > div > img,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="1"] [data-home-confirmed-presence-grid="true"] > div > div {
+      width: min(9.5rem, 42vw) !important;
+      height: min(9.5rem, 42vw) !important;
+      font-size: 2.5rem !important;
+    }
+
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="2"] [data-home-confirmed-presence-grid="true"],
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="3"] [data-home-confirmed-presence-grid="true"],
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="4"] [data-home-confirmed-presence-grid="true"] {
+      min-height: 9rem;
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 1rem !important;
+    }
+
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="2"] [data-home-confirmed-presence-grid="true"] > div > img,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="2"] [data-home-confirmed-presence-grid="true"] > div > div,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="3"] [data-home-confirmed-presence-grid="true"] > div > img,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="3"] [data-home-confirmed-presence-grid="true"] > div > div,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="4"] [data-home-confirmed-presence-grid="true"] > div > img,
+    [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="4"] [data-home-confirmed-presence-grid="true"] > div > div {
+      width: 5.4rem !important;
+      height: 5.4rem !important;
+      font-size: 1.35rem !important;
+    }
+
     @media (min-width: 1024px) {
       html[data-home-desktop-scale="true"] {
         font-size: 88%;
       }
 
-      html[data-home-desktop-scale="true"] header {
+      html[data-hc-global-header="true"] header {
         min-height: 4.5rem !important;
       }
 
-      html[data-home-desktop-scale="true"] header > div {
+      html[data-hc-global-header="true"] header > div {
         height: 4.5rem !important;
         min-height: 4.5rem !important;
         max-height: 4.5rem !important;
         max-width: 84rem !important;
       }
 
-      html[data-home-desktop-scale="true"] header button[aria-label^="Início"] {
+      html[data-hc-global-header="true"] header button[aria-label^="Início"] {
         height: 4.5rem !important;
         overflow: visible !important;
         transform: none !important;
@@ -103,7 +154,7 @@ function installDesktopViewportCalibration() {
         gap: 0.8rem !important;
       }
 
-      html[data-home-desktop-scale="true"] header button[aria-label^="Início"] img {
+      html[data-hc-global-header="true"] header button[aria-label^="Início"] img {
         height: 4.5rem !important;
         width: 10.25rem !important;
         max-height: none !important;
@@ -113,21 +164,21 @@ function installDesktopViewportCalibration() {
         transform-origin: left center;
       }
 
-      html[data-home-desktop-scale="true"] header nav {
+      html[data-hc-global-header="true"] header nav {
         gap: 1.35rem !important;
       }
 
-      html[data-home-desktop-scale="true"] header nav button {
+      html[data-hc-global-header="true"] header nav button {
         font-size: 0.95rem !important;
         letter-spacing: 0.15em !important;
       }
 
-      html[data-home-desktop-scale="true"] header > div > div:last-child {
+      html[data-hc-global-header="true"] header > div > div:last-child {
         gap: 0.8rem !important;
       }
 
-      html[data-home-desktop-scale="true"] header > div > div:last-child button,
-      html[data-home-desktop-scale="true"] header > div > div:last-child a {
+      html[data-hc-global-header="true"] header > div > div:last-child button,
+      html[data-hc-global-header="true"] header > div > div:last-child a {
         font-size: 0.86rem !important;
         letter-spacing: 0.14em !important;
         padding: 0.82rem 1.45rem !important;
@@ -244,6 +295,32 @@ function installDesktopViewportCalibration() {
   return true;
 }
 
+function hideHeaderBuyCta() {
+  const header = document.querySelector<HTMLElement>('header');
+  if (!header) return false;
+
+  Array.from(header.querySelectorAll<HTMLElement>('button, a')).forEach(element => {
+    if (normalizedText(element) !== 'comprar ingresso') return;
+    element.dataset.homeHeaderBuyCtaHidden = 'true';
+    element.setAttribute('aria-hidden', 'true');
+    if (element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement) element.tabIndex = -1;
+    element.style.display = 'none';
+  });
+
+  return true;
+}
+
+function installGlobalHeaderObserver() {
+  if (document.documentElement.dataset.homeGlobalHeaderObserver === 'true') return true;
+  document.documentElement.dataset.homeGlobalHeaderObserver = 'true';
+
+  const observer = new MutationObserver(() => {
+    window.requestAnimationFrame(hideHeaderBuyCta);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return true;
+}
+
 function compactHeroViewport() {
   const heroSection = findSectionContaining('pré hc 2006', 'o reencontro de 20 anos');
   if (!heroSection) return false;
@@ -337,6 +414,29 @@ function applyClassTabsEnhancements() {
   return true;
 }
 
+function applyConfirmedPresenceEnhancements() {
+  const card = findPanelCardContaining('confirmados', 'quem confirmou presença');
+  if (!card) return false;
+
+  card.dataset.homeConfirmedPresenceCard = 'true';
+
+  const grid = Array.from(card.querySelectorAll<HTMLElement>('div'))
+    .find(element => String(element.className).includes('grid-cols-6') || String(element.className).includes('sm:grid-cols-10'));
+  if (!grid) return true;
+
+  const count = grid.children.length;
+  card.dataset.homeConfirmedPresenceCount = String(count);
+  grid.dataset.homeConfirmedPresenceGrid = 'true';
+
+  if (count === 1) {
+    grid.className = 'mt-auto flex items-center justify-center min-h-[9.5rem] w-full';
+  } else if (count > 1 && count <= 4) {
+    grid.className = 'mt-auto grid grid-cols-4 items-center gap-4 min-h-[9rem] w-full';
+  }
+
+  return true;
+}
+
 function installClassTabsClickReflow() {
   if (document.documentElement.dataset.homeClassTabsClickReflow === 'true') return true;
   document.documentElement.dataset.homeClassTabsClickReflow = 'true';
@@ -397,10 +497,16 @@ function replaceTimelineBoxWithCompactTimeline() {
 }
 
 function applyFinalHomeLayout() {
-  if (!isHomePath()) return true;
+  const globalResults = [
+    installDesktopViewportCalibration(),
+    hideHeaderBuyCta(),
+    installGlobalHeaderObserver(),
+  ];
+
+  if (!isHomePath()) return globalResults.every(Boolean);
 
   const results = [
-    installDesktopViewportCalibration(),
+    ...globalResults,
     compactHeroViewport(),
     removeStandaloneHistorySection(),
     addEventInfoMoreButton(),
@@ -408,6 +514,7 @@ function applyFinalHomeLayout() {
     replaceTimelineBoxWithCompactTimeline(),
     installClassTabsClickReflow(),
     applyClassTabsEnhancements(),
+    applyConfirmedPresenceEnhancements(),
   ];
 
   return results.every(Boolean);
