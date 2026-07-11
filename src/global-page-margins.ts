@@ -32,16 +32,6 @@ function installGlobalPageMargins() {
       }
     }
 
-    main > div {
-      padding-left: var(--hc-page-gutter) !important;
-      padding-right: var(--hc-page-gutter) !important;
-    }
-
-    main > section:not([data-home-hero-compact="true"]) {
-      padding-left: var(--hc-page-gutter) !important;
-      padding-right: var(--hc-page-gutter) !important;
-    }
-
     main > section:not([data-home-hero-compact="true"]) > .max-w-7xl,
     main > section:not([data-home-hero-compact="true"]) > .max-w-6xl,
     main > section:not([data-home-hero-compact="true"]) > .max-w-5xl,
@@ -52,39 +42,47 @@ function installGlobalPageMargins() {
     main > div > .max-w-5xl,
     main > div > .max-w-4xl,
     main > div > .max-w-3xl,
+    main > div > section:not([data-home-hero-compact="true"]) > .max-w-7xl,
+    main > div > section:not([data-home-hero-compact="true"]) > .max-w-6xl,
+    main > div > section:not([data-home-hero-compact="true"]) > .max-w-5xl,
+    main > div > section:not([data-home-hero-compact="true"]) > .max-w-4xl,
+    main > div > section:not([data-home-hero-compact="true"]) > .max-w-3xl,
     main > div .max-w-7xl,
     main > div .max-w-6xl,
     main > div .max-w-5xl,
     main > div .max-w-4xl,
     main > div .max-w-3xl {
-      width: 100% !important;
+      width: calc(100% - (var(--hc-page-gutter) * 2)) !important;
       max-width: none !important;
       margin-left: auto !important;
       margin-right: auto !important;
-    }
-
-    main > section:not([data-home-hero-compact="true"]) > .max-w-7xl,
-    main > section:not([data-home-hero-compact="true"]) > .max-w-6xl,
-    main > section:not([data-home-hero-compact="true"]) > .max-w-5xl,
-    main > div > .max-w-7xl,
-    main > div > .max-w-6xl,
-    main > div > .max-w-5xl,
-    main > div .max-w-7xl,
-    main > div .max-w-6xl,
-    main > div .max-w-5xl {
       padding-left: 0 !important;
       padding-right: 0 !important;
     }
 
-    @media (max-width: 767px) {
-      main > div {
-        padding-left: var(--hc-page-gutter) !important;
-        padding-right: var(--hc-page-gutter) !important;
-      }
+    main > div > section:not([data-home-hero-compact="true"]),
+    main > section:not([data-home-hero-compact="true"]) {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
 
-      main > section:not([data-home-hero-compact="true"]) {
-        padding-left: var(--hc-page-gutter) !important;
-        padding-right: var(--hc-page-gutter) !important;
+    @media (max-width: 767px) {
+      main > section:not([data-home-hero-compact="true"]) > .max-w-7xl,
+      main > section:not([data-home-hero-compact="true"]) > .max-w-6xl,
+      main > section:not([data-home-hero-compact="true"]) > .max-w-5xl,
+      main > section:not([data-home-hero-compact="true"]) > .max-w-4xl,
+      main > section:not([data-home-hero-compact="true"]) > .max-w-3xl,
+      main > div > .max-w-7xl,
+      main > div > .max-w-6xl,
+      main > div > .max-w-5xl,
+      main > div > .max-w-4xl,
+      main > div > .max-w-3xl,
+      main > div > section:not([data-home-hero-compact="true"]) > .max-w-7xl,
+      main > div > section:not([data-home-hero-compact="true"]) > .max-w-6xl,
+      main > div > section:not([data-home-hero-compact="true"]) > .max-w-5xl,
+      main > div > section:not([data-home-hero-compact="true"]) > .max-w-4xl,
+      main > div > section:not([data-home-hero-compact="true"]) > .max-w-3xl {
+        width: calc(100% - (var(--hc-page-gutter) * 2)) !important;
       }
     }
   `;
