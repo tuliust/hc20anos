@@ -72,17 +72,34 @@ function findPanelCardContaining(...needles: string[]) {
     }) ?? null;
 }
 
-function installDesktopViewportCalibration() {
+function installResponsiveStandardization() {
   document.documentElement.dataset.hcGlobalHeader = 'true';
   if (isHomePath()) document.documentElement.dataset.homeDesktopScale = 'true';
 
-  if (document.querySelector('[data-home-desktop-viewport-calibration="true"]')) return true;
+  if (document.querySelector('[data-hc-responsive-standard="true"]')) return true;
 
   const style = document.createElement('style');
-  style.dataset.homeDesktopViewportCalibration = 'true';
+  style.dataset.hcResponsiveStandard = 'true';
   style.textContent = `
     [data-home-header-buy-cta-hidden="true"] {
       display: none !important;
+    }
+
+    html[data-hc-global-header="true"] header {
+      background: rgba(8, 15, 8, 0.97) !important;
+    }
+
+    html[data-hc-global-header="true"] header > div {
+      width: min(100% - 1.5rem, 86rem) !important;
+    }
+
+    html[data-hc-global-header="true"] header button[aria-label^="Início"] {
+      overflow: visible !important;
+    }
+
+    html[data-hc-global-header="true"] header button[aria-label^="Início"] img {
+      object-fit: contain !important;
+      transform-origin: left center !important;
     }
 
     [data-home-confirmed-presence-card="true"] [data-home-confirmed-presence-grid="true"] {
@@ -130,6 +147,159 @@ function installDesktopViewportCalibration() {
       font-size: 1.35rem !important;
     }
 
+    @media (max-width: 767px) {
+      html[data-hc-global-header="true"] header > div {
+        height: 4rem !important;
+        min-height: 4rem !important;
+        max-height: 4rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+      }
+
+      html[data-hc-global-header="true"] header button[aria-label^="Início"] img {
+        width: 7.5rem !important;
+        height: 3.85rem !important;
+        max-width: 7.5rem !important;
+        max-height: 3.85rem !important;
+        transform: none !important;
+      }
+
+      html[data-hc-global-header="true"] header button[aria-label^="Início"] {
+        height: 4rem !important;
+      }
+
+      html[data-home-desktop-scale="true"] section:not([data-home-hero-compact="true"]) {
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
+      }
+
+      [data-home-hero-compact="true"] {
+        min-height: 100svh !important;
+        padding-top: 5.25rem !important;
+        padding-bottom: 1.25rem !important;
+      }
+
+      [data-home-hero-compact="true"] > .relative.z-10 {
+        max-width: min(100% - 2rem, 28rem) !important;
+        transform: translateY(-0.75rem) !important;
+      }
+
+      [data-home-hero-compact="true"] h1 {
+        font-size: clamp(3.2rem, 18vw, 5rem) !important;
+        line-height: 0.92 !important;
+        letter-spacing: -0.045em !important;
+      }
+
+      [data-home-hero-compact="true"] h1 + p {
+        font-size: clamp(1.15rem, 6vw, 1.65rem) !important;
+        line-height: 1.1 !important;
+      }
+
+      [data-home-hero-compact="true"] .font-mono.tracking-\[0\.24em\] {
+        font-size: 0.64rem !important;
+        letter-spacing: 0.18em !important;
+        line-height: 1.8 !important;
+        margin-bottom: 1.5rem !important;
+      }
+
+      [data-home-hero-compact="true"] .flex.flex-col.sm\:flex-row {
+        gap: 0.85rem !important;
+        margin-bottom: 1.7rem !important;
+      }
+
+      [data-home-hero-compact="true"] .flex.flex-col.sm\:flex-row button {
+        width: 100% !important;
+        padding: 0.95rem 1rem !important;
+        font-size: 0.78rem !important;
+      }
+
+      [data-home-hero-compact="true"] .inline-flex {
+        max-width: 100% !important;
+        gap: 0.55rem !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums {
+        font-size: clamp(2.35rem, 12vw, 3.35rem) !important;
+        line-height: 1 !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums + div {
+        font-size: 0.42rem !important;
+        letter-spacing: 0.2em !important;
+      }
+
+      [data-home-hero-compact="true"] .inline-flex > div > span {
+        font-size: 1.35rem !important;
+        margin-left: 0.25rem !important;
+        margin-right: 0.25rem !important;
+      }
+
+      [data-home-alumni-overview-panel="true"] .grid.lg\:grid-cols-2 > div {
+        min-height: auto !important;
+        padding: 1.2rem !important;
+      }
+
+      [data-home-class-tabs-compact="true"] .home-class-tabs-list {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 0.65rem !important;
+      }
+
+      [data-home-class-tabs-compact="true"] .home-class-tabs-person-card {
+        min-height: 4.75rem !important;
+      }
+
+      [data-home-class-tabs-compact="true"] button[aria-label="Ver pessoas anteriores"],
+      [data-home-class-tabs-compact="true"] button[aria-label="Ver próximas pessoas"] {
+        min-height: 4.75rem !important;
+        width: 2rem !important;
+      }
+
+      [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="2"] [data-home-confirmed-presence-grid="true"],
+      [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="3"] [data-home-confirmed-presence-grid="true"],
+      [data-home-confirmed-presence-card="true"][data-home-confirmed-presence-count="4"] [data-home-confirmed-presence-grid="true"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+      html[data-hc-global-header="true"] header > div {
+        height: 4.25rem !important;
+        min-height: 4.25rem !important;
+        max-height: 4.25rem !important;
+      }
+
+      html[data-hc-global-header="true"] header button[aria-label^="Início"] img {
+        width: 8.5rem !important;
+        height: 4.2rem !important;
+        max-height: 4.2rem !important;
+      }
+
+      html[data-home-desktop-scale="true"] section:not([data-home-hero-compact="true"]) {
+        padding-top: 3.75rem !important;
+        padding-bottom: 3.75rem !important;
+      }
+
+      [data-home-hero-compact="true"] {
+        min-height: 100svh !important;
+        padding-top: 5rem !important;
+        padding-bottom: 1.75rem !important;
+      }
+
+      [data-home-hero-compact="true"] > .relative.z-10 {
+        max-width: min(100% - 3rem, 48rem) !important;
+        transform: translateY(-1.4rem) !important;
+      }
+
+      [data-home-hero-compact="true"] h1 {
+        font-size: clamp(4.6rem, 12vw, 7rem) !important;
+      }
+
+      [data-home-hero-compact="true"] .tabular-nums {
+        font-size: clamp(3.1rem, 8vw, 4.4rem) !important;
+      }
+    }
+
     @media (min-width: 1024px) {
       html[data-home-desktop-scale="true"] {
         font-size: 88%;
@@ -148,7 +318,6 @@ function installDesktopViewportCalibration() {
 
       html[data-hc-global-header="true"] header button[aria-label^="Início"] {
         height: 4.5rem !important;
-        overflow: visible !important;
         transform: none !important;
         margin-left: 0 !important;
         gap: 0.8rem !important;
@@ -159,17 +328,15 @@ function installDesktopViewportCalibration() {
         width: 10.25rem !important;
         max-height: none !important;
         max-width: none !important;
-        object-fit: contain !important;
         transform: scale(1.14);
-        transform-origin: left center;
       }
 
       html[data-hc-global-header="true"] header nav {
-        gap: 1.35rem !important;
+        gap: clamp(1rem, 1.45vw, 1.35rem) !important;
       }
 
       html[data-hc-global-header="true"] header nav button {
-        font-size: 0.95rem !important;
+        font-size: clamp(0.78rem, 0.92vw, 0.95rem) !important;
         letter-spacing: 0.15em !important;
       }
 
@@ -498,7 +665,7 @@ function replaceTimelineBoxWithCompactTimeline() {
 
 function applyFinalHomeLayout() {
   const globalResults = [
-    installDesktopViewportCalibration(),
+    installResponsiveStandardization(),
     hideHeaderBuyCta(),
     installGlobalHeaderObserver(),
   ];
