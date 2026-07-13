@@ -23,7 +23,17 @@ type EventCmsContent = {
   structure_section_subtitle?: string | null;
 };
 
+type CmsAsset = {
+  asset_key?: string | null;
+  file_url?: string | null;
+  alt_text?: string | null;
+  caption?: string | null;
+  usage_context?: string | null;
+  is_active?: boolean | null;
+};
+
 let eventCmsPromise: Promise<EventCmsContent | null> | null = null;
+let cmsAssetsPromise: Promise<Record<string, CmsAsset>> | null = null;
 
 function path() {
   return window.location.pathname.replace(/\/+$/, '') || '/';
@@ -191,6 +201,27 @@ function getEventCmsContent() {
   return eventCmsPromise;
 }
 
+function getCmsAssets() {
+  if (!cmsAssetsPromise) {
+    cmsAssetsPromise = (async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('cms_assets')
+          .select('asset_key,file_url,alt_text,caption,usage_context,is_active')
+          .eq('event_id', DEFAULT_EVENT_ID)
+          .eq('is_active', true);
+        if (error) return {};
+        return Object.fromEntries((data ?? [])
+          .filter((asset: CmsAsset) => asset.asset_key)
+          .map((asset: CmsAsset) => [asset.asset_key, asset]));
+      } catch {
+        return {};
+      }
+    })();
+  }
+  return cmsAssetsPromise;
+}
+
 function parseStructureCards(value: EventCmsContent['structure_cards_json']) {
   if (!value) return [] as EventStructureCard[];
   if (Array.isArray(value)) return value;
@@ -227,7 +258,7 @@ function setTextIfPresent(element: HTMLElement | null, value?: string | null) {
 
 async function applyEventCmsAdjustments() {
   if (path() !== '/evento') return;
-  const cms = await getEventCmsContent();
+  const [cms, assets] = await Promise.all([getEventCmsContent(), getCmsAssets()]);
 
   const localSection = findSection('local', 'como chegar') ?? document.querySelector<HTMLElement>('[data-event-local-final="true"]');
   if (localSection) {
@@ -275,15 +306,19 @@ async function applyEventCmsAdjustments() {
       .find(element => String(element.className).includes('lg:grid-cols-[0.9fr_1.1fr]'));
     if (grid && grid.children.length >= 2 && (grid.children[1] as HTMLElement).dataset.eventProgramImageFinal !== 'true') {
       const rightColumn = grid.children[1] as HTMLElement;
-      const image = cms?.program_image_url?.trim() || '';
-      const alt = cms?.program_image_alt?.trim() || cms?.program_section_title?.trim() || 'Imagem da programação do evento';
+      const programAsset = assets.event_program_image;
+      const image = cms?.program_image_url?.trim() || programAsset?.file_url?.trim() || '';
+      const alt = cms?.program_image_alt?.trim()
+        || programAsset?.alt_text?.trim()
+        || cms?.program_section_title?.trim()
+        || 'Imagem da programação do evento';
       rightColumn.dataset.eventProgramImageFinal = 'true';
       rightColumn.className = '';
       rightColumn.replaceChildren();
       if (image) {
         rightColumn.innerHTML = `<figure data-event-program-image-final="true" aria-label="${escapeHtml(alt)}"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" loading="lazy" /></figure>`;
       } else {
-        rightColumn.appendChild(technicalPlaceholder('Imagem da programação não configurada no Admin.'));
+        rightColumn.appendChild(technicalPlaceholder('Imagem da programação não configurada no CMS de assets.'));
       }
     }
   }
@@ -347,6 +382,7 @@ applyAll();
 window.addEventListener('DOMContentLoaded', applyAll);
 window.addEventListener('popstate', () => {
   eventCmsPromise = null;
+  cmsAssetsPromise = null;
   setTimeout(applyAll, 80);
 });
 
