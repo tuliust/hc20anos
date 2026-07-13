@@ -111,8 +111,6 @@ async function renderPanel(anchor: Element) {
     button?.setAttribute('disabled', 'true');
     status(panel, 'Salvando...', 'muted');
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const adminUserId = authData.user?.id ?? null;
       const rows = PAGE_CONFIG.map(page => {
         const field = panel.querySelector<HTMLTextAreaElement>(`[data-public-pages-cms-field="${page.slug}"]`);
         const raw = field?.value.trim() || '{}';
@@ -120,7 +118,6 @@ async function renderPanel(anchor: Element) {
           event_id: DEFAULT_EVENT_ID,
           page_slug: page.slug,
           content_json: JSON.parse(raw),
-          updated_by_admin_id: adminUserId,
         };
       });
       const { error } = await (supabase as any)
