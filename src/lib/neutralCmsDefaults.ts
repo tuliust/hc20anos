@@ -1,4 +1,4 @@
-import { EVENT_PAGE_CONTENT_DEFAULTS, HOME_PAGE_CONTENT_DEFAULTS } from "./services";
+import { EVENT_PAGE_CONTENT_DEFAULTS, HOME_PAGE_CONTENT_DEFAULTS, MOCK_PEOPLE } from "./services";
 
 function neutralizeObjectStrings<T extends Record<string, unknown>>(target: T, keep: Set<string>) {
   for (const key of Object.keys(target)) {
@@ -114,6 +114,8 @@ const NEUTRAL_EVENT_EXTRAS = {
 };
 
 export function installNeutralCmsDefaults() {
+  MOCK_PEOPLE.splice(0, MOCK_PEOPLE.length);
+
   neutralizeObjectStrings(HOME_PAGE_CONTENT_DEFAULTS as unknown as Record<string, unknown>, new Set(["event_id"]));
   Object.assign(HOME_PAGE_CONTENT_DEFAULTS, {
     header_logo_url: null,
