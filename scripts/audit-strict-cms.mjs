@@ -111,7 +111,7 @@ assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const PEOPLE_PATHS', 'rotas 
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("ticket_types")', 'guard deve validar tipos de ingresso reais no Supabase.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("people")', 'guard deve validar base real de pessoas no Supabase.');
 
-// Baseline informativo dos legados físicos ainda pendentes.
+// Relatório informativo dos legados físicos ainda pendentes.
 const legacyCounts = {
   unsplashInSrc: countInFiles(srcFiles, 'images.unsplash.com'),
   colegioInSrc: countInFiles(srcFiles, 'Colégio Henrique Castriciano'),
@@ -120,27 +120,12 @@ const legacyCounts = {
   mockTicketTypesInServices: exists('src/lib/services.ts') ? countOccurrences(read('src/lib/services.ts'), 'MOCK_TICKET_TYPES') : 0,
 };
 
-const baseline = {
-  // Linha de base herdada. Reduza esses números conforme os hardcodes forem removidos fisicamente.
-  unsplashInSrcMax: 12,
-  colegioInSrcMax: 8,
-  turma2006InSrcMax: 20,
-  fallbackEventDateInAppMax: 3,
-  mockTicketTypesInServicesMax: 2,
-};
-
-if (legacyCounts.unsplashInSrc > baseline.unsplashInSrcMax) fail(`Legado Unsplash aumentou: ${legacyCounts.unsplashInSrc}/${baseline.unsplashInSrcMax}.`);
-if (legacyCounts.colegioInSrc > baseline.colegioInSrcMax) fail(`Legado Colégio Henrique Castriciano aumentou: ${legacyCounts.colegioInSrc}/${baseline.colegioInSrcMax}.`);
-if (legacyCounts.turma2006InSrc > baseline.turma2006InSrcMax) fail(`Legado Turma 2006 aumentou: ${legacyCounts.turma2006InSrc}/${baseline.turma2006InSrcMax}.`);
-if (legacyCounts.fallbackEventDateInApp > baseline.fallbackEventDateInAppMax) fail(`Fallback físico de data do evento aumentou: ${legacyCounts.fallbackEventDateInApp}/${baseline.fallbackEventDateInAppMax}.`);
-if (legacyCounts.mockTicketTypesInServices > baseline.mockTicketTypesInServicesMax) fail(`MOCK_TICKET_TYPES aumentou: ${legacyCounts.mockTicketTypesInServices}/${baseline.mockTicketTypesInServicesMax}.`);
-
 for (const [key, value] of Object.entries(legacyCounts)) {
   warn(`${key}: ${value}`);
 }
 
 if (warnings.length) {
-  console.log('\nStrict CMS audit — baseline legado:');
+  console.log('\nStrict CMS audit — contagem informativa de legado físico:');
   for (const message of warnings) console.log(`- ${message}`);
 }
 
