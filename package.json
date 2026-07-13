@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "audit:cms-strict": "node scripts/audit-strict-cms.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
