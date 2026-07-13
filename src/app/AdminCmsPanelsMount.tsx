@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { CmsAdminPanels } from "./CmsAdminPanels";
+import CmsAdminPanels from "./CmsAdminPanels";
 
 function normalizePathname(pathname: string) {
   return pathname.replace(/\/+$/, "") || "/";
