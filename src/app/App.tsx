@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useRef } from "react";
+import { useState, useEffect, Fragment, useMemo, useRef } from "react";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
