@@ -1,5 +1,7 @@
 import { supabase } from './lib/supabase';
 
+const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
+
 type LocationRow = {
   current_city?: string | null;
   current_state?: string | null;
@@ -8,8 +10,28 @@ type LocationRow = {
   full_name?: string | null;
 };
 
-const EVENT_PROGRAM_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1400&h=1000&fit=crop&auto=format';
-const DEFAULT_MAP_QUERY = 'Espaço Cultural Ponta Negra Av. Eng. Roberto Freire Ponta Negra Natal RN';
+type EventStructureCard = {
+  title?: string | null;
+  description?: string | null;
+  icon?: string | null;
+};
+
+type EventCmsContent = {
+  map_embed_url?: string | null;
+  program_image_url?: string | null;
+  program_image_alt?: string | null;
+  structure_cards_json?: EventStructureCard[] | string | null;
+  show_gallery_preview?: boolean | null;
+  local_section_eyebrow?: string | null;
+  local_section_title?: string | null;
+  program_section_eyebrow?: string | null;
+  program_section_title?: string | null;
+  structure_section_eyebrow?: string | null;
+  structure_section_title?: string | null;
+  structure_section_subtitle?: string | null;
+};
+
+let eventCmsPromise: Promise<EventCmsContent | null> | null = null;
 
 function path() {
   return window.location.pathname.replace(/\/+$/, '') || '/';
@@ -60,6 +82,15 @@ function closestCard(element: HTMLElement | null) {
       const className = String(item.className ?? '');
       return className.includes('border') || className.includes('bg-') || item.tagName.toLowerCase() === 'article';
     }) ?? element.parentElement;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function installStyles() {
@@ -124,6 +155,20 @@ function installStyles() {
       min-height: 26rem;
       object-fit: cover;
       opacity: 0.76;
+    }
+    [data-event-program-image-placeholder="true"] {
+      min-height: 26rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      border: 1px solid rgba(45, 106, 79, 0.25);
+      background: #141f14;
+      color: #7a9a7a;
+      font: 600 0.78rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
     }
 
     [data-curiosities-location-final="true"] .hc-location-bar {
@@ -191,91 +236,156 @@ function applyHomeTextAdjustments() {
   });
 }
 
-function mapUrl(query: string) {
-  return `https://www.google.com/maps?q=${encodeURIComponent(query.trim() || DEFAULT_MAP_QUERY)}&output=embed`;
+function getEventCmsContent() {
+  if (!eventCmsPromise) {
+    eventCmsPromise = (async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('event_page_content')
+          .select('*')
+          .eq('event_id', DEFAULT_EVENT_ID)
+          .maybeSingle();
+        if (error) return null;
+        return (data ?? null) as EventCmsContent | null;
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return eventCmsPromise;
 }
 
-function applyEventLocalMap() {
-  if (path() !== '/evento') return;
-  const section = findSection('local', 'como chegar');
-  if (!section || section.dataset.eventLocalMapFinal === 'true') return;
+function parseStructureCards(value: EventCmsContent['structure_cards_json']) {
+  if (!value) return [] as EventStructureCard[];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as EventStructureCard[] : [];
+  } catch {
+    return [] as EventStructureCard[];
+  }
+}
 
-  const rightColumn = Array.from(section.querySelectorAll<HTMLElement>('div'))
-    .find(element => String(element.className).includes('min-h-[320px]'));
-  if (!rightColumn || rightColumn.querySelector('iframe')) {
-    section.dataset.eventLocalMapFinal = 'true';
-    return;
+function mapUrlFromCms(cms: EventCmsContent | null, locationQuery: string) {
+  const raw = cms?.map_embed_url?.trim();
+  if (raw) {
+    const match = raw.match(/src=["']([^"']+)["']/i);
+    return match?.[1] ?? raw;
+  }
+  return locationQuery.trim()
+    ? `https://www.google.com/maps?q=${encodeURIComponent(locationQuery.trim())}&output=embed`
+    : '';
+}
+
+function technicalPlaceholder(message: string) {
+  const div = document.createElement('div');
+  div.dataset.eventProgramImagePlaceholder = 'true';
+  div.textContent = message;
+  return div;
+}
+
+function setTextIfPresent(element: HTMLElement | null, value?: string | null) {
+  const next = value?.trim();
+  if (element && next) element.textContent = next;
+}
+
+async function applyEventCmsAdjustments() {
+  if (path() !== '/evento') return;
+  const cms = await getEventCmsContent();
+
+  const localSection = findSection('local', 'como chegar') ?? document.querySelector<HTMLElement>('[data-event-local-final="true"]');
+  if (localSection) {
+    localSection.dataset.eventLocalFinal = 'true';
+    setTextIfPresent(localSection.querySelector('p'), cms?.local_section_eyebrow);
+    setTextIfPresent(localSection.querySelector('h2'), cms?.local_section_title);
+
+    const rightColumn = Array.from(localSection.querySelectorAll<HTMLElement>('div'))
+      .find(element => String(element.className).includes('min-h-[320px]'));
+    if (rightColumn && rightColumn.dataset.eventLocalMapFinal !== 'true') {
+      const existingIframe = rightColumn.querySelector('iframe');
+      if (existingIframe) {
+        rightColumn.dataset.eventLocalMapFinal = 'true';
+      } else {
+        const locationName = rightColumn.querySelector('p:nth-of-type(1)')?.textContent?.trim() ?? '';
+        const locationAddress = rightColumn.querySelector('p:nth-of-type(2)')?.textContent?.trim() ?? '';
+        const iframeSrc = mapUrlFromCms(cms, `${locationName} ${locationAddress}`);
+        rightColumn.replaceChildren();
+        rightColumn.className = 'bg-[#0d1a0f] min-h-[320px] border border-[#2d6a4f]/20 overflow-hidden';
+        if (iframeSrc) {
+          const iframe = document.createElement('iframe');
+          iframe.title = cms?.local_section_title?.trim() || 'Mapa do evento';
+          iframe.src = iframeSrc;
+          iframe.className = 'w-full h-[360px] border-0';
+          iframe.loading = 'lazy';
+          iframe.referrerPolicy = 'no-referrer-when-downgrade';
+          rightColumn.appendChild(iframe);
+        } else {
+          rightColumn.appendChild(technicalPlaceholder('Mapa não configurado no Admin.'));
+        }
+        rightColumn.dataset.eventLocalMapFinal = 'true';
+      }
+    }
   }
 
-  const locationName = rightColumn.querySelector('p:nth-of-type(1)')?.textContent?.trim() || 'Espaço Cultural Ponta Negra';
-  const locationAddress = rightColumn.querySelector('p:nth-of-type(2)')?.textContent?.trim() || 'Av. Eng. Roberto Freire, Ponta Negra, Natal/RN';
-  rightColumn.replaceChildren();
-  rightColumn.className = 'bg-[#0d1a0f] min-h-[320px] border border-[#2d6a4f]/20 overflow-hidden';
-  const iframe = document.createElement('iframe');
-  iframe.title = 'Mapa do evento';
-  iframe.src = mapUrl(`${locationName} ${locationAddress}`);
-  iframe.className = 'w-full h-[360px] border-0';
-  iframe.loading = 'lazy';
-  iframe.referrerPolicy = 'no-referrer-when-downgrade';
-  rightColumn.appendChild(iframe);
-  section.dataset.eventLocalMapFinal = 'true';
-}
+  const programSection = findSection('programacao', 'horarios e atracoes') ?? document.querySelector<HTMLElement>('[data-event-program-final="true"]');
+  if (programSection) {
+    programSection.dataset.eventProgramFinal = 'true';
+    const label = programSection.querySelector<HTMLElement>('p');
+    const title = programSection.querySelector<HTMLElement>('h2');
+    setTextIfPresent(label, cms?.program_section_eyebrow);
+    setTextIfPresent(title, cms?.program_section_title);
 
-function applyEventProgramImage() {
-  if (path() !== '/evento') return;
-  const section = findSection('programacao', 'horarios e atracoes');
-  if (!section || section.dataset.eventProgramImageFinal === 'true') return;
+    const grid = Array.from(programSection.querySelectorAll<HTMLElement>('div'))
+      .find(element => String(element.className).includes('lg:grid-cols-[0.9fr_1.1fr]'));
+    if (grid && grid.children.length >= 2 && (grid.children[1] as HTMLElement).dataset.eventProgramImageFinal !== 'true') {
+      const rightColumn = grid.children[1] as HTMLElement;
+      const image = cms?.program_image_url?.trim() || '';
+      const alt = cms?.program_image_alt?.trim() || cms?.program_section_title?.trim() || 'Imagem da programação do evento';
+      rightColumn.dataset.eventProgramImageFinal = 'true';
+      rightColumn.className = '';
+      rightColumn.replaceChildren();
+      if (image) {
+        rightColumn.innerHTML = `<figure data-event-program-image-final="true" aria-label="${escapeHtml(alt)}"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" loading="lazy" /></figure>`;
+      } else {
+        rightColumn.appendChild(technicalPlaceholder('Imagem da programação não configurada no Admin.'));
+      }
+    }
+  }
 
-  const grid = Array.from(section.querySelectorAll<HTMLElement>('div'))
-    .find(element => String(element.className).includes('lg:grid-cols-[0.9fr_1.1fr]'));
-  if (!grid || grid.children.length < 2) return;
+  const structure = findSection('estrutura', 'bar, comidas') ?? document.querySelector<HTMLElement>('[data-event-structure-final="true"]');
+  if (structure) {
+    structure.dataset.eventStructureFinal = 'true';
+    const label = structure.querySelector<HTMLElement>('p');
+    const title = structure.querySelector<HTMLElement>('h2');
+    setTextIfPresent(label, cms?.structure_section_eyebrow);
+    setTextIfPresent(title, cms?.structure_section_title || cms?.structure_section_subtitle);
 
-  const rightColumn = grid.children[1] as HTMLElement;
-  const image = document.querySelector<HTMLImageElement>('section img[src]')?.src || EVENT_PROGRAM_IMAGE_FALLBACK;
-  rightColumn.dataset.eventProgramImageFinal = 'true';
-  rightColumn.className = '';
-  rightColumn.innerHTML = `
-    <figure data-event-program-image-final="true" aria-label="Imagem da programação do evento">
-      <img src="${image}" alt="Imagem da programação do evento" loading="lazy" />
-    </figure>
-  `;
-  section.dataset.eventProgramImageFinal = 'true';
-}
-
-function structureCard(title: string, description: string) {
-  const card = document.createElement('div');
-  card.className = 'bg-[#141f14] border border-[#2d6a4f]/25 p-6';
-  card.dataset.eventExtraStructureCard = title;
-  card.innerHTML = `
-    <div class="text-[#c9a84c] mb-4" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 20V8l6-4 6 4v12"/><path d="M9 20v-6h6v6"/></svg>
-    </div>
-    <p class="text-[#f0ebe0] font-semibold mb-2">${title}</p>
-    <p class="text-[#7a9a7a] text-sm leading-relaxed">${description}</p>
-  `;
-  return card;
-}
-
-function applyEventStructureAndPreview() {
-  if (path() !== '/evento') return;
-  const structure = findSection('estrutura', 'bar, comidas');
-  if (structure && structure.dataset.eventStructureFinal !== 'true') {
     const grid = Array.from(structure.querySelectorAll<HTMLElement>('div'))
       .find(element => String(element.className).includes('md:grid-cols-3'));
-    if (grid) {
-      [
-        ['Estacionamento', 'Consulte a organização sobre vagas, pontos de embarque/desembarque e opções próximas ao local.'],
-        ['Área Kids', 'Espaço pensado para apoio às famílias, conforme estrutura final contratada para o evento.'],
-        ['Registro de fotos e vídeos', 'A noite terá registros oficiais para preservar os principais momentos do reencontro.'],
-      ].forEach(([title, description]) => {
-        if (!grid.querySelector(`[data-event-extra-structure-card="${title}"]`)) grid.appendChild(structureCard(title, description));
-      });
-      structure.dataset.eventStructureFinal = 'true';
+    if (grid && grid.dataset.eventStructureCardsFinal !== 'true') {
+      parseStructureCards(cms?.structure_cards_json)
+        .filter(card => card.title?.trim())
+        .forEach(card => {
+          const titleText = card.title?.trim() ?? '';
+          if (grid.querySelector(`[data-event-extra-structure-card="${CSS.escape(titleText)}"]`)) return;
+          const item = document.createElement('div');
+          item.className = 'bg-[#141f14] border border-[#2d6a4f]/25 p-6';
+          item.dataset.eventExtraStructureCard = titleText;
+          item.innerHTML = `
+            <div class="text-[#c9a84c] mb-4" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 20V8l6-4 6 4v12"/><path d="M9 20v-6h6v6"/></svg>
+            </div>
+            <p class="text-[#f0ebe0] font-semibold mb-2">${escapeHtml(titleText)}</p>
+            <p class="text-[#7a9a7a] text-sm leading-relaxed">${escapeHtml(card.description ?? '')}</p>
+          `;
+          grid.appendChild(item);
+        });
+      grid.dataset.eventStructureCardsFinal = 'true';
     }
   }
 
   const preview = findSection('fotos', 'previa do evento');
-  if (preview) preview.remove();
+  if (preview && cms?.show_gallery_preview !== true) preview.remove();
 }
 
 function applyAlumniButton() {
@@ -306,7 +416,7 @@ function applyMemoriesUi() {
   if (path() !== '/nossa-historia/memorias') return;
   textNodes().forEach(element => {
     const text = txt(element);
-    if (text.includes('enviar sem mostrar nome') || text.includes('sem mostrar nome') || text.includes('anonimo') || text.includes('anonimo')) {
+    if (text.includes('enviar sem mostrar nome') || text.includes('sem mostrar nome') || text.includes('anonimo') || text.includes('anônimo')) {
       const label = element.closest('label') as HTMLElement | null;
       const target = label ?? element;
       target.style.display = 'none';
@@ -316,7 +426,7 @@ function applyMemoriesUi() {
         checkbox.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
-    if (text.includes('moderacao')) {
+    if (text.includes('moderacao') || text.includes('moderação')) {
       const paragraph = element.closest('p') as HTMLElement | null;
       if (paragraph) paragraph.style.display = 'none';
     }
@@ -515,9 +625,7 @@ function applyAll() {
   installStyles();
   applyHomeTimelineScrollActivation();
   applyHomeTextAdjustments();
-  applyEventLocalMap();
-  applyEventProgramImage();
-  applyEventStructureAndPreview();
+  void applyEventCmsAdjustments();
   applyAlumniButton();
   applyAlumniHeader();
   applyMemoriesUi();
@@ -541,6 +649,7 @@ applyAll();
 window.addEventListener('DOMContentLoaded', applyAll);
 window.addEventListener('popstate', () => {
   delete document.documentElement.dataset.hcQuestionnaireButtonChecked;
+  eventCmsPromise = null;
   setTimeout(applyAll, 80);
 });
 
