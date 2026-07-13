@@ -4,6 +4,17 @@
 -- - Bucket público cms-assets para uploads pelo painel Admin
 -- ================================================================
 
+-- Esta migration pode ser executada mesmo quando migrations anteriores
+-- de CMS ainda não foram aplicadas. As colunas usadas para semear assets
+-- são criadas antes de qualquer SELECT que faça referência a elas.
+alter table if exists public.event_page_content
+  add column if not exists program_image_url text,
+  add column if not exists program_image_alt text;
+
+alter table if exists public.home_page_content
+  add column if not exists header_logo_url text,
+  add column if not exists favicon_url text;
+
 create table if not exists public.cms_assets (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events(id) on delete cascade,
