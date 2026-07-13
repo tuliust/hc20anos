@@ -55,6 +55,7 @@ function countInFiles(files, pattern) {
 }
 
 const srcFiles = collectFiles('src');
+const indexHtml = read('index.html');
 
 // Arquitetura de entrada única.
 assertIncludes('index.html', '/src/main.tsx', 'index.html deve carregar apenas a entrada React principal.');
@@ -73,7 +74,7 @@ for (const obsoleteScript of [
   'final-public-adjustments',
   'public-pages-cms',
 ]) {
-  if (read('index.html').includes(obsoleteScript)) {
+  if (indexHtml.includes(obsoleteScript)) {
     fail(`index.html: script obsoleto reintroduzido: ${obsoleteScript}`);
   }
 }
@@ -104,9 +105,9 @@ assertIncludes('src/main.tsx', '<AdminCmsPanelsMount />', 'painéis CMS admin de
 assertIncludes('src/lib/neutralCmsDefaults.ts', 'MOCK_PEOPLE.splice(0, MOCK_PEOPLE.length)', 'mock exportado de pessoas deve ser zerado em modo strict.');
 assertIncludes('src/lib/neutralCmsDefaults.ts', 'is_visible: false', 'seções neutras da Home devem ficar invisíveis quando CMS estiver vazio.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const EVENT_PATH = "/evento"', 'rota /evento deve estar protegida.');
+assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'getEventPageContent(DEFAULT_EVENT_ID)', 'guard deve validar CMS do evento pelo serviço oficial.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const TICKET_PATHS', 'rotas de ingressos devem estar protegidas.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const PEOPLE_PATHS', 'rotas de pessoas devem estar protegidas.');
-assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("event_page_content")', 'guard deve validar CMS do evento via serviço/consulta strict.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("ticket_types")', 'guard deve validar tipos de ingresso reais no Supabase.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("people")', 'guard deve validar base real de pessoas no Supabase.');
 
