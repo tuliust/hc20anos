@@ -7,6 +7,17 @@ function neutralizeObjectStrings<T extends Record<string, unknown>>(target: T, k
   }
 }
 
+const NEUTRAL_HOME_SECTIONS = [
+  { key: "hero", label: "", is_visible: false, sort_order: 10 },
+  { key: "about", label: "", is_visible: false, sort_order: 20 },
+  { key: "info", label: "", is_visible: false, sort_order: 30 },
+  { key: "tickets", label: "", is_visible: false, sort_order: 40 },
+  { key: "confirmed", label: "", is_visible: false, sort_order: 50 },
+  { key: "photos", label: "", is_visible: false, sort_order: 60 },
+  { key: "timeline", label: "", is_visible: false, sort_order: 70 },
+  { key: "faq", label: "", is_visible: false, sort_order: 80 },
+];
+
 const NEUTRAL_EXTENDED_HOME_CONTENT = {
   header_logo_alt: "",
   header_fallback_badge_main: "",
@@ -38,7 +49,7 @@ const NEUTRAL_EXTENDED_HOME_CONTENT = {
   nav_polls_visible: false,
   nav_where_now_visible: false,
   nav_archive_visible: false,
-  home_sections_json: "[]",
+  home_sections_json: JSON.stringify(NEUTRAL_HOME_SECTIONS, null, 2),
   countdown_days_label: "",
   countdown_hours_label: "",
   countdown_minutes_label: "",
