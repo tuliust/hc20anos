@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "audit:cms-strict": "node scripts/audit-strict-cms.mjs"
+    "audit:cms-strict": "node scripts/audit-strict-cms.mjs",
+    "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
