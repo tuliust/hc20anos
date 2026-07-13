@@ -10,10 +10,11 @@ if (!fs.existsSync(servicesPath)) {
   process.exit(1);
 }
 
-let source = fs.readFileSync(servicesPath, 'utf8');
+const rawSource = fs.readFileSync(servicesPath, 'utf8');
+const preferredNewline = rawSource.includes('\r\n') ? '\r\n' : '\n';
+let source = rawSource.replace(/\r\n/g, '\n');
 const original = source;
 
-const homeDefaultsPattern = /export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = \{[\s\S]*?\n\};\n\nexport interface EventPageGalleryItem/;
 const neutralHomeDefaults = `export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
   header_logo_url: null,
@@ -43,9 +44,8 @@ const neutralHomeDefaults = `export const HOME_PAGE_CONTENT_DEFAULTS: HomePageCo
   faq_title: "",
 };
 
-export interface EventPageGalleryItem`;
+`;
 
-const eventDefaultsPattern = /export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = \{[\s\S]*?\n\};\n\nfunction stringifyJsonField/;
 const neutralEventDefaults = `export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
   hero_eyebrow: "",
@@ -65,26 +65,44 @@ const neutralEventDefaults = `export const EVENT_PAGE_CONTENT_DEFAULTS: EventPag
   extra_info_json: "[]",
 };
 
-function stringifyJsonField`;
+`;
 
-if (!homeDefaultsPattern.test(source)) {
-  console.error('Não encontrei o bloco HOME_PAGE_CONTENT_DEFAULTS no formato esperado. Nenhuma alteração aplicada.');
-  process.exit(1);
+function replaceBlock({ label, startMarker, endMarker, replacement }) {
+  const start = source.indexOf(startMarker);
+  if (start === -1) {
+    console.error(`Não encontrei o início do bloco ${label}. Nenhuma alteração aplicada.`);
+    process.exit(1);
+  }
+
+  const end = source.indexOf(endMarker, start);
+  if (end === -1) {
+    console.error(`Não encontrei o fim do bloco ${label}. Nenhuma alteração aplicada.`);
+    process.exit(1);
+  }
+
+  source = `${source.slice(0, start)}${replacement}${source.slice(end)}`;
 }
 
-if (!eventDefaultsPattern.test(source)) {
-  console.error('Não encontrei o bloco EVENT_PAGE_CONTENT_DEFAULTS no formato esperado. Nenhuma alteração aplicada.');
-  process.exit(1);
-}
+replaceBlock({
+  label: 'HOME_PAGE_CONTENT_DEFAULTS',
+  startMarker: 'export const HOME_PAGE_CONTENT_DEFAULTS: HomePageContent = {',
+  endMarker: 'export interface EventPageGalleryItem',
+  replacement: neutralHomeDefaults,
+});
 
-source = source.replace(homeDefaultsPattern, neutralHomeDefaults);
-source = source.replace(eventDefaultsPattern, neutralEventDefaults);
+replaceBlock({
+  label: 'EVENT_PAGE_CONTENT_DEFAULTS',
+  startMarker: 'export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {',
+  endMarker: 'function stringifyJsonField',
+  replacement: neutralEventDefaults,
+});
 
 if (source === original) {
-  console.log('Nenhuma alteração necessária.');
+  console.log('Nenhuma alteração necessária. Defaults editoriais já estavam neutros.');
   process.exit(0);
 }
 
-fs.writeFileSync(servicesPath, source, 'utf8');
+const output = preferredNewline === '\r\n' ? source.replace(/\n/g, '\r\n') : source;
+fs.writeFileSync(servicesPath, output, 'utf8');
 console.log('Defaults editoriais de src/lib/services.ts neutralizados fisicamente.');
 console.log('Agora rode: npm run audit:cms-strict && npm run build');
