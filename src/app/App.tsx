@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, useRef } from "react";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
@@ -317,79 +317,79 @@ type ExtendedHomePageContent = HomePageContent & {
 };
 
 const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePageContent> = {
-  header_logo_alt: "Turma 2006",
-  header_fallback_badge_main: "HC",
-  header_fallback_badge_year: "20",
-  header_fallback_title: "Turma 2006",
-  header_fallback_subtitle: "20 anos",
-  header_cta_label: "Comprar ingresso",
-  header_cta_visible: true,
-  header_auth_visible: true,
-  primary_cta_page: "tickets",
-  secondary_cta_page: "ex-alumni",
-  nav_home_label: "Home",
-  nav_event_label: "Evento",
-  nav_ex_alumni_label: "Ex-alunos",
-  nav_who_going_label: "Quem Vai",
-  nav_the_class_label: "A Turma",
-  nav_photos_label: "Nossa História",
-  nav_memories_label: "Caixa de Memórias",
-  nav_polls_label: "Curiosidades",
-  nav_where_now_label: "Mapa",
-  nav_archive_label: "Pós-festa",
-  nav_home_visible: true,
-  nav_event_visible: true,
-  nav_ex_alumni_visible: true,
+  header_logo_alt: "",
+  header_fallback_badge_main: "",
+  header_fallback_badge_year: "",
+  header_fallback_title: "",
+  header_fallback_subtitle: "",
+  header_cta_label: "",
+  header_cta_visible: false,
+  header_auth_visible: false,
+  primary_cta_page: "home",
+  secondary_cta_page: "home",
+  nav_home_label: "",
+  nav_event_label: "",
+  nav_ex_alumni_label: "",
+  nav_who_going_label: "",
+  nav_the_class_label: "",
+  nav_photos_label: "",
+  nav_memories_label: "",
+  nav_polls_label: "",
+  nav_where_now_label: "",
+  nav_archive_label: "",
+  nav_home_visible: false,
+  nav_event_visible: false,
+  nav_ex_alumni_visible: false,
   nav_who_going_visible: false,
   nav_the_class_visible: false,
-  nav_photos_visible: true,
+  nav_photos_visible: false,
   nav_memories_visible: false,
-  nav_polls_visible: true,
+  nav_polls_visible: false,
   nav_where_now_visible: false,
-  nav_archive_visible: true,
-  home_sections_json: JSON.stringify(HOME_SECTION_DEFAULTS, null, 2),
-  countdown_days_label: "Dias",
-  countdown_hours_label: "Horas",
-  countdown_minutes_label: "Min",
-  countdown_seconds_label: "Seg",
-  info_date_label: "Data",
-  info_time_label: "Horário",
-  info_location_label: "Local",
-  info_doors_subtitle_template: "Portas abertas às {time}",
-  info_dinner_subtitle_template: "Jantar servido a partir das {time}",
-  info_time_fallback_label: "19h00 — 01h00",
-  tickets_preview_limit: "3",
-  tickets_view_all_label: "Ver todos",
-  tickets_active_lot_label: "Lote ativo",
-  tickets_buy_label: "Comprar agora",
-  tickets_sold_out_label: "Esgotado",
-  tickets_empty_title: "Ingressos em breve",
-  tickets_empty_subtitle: "Os lotes ativos cadastrados no painel aparecerão aqui.",
-  tickets_empty_cta_label: "Abrir página de ingressos",
-  tickets_remaining_label_template: "{available}/{total} restantes",
-  confirmed_preview_limit: "8",
-  confirmed_view_all_label: "Ver todos",
-  confirmed_privacy_note: "Apenas pessoas que autorizaram aparecem na lista.",
-  photos_preview_limit: "6",
-  photos_view_all_label: "Ver todas",
-  photos_empty_title: "Nenhuma foto aprovada ainda",
-  photos_empty_subtitle: "As fotos aprovadas pela moderação aparecerão aqui.",
-  photos_empty_cta_label: "Abrir mural",
-  timeline_items_json: JSON.stringify(TIMELINE, null, 2),
-  faq_items_json: JSON.stringify(FAQ_ITEMS, null, 2),
-  footer_links_json: JSON.stringify(FOOTER_LINK_DEFAULTS, null, 2),
-  footer_eyebrow: "Colégio Henrique Castriciano",
-  footer_title: "Turma 2006",
-  footer_body: "O reencontro dos ex-alunos, 20 anos depois de uma época que ficou para sempre.",
-  footer_nav_title: "Navegação",
-  footer_contact_title: "Contato",
-  footer_email: "turma2006.hc@gmail.com",
-  footer_phone: "(84) 99999-0206",
-  footer_location: "Natal, Rio Grande do Norte",
-  footer_copyright: "© 2026 Turma 2006 — Colégio Henrique Castriciano.",
-  footer_terms_label: "Termos de Uso",
-  footer_privacy_label: "Privacidade",
-  footer_admin_label: "Admin",
+  nav_archive_visible: false,
+  home_sections_json: "[]",
+  countdown_days_label: "",
+  countdown_hours_label: "",
+  countdown_minutes_label: "",
+  countdown_seconds_label: "",
+  info_date_label: "",
+  info_time_label: "",
+  info_location_label: "",
+  info_doors_subtitle_template: "",
+  info_dinner_subtitle_template: "",
+  info_time_fallback_label: "",
+  tickets_preview_limit: "0",
+  tickets_view_all_label: "",
+  tickets_active_lot_label: "",
+  tickets_buy_label: "",
+  tickets_sold_out_label: "",
+  tickets_empty_title: "",
+  tickets_empty_subtitle: "",
+  tickets_empty_cta_label: "",
+  tickets_remaining_label_template: "",
+  confirmed_preview_limit: "0",
+  confirmed_view_all_label: "",
+  confirmed_privacy_note: "",
+  photos_preview_limit: "0",
+  photos_view_all_label: "",
+  photos_empty_title: "",
+  photos_empty_subtitle: "",
+  photos_empty_cta_label: "",
+  timeline_items_json: "[]",
+  faq_items_json: "[]",
+  footer_links_json: "[]",
+  footer_eyebrow: "",
+  footer_title: "",
+  footer_body: "",
+  footer_nav_title: "",
+  footer_contact_title: "",
+  footer_email: "",
+  footer_phone: "",
+  footer_location: "",
+  footer_copyright: "",
+  footer_terms_label: "",
+  footer_privacy_label: "",
+  footer_admin_label: "",
 };
 
 function getExtendedHomeContent(content?: HomePageContent | null): ExtendedHomePageContent {
@@ -437,13 +437,13 @@ function applyTextTemplate(template: string | null | undefined, vars: Record<str
 
 function getHomeSections(content?: HomePageContent | null) {
   const extendedContent = getExtendedHomeContent(content);
-  const parsed = parseHomeJsonArray<HomeSectionContent>(extendedContent.home_sections_json, HOME_SECTION_DEFAULTS);
+  const parsed = parseHomeJsonArray<HomeSectionContent>(extendedContent.home_sections_json, []);
   const byKey = new Map<HomeSectionKey, HomeSectionContent>();
   for (const item of parsed) {
     if (HOME_SECTION_DEFAULTS.some(section => section.key === item.key)) byKey.set(item.key, item);
   }
   return HOME_SECTION_DEFAULTS
-    .map(defaultItem => ({ ...defaultItem, ...(byKey.get(defaultItem.key) ?? {}) }))
+    .map(defaultItem => byKey.has(defaultItem.key) ? { ...defaultItem, ...byKey.get(defaultItem.key) } : { ...defaultItem, is_visible: false })
     .filter(item => item.is_visible !== false)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -8655,13 +8655,15 @@ export default function App() {
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
   const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
-  const [homeContent, setHomeContent] = useState<HomePageContent>(HOME_PAGE_CONTENT_DEFAULTS);
+  const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
   const [homeContentLoaded, setHomeContentLoaded] = useState(false);
+  const [homeContentError, setHomeContentError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const homeContentRequestRef = useRef(0);
 
   useEffect(() => {
-    applyDocumentFavicon(homeContent.favicon_url ?? null);
-  }, [homeContent.favicon_url]);
+    applyDocumentFavicon(homeContent?.favicon_url ?? null);
+  }, [homeContent?.favicon_url]);
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
   useEffect(() => {
@@ -8695,10 +8697,23 @@ export default function App() {
   function refreshPublicEventData() {
     getEventSettings().then(setEvent).catch(() => setEvent(null));
     getTicketTypes(DEFAULT_EVENT_ID).then(setTicketTypes).catch(() => setTicketTypes([]));
+    const requestId = homeContentRequestRef.current + 1;
+    homeContentRequestRef.current = requestId;
+    setHomeContentLoaded(false);
+    setHomeContentError(null);
     getHomePageContent(DEFAULT_EVENT_ID)
-      .then(setHomeContent)
-      .catch(() => {})
-      .finally(() => setHomeContentLoaded(true));
+      .then(content => {
+        if (homeContentRequestRef.current !== requestId) return;
+        setHomeContent(content);
+      })
+      .catch(error => {
+        if (homeContentRequestRef.current !== requestId) return;
+        setHomeContent(null);
+        setHomeContentError(error instanceof Error ? error.message : "Não foi possível carregar o conteúdo da Home.");
+      })
+      .finally(() => {
+        if (homeContentRequestRef.current === requestId) setHomeContentLoaded(true);
+      });
     getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => setApprovedMemories([]));
   }
 
@@ -8771,6 +8786,19 @@ export default function App() {
     );
   }
 
+  if (page === "home" && (!homeContent || homeContentError)) {
+    return (
+      <div className="min-h-screen bg-[#0d1a0f] flex items-center justify-center px-6">
+        <div className="max-w-md border border-[#2d6a4f]/30 bg-[#141f14] p-8 text-center">
+          <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-[0.2em] mb-4">Conteúdo indisponível</p>
+          <h1 className="font-['Playfair_Display'] text-[#f0ebe0] text-3xl font-bold leading-tight mb-4">Não foi possível carregar a Home</h1>
+          <p className="text-[#7a9a7a] text-sm leading-relaxed mb-6">{homeContentError ?? "O Supabase não retornou conteúdo para a Home."}</p>
+          <Btn onClick={refreshPublicEventData}><RefreshCw size={16} />Tentar novamente</Btn>
+        </div>
+      </div>
+    );
+  }
+
   function handleLogin(nextAuth: AuthState) {
     setAuth(nextAuth);
     const canUseReturnPage =
@@ -8802,9 +8830,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent} />}
+      {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} content={homeContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
@@ -8829,7 +8857,7 @@ export default function App() {
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
         {page === "privacy"       && <PrivacyPage        navigate={navigate}                                        />}
       </main>
-      {!isFullscreen && <Footer navigate={navigate} content={homeContent} />}
+      {!isFullscreen && <Footer navigate={navigate} content={homeContent ?? undefined} />}
     </div>
   );
 }
