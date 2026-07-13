@@ -22,6 +22,11 @@ function assertIncludes(file, text, message) {
   if (!content.includes(text)) fail(`${file}: ${message}`);
 }
 
+function assertNotIncludes(file, text, message) {
+  const content = read(file);
+  if (content.includes(text)) fail(`${file}: ${message}`);
+}
+
 function assertNotExists(file, message) {
   if (exists(file)) fail(`${file}: ${message}`);
 }
@@ -56,6 +61,7 @@ function countInFiles(files, pattern) {
 
 const srcFiles = collectFiles('src');
 const indexHtml = read('index.html');
+const services = exists('src/lib/services.ts') ? read('src/lib/services.ts') : '';
 
 // Arquitetura de entrada única.
 assertIncludes('index.html', '/src/main.tsx', 'index.html deve carregar apenas a entrada React principal.');
@@ -110,6 +116,21 @@ assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const TICKET_PATHS', 'rotas 
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const PEOPLE_PATHS', 'rotas de pessoas devem estar protegidas.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("ticket_types")', 'guard deve validar tipos de ingresso reais no Supabase.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("people")', 'guard deve validar base real de pessoas no Supabase.');
+
+// Defaults editoriais do serviço já foram removidos fisicamente e não podem voltar.
+for (const forbiddenServicesText of [
+  'Colégio Henrique Castriciano · Natal, RN',
+  'Turma 2006 — 20 anos depois',
+  'O reencontro dos ex-alunos do Colégio Henrique Castriciano',
+  '17 de Outubro de 2026 · Espaço Cultural Ponta Negra · Natal, RN',
+  'Uma noite para celebrar quem a gente se tornou',
+  'Tudo sobre a noite em que a Turma 2006 volta a se encontrar.',
+  'https://images.unsplash.com/photo-1511795409834-ef04bbd61622',
+]) {
+  if (services.includes(forbiddenServicesText)) {
+    fail(`src/lib/services.ts: default editorial removido foi reintroduzido: ${forbiddenServicesText}`);
+  }
+}
 
 // Relatório informativo dos legados físicos ainda pendentes.
 const legacyCounts = {
