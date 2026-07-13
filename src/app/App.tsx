@@ -33,6 +33,7 @@ import type {
   DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus, Gender,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
+import { CmsAssetsPanel } from "./CmsAdminPanels";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
   MapPin, Calendar, Users, ArrowRight, ArrowLeft,
@@ -6997,13 +6998,70 @@ function AdminTable({ admins, currentUserId, onRole, onRemove }: {
   );
 }
 
+const ADMIN_TAB_PATHS: Record<string, string> = {
+  dashboard: "/admin",
+  "home-content": "/admin/content?tab=home",
+  "event-content": "/admin/content?tab=event",
+  timeline: "/admin/content?tab=timeline",
+  faq: "/admin/content?tab=faq",
+  footer: "/admin/content?tab=footer",
+  memories: "/admin/content?tab=memories",
+  polls: "/admin/content?tab=polls",
+  photos: "/admin/content?tab=photos",
+  "photo-comments": "/admin/content?tab=comments",
+  assets: "/admin/content?tab=assets",
+  participants: "/admin/participants?tab=participants",
+  claims: "/admin/participants?tab=profiles",
+  disputes: "/admin/participants?tab=disputes",
+  "tag-mod": "/admin/participants?tab=tags",
+  removals: "/admin/participants?tab=removals",
+  orders: "/admin/tickets?tab=orders",
+  lots: "/admin/tickets?tab=lots",
+  reports: "/admin/reports",
+  admins: "/admin/settings?tab=admins",
+  audit: "/admin/settings?tab=audit",
+  settings: "/admin/settings?tab=settings",
+};
+
+function adminTabFromPathname() {
+  if (typeof window === "undefined") return "dashboard";
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  const tabByRoute: Record<string, string> = {
+    "/admin/content": ["home", "event", "timeline", "faq", "footer"].includes(tab ?? "") ? "home-content" : tab === "comments" ? "photo-comments" : tab ?? "home-content",
+    "/admin/participants": tab === "profiles" ? "claims" : tab === "tags" ? "tag-mod" : tab ?? "participants",
+    "/admin/tickets": tab === "lots" ? "lots" : "orders",
+    "/admin/reports": "reports",
+    "/admin/settings": tab ?? "settings",
+  };
+  return tabByRoute[pathname] ?? "dashboard";
+}
+
+function adminContentTabFromPathname(): ContentAdminTab {
+  if (typeof window === "undefined") return "header";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  if (tab === "event") return "event";
+  if (tab === "timeline") return "timeline";
+  if (tab === "faq") return "faq";
+  if (tab === "footer") return "footer";
+  return "home";
+}
+
+function updateAdminBrowserPath(tab: string) {
+  if (typeof window === "undefined") return;
+  const nextPath = ADMIN_TAB_PATHS[tab] ?? ADMIN_TAB_PATHS.dashboard;
+  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+    window.history.pushState({}, "", nextPath);
+    window.dispatchEvent(new Event("pushstate"));
+  }
+}
+
 function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Page) => void; auth: AuthState; onHomeContentUpdated: (content: HomePageContent) => void }) {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(() => adminTabFromPathname());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [event, setEvent] = useState<DbEvent | null>(null);
   const [lots, setLots] = useState<DbTicketType[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -7034,7 +7092,16 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
 
     const [homeDraft, setHomeDraft] = useState<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
   const [eventDraft, setEventDraft] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
-  const [contentTab, setContentTab] = useState<ContentAdminTab>("header");
+  const [contentTab, setContentTab] = useState<ContentAdminTab>(() => adminContentTabFromPathname());
+
+  useEffect(() => {
+    function syncAdminPath() {
+      setTab(adminTabFromPathname());
+      setContentTab(adminContentTabFromPathname());
+    }
+    window.addEventListener("popstate", syncAdminPath);
+    return () => window.removeEventListener("popstate", syncAdminPath);
+  }, []);
 
 const role = auth.role ?? "viewer";
   const canManageEvent = role === "superadmin" || role === "admin";
@@ -7062,6 +7129,47 @@ const role = auth.role ?? "viewer";
     { id:"audit", label:"Auditoria", icon:<FileText size={13} /> },
     { id:"settings", label:"Config.", icon:<Settings size={13} />, disabled: !canManageEvent },
   ];
+
+  const adminGroups = [
+    { id: "dashboard", label: "Dashboard", icon: <BarChart3 size={14} />, tabs: [{ id: "dashboard", label: "Visão geral", icon: <BarChart3 size={13} /> }] },
+    { id: "content", label: "Conteúdo", icon: <Pencil size={14} />, tabs: [
+      { id: "home-content", label: "Home", icon: <Pencil size={13} /> }, { id: "event-content", label: "Evento", icon: <Ticket size={13} /> },
+      { id: "timeline", label: "Timeline", icon: <Clock size={13} /> }, { id: "faq", label: "FAQ", icon: <Info size={13} /> },
+      { id: "footer", label: "Rodapé", icon: <FileText size={13} /> }, { id: "memories", label: "Memórias", icon: <Star size={13} /> },
+      { id: "polls", label: "Enquetes", icon: <BarChart3 size={13} /> }, { id: "photos", label: "Fotos", icon: <Camera size={13} /> },
+      { id: "photo-comments", label: "Comentários", icon: <MessageCircle size={13} /> }, { id: "assets", label: "Assets", icon: <Package size={13} /> },
+    ] },
+    { id: "participants", label: "Participantes", icon: <Users size={14} />, tabs: [
+      { id: "participants", label: "Participantes", icon: <Users size={13} /> }, { id: "claims", label: "Perfis", icon: <UserCheck size={13} /> },
+      { id: "disputes", label: "Disputas", icon: <Shield size={13} /> }, { id: "tag-mod", label: "Marcações", icon: <Tag size={13} /> },
+      { id: "removals", label: "Remoções", icon: <AlertCircle size={13} /> },
+    ] },
+    { id: "tickets", label: "Ingressos", icon: <Ticket size={14} />, tabs: [
+      { id: "orders", label: "Pedidos", icon: <Ticket size={13} /> }, { id: "lots", label: "Lotes", icon: <Package size={13} /> },
+      { id: "checkin", label: "Check-in", icon: <Scan size={13} /> },
+    ] },
+    { id: "reports", label: "Relatórios", icon: <Download size={14} />, tabs: [{ id: "reports", label: "Relatórios", icon: <Download size={13} /> }] },
+    { id: "settings", label: "Administração", icon: <Settings size={14} />, tabs: [
+      { id: "admins", label: "Administradores", icon: <Key size={13} /> }, { id: "audit", label: "Auditoria", icon: <FileText size={13} /> },
+      { id: "settings", label: "Configurações", icon: <Settings size={13} /> },
+    ] },
+  ];
+
+  function selectAdminTab(nextTab: string) {
+    if (nextTab === "checkin") {
+      navigate("checkin");
+      return;
+    }
+    if (["event-content", "timeline", "faq", "footer"].includes(nextTab)) {
+      setContentTab(nextTab === "event-content" ? "event" : nextTab as ContentAdminTab);
+      setTab("home-content");
+    } else {
+      setTab(nextTab);
+    }
+    updateAdminBrowserPath(nextTab);
+  }
+
+  const selectedSubtab = tab === "home-content" ? contentTab : tab;
 
   async function loadAdminData() {
     setLoading(true);
@@ -7357,23 +7465,28 @@ const role = auth.role ?? "viewer";
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold">Painel Admin</p>
           </div>
         </div>
-        <Btn size="sm" variant={adminMenuOpen ? "gold" : "outline"} onClick={() => setAdminMenuOpen(open => !open)}><Menu size={14} />Menu</Btn>
+        <nav className="flex flex-wrap justify-end gap-1.5">
+          {adminGroups.map(group => {
+            const active = group.tabs.some(item => item.id === tab) || group.id === tab;
+            const firstAvailable = group.tabs.find(item => !item.disabled);
+            return (
+              <button key={group.id} onClick={() => firstAvailable && selectAdminTab(firstAvailable.id)}
+                className={`inline-flex items-center gap-1.5 border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors ${active ? "border-[#c9a84c] text-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+                {group.icon}{group.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {adminMenuOpen && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 border-b border-[#2d6a4f]/20 px-2 bg-[#080f08]">
-          {tabs.map(t => (
-            <button key={t.id} disabled={t.disabled} onClick={() => { if (!t.disabled) { setTab(t.id); setAdminMenuOpen(false); } }}
-              className={"flex items-center justify-center gap-1.5 px-2 md:px-3 py-3 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors disabled:opacity-30 " + (tab === t.id ? "border-[#c9a84c] text-[#c9a84c]" : "border-transparent text-[#7a9a7a] hover:text-[#f0ebe0]")}>
-              {t.icon}{t.label}
+      {adminGroups.find(group => group.tabs.some(item => item.id === tab)) && (
+        <div className="flex flex-wrap gap-1 border-b border-[#2d6a4f]/20 px-4 py-2 bg-[#0a120a]">
+          {adminGroups.find(group => group.tabs.some(item => item.id === tab))?.tabs.map(item => (
+            <button key={item.id} disabled={item.disabled} onClick={() => !item.disabled && selectAdminTab(item.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors disabled:opacity-30 ${selectedSubtab === (item.id === "event-content" ? "event" : item.id) ? "bg-[#2d6a4f] text-[#f0ebe0]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+              {item.icon}{item.label}
             </button>
           ))}
-          {canCheckin && (
-            <button onClick={() => { setAdminMenuOpen(false); navigate("checkin"); }}
-              className="flex items-center justify-center gap-1.5 px-2 md:px-3 py-3 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border-b-2 border-transparent text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors">
-              <Scan size={13} />Check-in
-            </button>
-          )}
         </div>
       )}
 
@@ -7958,6 +8071,10 @@ const role = auth.role ?? "viewer";
               </div>
             )}
           </div>
+        ))}
+
+        {!loading && tab === "assets" && (!canManageEvent ? <PermissionState /> : (
+          <CmsAssetsPanel adminId={auth.userId} canManageEvent={canManageEvent} />
         ))}
 
         {!loading && tab === "orders" && (
@@ -8603,6 +8720,7 @@ function pageFromPathname(pathname: string): Page {
     "/enquetes": "curiosities",
   };
   if (legacyRoutes[normalized]) return legacyRoutes[normalized];
+  if (normalized.startsWith("/admin/")) return "admin";
   const found = (Object.entries(PAGE_PATHS) as [Page, string][]).find(([, path]) => path === normalized);
   return found?.[0] ?? "home";
 }
