@@ -23,7 +23,7 @@ import {
   getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
-  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, getHomePageContent, updateHomePageContent, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
@@ -39,7 +39,7 @@ import {
   MapPin, Calendar, Users, ArrowRight, ArrowLeft,
   Upload, Eye, EyeOff, QrCode, Check,
   ChevronDown, Instagram, Linkedin,
-  Phone, Mail, User, BarChart3, Ticket, Shield,
+  Phone, Mail, User, BarChart3, Ticket, Shield, GraduationCap,
   RefreshCw, CreditCard, Edit3, Download,
   Lock, Camera, Scan, LogOut,
   Hash, CheckCircle2, XCircle, AlertTriangle,
@@ -2363,6 +2363,112 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
   );
 }
 
+function getRotatingSample<T>(items: T[], count: number, seed: number) {
+  if (items.length <= count) return items;
+  return items
+    .map((item, index) => ({ item, rank: Math.sin(seed + index * 17) * 10000 }))
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, count)
+    .map(entry => entry.item);
+}
+
+function getHomeAlumniDisplayName(person: DbPerson) {
+  const name = person.display_name?.trim() || person.full_name?.trim() || "Ex-aluno(a)";
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts.length <= 2 ? name : `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+function AlumniAvatar({ person, size = "sm" }: { person: DbPerson; size?: "xs" | "sm" }) {
+  const sizeClass = size === "xs" ? "h-9 w-9 text-[10px]" : "h-11 w-11 text-xs";
+  const nameParts = getHomeAlumniDisplayName(person).split(/\s+/).filter(Boolean);
+  const initials = `${nameParts[0]?.[0] ?? "E"}${nameParts[nameParts.length - 1]?.[0] ?? "A"}`.toUpperCase();
+
+  return person.avatar_url ? (
+    <img src={person.avatar_url} alt={getHomeAlumniDisplayName(person)} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover`} />
+  ) : (
+    <div className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold`}>
+      {initials}
+    </div>
+  );
+}
+
+function HomeClassTabsContent({ alumni }: { alumni: DbPerson[] }) {
+  const classGroups = useMemo(() => Array.from(new Set(alumni.map(person => person.class_group).filter((group): group is string => Boolean(group)))).sort(), [alumni]);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setActiveGroup(current => current && classGroups.includes(current) ? current : classGroups[0] ?? null);
+    setPage(0);
+  }, [classGroups]);
+
+  const classPeople = useMemo(() => alumni
+    .filter(person => person.class_group === activeGroup)
+    .sort((a, b) => getHomeAlumniDisplayName(a).localeCompare(getHomeAlumniDisplayName(b), "pt-BR")), [activeGroup, alumni]);
+  const totalPages = Math.max(1, Math.ceil(classPeople.length / 3));
+  const visiblePeople = classPeople.slice(page * 3, page * 3 + 3);
+
+  function changePage(direction: number) {
+    setPage(current => (current + direction + totalPages) % totalPages);
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {classGroups.map(group => {
+          const count = alumni.filter(person => person.class_group === group).length;
+          const active = group === activeGroup;
+          return <button key={group} type="button" onClick={() => { setActiveGroup(group); setPage(0); }} className={`px-3 py-2 border text-[10px] font-mono uppercase tracking-[0.18em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>Turma {group} · {count}</button>;
+        })}
+      </div>
+      <div className="mt-auto flex items-center gap-3">
+        <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors" aria-label="Ver pessoas anteriores">‹</button>
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
+          {visiblePeople.map(person => <div key={person.id} className="flex min-h-[50px] items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-3 py-2"><AlumniAvatar person={person} size="xs" /><p className="truncate text-sm font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
+          {!visiblePeople.length && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">Nenhum nome encontrado nesta turma.</div>}
+        </div>
+        <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors" aria-label="Ver próximas pessoas">›</button>
+      </div>
+      <p className="mt-3 text-center text-[10px] font-mono uppercase tracking-[0.16em] text-[#7a9a7a]">{classPeople.length ? `Mostrando ${page * 3 + 1}-${Math.min(page * 3 + 3, classPeople.length)} de ${classPeople.length}` : "Turma sem registros"}</p>
+    </>
+  );
+}
+
+function HomeConfirmedPresenceGrid({ confirmed }: { confirmed: DbPerson[] }) {
+  return confirmed.length ? <div className="mt-auto grid grid-cols-6 gap-3 sm:grid-cols-10">{confirmed.slice(0, 30).map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} size="xs" /></div>)}</div> : <p className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">As fotos de quem confirmou presença aparecerão aqui.</p>;
+}
+
+function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, navigate }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string>; content: HomePageContent; navigate: (page: Page) => void }) {
+  const [seed, setSeed] = useState(1);
+  const alumni = useMemo(() => people.filter(person => person.class_year === 2006 && person.is_visible), [people]);
+  const confirmed = useMemo(() => alumni.filter(person => person.profile_status === "confirmed"), [alumni]);
+  const intending = useMemo(() => alumni.filter(person => attendanceIntentPersonIds.has(person.id)), [alumni, attendanceIntentPersonIds]);
+  const samplePeople = useMemo(() => getRotatingSample(alumni, 12, seed), [alumni, seed]);
+  const confirmedPercent = alumni.length ? Math.round((confirmed.length / alumni.length) * 100) : 0;
+  const extendedContent = getExtendedHomeContent(content);
+
+  useEffect(() => {
+    if (alumni.length <= 1) return;
+    const intervalId = window.setInterval(() => setSeed(current => current + 1), 3000);
+    return () => window.clearInterval(intervalId);
+  }, [alumni.length]);
+
+  return (
+    <section className="bg-[#0d1a0f] py-20 md:py-28">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div><p className="max-w-md text-sm leading-relaxed text-[#7a9a7a] md:text-right">Uma prévia da turma, com presença no reencontro, distribuição por sala e confirmações em tempo real.</p></div>
+        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">Amostra da turma</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{alumni.length} ex-alunos cadastrados</p></div><Users size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mt-auto grid grid-cols-4 gap-3 sm:grid-cols-6">{samplePeople.map(person => <div key={person.id} className="flex flex-col items-center gap-2 text-center"><AlumniAvatar person={person} /><p className="line-clamp-2 text-[10px] leading-tight text-[#7a9a7a]">{getHomeAlumniDisplayName(person)}</p></div>)}</div></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">Presença</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">Reencontro em formação</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mb-5 grid grid-cols-2 gap-3"><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{confirmed.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">Confirmados</p></div><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{intending.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">Pretendem ir</p></div></div><div className="mt-auto"><div className="mb-2 flex items-center justify-between"><p className="text-xs text-[#7a9a7a]">Confirmados sobre a base cadastrada</p><p className="text-xs font-mono text-[#c9a84c]">{confirmedPercent}%</p></div><div className="h-2 overflow-hidden border border-[#2d6a4f]/25 bg-[#0d1a0f]"><div className="h-full bg-[#c9a84c]/80" style={{ width: `${confirmedPercent}%` }} /></div></div></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">Turmas</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">Distribuição por sala</p></div><GraduationCap size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeClassTabsContent alumni={alumni} /></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">Confirmados</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">Quem confirmou presença</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeConfirmedPresenceGrid confirmed={confirmed} /></div>
+        </div>
+        <div className="mt-10 flex flex-col items-center gap-4 text-center"><p className="text-sm font-mono text-[#7a9a7a]">Amostras e indicadores atualizados a partir da base da turma.</p><Btn variant="ghost" onClick={() => navigate("who-going")}>{extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn></div>
+      </div>
+    </section>
+  );
+}
+
 function AboutSection({
   content,
   navigate,
@@ -2792,44 +2898,8 @@ function TicketsPreview({
   );
 }
 
-function WhoGoingPreview({ navigate, people, content }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent }) {
-  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
-  const extendedContent = getExtendedHomeContent(content);
-  const confirmed = people
-    .filter(a => a.profile_status === "confirmed" && a.is_visible)
-    .slice(0, parsePositiveInteger(extendedContent.confirmed_preview_limit, 8));
-
-  return (
-    <>
-      <PersonDetailModal
-        person={selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
-      />
-
-      <section className="bg-[#0d1a0f] py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-12">
-            <div><SectionLabel>{content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.confirmed_title}</DisplayTitle></div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {confirmed.map(a => (
-              <AlumniCard
-                key={a.id}
-                alumni={personToAlumni(a)}
-                onOpen={() => setSelectedPerson(a)}
-                onClaim={() => navigate("claim-profile")}
-              />
-            ))}
-          </div>
-          <div className="mt-10 flex flex-col items-center gap-4 text-center">
-            <p className="text-[#7a9a7a] text-sm font-mono">{extendedContent.confirmed_privacy_note}</p>
-            <Btn variant="ghost" onClick={() => navigate("who-going")}>{extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>
-          </div>
-        </div>
-      </section>
-    </>
-  );
+function WhoGoingPreview({ navigate, people, content, attendanceIntentPersonIds }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent; attendanceIntentPersonIds: Set<string> }) {
+  return <HomeAlumniOverviewPanel navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />;
 }
 
 function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) => void; photos: DbPhoto[]; content: HomePageContent }) {
@@ -2967,6 +3037,7 @@ function LandingPage({
   ticketTypes,
   onSelectTicket,
   memories,
+  attendanceIntentPersonIds,
 }: {
   navigate: (p: Page) => void;
   people: DbPerson[];
@@ -2976,6 +3047,7 @@ function LandingPage({
   ticketTypes: DbTicketType[];
   onSelectTicket: (id: string) => void;
   memories: DbMemory[];
+  attendanceIntentPersonIds: Set<string>;
 }) {
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
@@ -2983,7 +3055,7 @@ function LandingPage({
     about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} />,
     info: <EventInfoSection content={content} event={event} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
-    confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} />,
+    confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />,
     photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
     timeline: <TimelineSection content={content} memories={memories} />,
     faq: <FAQSection content={content} />,
@@ -8772,6 +8844,7 @@ export default function App() {
   const [checkoutReturn, setCheckoutReturn] = useState<CheckoutReturnState>(null);
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
   const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
+  const [attendanceIntentPersonIds, setAttendanceIntentPersonIds] = useState<Set<string>>(() => new Set());
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
   const [homeContentLoaded, setHomeContentLoaded] = useState(false);
@@ -8833,12 +8906,14 @@ export default function App() {
         if (homeContentRequestRef.current === requestId) setHomeContentLoaded(true);
       });
     getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => setApprovedMemories([]));
+    getAttendanceIntentPersonIds().then(setAttendanceIntentPersonIds).catch(() => setAttendanceIntentPersonIds(new Set()));
   }
 
   useEffect(() => {
     getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
     getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => DEV_MODE && setApprovedMemories([]));
+    getAttendanceIntentPersonIds().then(setAttendanceIntentPersonIds).catch(() => setAttendanceIntentPersonIds(new Set()));
     refreshPublicEventData();
   }, []);
 
@@ -8950,7 +9025,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}

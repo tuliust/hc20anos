@@ -372,6 +372,19 @@ export async function getPublicPeople(): Promise<DbPerson[]> {
   }, MOCK_PEOPLE.filter(p => p.is_visible));
 }
 
+export async function getAttendanceIntentPersonIds(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("person_id")
+    .eq("intends_to_attend", true);
+  if (error) throw error;
+  return new Set(
+    ((data ?? []) as { person_id?: string | null }[])
+      .map(row => row.person_id)
+      .filter((personId): personId is string => Boolean(personId)),
+  );
+}
+
 
 export interface AdminImportPersonInput {
   full_name: string;
