@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 
 const EVENT_PATH = "/evento";
 const TICKET_PATHS = new Set(["/ingressos", "/checkout"]);
+const PEOPLE_PATHS = new Set(["/ex-alunos", "/quem-vai", "/turma", "/reivindicar-perfil"]);
 const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 function normalizePathname(pathname: string) {
@@ -44,6 +45,17 @@ async function hasConfiguredTicketTypes() {
   return (data ?? []).length > 0;
 }
 
+async function hasConfiguredPeople() {
+  const { data, error } = await supabase
+    .from("people")
+    .select("id")
+    .eq("is_visible", true)
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 function StrictCmsOverlay({ title, body }: { title: string; body: string }) {
   return (
     <div className="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">
@@ -60,6 +72,7 @@ export function PublicCmsStrictGuard() {
   const [pathname, setPathname] = useState(() => normalizePathname(window.location.pathname));
   const [eventCmsReady, setEventCmsReady] = useState<boolean | null>(null);
   const [ticketsReady, setTicketsReady] = useState<boolean | null>(null);
+  const [peopleReady, setPeopleReady] = useState<boolean | null>(null);
 
   useEffect(() => {
     function syncPathname() {
@@ -121,6 +134,28 @@ export function PublicCmsStrictGuard() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (!PEOPLE_PATHS.has(pathname)) {
+      setPeopleReady(null);
+      return;
+    }
+
+    let active = true;
+    setPeopleReady(null);
+
+    hasConfiguredPeople()
+      .then(ready => {
+        if (active) setPeopleReady(ready);
+      })
+      .catch(() => {
+        if (active) setPeopleReady(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
   if (pathname === EVENT_PATH && eventCmsReady === false) {
     return (
       <StrictCmsOverlay
@@ -135,6 +170,15 @@ export function PublicCmsStrictGuard() {
       <StrictCmsOverlay
         title="Ingressos em configuração"
         body="Esta página só será exibida quando houver tipos de ingresso cadastrados no Supabase para este evento."
+      />
+    );
+  }
+
+  if (PEOPLE_PATHS.has(pathname) && peopleReady === false) {
+    return (
+      <StrictCmsOverlay
+        title="Base de ex-alunos em configuração"
+        body="Esta página só será exibida quando houver ex-alunos visíveis cadastrados no Supabase pelo painel Admin."
       />
     );
   }
