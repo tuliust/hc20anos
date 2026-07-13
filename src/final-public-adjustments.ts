@@ -2,14 +2,6 @@ import { supabase } from './lib/supabase';
 
 const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
 
-type LocationRow = {
-  current_city?: string | null;
-  current_state?: string | null;
-  current_country?: string | null;
-  display_name?: string | null;
-  full_name?: string | null;
-};
-
 type EventStructureCard = {
   title?: string | null;
   description?: string | null;
@@ -50,14 +42,6 @@ function txt(element: Element | null | undefined) {
   return norm(element?.textContent ?? '');
 }
 
-function textNodes() {
-  return Array.from(document.querySelectorAll<HTMLElement>('p,h1,h2,h3,h4,span,button,a,label'));
-}
-
-function findText(predicate: (text: string, element: HTMLElement) => boolean) {
-  return textNodes().find(element => predicate(txt(element), element)) ?? null;
-}
-
 function smallestMatch<T extends HTMLElement>(items: T[], needles: string[]) {
   const normalized = needles.map(norm);
   return items
@@ -71,17 +55,6 @@ function smallestMatch<T extends HTMLElement>(items: T[], needles: string[]) {
 function findSection(...needles: string[]) {
   return smallestMatch(Array.from(document.querySelectorAll<HTMLElement>('section')), needles)
     ?? smallestMatch(Array.from(document.querySelectorAll<HTMLElement>('main > div, #root > div > div')), needles);
-}
-
-function closestCard(element: HTMLElement | null) {
-  if (!element) return null;
-  return Array.from(document.querySelectorAll<HTMLElement>('article,div,section'))
-    .filter(item => item.contains(element))
-    .sort((a, b) => (a.textContent?.length ?? 0) - (b.textContent?.length ?? 0))
-    .find(item => {
-      const className = String(item.className ?? '');
-      return className.includes('border') || className.includes('bg-') || item.tagName.toLowerCase() === 'article';
-    }) ?? element.parentElement;
 }
 
 function escapeHtml(value: unknown) {
@@ -98,8 +71,13 @@ function installStyles() {
   const style = document.createElement('style');
   style.dataset.hcFinalAdjustmentsStyle = 'true';
   style.textContent = `
-    [data-home-event-more="true"] a { color: #0d1a0f !important; font-weight: 800 !important; }
-    [data-home-event-more="true"] a:hover { color: #2d6a4f !important; }
+    [data-home-event-more="true"] a {
+      color: #0d1a0f !important;
+      font-weight: 800 !important;
+    }
+    [data-home-event-more="true"] a:hover {
+      color: #2d6a4f !important;
+    }
 
     [data-home-faq-final="true"] button,
     [data-home-faq-final="true"] h3,
@@ -111,36 +89,6 @@ function installStyles() {
     [data-home-faq-final="true"] div:not(:first-child) > p {
       font-size: clamp(0.98rem, 1vw, 1.08rem) !important;
       line-height: 1.7 !important;
-    }
-
-    [data-hc-claim-button-final="true"] {
-      background: transparent !important;
-      color: #c9a84c !important;
-      border-color: rgba(201, 168, 76, 0.72) !important;
-      padding: 0.32rem 0.58rem !important;
-      font-size: 0.58rem !important;
-      line-height: 1 !important;
-      min-height: auto !important;
-    }
-    [data-hc-claim-button-final="true"]:hover {
-      background: rgba(201, 168, 76, 0.08) !important;
-      border-color: #c9a84c !important;
-      color: #e6c766 !important;
-    }
-
-    [data-hc-title-copy-inline="true"] {
-      display: grid !important;
-      grid-template-columns: minmax(0, auto) minmax(18rem, 34rem) !important;
-      align-items: end !important;
-      column-gap: clamp(1.5rem, 4vw, 4rem) !important;
-    }
-    [data-hc-title-copy-inline="true"] > p[data-hc-inline-copy="true"] {
-      margin: 0 !important;
-      text-align: left !important;
-      max-width: 34rem !important;
-    }
-    @media (max-width: 767px) {
-      [data-hc-title-copy-inline="true"] { grid-template-columns: 1fr !important; row-gap: 1rem !important; }
     }
 
     [data-event-program-image-final="true"] {
@@ -169,18 +117,6 @@ function installStyles() {
       letter-spacing: 0.14em;
       text-transform: uppercase;
       text-align: center;
-    }
-
-    [data-curiosities-location-final="true"] .hc-location-bar {
-      height: 0.42rem;
-      background: rgba(13, 26, 15, 0.88);
-      border: 1px solid rgba(45, 106, 79, 0.24);
-      overflow: hidden;
-    }
-    [data-curiosities-location-final="true"] .hc-location-bar > span {
-      display: block;
-      height: 100%;
-      background: rgba(201, 168, 76, 0.82);
     }
   `;
   document.head.appendChild(style);
@@ -367,7 +303,9 @@ async function applyEventCmsAdjustments() {
         .filter(card => card.title?.trim())
         .forEach(card => {
           const titleText = card.title?.trim() ?? '';
-          if (grid.querySelector(`[data-event-extra-structure-card="${CSS.escape(titleText)}"]`)) return;
+          const alreadyExists = Array.from(grid.querySelectorAll<HTMLElement>('[data-event-extra-structure-card]'))
+            .some(item => item.dataset.eventExtraStructureCard === titleText);
+          if (alreadyExists) return;
           const item = document.createElement('div');
           item.className = 'bg-[#141f14] border border-[#2d6a4f]/25 p-6';
           item.dataset.eventExtraStructureCard = titleText;
@@ -388,251 +326,11 @@ async function applyEventCmsAdjustments() {
   if (preview && cms?.show_gallery_preview !== true) preview.remove();
 }
 
-function applyAlumniButton() {
-  if (!['/ex-alunos', '/quem-vai', '/turma'].includes(path())) return;
-  Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-    .filter(button => norm(button.textContent) === 'reivindicar')
-    .forEach(button => {
-      button.textContent = 'Sou eu';
-      button.dataset.hcClaimButtonFinal = 'true';
-    });
-}
-
-function inlineHeaderCopy(titleText: string, copyNeedle: string) {
-  const title = findText(text => text === norm(titleText));
-  const copy = findText(text => text.includes(norm(copyNeedle)));
-  if (!title || !copy) return;
-  const parent = title.parentElement;
-  if (!parent || !parent.contains(copy)) return;
-  parent.dataset.hcTitleCopyInline = 'true';
-  copy.dataset.hcInlineCopy = 'true';
-}
-
-function applyAlumniHeader() {
-  if (path() === '/ex-alunos') inlineHeaderCopy('Ex-alunos', 'Uma visão consolidada da turma');
-}
-
-function applyMemoriesUi() {
-  if (path() !== '/nossa-historia/memorias') return;
-  textNodes().forEach(element => {
-    const text = txt(element);
-    if (text.includes('enviar sem mostrar nome') || text.includes('sem mostrar nome') || text.includes('anonimo') || text.includes('anônimo')) {
-      const label = element.closest('label') as HTMLElement | null;
-      const target = label ?? element;
-      target.style.display = 'none';
-      const checkbox = target.querySelector<HTMLInputElement>('input[type="checkbox"]');
-      if (checkbox) {
-        checkbox.checked = false;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-    if (text.includes('moderacao') || text.includes('moderação')) {
-      const paragraph = element.closest('p') as HTMLElement | null;
-      if (paragraph) paragraph.style.display = 'none';
-    }
-  });
-}
-
-function applyCuriositiesHeaderAndRemovals() {
-  if (path() !== '/curiosidades') return;
-  inlineHeaderCopy('Curiosidades', 'Dados, lembranças, mapa, profissões');
-  textNodes().forEach(element => {
-    const text = txt(element);
-    if (text.includes('leitura por ia') || text.includes('quantidade de filhos declarados') || text.includes('qaantidade de filhos declarados')) {
-      const card = closestCard(element);
-      if (card) card.style.display = 'none';
-    }
-  });
-}
-
-function locationCategory(row: LocationRow) {
-  const city = norm(row.current_city);
-  const state = norm(row.current_state);
-  const country = norm(row.current_country || 'Brasil');
-  if (country && country !== 'brasil' && country !== 'brazil') return 'foreign';
-  if (city === 'natal' && (state === 'rn' || state === 'rio grande do norte' || !state)) return 'natal';
-  if (state === 'rn' || state === 'rio grande do norte') return 'interior';
-  return 'brazil';
-}
-
-function locationLabel(row: LocationRow, category: string) {
-  const city = row.current_city?.trim();
-  const state = row.current_state?.trim()?.toUpperCase();
-  const country = row.current_country?.trim();
-  if (category === 'foreign') return country || 'Exterior';
-  if (category === 'brazil') return [city, state].filter(Boolean).join('/') || state || 'Brasil';
-  if (category === 'interior') return [city, state || 'RN'].filter(Boolean).join('/');
-  return 'Natal/RN';
-}
-
-function topLocations(rows: LocationRow[], category: string) {
-  const counts = new Map<string, number>();
-  rows.forEach(row => {
-    const label = locationLabel(row, category);
-    counts.set(label, (counts.get(label) ?? 0) + 1);
-  });
-  return Array.from(counts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'))
-    .slice(0, 4);
-}
-
-function locationCard(title: string, subtitle: string, rows: LocationRow[], category: string, total: number) {
-  const breakdown = topLocations(rows, category);
-  const max = Math.max(1, ...breakdown.map(item => item.count));
-  const percent = total ? Math.round((rows.length / total) * 100) : 0;
-  return `
-    <article class="bg-[#141f14] border border-[#2d6a4f]/25 p-6 min-h-[15rem] flex flex-col gap-5">
-      <div>
-        <p class="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.24em] mb-2">${subtitle}</p>
-        <h3 class="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold leading-none">${rows.length}</h3>
-        <p class="text-[#7a9a7a] text-xs mt-2">${title} · ${percent}% dos perfis com localização pública</p>
-      </div>
-      <div class="mt-auto flex flex-col gap-3">
-        ${breakdown.length ? breakdown.map(item => `
-          <div>
-            <div class="flex items-center justify-between gap-3 mb-1">
-              <span class="text-[#f0ebe0] text-xs font-semibold truncate">${item.label}</span>
-              <span class="text-[#c9a84c] text-[10px] font-mono">${item.count}</span>
-            </div>
-            <div class="hc-location-bar"><span style="width:${Math.max(8, Math.round((item.count / max) * 100))}%"></span></div>
-          </div>
-        `).join('') : '<p class="text-[#7a9a7a] text-sm leading-relaxed">Sem dados públicos ainda.</p>'}
-      </div>
-    </article>
-  `;
-}
-
-async function fetchLocations() {
-  try {
-    const { data, error } = await (supabase as any)
-      .from('public_profile_locations')
-      .select('current_city,current_state,current_country,display_name,full_name');
-    if (error) return [];
-    return (data ?? []) as LocationRow[];
-  } catch {
-    return [];
-  }
-}
-
-async function applyCuriositiesMap() {
-  if (path() !== '/curiosidades') return;
-  const title = findText(text => text === 'mapa da turma' || text.includes('mapa da turma'));
-  if (!title) return;
-  const section = title.closest('section') as HTMLElement | null;
-  const header = title.closest('div') as HTMLElement | null;
-  const root = section ?? header?.parentElement ?? null;
-  if (!root || root.querySelector('[data-curiosities-location-final="true"]')) return;
-
-  const mount = document.createElement('div');
-  mount.dataset.curiositiesLocationFinal = 'true';
-  mount.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-8';
-  mount.innerHTML = '<div class="md:col-span-2 xl:col-span-4 border border-[#2d6a4f]/25 bg-[#141f14] p-6 text-[#7a9a7a] text-sm font-mono uppercase tracking-[0.16em]">Carregando mapa da turma...</div>';
-
-  const headerBlock = header ?? title.parentElement;
-  if (headerBlock?.parentElement) {
-    let sibling = headerBlock.nextElementSibling as HTMLElement | null;
-    while (sibling) {
-      const next = sibling.nextElementSibling as HTMLElement | null;
-      sibling.style.display = 'none';
-      sibling = next;
-    }
-    headerBlock.insertAdjacentElement('afterend', mount);
-  } else {
-    root.appendChild(mount);
-  }
-
-  const rows = await fetchLocations();
-  const groups = {
-    natal: rows.filter(row => locationCategory(row) === 'natal'),
-    interior: rows.filter(row => locationCategory(row) === 'interior'),
-    brazil: rows.filter(row => locationCategory(row) === 'brazil'),
-    foreign: rows.filter(row => locationCategory(row) === 'foreign'),
-  };
-
-  mount.innerHTML = [
-    locationCard('Em Natal/RN', 'Cidade: Natal · UF: RN', groups.natal, 'natal', rows.length),
-    locationCard('No interior do estado', 'Cidade diferente de Natal · UF: RN', groups.interior, 'interior', rows.length),
-    locationCard('Pelo Brasil', 'UF diferente de RN', groups.brazil, 'brazil', rows.length),
-    locationCard('Vivendo no Exterior', 'País diferente de Brasil', groups.foreign, 'foreign', rows.length),
-  ].join('');
-}
-
-async function applyQuestionnaireButton() {
-  if (path() !== '/curiosidades') return;
-  const buttons = Array.from(document.querySelectorAll<HTMLElement>('button,a'))
-    .filter(element => txt(element).includes('responder questionario'));
-  if (!buttons.length || document.documentElement.dataset.hcQuestionnaireButtonChecked === 'true') return;
-
-  document.documentElement.dataset.hcQuestionnaireButtonChecked = 'true';
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
-    if (!userId) return;
-
-    const { data: profile } = await (supabase as any)
-      .from('profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (!profile?.id) return;
-
-    const { count } = await (supabase as any)
-      .from('profile_school_questionnaire_answers')
-      .select('id', { count: 'exact', head: true })
-      .eq('profile_id', profile.id);
-
-    if ((count ?? 0) > 0) buttons.forEach(button => { button.style.display = 'none'; });
-  } catch {
-    // Se falhar, mantém visível.
-  }
-}
-
-function applyArchiveComingSoon() {
-  if (path() !== '/pos-festa') return;
-  const label = findText(text => text.includes('mensagem da organizacao'));
-  if (!label || label.dataset.archiveFinalApplied === 'true') return;
-  label.dataset.archiveFinalApplied = 'true';
-
-  const card = closestCard(label);
-  if (!card) return;
-  label.textContent = 'EM BREVE';
-
-  const subtitle = findText(text => text.includes('texto ficticio pos-evento'));
-  if (subtitle && card.contains(subtitle)) {
-    subtitle.textContent = 'Confira aqui, depois da festa, as fotos, vídeos e todos os destaques deste evento que ficará na memória';
-  } else {
-    const target = Array.from(card.querySelectorAll<HTMLElement>('p'))
-      .find(item => item !== label && txt(item) && !txt(item).includes('em breve'));
-    if (target) target.textContent = 'Confira aqui, depois da festa, as fotos, vídeos e todos os destaques deste evento que ficará na memória';
-  }
-
-  let sibling = card.nextElementSibling as HTMLElement | null;
-  while (sibling) {
-    sibling.style.display = 'none';
-    sibling = sibling.nextElementSibling as HTMLElement | null;
-  }
-
-  const section = card.closest('section') as HTMLElement | null;
-  let nextSection = section?.nextElementSibling as HTMLElement | null;
-  while (nextSection) {
-    nextSection.style.display = 'none';
-    nextSection = nextSection.nextElementSibling as HTMLElement | null;
-  }
-}
-
 function applyAll() {
   installStyles();
   applyHomeTimelineScrollActivation();
   applyHomeTextAdjustments();
   void applyEventCmsAdjustments();
-  applyAlumniButton();
-  applyAlumniHeader();
-  applyMemoriesUi();
-  applyCuriositiesHeaderAndRemovals();
-  void applyCuriositiesMap();
-  void applyQuestionnaireButton();
-  applyArchiveComingSoon();
 }
 
 let scheduled = false;
@@ -648,7 +346,6 @@ function scheduleApply() {
 applyAll();
 window.addEventListener('DOMContentLoaded', applyAll);
 window.addEventListener('popstate', () => {
-  delete document.documentElement.dataset.hcQuestionnaireButtonChecked;
   eventCmsPromise = null;
   setTimeout(applyAll, 80);
 });
