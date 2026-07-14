@@ -8,3 +8,5 @@ dist
 .vscode
 .supabase
 supabase/.temp/
+playwright-report/
+test-results/

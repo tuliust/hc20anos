@@ -13,10 +13,10 @@ import type {
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
   DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
-  DbEventArchiveSettings, DbEventPageContent,
+  DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
 
-export interface HomePageContent {
+export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;
   header_logo_url?: string | null;
   favicon_url?: string | null;
@@ -238,7 +238,7 @@ async function callFunction<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function getHomePageContent(eventId = DEFAULT_HOME_EVENT_ID): Promise<HomePageContent> {
   return withFallback(async () => {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("home_page_content")
       .select("*")
       .eq("event_id", eventId)
@@ -260,7 +260,7 @@ export async function updateHomePageContent(
     updated_by_admin_id: adminId ?? null,
   };
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("home_page_content")
     .upsert(payload, { onConflict: "event_id" })
     .select("*")

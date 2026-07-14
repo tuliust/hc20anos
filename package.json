@@ -7,6 +7,9 @@
     "build": "vite build",
     "dev": "vite",
     "audit:cms-strict": "node scripts/audit-strict-cms.mjs",
+    "audit:cms-production": "node scripts/audit-home-cms-production.mjs --production",
+    "test:e2e": "playwright test",
+    "test:e2e:visual": "playwright test tests/e2e/home-visual.spec.ts",
     "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
   },
   "dependencies": {
@@ -68,6 +71,7 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",

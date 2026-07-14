@@ -38,7 +38,7 @@ import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
   MapPin, Calendar, Users, ArrowRight, ArrowLeft,
   Upload, Eye, EyeOff, QrCode, Check,
-  ChevronDown, Instagram, Linkedin,
+  ChevronDown, ChevronLeft, ChevronRight, Instagram, Linkedin,
   Phone, Mail, User, BarChart3, Ticket, Shield, GraduationCap,
   RefreshCw, CreditCard, Edit3, Download,
   Lock, Camera, Scan, LogOut,
@@ -1028,10 +1028,11 @@ function personToAlumni(p: DbPerson, displayName?: string | null): Alumni {
 
 // ─── PRIMITIVES ────────────────────────────────────────────────────────────────
 
-function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, full = false, className = "" }: {
-  children: React.ReactNode; onClick?: () => void;
+function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, full = false, className = "", ...buttonProps }: Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+  children: React.ReactNode;
   variant?: "primary" | "outline" | "ghost" | "gold" | "danger";
-  size?: "sm" | "md" | "lg"; disabled?: boolean; full?: boolean; className?: string;
+  size?: "sm" | "md" | "lg";
+  full?: boolean;
 }) {
   const sizes    = { sm: "px-5 py-2.5 text-xs", md: "px-8 py-4 text-sm", lg: "px-10 py-5 text-sm" };
   const variants = {
@@ -1042,7 +1043,7 @@ function Btn({ children, onClick, variant = "primary", size = "md", disabled = f
     danger:  "bg-[#c0392b] text-[#f0ebe0] hover:bg-[#e74c3c]",
   };
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button {...buttonProps} onClick={onClick} disabled={disabled}
       className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.15em] transition-all duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${sizes[size]} ${variants[variant]} ${full ? "w-full" : ""} ${className}`}>
       {children}
     </button>
@@ -2043,13 +2044,13 @@ function Header({ page, navigate, auth, logout, content }: {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div data-public-header-actions className="flex items-center gap-3 shrink-0">
             {isContentVisible(headerContent.header_cta_visible) && (
-              <Btn size="sm" onClick={() => go("tickets")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
+              <Btn size="sm" onClick={() => go("tickets")} className="public-header-desktop-action whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
             )}
 
             {isContentVisible(headerContent.header_auth_visible) && (auth.loggedIn ? (
-              <div className="relative hidden md:block">
+              <div className="public-header-desktop-action relative">
                 <button
                   type="button"
                   onClick={() => setProfileMenuOpen(open => !open)}
@@ -2097,10 +2098,10 @@ function Header({ page, navigate, auth, logout, content }: {
                 )}
               </div>
             ) : (
-              <Btn size="sm" variant="outline" onClick={() => go("login")} className="hidden md:inline-flex whitespace-nowrap text-xs xl:text-sm px-6 py-3">Login/Cadastro</Btn>
+              <Btn size="sm" variant="outline" onClick={() => go("login")} className="public-header-desktop-action whitespace-nowrap text-xs xl:text-sm px-6 py-3">Login/Cadastro</Btn>
             ))}
 
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-[#f0ebe0] p-2">
+            <button data-public-header-menu onClick={() => setMenuOpen(!menuOpen)} className="text-[#f0ebe0] p-2 md:hidden" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}>
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
@@ -2397,7 +2398,7 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
   }, [event?.event_date, event?.event_time]);
 
   return (
-    <section className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
+    <section data-home-section="hero" className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
       style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
       <div className="absolute inset-0 opacity-[0.06]"
         style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
@@ -2464,7 +2465,7 @@ function AlumniAvatar({ person, size = "sm" }: { person: DbPerson; size?: "xs" |
   return person.avatar_url ? (
     <img src={person.avatar_url} alt={getHomeAlumniDisplayName(person)} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover`} />
   ) : (
-    <div className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold`}>
+    <div role="img" aria-label={getHomeAlumniDisplayName(person)} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold`}>
       {initials}
     </div>
   );
@@ -2492,21 +2493,21 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div data-home-class-tabs className="flex flex-wrap gap-2 mb-5">
         {classGroups.map(group => {
           const count = alumni.filter(person => person.class_group === group).length;
           const active = group === activeGroup;
           const label = applyTextTemplate(copy.class_tab_label_template, { group, count }) || `${group} (${count})`;
-          return <button key={group} type="button" onClick={() => { setActiveGroup(group); setPage(0); }} className={`px-3 py-2 border text-[10px] font-mono uppercase tracking-[0.18em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
+          return <button key={group} type="button" aria-pressed={active} onClick={() => { setActiveGroup(group); setPage(0); }} className={`px-3 py-2 border text-[10px] font-mono uppercase tracking-[0.18em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
         })}
       </div>
       <div className="mt-auto flex items-center gap-3">
-        <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors" aria-label="Ver pessoas anteriores">‹</button>
+        <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver pessoas anteriores"><ChevronLeft size={18} /></button>
         <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
           {visiblePeople.map(person => <div key={person.id} className="flex min-h-[50px] items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-3 py-2"><AlumniAvatar person={person} size="xs" /><p className="truncate text-sm font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
           {!visiblePeople.length && copy.class_empty_label && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">{copy.class_empty_label}</div>}
         </div>
-        <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors" aria-label="Ver próximas pessoas">›</button>
+        <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver próximas pessoas"><ChevronRight size={18} /></button>
       </div>
       {classPeople.length > 0 && copy.class_pagination_template && (
         <p className="mt-3 text-center text-[10px] font-mono uppercase tracking-[0.16em] text-[#7a9a7a]">
@@ -2517,14 +2518,27 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
   );
 }
 
-function HomeConfirmedPresenceGrid({ confirmed, emptyLabel }: { confirmed: DbPerson[]; emptyLabel?: string }) {
-  const preview = confirmed.slice(0, 30);
-  const sparse = preview.length > 0 && preview.length <= 4;
+function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed: DbPerson[]; emptyLabel?: string; limit: number }) {
+  const preview = confirmed.slice(0, limit);
+  const count = preview.length;
+  const gridClass = count === 1
+    ? "grid-cols-1 max-w-24"
+    : count === 2
+      ? "grid-cols-2 max-w-40"
+      : count === 3
+        ? "grid-cols-3 max-w-56"
+        : count === 4
+          ? "grid-cols-4 max-w-72"
+          : count <= 6
+            ? "grid-cols-3 sm:grid-cols-6 max-w-md"
+            : count <= 10
+              ? "grid-cols-5 max-w-xl"
+              : "grid-cols-6 sm:grid-cols-10";
   return preview.length ? (
-    <div className={`mt-auto w-full ${sparse ? "grid min-h-36 grid-cols-4 place-items-center gap-4" : "grid grid-cols-6 gap-3 sm:grid-cols-10"}`}>
-      {preview.map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} size={sparse ? "sm" : "xs"} /></div>)}
+    <div data-home-confirmed-grid data-count={count} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
+      {preview.map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} size={count <= 4 ? "sm" : "xs"} /></div>)}
     </div>
-  ) : emptyLabel ? <p className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
+  ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
 
 function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, navigate }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string>; content: HomePageContent; navigate: (page: Page) => void }) {
@@ -2536,6 +2550,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
   const confirmedPercent = alumni.length ? Math.round((confirmed.length / alumni.length) * 100) : 0;
   const extendedContent = getExtendedHomeContent(content);
   const copy = parseHomeJsonObject<HomeAlumniOverviewCopy>(extendedContent.home_alumni_overview_json, {});
+  const confirmedPreviewLimit = parsePositiveInteger(extendedContent.confirmed_preview_limit, 30);
 
   useEffect(() => {
     if (alumni.length <= 1) return;
@@ -2544,14 +2559,14 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
   }, [alumni.length]);
 
   return (
-    <section className="home-section bg-[#0d1a0f]">
+    <section data-home-section="confirmed" data-home-alumni-overview className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><SectionLabel>{copy.eyebrow || content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{copy.title || content.confirmed_title}</DisplayTitle></div>{copy.description && <p className="max-w-md text-sm leading-relaxed text-[#7a9a7a] md:text-right">{copy.description}</p>}</div>
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.sample_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{applyTextTemplate(copy.sample_title_template, { total: alumni.length })}</p></div><Users size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mt-auto grid grid-cols-4 gap-3 sm:grid-cols-6">{samplePeople.map(person => <div key={person.id} className="flex flex-col items-center gap-2 text-center"><AlumniAvatar person={person} /><p className="line-clamp-2 text-[10px] leading-tight text-[#7a9a7a]">{getHomeAlumniDisplayName(person)}</p></div>)}</div></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.presence_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.presence_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mb-5 grid grid-cols-2 gap-3"><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{confirmed.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.confirmed_label}</p></div><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{intending.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.intending_label}</p></div></div><div className="mt-auto"><div className="mb-2 flex items-center justify-between"><p className="text-xs text-[#7a9a7a]">{copy.progress_label}</p><p className="text-xs font-mono text-[#c9a84c]">{confirmedPercent}%</p></div><div className="h-2 overflow-hidden border border-[#2d6a4f]/25 bg-[#0d1a0f]"><div className="h-full bg-[#c9a84c]/80" style={{ width: `${confirmedPercent}%` }} /></div></div></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.classes_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.classes_title}</p></div><GraduationCap size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeClassTabsContent alumni={alumni} copy={copy} /></div>
-          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.confirmed_grid_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.confirmed_grid_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeConfirmedPresenceGrid confirmed={confirmed} emptyLabel={copy.confirmed_empty_label} /></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.confirmed_grid_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.confirmed_grid_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeConfirmedPresenceGrid confirmed={confirmed} emptyLabel={copy.confirmed_empty_label} limit={confirmedPreviewLimit} /></div>
         </div>
         <div className="mt-10 flex flex-col items-center gap-4 text-center">{copy.footer_note && <p className="text-sm font-mono text-[#7a9a7a]">{copy.footer_note}</p>}{(copy.view_all_label || extendedContent.confirmed_view_all_label) && <Btn variant="ghost" onClick={() => navigate("who-going")}>{copy.view_all_label || extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>}</div>
       </div>
@@ -2584,7 +2599,7 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
   if (!visibleItems.length) return null;
 
   return (
-    <div className="mt-8 lg:pr-2">
+    <div data-home-nostalgia-timeline className="mt-8 lg:pr-2">
       <div className="relative ml-5 border-l border-[#2d6a4f]/35 pl-8">
         {visibleItems.map((item, index) => {
           const open = openIndex === index;
@@ -2687,7 +2702,7 @@ function AboutSection({
   if (!hasRequiredAboutCopy) return null;
 
   return (
-    <section className="home-section bg-[#0d1a0f]">
+    <section data-home-section="about" className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-12 lg:gap-16 items-start">
           <div className="lg:sticky lg:top-28">
@@ -2772,7 +2787,7 @@ function EventInfoSection({ content, event, navigate }: { content: HomePageConte
   ];
 
   return (
-    <section className="home-section bg-[#f0ebe0]">
+    <section data-home-section="info" className="home-section bg-[#f0ebe0]">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.info_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-12">{content.info_title}</DisplayTitle>
@@ -2788,7 +2803,7 @@ function EventInfoSection({ content, event, navigate }: { content: HomePageConte
         </div>
         {extendedContent.event_info_view_more_label && (
           <div className="mt-10 md:mt-12 flex justify-center">
-            <Btn variant="ghost" onClick={() => navigate("event")}>{extendedContent.event_info_view_more_label} <ArrowRight size={16} /></Btn>
+            <Btn data-home-event-cta variant="ghost" onClick={() => navigate("event")}>{extendedContent.event_info_view_more_label} <ArrowRight size={16} /></Btn>
           </div>
         )}
       </div>
@@ -3224,13 +3239,13 @@ function LandingPage({
   };
 
   return (
-    <>
+    <div data-home-loaded>
       {sections.map(section => (
         <Fragment key={section.key}>
           {sectionRenderers[section.key]}
         </Fragment>
       ))}
-    </>
+    </div>
   );
 }
 

@@ -159,6 +159,37 @@ header button.inline-flex.whitespace-nowrap {
   letter-spacing: 0.12em !important;
 }
 
+.public-header-desktop-action {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .public-header-desktop-action {
+    display: inline-flex !important;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-public-header] > div {
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  [data-public-header-logo] {
+    min-width: 0;
+  }
+
+  [data-public-header-logo] img {
+    width: min(34vw, 7rem);
+    height: 3.5rem;
+  }
+
+  [data-public-header-actions] {
+    gap: 0.25rem;
+  }
+}
+
 /* Corrige títulos em blocos claros da home, como Data, hora e local / Nossa História. */
 .bg-\[\#f0ebe0\] h2 {
   color: #0d1a0f !important;

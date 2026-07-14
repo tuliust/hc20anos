@@ -134,9 +134,25 @@ for (const [text, message] of [
   ['<CompactNostalgiaTimeline', 'timeline nostÃ¡lgica compacta deve estar montada na seÃ§Ã£o Sobre.'],
   ['event_info_view_more_label', 'CTA de informaÃ§Ãµes do evento deve ser controlado pelo CMS.'],
   ['home_about_overview_json', 'copy restaurada da seÃ§Ã£o Sobre deve vir do CMS.'],
+  ['data-home-event-cta', 'CTA de evento deve manter seletor estÃ¡vel para regressÃ£o.'],
+  ['data-home-nostalgia-timeline', 'timeline deve manter seletor estÃ¡vel para regressÃ£o.'],
+  ['data-home-alumni-overview', 'painel de ex-alunos deve manter seletor estÃ¡vel para regressÃ£o.'],
+  ['confirmedPreviewLimit', 'grade de confirmados deve respeitar o limite configurado no CMS.'],
 ]) {
   if (!app.includes(text)) fail(`src/app/App.tsx: ${message}`);
 }
+
+for (const [file, message] of [
+  ['scripts/audit-home-cms-production.mjs', 'auditoria de integraÃ§Ã£o e dados reais do CMS deve existir.'],
+  ['playwright.config.ts', 'configuraÃ§Ã£o Playwright deve existir.'],
+  ['tests/e2e/home-regression.spec.ts', 'testes funcionais da Home devem existir.'],
+  ['tests/e2e/home-visual.spec.ts', 'testes responsivos da Home devem existir.'],
+]) {
+  if (!exists(file)) fail(`${file}: ${message}`);
+}
+
+assertIncludes('package.json', '"test:e2e"', 'script de regressÃ£o Playwright deve permanecer configurado.');
+assertIncludes('package.json', '"audit:cms-production"', 'script de auditoria do Supabase real deve permanecer configurado.');
 
 for (const forbiddenHomeText of [
   'Uma amostra dos momentos que conectam escola, reencontro e bastidores da turma.',
