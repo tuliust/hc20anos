@@ -296,6 +296,7 @@ type ExtendedHomePageContent = HomePageContent & {
   confirmed_preview_limit: string;
   confirmed_view_all_label: string;
   confirmed_privacy_note: string;
+  event_info_view_more_label: string;
   photos_preview_limit: string;
   photos_view_all_label: string;
   photos_empty_title: string;
@@ -316,6 +317,35 @@ type ExtendedHomePageContent = HomePageContent & {
   footer_terms_label: string;
   footer_privacy_label: string;
   footer_admin_label: string;
+  home_about_overview_json: string;
+  home_alumni_overview_json: string;
+  home_nostalgia_timeline_json: string;
+};
+
+type HomeAboutOverviewCopy = {
+  stats_total_label?: string;
+  stats_confirmed_label?: string;
+  stats_memories_label?: string;
+  timeline_label?: string;
+  timeline_title_template?: string;
+  timeline_description?: string;
+  memories_label?: string;
+  memories_title_template?: string;
+  memories_empty_title?: string;
+  memories_description?: string;
+  polls_label?: string;
+  polls_title?: string;
+  polls_description?: string;
+  charts_label?: string;
+  charts_title?: string;
+  charts_description?: string;
+  profile_label?: string;
+  profile_title_template?: string;
+  profile_description?: string;
+  map_label?: string;
+  map_title?: string;
+  map_description?: string;
+  view_all_label?: string;
 };
 
 type HomeAlumniOverviewCopy = {
@@ -405,6 +435,7 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   confirmed_preview_limit: "0",
   confirmed_view_all_label: "",
   confirmed_privacy_note: "",
+  event_info_view_more_label: "",
   photos_preview_limit: "0",
   photos_view_all_label: "",
   photos_empty_title: "",
@@ -425,6 +456,9 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   footer_terms_label: "",
   footer_privacy_label: "",
   footer_admin_label: "",
+  home_about_overview_json: "{}",
+  home_alumni_overview_json: "{}",
+  home_nostalgia_timeline_json: "[]",
 };
 
 function getExtendedHomeContent(content?: HomePageContent | null): ExtendedHomePageContent {
@@ -1981,9 +2015,9 @@ function Header({ page, navigate, auth, logout, content }: {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
+      <header data-public-header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => go("home")} aria-label={`Início — ${headerContent.header_logo_alt}`} className="flex items-center gap-4 shrink-0 text-left">
+          <button data-public-header-logo onClick={() => go("home")} aria-label={`Início — ${headerContent.header_logo_alt}`} className="flex items-center gap-4 shrink-0 text-left">
             {headerLogoUrl ? (
               <img src={headerLogoUrl} alt={headerContent.header_logo_alt} className="h-16 w-32 object-contain" />
             ) : (
@@ -2000,7 +2034,7 @@ function Header({ page, navigate, auth, logout, content }: {
             )}
           </button>
 
-          <nav className="hidden md:flex items-center gap-5 xl:gap-6 min-w-0">
+          <nav data-public-header-nav className="hidden md:flex items-center gap-5 xl:gap-6 min-w-0">
             {navLinks.map(l => (
               <button key={l.page} onClick={() => go(l.page)}
                 className={`text-sm xl:text-[15px] font-mono font-bold uppercase tracking-[0.12em] whitespace-nowrap leading-none transition-colors ${page === l.page ? "text-[#c9a84c]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
@@ -2510,7 +2544,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
   }, [alumni.length]);
 
   return (
-    <section className="bg-[#0d1a0f] py-20 md:py-28">
+    <section className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><SectionLabel>{copy.eyebrow || content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{copy.title || content.confirmed_title}</DisplayTitle></div>{copy.description && <p className="max-w-md text-sm leading-relaxed text-[#7a9a7a] md:text-right">{copy.description}</p>}</div>
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
@@ -2597,7 +2631,9 @@ function AboutSection({
   const registeredPeople = people.filter(person => person.profile_status !== "unclaimed").length;
   const memoryCount = memories.length;
   const extendedContent = getExtendedHomeContent(content);
-  const timelineCount = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)
+  const aboutCopy = parseHomeJsonObject<HomeAboutOverviewCopy>(extendedContent.home_about_overview_json, {});
+  const hasRequiredAboutCopy = Boolean(content.about_eyebrow && content.about_title && content.about_body_1 && content.about_body_2);
+  const timelineCount = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, [])
     .filter(item => item.is_visible !== false)
     .length;
   const nostalgiaItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(extendedContent.home_nostalgia_timeline_json, []);
@@ -2605,56 +2641,58 @@ function AboutSection({
   const curiosityCards = [
     {
       icon: <Clock size={20} />,
-      label: "Linha do tempo",
-      title: `${timelineCount || 4} marcos da turma`,
-      description: "Uma amostra dos momentos que conectam escola, reencontro e bastidores da turma.",
+      label: aboutCopy.timeline_label,
+      title: applyTextTemplate(aboutCopy.timeline_title_template, { total: timelineCount }),
+      description: aboutCopy.timeline_description,
       body: <CompactNostalgiaTimeline items={nostalgiaItems} />,
     },
     {
       icon: <MessageCircle size={20} />,
-      label: "Memórias",
-      title: memoryCount > 0 ? `${memoryCount} memórias publicadas` : "Memórias em construção",
-      description: "Relatos curtos, lembranças de corredor e histórias que ajudam a reconstruir a época do HC.",
+      label: aboutCopy.memories_label,
+      title: memoryCount > 0 ? applyTextTemplate(aboutCopy.memories_title_template, { total: memoryCount }) : aboutCopy.memories_empty_title,
+      description: aboutCopy.memories_description,
     },
     {
       icon: <CheckCircle2 size={20} />,
-      label: "Enquetes",
-      title: "Perguntas da turma",
-      description: "Votações rápidas para descobrir preferências, expectativas e lembranças coletivas.",
+      label: aboutCopy.polls_label,
+      title: aboutCopy.polls_title,
+      description: aboutCopy.polls_description,
     },
     {
       icon: <BarChart3 size={20} />,
-      label: "Gráficos",
-      title: "Raio-X em números",
-      description: "Respostas do questionário viram gráficos sobre perfil, histórias, expectativas e fase atual.",
+      label: aboutCopy.charts_label,
+      title: aboutCopy.charts_title,
+      description: aboutCopy.charts_description,
     },
     {
       icon: <Users size={20} />,
-      label: "Perfil",
-      title: `${registeredPeople || 0} perfis cadastrados`,
-      description: "Um retrato atualizado de quem confirmou, quem já se cadastrou e como a turma se apresenta hoje.",
+      label: aboutCopy.profile_label,
+      title: applyTextTemplate(aboutCopy.profile_title_template, { total: registeredPeople || 0 }),
+      description: aboutCopy.profile_description,
     },
     {
       icon: <MapPin size={20} />,
-      label: "Mapa da turma",
-      title: "Onde cada um está",
-      description: "Uma prévia da distribuição da turma por cidades, estados e países.",
+      label: aboutCopy.map_label,
+      title: aboutCopy.map_title,
+      description: aboutCopy.map_description,
     },
-  ];
+  ].filter(item => item.label && item.title && item.description);
 
   const previewStats = [
-    { label: "Ex-alunos na base", value: totalPeople || 0 },
-    { label: "Confirmados", value: confirmedPeople || 0 },
-    { label: "Memórias", value: memoryCount || 0 },
-  ];
+    { label: aboutCopy.stats_total_label, value: totalPeople || 0 },
+    { label: aboutCopy.stats_confirmed_label, value: confirmedPeople || 0 },
+    { label: aboutCopy.stats_memories_label, value: memoryCount || 0 },
+  ].filter(stat => stat.label);
+
+  if (!hasRequiredAboutCopy) return null;
 
   return (
-    <section className="bg-[#0d1a0f] py-20 md:py-28">
+    <section className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-12 lg:gap-16 items-start">
           <div className="lg:sticky lg:top-28">
-            <SectionLabel>{content.about_eyebrow || "Nossa história"}</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title || "Nossa história"}</DisplayTitle>
+            <SectionLabel>{content.about_eyebrow}</SectionLabel>
+            <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title}</DisplayTitle>
             <GoldRule />
             <p className="text-[#8ab89a] text-base leading-relaxed mb-4">{content.about_body_1}</p>
             <p className="text-[#8ab89a] text-base leading-relaxed mb-8">{content.about_body_2}</p>
@@ -2698,9 +2736,11 @@ function AboutSection({
         </div>
 
         <div className="mt-10 md:mt-12 flex justify-center">
-          <Btn onClick={() => navigate("curiosities")}>
-            VER TUDO <ArrowRight size={16} />
-          </Btn>
+          {aboutCopy.view_all_label && (
+            <Btn onClick={() => navigate("curiosities")}>
+              {aboutCopy.view_all_label} <ArrowRight size={16} />
+            </Btn>
+          )}
         </div>
       </div>
     </section>
@@ -2732,7 +2772,7 @@ function EventInfoSection({ content, event, navigate }: { content: HomePageConte
   ];
 
   return (
-    <section className="bg-[#f0ebe0] py-20 md:py-28">
+    <section className="home-section bg-[#f0ebe0]">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.info_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-12">{content.info_title}</DisplayTitle>
@@ -2746,9 +2786,9 @@ function EventInfoSection({ content, event, navigate }: { content: HomePageConte
             </div>
           ))}
         </div>
-        {extendedContent.nav_event_label && (
+        {extendedContent.event_info_view_more_label && (
           <div className="mt-10 md:mt-12 flex justify-center">
-            <Btn variant="ghost" onClick={() => navigate("event")}>{extendedContent.nav_event_label} <ArrowRight size={16} /></Btn>
+            <Btn variant="ghost" onClick={() => navigate("event")}>{extendedContent.event_info_view_more_label} <ArrowRight size={16} /></Btn>
           </div>
         )}
       </div>
@@ -2954,7 +2994,7 @@ function TicketsPreview({
     .slice(0, parsePositiveInteger(extendedContent.tickets_preview_limit, 3));
 
   return (
-    <section className="bg-[#0a120a] py-20 md:py-28">
+    <section className="home-section bg-[#0a120a]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
           <div><SectionLabel>{content.tickets_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.tickets_title}</DisplayTitle></div>
@@ -3028,7 +3068,7 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
   const extendedContent = getExtendedHomeContent(content);
   const previewPhotos = photos.slice(0, parsePositiveInteger(extendedContent.photos_preview_limit, 6));
   return (
-    <section className="bg-[#080f08] py-20 md:py-28">
+    <section className="home-section bg-[#080f08]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
           <div><SectionLabel>{content.photos_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.photos_title}</DisplayTitle></div>
@@ -3061,12 +3101,12 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
 
 function TimelineSection({ content, memories = [] }: { content: HomePageContent; memories?: DbMemory[] }) {
   const extendedContent = getExtendedHomeContent(content);
-  const timelineItems = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)
+  const timelineItems = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, [])
     .filter(item => item.is_visible !== false);
   const previewMemories = memories.slice(0, 4);
 
   return (
-    <section className="bg-[#f0ebe0] py-20 md:py-28">
+    <section className="home-section bg-[#f0ebe0]">
       <div className="max-w-7xl mx-auto px-4">
         <SectionLabel>{content.timeline_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-16">{content.timeline_title}</DisplayTitle>
@@ -3122,11 +3162,11 @@ function TimelineSection({ content, memories = [] }: { content: HomePageContent;
 function FAQSection({ content }: { content: HomePageContent }) {
   const [open, setOpen] = useState<number | null>(null);
   const extendedContent = getExtendedHomeContent(content);
-  const faqItems = parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, FAQ_ITEMS)
+  const faqItems = parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, [])
     .filter(item => item.is_visible !== false);
 
   return (
-    <section className="bg-[#0d1a0f] py-20 md:py-28">
+    <section className="home-section bg-[#0d1a0f]">
       <div className="max-w-3xl mx-auto px-4">
         <SectionLabel>{content.faq_eyebrow}</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl mb-12">{content.faq_title}</DisplayTitle>
@@ -7580,8 +7620,8 @@ const role = auth.role ?? "viewer";
     { id: "footer", label: "Rodapé" },
   ];
 
-  const timelineDraftItems = parseHomeJsonArray<TimelineItemContent>(homeDraft.timeline_items_json, TIMELINE);
-  const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, FAQ_ITEMS);
+  const timelineDraftItems = parseHomeJsonArray<TimelineItemContent>(homeDraft.timeline_items_json, []);
+  const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, []);
   const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
   const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
   const eventGalleryItems = parseHomeJsonArray<EventPageGalleryItem>(eventDraft.gallery_json, parseHomeJsonArray<EventPageGalleryItem>(EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, []));
@@ -8097,6 +8137,7 @@ const role = auth.role ?? "viewer";
                     <Field label="Info — fallback horário" value={homeDraft.info_time_fallback_label} onChange={v => setHomeDraft(s => ({ ...s, info_time_fallback_label: v }))} />
                     <Field label="Info — subtítulo data" value={homeDraft.info_doors_subtitle_template} onChange={v => setHomeDraft(s => ({ ...s, info_doors_subtitle_template: v }))} hint="Use {time} para inserir o horário calculado." />
                     <Field label="Info — subtítulo horário" value={homeDraft.info_dinner_subtitle_template} onChange={v => setHomeDraft(s => ({ ...s, info_dinner_subtitle_template: v }))} hint="Use {time} para inserir o horário calculado." />
+                    <Field label="Info — CTA para /evento" value={homeDraft.event_info_view_more_label} onChange={v => setHomeDraft(s => ({ ...s, event_info_view_more_label: v }))} />
 
                     <Field label="Ingressos — limite na Home" type="number" value={homeDraft.tickets_preview_limit} onChange={v => setHomeDraft(s => ({ ...s, tickets_preview_limit: v }))} />
                     <Field label="Ingressos — botão ver todos" value={homeDraft.tickets_view_all_label} onChange={v => setHomeDraft(s => ({ ...s, tickets_view_all_label: v }))} />

@@ -23,6 +23,7 @@ import {
 } from "../lib/services";
 
 const HOME_DYNAMIC_FIELDS = [
+  { key: "home_about_overview_json", label: "Seção Sobre - cards e métricas", rows: 12, help: "Textos dos cards, labels das métricas e CTA da seção Sobre." },
   { key: "home_alumni_overview_json", label: "Painel “A turma em movimento”", rows: 12, help: "Textos e labels dos 4 cards do preview de ex-alunos." },
   { key: "home_nostalgia_timeline_json", label: "Timeline nostálgica", rows: 10, help: "Itens da timeline. Ícones aceitos: phone-call, laptop, messages-square, proportions, smartphone, book-image." },
   { key: "home_profile_stats_json", label: "Estatísticas do card Perfil", rows: 8, help: "Use mode:auto para calcular por profiles/people ou mode:fixed com value." },

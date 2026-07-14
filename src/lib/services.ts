@@ -37,12 +37,16 @@ export interface HomePageContent {
   tickets_title: string;
   confirmed_eyebrow: string;
   confirmed_title: string;
+  event_info_view_more_label?: string;
   photos_eyebrow: string;
   photos_title: string;
   timeline_eyebrow: string;
   timeline_title: string;
   faq_eyebrow: string;
   faq_title: string;
+  home_about_overview_json?: string;
+  home_alumni_overview_json?: string;
+  home_nostalgia_timeline_json?: string;
   updated_at?: string | null;
   updated_by_admin_id?: string | null;
 }
