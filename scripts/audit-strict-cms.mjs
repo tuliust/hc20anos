@@ -62,6 +62,7 @@ function countInFiles(files, pattern) {
 const srcFiles = collectFiles('src');
 const indexHtml = read('index.html');
 const services = exists('src/lib/services.ts') ? read('src/lib/services.ts') : '';
+const app = exists('src/app/App.tsx') ? read('src/app/App.tsx') : '';
 
 // Arquitetura de entrada única.
 assertIncludes('index.html', '/src/main.tsx', 'index.html deve carregar apenas a entrada React principal.');
@@ -116,6 +117,44 @@ assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const TICKET_PATHS', 'rotas 
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', 'const PEOPLE_PATHS', 'rotas de pessoas devem estar protegidas.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("ticket_types")', 'guard deve validar tipos de ingresso reais no Supabase.');
 assertIncludes('src/app/PublicCmsStrictGuard.tsx', '.from("people")', 'guard deve validar base real de pessoas no Supabase.');
+
+// Apenas main.tsx pode criar o root React.
+for (const file of srcFiles) {
+  if (file === 'src/main.tsx') continue;
+  if (read(file).includes('createRoot(')) {
+    fail(`${file}: createRoot secundÃ¡rio nÃ£o deve ser reintroduzido.`);
+  }
+}
+
+// Componentes restaurados da Home devem continuar montados nativamente.
+for (const [text, message] of [
+  ['function HomeAlumniOverviewPanel', 'painel restaurado de ex-alunos deve existir.'],
+  ['<WhoGoingPreview', 'painel de ex-alunos deve estar montado na seÃ§Ã£o confirmed.'],
+  ['function CompactNostalgiaTimeline', 'timeline nostÃ¡lgica compacta deve existir como componente React.'],
+  ['<CompactNostalgiaTimeline', 'timeline nostÃ¡lgica compacta deve estar montada na seÃ§Ã£o Sobre.'],
+  ['event_info_view_more_label', 'CTA de informaÃ§Ãµes do evento deve ser controlado pelo CMS.'],
+  ['home_about_overview_json', 'copy restaurada da seÃ§Ã£o Sobre deve vir do CMS.'],
+]) {
+  if (!app.includes(text)) fail(`src/app/App.tsx: ${message}`);
+}
+
+for (const forbiddenHomeText of [
+  'Uma amostra dos momentos que conectam escola, reencontro e bastidores da turma.',
+  'Relatos curtos, lembranÃ§as de corredor e histÃ³rias que ajudam a reconstruir a Ã©poca do HC.',
+  'VotaÃ§Ãµes rÃ¡pidas para descobrir preferÃªncias, expectativas e lembranÃ§as coletivas.',
+  'Respostas do questionÃ¡rio viram grÃ¡ficos sobre perfil, histÃ³rias, expectativas e fase atual.',
+  'Um retrato atualizado de quem confirmou, quem jÃ¡ se cadastrou e como a turma se apresenta hoje.',
+  'Uma prÃ©via da distribuiÃ§Ã£o da turma por cidades, estados e paÃ­ses.',
+  'VER TUDO',
+  'content.about_eyebrow ||',
+  'content.about_title ||',
+  'parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, TIMELINE)',
+  'parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, FAQ_ITEMS)',
+]) {
+  if (app.includes(forbiddenHomeText)) {
+    fail(`src/app/App.tsx: fallback/copy editorial restaurada no JSX: ${forbiddenHomeText}`);
+  }
+}
 
 // Defaults editoriais do serviço já foram removidos fisicamente e não podem voltar.
 for (const forbiddenServicesText of [
