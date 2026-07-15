@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
@@ -9096,30 +9097,66 @@ export default function App() {
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const u = session.user;
-        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
-        const admin  = !!adminUser;
-        const name   = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
+    let active = true;
+    let authRequestId = 0;
+
+    const setSignedOut = () => {
+      authRequestId += 1;
+      if (active) setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
+    };
+
+    const hydrateSession = async (session: Session | null) => {
+      if (!session?.user) {
+        setSignedOut();
+        return;
       }
-      setAuthLoading(false);
+
+      const requestId = authRequestId + 1;
+      authRequestId = requestId;
+      const user = session.user;
+      const adminUser = await getCurrentAdminUser(user.id).catch(() => null);
+      if (!active || authRequestId !== requestId) return;
+
+      const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Usuário";
+      setAuth({
+        loggedIn: true,
+        isAdmin: Boolean(adminUser),
+        name,
+        userId: user.id,
+        email: user.email,
+        role: adminUser?.role ?? null,
+      });
+    };
+
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) throw error;
+        return hydrateSession(session);
+      })
+      .catch(() => setSignedOut())
+      .finally(() => {
+        if (active) setAuthLoading(false);
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") return;
+      if (event === "SIGNED_OUT" || !session) {
+        setSignedOut();
+        return;
+      }
+
+      // Supabase pode bloquear chamadas feitas dentro do callback de auth.
+      // O timer garante que a consulta de permissões rode depois que o callback terminar.
+      window.setTimeout(() => {
+        if (active) void hydrateSession(session);
+      }, 0);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const u = session.user;
-        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
-        const admin = !!adminUser;
-        const name  = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
-      } else if (event === "SIGNED_OUT") {
-        setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      authRequestId += 1;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // ── Carrega dados reais do Supabase com fallback para mock ────────────────
