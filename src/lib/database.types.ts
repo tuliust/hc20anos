@@ -594,6 +594,11 @@ export interface DbHomePageContent {
 export interface DbEventArchiveSettings {
   event_id:             uuid;
   archive_enabled:      boolean;
+  page_eyebrow:         string;
+  page_title:           string;
+  message_label:        string;
+  closed_title:         string;
+  closed_text:          string;
   post_event_text:      string | null;
   official_video_url:   string | null;
   official_video_title: string | null;

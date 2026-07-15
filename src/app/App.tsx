@@ -7,7 +7,7 @@ import {
   getEventSettings, updateEventSettings,
   getReports, exportToCsv, exportPeopleCSV, exportOrdersCSV, exportTicketsCSV,
   getAdminUsers, addAdminUser, updateAdminRole, removeAdminUser,
-  getAuditLogs, getApprovedPhotos, getPendingPhotos, moderatePhoto, uploadPhoto,
+  getAuditLogs, getApprovedPhotos, getPhotosForModeration, moderatePhoto, uploadPhoto,
   getTagsForModeration, moderateTag,
   getPendingClaims, moderateClaim,
   getPhotoRemovalRequests, reviewPhotoRemovalRequest, createPhotoRemovalRequest,
@@ -24,7 +24,8 @@ import {
   getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
-  getEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getEventArchiveSettings, updateEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, uploadCmsContentImage, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
+  getContentModerationSettings, updateContentModerationSettings, type ContentModerationSettings,
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
@@ -200,7 +201,7 @@ interface FooterLinkContent {
   is_visible?: boolean;
 }
 
-type ContentAdminTab = "header" | "home" | "event" | "sections" | "labels" | "timeline" | "faq" | "footer";
+type ContentAdminTab = "header" | "home" | "event" | "archive" | "sections" | "labels" | "timeline" | "faq" | "footer";
 
 const PAGE_OPTIONS: { page: Page; label: string }[] = [
   { page: "home", label: "Home" },
@@ -382,6 +383,7 @@ type NostalgiaTimelineItemContent = {
   label?: string;
   description?: string;
   desc?: string;
+  image_url?: string;
   is_visible?: boolean;
 };
 
@@ -574,6 +576,22 @@ function updateFooterLink(items: FooterLinkContent[], index: number, patch: Part
 
 function updateNostalgiaTimelineItem(items: NostalgiaTimelineItemContent[], index: number, patch: Partial<NostalgiaTimelineItemContent>) {
   return items.map((item, i) => i === index ? { ...item, ...patch } : item);
+}
+
+const ADMIN_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
+  hidden: "Oculto",
+  all: "Todos",
+  draft: "Rascunho",
+  open: "Aberta",
+  closed: "Encerrada",
+  archived: "Arquivada",
+};
+
+function adminStatusLabel(status: string) {
+  return ADMIN_STATUS_LABELS[status] ?? status;
 }
 
 function updateFaqItem(items: FAQItemContent[], index: number, patch: Partial<FAQItemContent>) {
@@ -1089,11 +1107,12 @@ function StatusBadge({ status }: { status: string }) {
     "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    pending:      { label: "Aguardando",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    pending:      { label: "Pendente",         color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     in_process:   { label: "Em processamento", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     approved:     { label: "Aprovado",         color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     rejected:     { label: "Rejeitado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
     removed:      { label: "Removido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
+    hidden:       { label: "Oculto",           color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
     paused:       { label: "Pausado",          color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     draft:        { label: "Rascunho",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
     viewer:       { label: "Leitura",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
@@ -2680,9 +2699,10 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
               >
                 <span className={`block font-['Playfair_Display'] font-bold leading-tight text-[#f0ebe0] transition-all duration-500 group-hover:text-[#c9a84c] motion-reduce:transition-none ${open ? "text-2xl md:text-3xl" : "text-lg md:text-xl"}`}>{title}</span>
               </button>
-              <div className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && description ? "grid-rows-[1fr] translate-x-2 opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+              <div className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && (description || item.image_url) ? "grid-rows-[1fr] translate-x-2 opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="overflow-hidden">
-                  <p className="mt-3 max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>
+                  {item.image_url && <img src={item.image_url} alt={title} className="mt-4 aspect-[16/9] w-full max-w-md border border-[#2d6a4f]/25 object-cover" />}
+                  {description && <p className="mt-3 max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>}
                 </div>
               </div>
             </div>
@@ -6020,8 +6040,8 @@ function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthStat
   return (
     <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
-          <SectionLabel>Pós-festa</SectionLabel>
-          <DisplayTitle className="text-4xl md:text-7xl mb-4">Memórias do reencontro</DisplayTitle>
+          <SectionLabel>{settings?.page_eyebrow || "Pós-festa"}</SectionLabel>
+          <DisplayTitle className="text-4xl md:text-7xl mb-4">{settings?.page_title || "Memórias do reencontro"}</DisplayTitle>
           {loading && <LoadingState message="Carregando acervo..." />}
           {error && <ErrorState message={error} />}
 
@@ -6029,8 +6049,8 @@ function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthStat
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
               <div className="max-w-3xl">
                 <StatusBadge status="closed" />
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">O acervo será aberto depois do reencontro.</h2>
-                <p className="text-[#8ab89a] leading-relaxed mb-8">Depois do evento, esta página reunirá fotos oficiais, fotos enviadas pelos participantes, vídeo oficial, lista de presença respeitando privacidade e memórias aprovadas.</p>
+                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">{settings?.closed_title || "O acervo será aberto depois do reencontro."}</h2>
+                <p className="text-[#8ab89a] leading-relaxed mb-8">{settings?.closed_text || "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização."}</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                   {[
                     ["Fotos oficiais", "Seleção da organização"],
@@ -6050,7 +6070,7 @@ function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthStat
           {!loading && archiveOpen && (
             <div className="flex flex-col gap-10">
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Mensagem da organização</p>
+                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">{settings?.message_label || "Mensagem da organização"}</p>
                 <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">
                   {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
                 </p>
@@ -7338,6 +7358,7 @@ const ADMIN_TAB_PATHS: Record<string, string> = {
   header: "/admin/content?tab=header",
   "home-content": "/admin/content?tab=home",
   "event-content": "/admin/content?tab=event",
+  "archive-content": "/admin/content?tab=archive",
   sections: "/admin/content?tab=sections",
   labels: "/admin/content?tab=labels",
   timeline: "/admin/content?tab=timeline",
@@ -7366,7 +7387,7 @@ function adminTabFromPathname() {
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   const tab = new URLSearchParams(window.location.search).get("tab");
   const tabByRoute: Record<string, string> = {
-    "/admin/content": ["header", "home", "event", "sections", "labels", "timeline", "faq", "footer"].includes(tab ?? "") ? "home-content" : tab === "comments" ? "photo-comments" : tab ?? "home-content",
+    "/admin/content": ["header", "home", "event", "archive", "sections", "labels", "timeline", "faq", "footer"].includes(tab ?? "") ? "home-content" : tab === "comments" ? "photo-comments" : tab ?? "home-content",
     "/admin/participants": tab === "profiles" ? "claims" : tab === "tags" ? "tag-mod" : tab ?? "participants",
     "/admin/tickets": tab === "lots" ? "lots" : "orders",
     "/admin/reports": "reports",
@@ -7380,6 +7401,7 @@ function adminContentTabFromPathname(): ContentAdminTab {
   const tab = new URLSearchParams(window.location.search).get("tab");
   if (tab === "header") return "header";
   if (tab === "event") return "event";
+  if (tab === "archive") return "archive";
   if (tab === "sections") return "sections";
   if (tab === "labels") return "labels";
   if (tab === "timeline") return "timeline";
@@ -7428,6 +7450,7 @@ function AdminPage({ navigate, auth, onHomeContentUpdated, registerNavigationGua
   const [memories, setMemories] = useState<DbMemory[]>([]);
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
   const [pollDraft, setPollDraft] = useState({ question: "", description: "", optionsText: "", status: "open" as PollStatus, allowMultiple: false });
+  const [photoFilter, setPhotoFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [tagFilter, setTagFilter] = useState<"pending"|"approved"|"rejected">("pending");
   const [commentFilter, setCommentFilter] = useState<ModerationStatus | "all">("pending");
   const [memoryFilter, setMemoryFilter] = useState<ModerationStatus | "all">("pending");
@@ -7442,21 +7465,30 @@ function AdminPage({ navigate, auth, onHomeContentUpdated, registerNavigationGua
   const [headerLogoPreviewUrl, setHeaderLogoPreviewUrl] = useState<string | null>(null);
   const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
   const [eventDraft, setEventDraft] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
+  const [archiveDraft, setArchiveDraft] = useState<Partial<DbEventArchiveSettings>>({ archive_enabled: false, page_eyebrow: "Pós-festa", page_title: "Memórias do reencontro", message_label: "Mensagem da organização", closed_title: "O acervo será aberto depois do reencontro.", closed_text: "", post_event_text: "", official_video_url: "", official_video_title: "", official_photo_ids: [], highlight_photo_ids: [], highlights_links: [] });
+  const [moderationSettings, setModerationSettings] = useState<ContentModerationSettings>({ event_id: DEFAULT_EVENT_ID, auto_approve_photos: false, auto_approve_comments: false, auto_approve_memories: false });
   const [contentTab, setContentTab] = useState<ContentAdminTab>(() => adminContentTabFromPathname());
   const persistedHomeDraftRef = useRef<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
   const persistedEventDraftRef = useRef<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
+  const persistedArchiveDraftRef = useRef<Partial<DbEventArchiveSettings>>({ archive_enabled: false, page_eyebrow: "Pós-festa", page_title: "Memórias do reencontro", message_label: "Mensagem da organização", closed_title: "O acervo será aberto depois do reencontro.", closed_text: "", post_event_text: "", official_video_url: "", official_video_title: "", official_photo_ids: [], highlight_photo_ids: [], highlights_links: [] });
   const pendingNavigationRef = useRef<(() => void) | null>(null);
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
 
   const hasUnsavedChanges = !loading && tab === "home-content" && (
     contentTab === "event"
       ? JSON.stringify(eventDraft) !== JSON.stringify(persistedEventDraftRef.current)
+      : contentTab === "archive"
+        ? JSON.stringify(archiveDraft) !== JSON.stringify(persistedArchiveDraftRef.current)
       : JSON.stringify(homeDraft) !== JSON.stringify(persistedHomeDraftRef.current)
   );
 
   const discardCurrentPageChanges = useCallback(() => {
     if (contentTab === "event") {
       setEventDraft(persistedEventDraftRef.current);
+      return;
+    }
+    if (contentTab === "archive") {
+      setArchiveDraft(persistedArchiveDraftRef.current);
       return;
     }
     setHomeDraft(persistedHomeDraftRef.current);
@@ -7537,15 +7569,16 @@ const role = auth.role ?? "viewer";
   ];
 
   const adminGroups = [
-    { id: "dashboard", label: "Dashboard", icon: <BarChart3 size={14} />, tabs: [{ id: "dashboard", label: "Visão geral", icon: <BarChart3 size={13} /> }] },
+    { id: "dashboard", label: "Dashboard", icon: <BarChart3 size={14} />, tabs: [{ id: "dashboard", label: "Visão geral", icon: <BarChart3 size={13} /> }, { id: "reports", label: "Relatórios", icon: <Download size={13} /> }] },
     { id: "content", label: "Conteúdo", icon: <Pencil size={14} />, tabs: [
       { id: "header", label: "Header", icon: <Menu size={13} /> }, { id: "home-content", label: "Home", icon: <Pencil size={13} /> },
       { id: "event-content", label: "Evento", icon: <Ticket size={13} /> }, { id: "sections", label: "Seções", icon: <Package size={13} /> },
+      { id: "archive-content", label: "Pós-festa", icon: <Star size={13} /> },
       { id: "labels", label: "Labels", icon: <FileText size={13} /> },
       { id: "timeline", label: "Timeline", icon: <Clock size={13} /> }, { id: "faq", label: "FAQ", icon: <Info size={13} /> },
       { id: "footer", label: "Rodapé", icon: <FileText size={13} /> }, { id: "memories", label: "Memórias", icon: <Star size={13} /> },
       { id: "polls", label: "Enquetes", icon: <BarChart3 size={13} /> }, { id: "photos", label: "Fotos", icon: <Camera size={13} /> },
-      { id: "photo-comments", label: "Comentários", icon: <MessageCircle size={13} /> }, { id: "assets", label: "Assets", icon: <Package size={13} /> },
+      { id: "photo-comments", label: "Comentários", icon: <MessageCircle size={13} /> },
     ] },
     { id: "participants", label: "Participantes", icon: <Users size={14} />, tabs: [
       { id: "participants", label: "Participantes", icon: <Users size={13} /> }, { id: "claims", label: "Perfis", icon: <UserCheck size={13} /> },
@@ -7556,10 +7589,9 @@ const role = auth.role ?? "viewer";
       { id: "orders", label: "Pedidos", icon: <Ticket size={13} /> }, { id: "lots", label: "Lotes", icon: <Package size={13} /> },
       { id: "checkin", label: "Check-in", icon: <Scan size={13} /> },
     ] },
-    { id: "reports", label: "Relatórios", icon: <Download size={14} />, tabs: [{ id: "reports", label: "Relatórios", icon: <Download size={13} /> }] },
     { id: "settings", label: "Administração", icon: <Settings size={14} />, tabs: [
       { id: "admins", label: "Administradores", icon: <Key size={13} /> }, { id: "audit", label: "Auditoria", icon: <FileText size={13} /> },
-      { id: "settings", label: "Configurações", icon: <Settings size={13} /> },
+      { id: "settings", label: "Configurações", icon: <Settings size={13} /> }, { id: "assets", label: "Assets", icon: <Package size={13} /> },
     ] },
   ];
 
@@ -7568,8 +7600,11 @@ const role = auth.role ?? "viewer";
       navigate("checkin");
       return;
     }
-    if (["header", "event-content", "sections", "labels", "timeline", "faq", "footer"].includes(nextTab)) {
-      setContentTab(nextTab === "event-content" ? "event" : nextTab as ContentAdminTab);
+    if (nextTab === "home-content") {
+      setContentTab("home");
+      setTab("home-content");
+    } else if (["header", "event-content", "archive-content", "sections", "labels", "timeline", "faq", "footer"].includes(nextTab)) {
+      setContentTab(nextTab === "event-content" ? "event" : nextTab === "archive-content" ? "archive" : nextTab as ContentAdminTab);
       setTab("home-content");
     } else {
       setTab(nextTab);
@@ -7578,7 +7613,7 @@ const role = auth.role ?? "viewer";
   }
 
   function selectAdminTab(nextTab: string) {
-    const nextSelectedSubtab = nextTab === "event-content" ? "event" : nextTab === "home-content" ? "home" : nextTab;
+    const nextSelectedSubtab = nextTab === "event-content" ? "event" : nextTab === "archive-content" ? "archive" : nextTab === "home-content" ? "home" : nextTab;
     if (nextSelectedSubtab === selectedSubtab) return;
     requestNavigation(() => performSelectAdminTab(nextTab));
   }
@@ -7593,7 +7628,7 @@ const role = auth.role ?? "viewer";
         getTicketTypesAdmin(),
         getOrdersByStatus(),
         getPeople(),
-        getPendingPhotos(),
+        getPhotosForModeration(photoFilter),
         getTagsForModeration(tagFilter),
         getPhotoCommentsForModeration(commentFilter),
         getMemoriesForModeration(memoryFilter),
@@ -7633,12 +7668,21 @@ const role = auth.role ?? "viewer";
           companionPolicy: eventData.companion_policy ?? "",
           refundPolicy: eventData.refund_policy ?? "",
         });
-        const homeData = getExtendedHomeContent(await getHomePageContent(DEFAULT_EVENT_ID));
-        const eventPageData = await getEventPageContent(DEFAULT_EVENT_ID);
+        const [homeDataRaw, eventPageData, archiveData, moderationData] = await Promise.all([
+          getHomePageContent(DEFAULT_EVENT_ID),
+          getEventPageContent(DEFAULT_EVENT_ID),
+          getEventArchiveSettings(DEFAULT_EVENT_ID),
+          getContentModerationSettings(DEFAULT_EVENT_ID),
+        ]);
+        const homeData = getExtendedHomeContent(homeDataRaw);
+        const normalizedArchive = archiveData ?? { event_id: DEFAULT_EVENT_ID, archive_enabled: false, page_eyebrow: "Pós-festa", page_title: "Memórias do reencontro", message_label: "Mensagem da organização", closed_title: "O acervo será aberto depois do reencontro.", closed_text: "", post_event_text: "", official_video_url: "", official_video_title: "", official_photo_ids: [], highlight_photo_ids: [], highlights_links: [], created_at: "", updated_at: "" };
         persistedHomeDraftRef.current = homeData;
         persistedEventDraftRef.current = eventPageData;
+        persistedArchiveDraftRef.current = normalizedArchive;
         setHomeDraft(homeData);
         setEventDraft(eventPageData);
+        setArchiveDraft(normalizedArchive);
+        setModerationSettings(moderationData);
         onHomeContentUpdated(homeData);
         setReports(await getReports(eventData.id));
       }
@@ -7649,15 +7693,15 @@ const role = auth.role ?? "viewer";
     }
   }
 
-  useEffect(() => { loadAdminData(); }, [tagFilter, commentFilter, memoryFilter]);
+  useEffect(() => { loadAdminData(); }, [photoFilter, tagFilter, commentFilter, memoryFilter]);
 
-  async function runAction(label: string, action: () => Promise<void>): Promise<boolean> {
+  async function runAction(label: string, action: () => Promise<void>, reload = true): Promise<boolean> {
     setBusy(label);
     try {
       await action();
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
-      await loadAdminData();
+      if (reload) await loadAdminData();
       return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Não foi possível concluir a ação.", "error");
@@ -7707,6 +7751,47 @@ const role = auth.role ?? "viewer";
       }, auth.userId);
       persistedEventDraftRef.current = updated;
       setEventDraft(updated);
+    });
+  }
+
+  async function saveArchiveContent() {
+    if (!canManageEvent) return;
+    await runAction("archive-content", async () => {
+      const updated = await updateEventArchiveSettings(DEFAULT_EVENT_ID, archiveDraft);
+      persistedArchiveDraftRef.current = updated;
+      setArchiveDraft(updated);
+    });
+  }
+
+  async function uploadEventHeroImage(file?: File | null) {
+    if (!file || !canManageEvent) return;
+    await runAction("event-hero-upload", async () => {
+      const imageUrl = await uploadCmsContentImage(file, auth.userId, "event-hero");
+      setEventDraft(current => ({ ...current, hero_image_url: imageUrl }));
+    }, false);
+  }
+
+  async function uploadEventGalleryImage(index: number, file?: File | null) {
+    if (!file || !canManageEvent) return;
+    await runAction(`event-gallery-${index}`, async () => {
+      const imageUrl = await uploadCmsContentImage(file, auth.userId, `event-gallery-${index}`);
+      setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, index, { image_url: imageUrl }));
+    }, false);
+  }
+
+  async function uploadTimelineImage(index: number, file?: File | null) {
+    if (!file || !canManageEvent) return;
+    await runAction(`timeline-image-${index}`, async () => {
+      const imageUrl = await uploadCmsContentImage(file, auth.userId, `timeline-${index}`);
+      setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, index, { image_url: imageUrl }));
+    }, false);
+  }
+
+  async function setAutomaticApproval(key: "auto_approve_photos" | "auto_approve_comments" | "auto_approve_memories", enabled: boolean) {
+    if (!canManageEvent) return;
+    await runAction(`moderation-${key}`, async () => {
+      const updated = await updateContentModerationSettings(DEFAULT_EVENT_ID, { [key]: enabled });
+      setModerationSettings(updated);
     });
   }
 
@@ -7836,6 +7921,7 @@ const role = auth.role ?? "viewer";
       title: item.title ?? item.label ?? "",
       description: item.description ?? item.desc ?? "",
       ...(item.icon ? { icon: item.icon } : {}),
+      ...(item.image_url ? { image_url: item.image_url } : {}),
       is_visible: item.is_visible !== false,
     }));
     const legacyItems = normalizedItems.map(item => ({
@@ -7930,7 +8016,7 @@ const role = auth.role ?? "viewer";
         <div className="flex flex-wrap gap-1 border-b border-[#2d6a4f]/20 px-4 py-2 bg-[#0a120a]">
           {adminGroups.find(group => group.tabs.some(item => item.id === tab))?.tabs.map(item => (
             <button key={item.id} disabled={item.disabled} onClick={() => !item.disabled && selectAdminTab(item.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors disabled:opacity-30 ${selectedSubtab === (item.id === "event-content" ? "event" : item.id) ? "bg-[#2d6a4f] text-[#f0ebe0]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors disabled:opacity-30 ${selectedSubtab === (item.id === "event-content" ? "event" : item.id === "archive-content" ? "archive" : item.id) ? "bg-[#2d6a4f] text-[#f0ebe0]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
               {item.icon}{item.label}
             </button>
           ))}
@@ -8184,7 +8270,14 @@ const role = auth.role ?? "viewer";
                     <Field label="Eyebrow" value={eventDraft.hero_eyebrow} onChange={v => setEventDraft(s => ({ ...s, hero_eyebrow: v }))} />
                     <Field label="Título" value={eventDraft.title} onChange={v => setEventDraft(s => ({ ...s, title: v }))} />
                     <Field label="Subtítulo" value={eventDraft.subtitle} onChange={v => setEventDraft(s => ({ ...s, subtitle: v }))} />
-                    <Field label="Imagem principal" value={eventDraft.hero_image_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, hero_image_url: v }))} placeholder="https://..." />
+                    <div>
+                      <Field label="Imagem principal" value={eventDraft.hero_image_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, hero_image_url: v }))} placeholder="https://..." />
+                      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-[#2d6a4f]/40 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[#f0ebe0] hover:border-[#c9a84c]">
+                        <Upload size={13} />{busy === "event-hero-upload" ? "Enviando..." : "Carregar imagem do topo"}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy === "event-hero-upload"} onChange={event => { void uploadEventHeroImage(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+                      </label>
+                      {eventDraft.hero_image_url && <img src={eventDraft.hero_image_url} alt="Preview da imagem principal" className="mt-3 aspect-[16/7] w-full border border-[#2d6a4f]/25 object-cover" />}
+                    </div>
                     <div className="md:col-span-2"><FieldArea rows={5} label="Descrição" value={eventDraft.description} onChange={v => setEventDraft(s => ({ ...s, description: v }))} /></div>
                     <Field label="Google Maps embed ou src" value={eventDraft.map_embed_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, map_embed_url: v }))} placeholder="Cole a URL ou iframe do mapa" />
                     <Field label="Link externo do mapa" value={eventDraft.map_link_url ?? ""} onChange={v => setEventDraft(s => ({ ...s, map_link_url: v }))} placeholder="https://maps.google.com/..." />
@@ -8203,7 +8296,14 @@ const role = auth.role ?? "viewer";
                   <div className="flex flex-col gap-4">
                     {eventGalleryItems.map((item, i) => (
                       <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
-                        <Field label="URL da imagem" value={item.image_url} onChange={v => setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, i, { image_url: v }))} />
+                        <div>
+                          <Field label="URL da imagem" value={item.image_url} onChange={v => setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, i, { image_url: v }))} />
+                          <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-[#2d6a4f]/40 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-[#f0ebe0] hover:border-[#c9a84c]">
+                            <Upload size={12} />{busy === `event-gallery-${i}` ? "Enviando..." : "Carregar imagem"}
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy === `event-gallery-${i}`} onChange={event => { void uploadEventGalleryImage(i, event.target.files?.[0]); event.currentTarget.value = ""; }} />
+                          </label>
+                          {item.image_url && <img src={item.image_url} alt={item.caption || `Imagem ${i + 1} da galeria`} className="mt-3 aspect-video w-full max-w-xs border border-[#2d6a4f]/25 object-cover" />}
+                        </div>
                         <Field label="Legenda" value={item.caption ?? ""} onChange={v => setEventGalleryItems(updateEventGalleryItem(eventGalleryItems, i, { caption: v }))} />
                         <Btn size="sm" variant="ghost" onClick={() => setEventGalleryItems(eventGalleryItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
                       </div>
@@ -8274,6 +8374,36 @@ const role = auth.role ?? "viewer";
                         <Btn size="sm" variant="ghost" onClick={() => setEventExtraInfoItems(eventExtraInfoItems.filter((_, index) => index !== i))}><X size={14} /></Btn>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contentTab === "archive" && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
+                  <div>
+                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Página Pós-festa</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Gerencie a abertura do acervo e a mensagem exibida em /pos-festa.</p>
+                  </div>
+                  <Btn size="sm" onClick={saveArchiveContent} disabled={busy === "archive-content"}><Save size={14} />Salvar Pós-festa</Btn>
+                </div>
+                <div className="flex flex-col gap-5">
+                  <label className="flex items-center gap-3 text-sm text-[#f0ebe0]">
+                    <input type="checkbox" checked={Boolean(archiveDraft.archive_enabled)} onChange={event => setArchiveDraft(current => ({ ...current, archive_enabled: event.target.checked }))} className="accent-[#2d6a4f]" />
+                    Abrir a página Pós-festa ao público
+                  </label>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field label="Chamada superior" value={archiveDraft.page_eyebrow ?? "Pós-festa"} onChange={value => setArchiveDraft(current => ({ ...current, page_eyebrow: value }))} />
+                    <Field label="Título da página" value={archiveDraft.page_title ?? "Memórias do reencontro"} onChange={value => setArchiveDraft(current => ({ ...current, page_title: value }))} />
+                    <Field label="Label da mensagem" value={archiveDraft.message_label ?? "Mensagem da organização"} onChange={value => setArchiveDraft(current => ({ ...current, message_label: value }))} />
+                    <Field label="Título antes da abertura" value={archiveDraft.closed_title ?? "O acervo será aberto depois do reencontro."} onChange={value => setArchiveDraft(current => ({ ...current, closed_title: value }))} />
+                  </div>
+                  <FieldArea rows={3} label="Texto antes da abertura" value={archiveDraft.closed_text ?? ""} onChange={value => setArchiveDraft(current => ({ ...current, closed_text: value }))} />
+                  <FieldArea rows={6} label="Mensagem da organização" value={archiveDraft.post_event_text ?? ""} onChange={value => setArchiveDraft(current => ({ ...current, post_event_text: value }))} />
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field label="Título do vídeo oficial" value={archiveDraft.official_video_title ?? ""} onChange={value => setArchiveDraft(current => ({ ...current, official_video_title: value }))} />
+                    <Field label="URL do vídeo oficial" value={archiveDraft.official_video_url ?? ""} onChange={value => setArchiveDraft(current => ({ ...current, official_video_url: value }))} placeholder="https://..." />
                   </div>
                 </div>
               </div>
@@ -8373,6 +8503,18 @@ const role = auth.role ?? "viewer";
                         <Field label="Título do marco" value={item.title ?? item.label ?? ""} onChange={v => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { title: v, label: undefined }))} />
                         <div className="md:col-span-2">
                           <FieldArea rows={3} label="Descrição" value={item.description ?? item.desc ?? ""} onChange={v => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { description: v, desc: undefined }))} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="inline-flex cursor-pointer items-center gap-2 border border-[#2d6a4f]/40 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[#f0ebe0] hover:border-[#c9a84c]">
+                            <Upload size={13} />{busy === `timeline-image-${i}` ? "Enviando..." : "Carregar imagem do marco"}
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy === `timeline-image-${i}`} onChange={event => { void uploadTimelineImage(i, event.target.files?.[0]); event.currentTarget.value = ""; }} />
+                          </label>
+                          {item.image_url && (
+                            <div className="mt-3 flex items-start gap-3">
+                              <img src={item.image_url} alt={item.title || `Marco ${i + 1}`} className="aspect-video w-48 border border-[#2d6a4f]/25 object-cover" />
+                              <Btn size="sm" variant="ghost" onClick={() => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { image_url: undefined }))}>Remover imagem</Btn>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -8599,9 +8741,15 @@ const role = auth.role ?? "viewer";
 
         {!loading && tab === "photos" && (!canModerate ? <PermissionState /> : (
           <div>
-            <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-6">{pendingPhotos.length} fotos aguardando revisao</p>
+            <div className="mb-6 flex flex-col gap-3 border border-[#2d6a4f]/25 bg-[#141f14] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{pendingPhotos.length} fotos encontradas</p>
+              <label className="flex items-center gap-3 text-sm text-[#f0ebe0]"><input type="checkbox" checked={moderationSettings.auto_approve_photos} onChange={event => void setAutomaticApproval("auto_approve_photos", event.target.checked)} className="accent-[#2d6a4f]" />Aprovar novas fotos automaticamente</label>
+            </div>
+            <div className="mb-6 flex flex-wrap gap-2">
+              {(["pending", "approved", "rejected", "all"] as const).map(value => <button key={value} type="button" onClick={() => setPhotoFilter(value)} className={"border px-4 py-2 text-xs font-mono uppercase tracking-wider transition-colors " + (photoFilter === value ? "border-[#2d6a4f] bg-[#2d6a4f] text-[#f0ebe0]" : "border-[#2d6a4f]/30 text-[#7a9a7a]")}>{adminStatusLabel(value)}</button>)}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {pendingPhotos.length === 0 && <EmptyState title="Nenhuma foto pendente" />}
+              {pendingPhotos.length === 0 && <EmptyState title="Nenhuma foto encontrada" />}
               {pendingPhotos.map(p => (
                 <div key={p.id} className="bg-[#141f14] border border-[#2d6a4f]/25">
                   <div className="aspect-[4/3] overflow-hidden"><img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80" /></div>
@@ -8625,7 +8773,7 @@ const role = auth.role ?? "viewer";
               {(["pending","approved","rejected"] as const).map(val => (
                 <button key={val} onClick={() => setTagFilter(val)}
                   className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (tagFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
-                  {val}
+                  {adminStatusLabel(val)}
                 </button>
               ))}
             </div>
@@ -8651,11 +8799,12 @@ const role = auth.role ?? "viewer";
 
         {!loading && tab === "photo-comments" && (!canModerate ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
+            <label className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#141f14] p-4 text-sm text-[#f0ebe0]"><input type="checkbox" checked={moderationSettings.auto_approve_comments} onChange={event => void setAutomaticApproval("auto_approve_comments", event.target.checked)} className="accent-[#2d6a4f]" />Aprovar novos comentários automaticamente</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(["pending","approved","rejected","hidden","all"] as const).map(val => (
                 <button key={val} onClick={() => setCommentFilter(val)}
                   className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (commentFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
-                  {val}
+                  {adminStatusLabel(val)}
                 </button>
               ))}
             </div>
@@ -8678,11 +8827,12 @@ const role = auth.role ?? "viewer";
 
         {!loading && tab === "memories" && (!canModerate ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
+            <label className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#141f14] p-4 text-sm text-[#f0ebe0]"><input type="checkbox" checked={moderationSettings.auto_approve_memories} onChange={event => void setAutomaticApproval("auto_approve_memories", event.target.checked)} className="accent-[#2d6a4f]" />Aprovar novas memórias automaticamente</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(["pending","approved","rejected","hidden","all"] as const).map(val => (
                 <button key={val} onClick={() => setMemoryFilter(val)}
                   className={"px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors " + (memoryFilter === val ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60")}>
-                  {val}
+                  {adminStatusLabel(val)}
                 </button>
               ))}
             </div>
@@ -8715,7 +8865,7 @@ const role = auth.role ?? "viewer";
                   <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Status inicial</label>
                   <select value={pollDraft.status} onChange={e => setPollDraft(s => ({ ...s, status: e.target.value as PollStatus }))}
                     className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f]">
-                    {(["draft","open","closed","archived"] as PollStatus[]).map(status => <option key={status} value={status}>{status}</option>)}
+                    {(["draft","open","closed","archived"] as PollStatus[]).map(status => <option key={status} value={status}>{adminStatusLabel(status)}</option>)}
                   </select>
                 </div>
                 <label className="flex items-center gap-3 text-[#f0ebe0] text-sm">

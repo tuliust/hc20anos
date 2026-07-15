@@ -124,6 +124,13 @@ export interface EventPageContent {
   updated_by_admin_id?: string | null;
 }
 
+export interface ContentModerationSettings {
+  event_id: string;
+  auto_approve_photos: boolean;
+  auto_approve_comments: boolean;
+  auto_approve_memories: boolean;
+}
+
 export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
   hero_eyebrow: "",
@@ -298,6 +305,10 @@ export async function updateEventPageContent(
   const fallbackSchedule = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.schedule_json, []);
   const fallbackExtra = parseJsonField(EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, []);
 
+  const { data: adminRow } = adminId
+    ? await (supabase as any).from("admin_users").select("id").eq("user_id", adminId).maybeSingle()
+    : { data: null };
+
   const payload: Partial<DbEventPageContent> = {
     event_id: eventId,
     hero_eyebrow: patch.hero_eyebrow ?? EVENT_PAGE_CONTENT_DEFAULTS.hero_eyebrow,
@@ -315,7 +326,7 @@ export async function updateEventPageContent(
     bathrooms_text: patch.bathrooms_text ?? EVENT_PAGE_CONTENT_DEFAULTS.bathrooms_text,
     security_text: patch.security_text ?? EVENT_PAGE_CONTENT_DEFAULTS.security_text,
     extra_info_json: parseJsonField(patch.extra_info_json ?? EVENT_PAGE_CONTENT_DEFAULTS.extra_info_json, fallbackExtra),
-    updated_by_admin_id: adminId ?? null,
+    updated_by_admin_id: adminRow?.id ?? null,
   };
 
   const { data, error } = await (supabase as any)
@@ -327,6 +338,41 @@ export async function updateEventPageContent(
   if (error) throw error;
   await writeAudit("update_event_page_content", "event_page_content", eventId, { patch }).catch(() => {});
   return normalizeEventPageContent(data as DbEventPageContent, eventId);
+}
+
+export async function uploadCmsContentImage(file: File, adminId: string, scope: string): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem válida.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 5 MB.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "jpg";
+  const safeScope = scope.replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "") || "content";
+  const path = `${adminId}/cms/${safeScope}-${Date.now()}.${safeExt}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: false, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Não foi possível gerar a URL da imagem.");
+  await writeAudit("upload_cms_content_image", "cms_asset", DEFAULT_HOME_EVENT_ID, { path, scope, admin_id: adminId }).catch(() => {});
+  return data.publicUrl;
+}
+
+export async function getContentModerationSettings(eventId = DEFAULT_HOME_EVENT_ID): Promise<ContentModerationSettings> {
+  const fallback = { event_id: eventId, auto_approve_photos: false, auto_approve_comments: false, auto_approve_memories: false };
+  const { data, error } = await (supabase as any).from("content_moderation_settings").select("*").eq("event_id", eventId).maybeSingle();
+  if (error) return fallback;
+  return {
+    event_id: eventId,
+    auto_approve_photos: Boolean(data?.auto_approve_photos),
+    auto_approve_comments: Boolean(data?.auto_approve_comments),
+    auto_approve_memories: Boolean(data?.auto_approve_memories),
+  };
+}
+
+export async function updateContentModerationSettings(eventId: string, patch: Partial<ContentModerationSettings>): Promise<ContentModerationSettings> {
+  const { data, error } = await (supabase as any).from("content_moderation_settings")
+    .upsert({ event_id: eventId, ...patch }, { onConflict: "event_id" }).select("*").single();
+  if (error) throw error;
+  return data as ContentModerationSettings;
 }
 
 
@@ -929,6 +975,28 @@ export async function getEventArchiveSettings(eventId: string): Promise<DbEventA
   }, null);
 }
 
+export async function updateEventArchiveSettings(eventId: string, patch: Partial<DbEventArchiveSettings>): Promise<DbEventArchiveSettings> {
+  const payload = {
+    event_id: eventId,
+    archive_enabled: patch.archive_enabled ?? false,
+    page_eyebrow: patch.page_eyebrow ?? "Pós-festa",
+    page_title: patch.page_title ?? "Memórias do reencontro",
+    message_label: patch.message_label ?? "Mensagem da organização",
+    closed_title: patch.closed_title ?? "O acervo será aberto depois do reencontro.",
+    closed_text: patch.closed_text ?? "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização.",
+    post_event_text: patch.post_event_text ?? null,
+    official_video_url: patch.official_video_url ?? null,
+    official_video_title: patch.official_video_title ?? null,
+    official_photo_ids: patch.official_photo_ids ?? [],
+    highlight_photo_ids: patch.highlight_photo_ids ?? [],
+    highlights_links: patch.highlights_links ?? [],
+  };
+  const { data, error } = await (supabase as any).from("event_archive_settings")
+    .upsert(payload, { onConflict: "event_id" }).select("*").single();
+  if (error) throw error;
+  return data as DbEventArchiveSettings;
+}
+
 export async function createCheckoutOrder(params: {
   ticket_type_id: string;
   buyer_name: string;
@@ -1134,6 +1202,16 @@ export async function moderatePhoto(id: string, action: "approved" | "rejected",
   const { error } = await supabase.from("photos").update(patch).eq("id", id);
   if (error) throw error;
   await writeAudit(`photo_${action}`, "photos", id, { admin_id: adminId });
+}
+
+export async function getPhotosForModeration(status: "pending" | "approved" | "rejected" | "removed" | "all" = "pending"): Promise<DbPhoto[]> {
+  return withFallback(async () => {
+    let query = supabase.from("photos").select("*").order("created_at", { ascending: false });
+    if (status !== "all") query = query.eq("status", status as any);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data as DbPhoto[]) ?? [];
+  }, []);
 }
 
 // ─── PHOTO TAGS ───────────────────────────────────────────────────────────────
