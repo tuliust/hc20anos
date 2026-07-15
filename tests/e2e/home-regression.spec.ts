@@ -56,6 +56,7 @@ test("imagem da timeline aparece à direita somente no marco expandido", async (
   await expect(image).not.toBeVisible();
   await button.evaluate(element => (element as HTMLButtonElement).click());
   await expect(image).toBeVisible();
+  await expect(image).not.toHaveClass(/border/);
 
   const descriptionBox = await item.getByText("A fila para avisar que a aula tinha terminado.").boundingBox();
   const imageBox = await image.boundingBox();
@@ -133,8 +134,12 @@ test("Sobre exibe total, turmas normalizadas e cards de dados sem Graficos", asy
 
   const about = page.locator("[data-home-section='about']");
   await expect(about.locator("[data-home-about-stats]")).toContainText("8");
+  await expect(about.locator("[data-home-about-stats]")).toContainText("TOTAL DE ALUNOS CONCLUINTES");
   for (const group of ["A", "B", "C", "D"]) {
-    await expect(about.locator(`[data-class-group='${group}']`)).toContainText("2");
+    const classCard = about.locator(`[data-class-group='${group}']`);
+    await expect(classCard).toContainText("2");
+    await expect(classCard).toHaveClass(/bg-\[#091109\]/);
+    await expect(classCard).not.toHaveClass(/border/);
   }
   await expect(about.locator("[data-home-profile-metrics]")).toContainText("50%");
   const map = about.locator("[data-home-map-chart]");
@@ -194,7 +199,8 @@ test("carrossel de memorias avanca, volta e preserva anonimato", async ({ page }
 
   const carousel = page.locator("[data-home-memory-carousel]");
   await expect(carousel).toContainText("A primeira memória da turma.");
-  await expect(carousel).toContainText("Pessoa 1 · Turma A");
+  await expect(carousel.locator("[data-memory-author]")).toHaveText("Pessoa 1");
+  await expect(carousel.locator("[data-memory-class]")).toHaveText("Turma A");
   await carousel.getByRole("button", { name: "Próxima memória" }).click();
   await expect(carousel).toContainText("A segunda memória da turma.");
   await expect(carousel).toContainText("Anônimo");
@@ -227,6 +233,22 @@ test("timeline mostra ano completo e mantem somente um marco aberto", async ({ p
   await items.nth(1).getByRole("button").evaluate(element => (element as HTMLButtonElement).click());
   await expect(items.nth(0)).toHaveAttribute("data-timeline-active", "false");
   await expect(items.nth(1)).toHaveAttribute("data-timeline-active", "true");
+});
+
+test("timeline ordena os marcos cronologicamente mesmo quando o CMS salva fora de ordem", async ({ page }) => {
+  await installHomeFixtures(page, { mutateHome: row => {
+    row.home_nostalgia_timeline_json = JSON.stringify([
+      { year: "2006", title: "Formatura" },
+      { year: "1995", title: "Primeiro marco" },
+      { year: "1999", title: "Marco intermediário" },
+    ]);
+  }});
+  await loadHome(page);
+
+  const items = page.locator("[data-home-nostalgia-timeline] [data-timeline-index]");
+  await expect(items.nth(0)).toContainText("1995");
+  await expect(items.nth(1)).toContainText("1999");
+  await expect(items.nth(2)).toContainText("2006");
 });
 
 test("enquete da Home pede login antes de votar e esconde resultado", async ({ page }) => {

@@ -586,6 +586,17 @@ function updateNostalgiaTimelineItem(items: NostalgiaTimelineItemContent[], inde
   return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
+function sortNostalgiaTimelineItems(items: NostalgiaTimelineItemContent[]) {
+  return items
+    .map((item, index) => ({ item, index, year: Number.parseInt(String(item.year ?? ""), 10) }))
+    .sort((a, b) => {
+      const aYear = Number.isFinite(a.year) ? a.year : Number.POSITIVE_INFINITY;
+      const bYear = Number.isFinite(b.year) ? b.year : Number.POSITIVE_INFINITY;
+      return aYear - bYear || a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
 const ADMIN_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   approved: "Aprovado",
@@ -2658,7 +2669,7 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
   const [openIndex, setOpenIndex] = useState(-1);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const manualSelectionUntilRef = useRef(0);
-  const visibleItems = items.filter(item => item.is_visible !== false && item.year && (item.title || item.label));
+  const visibleItems = sortNostalgiaTimelineItems(items.filter(item => item.is_visible !== false && item.year && (item.title || item.label)));
 
   useEffect(() => {
     if (!("IntersectionObserver" in window)) return;
@@ -2711,7 +2722,7 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
                 <div className="overflow-hidden">
                   <div className={`mt-3 grid items-start gap-5 ${item.image_url ? "md:grid-cols-[minmax(0,1fr)_minmax(150px,0.72fr)]" : ""}`}>
                     {description && <p className="max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>}
-                    {item.image_url && <img src={item.image_url} alt={title} className="max-h-56 w-full border border-[#2d6a4f]/25 object-contain object-center md:justify-self-end" />}
+                    {item.image_url && <img src={item.image_url} alt={title} className="max-h-56 w-full object-contain object-center md:justify-self-end" />}
                   </div>
                 </div>
               </div>
@@ -2756,7 +2767,10 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description }: { m
       <div className="grid flex-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
         <div className="min-w-0">
           <blockquote className="font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0] md:text-2xl">“{memory.memory_text}”</blockquote>
-          <p className="mt-5 text-sm font-semibold text-[#f0ebe0]">{authorName}{classLabel ? ` · ${classLabel}` : ""}</p>
+          <div className="mt-5 font-semibold text-[#f0ebe0]">
+            <p data-memory-author className="text-sm">{authorName}</p>
+            {classLabel && <p data-memory-class className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#c9a84c]">{classLabel}</p>}
+          </div>
         </div>
         <div className="flex justify-start sm:justify-end">
           {author && !memory.is_anonymous ? <AlumniAvatar person={author} dimension={112} /> : <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>}
@@ -3151,7 +3165,7 @@ function AboutSection({
                 <Users size={24} className="text-[#2d6a4f]" />
               </div>
               <div className="mt-5 grid grid-cols-4 gap-3">
-                {(["A", "B", "C", "D"] as const).map(group => <div key={group} data-class-group={group} className="bg-[#0d1a0f] p-3 text-center"><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></div>)}
+                {(["A", "B", "C", "D"] as const).map(group => <div key={group} data-class-group={group} className="bg-[#091109] p-3 text-center"><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></div>)}
               </div>
             </div>
 
@@ -8064,12 +8078,12 @@ const role = auth.role ?? "viewer";
   }
 
 
-  const timelineDraftItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(homeDraft.home_nostalgia_timeline_json, []).map(item => ({
+  const timelineDraftItems = sortNostalgiaTimelineItems(parseHomeJsonArray<NostalgiaTimelineItemContent>(homeDraft.home_nostalgia_timeline_json, []).map(item => ({
     ...item,
     year: item.year ?? "",
     title: item.title ?? item.label ?? "",
     description: item.description ?? item.desc ?? "",
-  }));
+  })));
   const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, []);
   const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
   const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
@@ -8093,14 +8107,14 @@ const role = auth.role ?? "viewer";
   }
 
   function setTimelineDraftItems(items: NostalgiaTimelineItemContent[]) {
-    const normalizedItems = items.map(item => ({
+    const normalizedItems = sortNostalgiaTimelineItems(items.map(item => ({
       year: item.year ?? "",
       title: item.title ?? item.label ?? "",
       description: item.description ?? item.desc ?? "",
       ...(item.icon ? { icon: item.icon } : {}),
       ...(item.image_url ? { image_url: item.image_url } : {}),
       is_visible: item.is_visible !== false,
-    }));
+    })));
     const legacyItems = normalizedItems.map(item => ({
       year: item.year,
       label: item.title,

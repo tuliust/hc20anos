@@ -12,7 +12,7 @@ export const restoredSections = [
 ];
 
 export const restoredAboutCopy = {
-  stats_total_label: "Ex-alunos na base",
+  stats_total_label: "TOTAL DE ALUNOS CONCLUINTES",
   stats_confirmed_label: "Confirmados",
   stats_memories_label: "Memorias",
   timeline_label: "Linha do tempo",
