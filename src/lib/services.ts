@@ -410,7 +410,22 @@ export async function getPeople(filters?: {
     if (filters?.classGroup) q = q.eq("class_group", filters.classGroup);
     const { data, error } = await q;
     if (error) throw error;
-    return (data as DbPerson[]) ?? [];
+    const people = (data as DbPerson[]) ?? [];
+    const { data: profileCards } = await (supabase as any)
+      .from("public_profile_cards")
+      .select("person_id,display_name,avatar_url");
+    const cardsByPersonId = new Map(
+      ((profileCards ?? []) as Pick<PublicProfileCardRow, "person_id" | "display_name" | "avatar_url">[])
+        .map(card => [card.person_id, card]),
+    );
+    return people.map(person => {
+      const card = cardsByPersonId.get(person.id);
+      return card ? {
+        ...person,
+        display_name: card.display_name ?? person.display_name,
+        avatar_url: card.avatar_url ?? person.avatar_url,
+      } : person;
+    });
   }, MOCK_PEOPLE);
 }
 

@@ -47,7 +47,7 @@ import {
   Hash, CheckCircle2, XCircle, AlertTriangle,
   Settings, Tag, FileText, Key, Save,
   UserCheck, UserX, ToggleRight, ToggleLeft,
-  Info, Package, Pencil, Heart, MessageCircle, Star, Send
+  Info, Package, Pencil, Heart, MessageCircle, Star, Send, Venus, Baby
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
@@ -2699,10 +2699,12 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
               >
                 <span className={`block font-['Playfair_Display'] font-bold leading-tight text-[#f0ebe0] transition-all duration-500 group-hover:text-[#c9a84c] motion-reduce:transition-none ${open ? "text-2xl md:text-3xl" : "text-lg md:text-xl"}`}>{title}</span>
               </button>
-              <div className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && (description || item.image_url) ? "grid-rows-[1fr] translate-x-2 opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+              <div aria-hidden={!open} className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && (description || item.image_url) ? "visible grid-rows-[1fr] translate-x-2 opacity-100" : "invisible grid-rows-[0fr] opacity-0"}`}>
                 <div className="overflow-hidden">
-                  {item.image_url && <img src={item.image_url} alt={title} className="mt-4 aspect-[16/9] w-full max-w-md border border-[#2d6a4f]/25 object-cover" />}
-                  {description && <p className="mt-3 max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>}
+                  <div className={`mt-3 grid items-start gap-5 ${item.image_url ? "md:grid-cols-[minmax(0,1fr)_minmax(150px,0.72fr)]" : ""}`}>
+                    {description && <p className="max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>}
+                    {item.image_url && <img src={item.image_url} alt={title} className="max-h-56 w-full border border-[#2d6a4f]/25 object-contain object-center md:justify-self-end" />}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2726,21 +2728,34 @@ function HomeAboutCard({ icon, label, children, className = "" }: { icon: React.
   );
 }
 
-function HomeMemoriesCarousel({ memories, emptyLabel, description }: { memories: DbMemory[]; emptyLabel?: string; description?: string }) {
+function HomeMemoriesCarousel({ memories, people, emptyLabel, description }: { memories: DbMemory[]; people: DbPerson[]; emptyLabel?: string; description?: string }) {
   const [index, setIndex] = useState(0);
   useEffect(() => setIndex(0), [memories.length]);
+  useEffect(() => {
+    if (memories.length <= 1) return;
+    const intervalId = window.setInterval(() => setIndex(current => (current + 1) % memories.length), 3000);
+    return () => window.clearInterval(intervalId);
+  }, [memories.length]);
   if (!memories.length) return <p className="text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>;
 
   const memory = memories[index];
+  const author = memory.person_id ? people.find(person => person.id === memory.person_id) : undefined;
+  const authorName = memory.is_anonymous ? "Anônimo" : author ? getHomeAlumniDisplayName(author) : memory.author_name || "Ex-aluno(a)";
+  const classLabel = !memory.is_anonymous && author?.class_group ? `Turma ${getHomeClassGroup(author.class_group) ?? author.class_group}` : null;
   const go = (delta: number) => setIndex(current => (current + delta + memories.length) % memories.length);
   return (
-    <div data-home-memory-carousel>
-      <blockquote className="min-h-28 font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0]">“{memory.memory_text}”</blockquote>
-      <div className="mt-5 flex items-end justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
+    <div data-home-memory-carousel className="flex min-h-52 flex-col">
+      <div className="grid flex-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
         <div className="min-w-0">
-          <p className="truncate text-xs text-[#8ab89a]">{memory.is_anonymous ? "Anônimo" : memory.author_name || "Ex-aluno"}</p>
-          <p className="mt-1 font-mono text-[10px] text-[#3a5a3a]">{index + 1} / {memories.length}</p>
+          <blockquote className="font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0] md:text-2xl">“{memory.memory_text}”</blockquote>
+          <p className="mt-5 text-sm font-semibold text-[#f0ebe0]">{authorName}{classLabel ? ` · ${classLabel}` : ""}</p>
         </div>
+        <div className="flex justify-start sm:justify-end">
+          {author && !memory.is_anonymous ? <AlumniAvatar person={author} dimension={112} /> : <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>}
+        </div>
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
+        <p className="font-mono text-[10px] text-[#3a5a3a]">{index + 1} / {memories.length}</p>
         <div className="flex gap-2">
           <button type="button" onClick={() => go(-1)} aria-label="Memória anterior" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronLeft size={16} /></button>
           <button type="button" onClick={() => go(1)} aria-label="Próxima memória" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronRight size={16} /></button>
@@ -2781,11 +2796,17 @@ function HomeProfileMetrics({ configs, people, stats }: { configs: HomeProfileSt
   };
   const orderedKeys: HomeProfileStatConfig["key"][] = ["women", "married", "children"];
   const rows = orderedKeys.map(key => configs.find(item => item.key === key) ?? { key });
+  const icons: Record<HomeProfileStatConfig["key"], React.ReactNode> = {
+    women: <Venus size={34} strokeWidth={1.7} />,
+    married: <Heart size={34} strokeWidth={1.7} />,
+    children: <Baby size={34} strokeWidth={1.7} />,
+  };
 
   return (
     <div data-home-profile-metrics className="grid grid-cols-3 gap-3">
       {rows.map(row => (
-        <div key={row.key} className="border-l border-[#2d6a4f]/30 pl-3 first:border-l-0 first:pl-0">
+        <div key={row.key} className="flex min-h-36 flex-col items-center justify-center border-l border-[#2d6a4f]/30 px-2 text-center first:border-l-0">
+          <div className="mb-3 text-[#c9a84c]">{icons[row.key]}</div>
           <p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{formatConfiguredPercent(row, automatic[row.key])}</p>
           <p className="mt-1 text-[10px] leading-tight text-[#7a9a7a]">{row.label}</p>
         </div>
@@ -2968,7 +2989,7 @@ function AboutSection({
           </div>
 
           <div className="flex flex-col gap-4">
-            <div data-home-about-stats className="border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
+            <div data-home-about-stats>
               <div className="flex items-end justify-between gap-4 border-b border-[#2d6a4f]/20 pb-5">
                 <div><p className="font-['Playfair_Display'] text-5xl font-black leading-none text-[#c9a84c]">{visiblePeople.length}</p><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">{aboutCopy.stats_total_label}</p></div>
                 <Users size={24} className="text-[#2d6a4f]" />
@@ -2979,7 +3000,7 @@ function AboutSection({
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} /></HomeAboutCard>
+              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} /></HomeAboutCard>
               <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label} className="sm:col-span-2"><HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} /></HomeAboutCard>
               <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label}><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} /></HomeAboutCard>
               <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label}><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>

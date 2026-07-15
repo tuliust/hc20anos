@@ -206,7 +206,7 @@ export const homeContentFixture: Record<string, unknown> = {
 };
 
 const memoriesFixture = [
-  { id: "00000000-0000-0000-0004-000000000001", event_id: "00000000-0000-0000-0000-000000000001", user_id: null, person_id: null, author_name: "Ana", memory_text: "A primeira memória da turma.", is_anonymous: false, status: "approved", is_featured: true, approved_by_admin_id: null, approved_at: "2026-01-02T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "00000000-0000-0000-0004-000000000001", event_id: "00000000-0000-0000-0000-000000000001", user_id: null, person_id: "00000000-0000-0000-0002-000000000001", author_name: "Pessoa 1", memory_text: "A primeira memória da turma.", is_anonymous: false, status: "approved", is_featured: true, approved_by_admin_id: null, approved_at: "2026-01-02T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
   { id: "00000000-0000-0000-0004-000000000002", event_id: "00000000-0000-0000-0000-000000000001", user_id: null, person_id: null, author_name: null, memory_text: "A segunda memória da turma.", is_anonymous: true, status: "approved", is_featured: false, approved_by_admin_id: null, approved_at: "2026-01-03T00:00:00Z", created_at: "2026-01-02T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
 ];
 

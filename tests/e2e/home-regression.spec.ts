@@ -38,6 +38,32 @@ test("timeline usa exclusivamente os itens do CMS", async ({ page }) => {
   await expect(page.locator("[data-home-nostalgia-timeline] button")).toHaveCount(1);
 });
 
+test("imagem da timeline aparece à direita somente no marco expandido", async ({ page }) => {
+  await installHomeFixtures(page, { mutateHome: row => {
+    row.home_nostalgia_timeline_json = JSON.stringify([{
+      year: "1995",
+      title: "Orelhão pra ligar pra casa",
+      description: "A fila para avisar que a aula tinha terminado.",
+      image_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='240'%3E%3Crect width='320' height='240' fill='%2300a4e4'/%3E%3C/svg%3E",
+    }]);
+  }});
+
+  await loadHome(page);
+  const item = page.locator("[data-timeline-index='0']");
+  const button = item.getByRole("button");
+  const image = item.getByRole("img", { name: "Orelhão pra ligar pra casa" });
+  if (await button.getAttribute("aria-expanded") === "true") await button.evaluate(element => (element as HTMLButtonElement).click());
+  await expect(image).not.toBeVisible();
+  await button.evaluate(element => (element as HTMLButtonElement).click());
+  await expect(image).toBeVisible();
+
+  const descriptionBox = await item.getByText("A fila para avisar que a aula tinha terminado.").boundingBox();
+  const imageBox = await image.boundingBox();
+  expect(descriptionBox).not.toBeNull();
+  expect(imageBox).not.toBeNull();
+  expect(imageBox!.x).toBeGreaterThan(descriptionBox!.x);
+});
+
 test("seção Sobre obrigatória incompleta fica oculta sem fallback", async ({ page }) => {
   await installHomeFixtures(page, { mutateHome: row => {
     row.about_title = "";
@@ -122,11 +148,21 @@ test("carrossel de memorias avanca, volta e preserva anonimato", async ({ page }
 
   const carousel = page.locator("[data-home-memory-carousel]");
   await expect(carousel).toContainText("A primeira memória da turma.");
+  await expect(carousel).toContainText("Pessoa 1 · Turma A");
   await carousel.getByRole("button", { name: "Próxima memória" }).click();
   await expect(carousel).toContainText("A segunda memória da turma.");
   await expect(carousel).toContainText("Anônimo");
   await carousel.getByRole("button", { name: "Memória anterior" }).click();
   await expect(carousel).toContainText("A primeira memória da turma.");
+});
+
+test("carrossel de memorias avanca automaticamente a cada tres segundos", async ({ page }) => {
+  await installHomeFixtures(page);
+  await loadHome(page);
+
+  const carousel = page.locator("[data-home-memory-carousel]");
+  await expect(carousel).toContainText("A primeira memória da turma.");
+  await expect(carousel).toContainText("A segunda memória da turma.", { timeout: 4_000 });
 });
 
 test("timeline mostra ano completo e mantem somente um marco aberto", async ({ page }) => {
