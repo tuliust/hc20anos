@@ -23,6 +23,7 @@ for (const viewport of viewports) {
     await expect(page.locator("[data-home-section='hero']")).toBeVisible();
     await expect(page.locator("[data-home-alumni-overview]")).toBeVisible();
     await expect(page.locator("[data-home-nostalgia-timeline]")).toBeVisible();
+    await expect(page.getByText("Nossa historia em imagens", { exact: true })).toHaveCount(0);
     await expect(page.locator("[data-home-section='info']")).toBeVisible();
     await expect(page.locator("[data-home-event-cta]")).toBeVisible();
 

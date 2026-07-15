@@ -65,7 +65,8 @@ export const peopleFixture = Array.from({ length: 8 }, (_, index) => ({
   full_name: `Pessoa Confirmada ${index + 1}`,
   display_name: `Pessoa ${index + 1}`,
   class_year: 2006,
-  class_group: index % 2 ? "B" : "A",
+  class_group: ["A", "Turma B", "Sala C", "D"][index % 4],
+  gender: index % 2 ? "male" : "female",
   nickname_at_school: null,
   profile_status: index < 6 ? "confirmed" : "claimed",
   claimed_by_user_id: null,
@@ -186,7 +187,67 @@ export const homeContentFixture: Record<string, unknown> = {
     { year: "1996", icon: "laptop", title: "Internet discada", description: "Um marco da turma." },
     { year: "2006", icon: "book-image", title: "Formatura", description: "O fim de um ciclo." },
   ]),
+  home_profile_stats_json: JSON.stringify([
+    { key: "women", label: "são mulheres", mode: "auto", fallback_value: "0%" },
+    { key: "married", label: "são casadas", mode: "auto", fallback_value: "0%" },
+    { key: "children", label: "têm filhos", mode: "auto", fallback_value: "0%" },
+  ]),
+  home_map_stats_json: JSON.stringify([
+    { key: "natal", label: "Natal/RN", mode: "auto", fallback_value: 0 },
+    { key: "interior", label: "Interior do RN", mode: "auto", fallback_value: 0 },
+    { key: "other_state", label: "Outros estados", mode: "auto", fallback_value: 0 },
+    { key: "foreign", label: "Exterior", mode: "auto", fallback_value: 0 },
+  ]),
+  home_poll_id: "00000000-0000-0000-0003-000000000001",
+  home_poll_fallback_json: JSON.stringify({
+    empty_label: "Nenhuma enquete aberta.",
+    login_required_label: "Entre para votar.",
+  }),
 };
+
+const memoriesFixture = [
+  { id: "00000000-0000-0000-0004-000000000001", event_id: "00000000-0000-0000-0000-000000000001", user_id: null, person_id: null, author_name: "Ana", memory_text: "A primeira memória da turma.", is_anonymous: false, status: "approved", is_featured: true, approved_by_admin_id: null, approved_at: "2026-01-02T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "00000000-0000-0000-0004-000000000002", event_id: "00000000-0000-0000-0000-000000000001", user_id: null, person_id: null, author_name: null, memory_text: "A segunda memória da turma.", is_anonymous: true, status: "approved", is_featured: false, approved_by_admin_id: null, approved_at: "2026-01-03T00:00:00Z", created_at: "2026-01-02T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+];
+
+const pollFixture = {
+  id: "00000000-0000-0000-0003-000000000001",
+  event_id: "00000000-0000-0000-0000-000000000001",
+  question: "Qual lembrança marcou a turma?",
+  description: null,
+  status: "open",
+  allow_multiple_votes: false,
+  created_by_admin_id: null,
+  created_at: "2026-01-02T00:00:00Z",
+  updated_at: "2026-01-02T00:00:00Z",
+  poll_options: [
+    { id: "00000000-0000-0000-0005-000000000001", poll_id: "00000000-0000-0000-0003-000000000001", option_text: "A formatura", sort_order: 0, created_at: "2026-01-02T00:00:00Z" },
+    { id: "00000000-0000-0000-0005-000000000002", poll_id: "00000000-0000-0000-0003-000000000001", option_text: "As gincanas", sort_order: 1, created_at: "2026-01-02T00:00:00Z" },
+  ],
+};
+
+const profileStatsFixture = {
+  event_id: "00000000-0000-0000-0000-000000000001",
+  total_people: 8,
+  total_registered: 6,
+  total_preconfirmed: 0,
+  total_confirmed: 0,
+  total_with_relationship: 6,
+  total_with_children: 3,
+  total_children_declared: 5,
+  relationship_status_counts: [{ label: "Casado(a)", count: 3 }, { label: "Solteiro(a)", count: 3 }],
+  children_status_counts: [{ label: "Com filhos", count: 3 }, { label: "Sem filhos", count: 3 }],
+  children_count_distribution: [],
+  profession_area_counts: [],
+};
+
+const locationsFixture = [
+  { profile_id: "l1", person_id: "p1", display_name: "Natal 1", full_name: "Natal 1", avatar_url: null, current_city: "Natal", current_state: "RN", current_country: "Brasil", profession: null, show_profession: true },
+  { profile_id: "l2", person_id: "p2", display_name: "Natal 2", full_name: "Natal 2", avatar_url: null, current_city: "NATAL", current_state: "rn", current_country: "Brazil", profession: null, show_profession: true },
+  { profile_id: "l3", person_id: "p3", display_name: "Interior", full_name: "Interior", avatar_url: null, current_city: "Mossoró", current_state: "RN", current_country: "Brasil", profession: null, show_profession: true },
+  { profile_id: "l4", person_id: "p4", display_name: "Outro estado", full_name: "Outro estado", avatar_url: null, current_city: "Recife", current_state: "PE", current_country: "Brasil", profession: null, show_profession: true },
+  { profile_id: "l5", person_id: "p5", display_name: "Exterior", full_name: "Exterior", avatar_url: null, current_city: "Lisboa", current_state: null, current_country: "Portugal", profession: null, show_profession: true },
+];
 
 const eventFixture = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -231,7 +292,15 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       profiles: [],
       ticket_types: [],
       photos: [],
-      memories: [],
+      memories: memoriesFixture,
+      polls: [pollFixture],
+      poll_results: [
+        { poll_id: pollFixture.id, option_id: pollFixture.poll_options[0].id, option_text: pollFixture.poll_options[0].option_text, sort_order: 0, votes_count: 3 },
+        { poll_id: pollFixture.id, option_id: pollFixture.poll_options[1].id, option_text: pollFixture.poll_options[1].option_text, sort_order: 1, votes_count: 1 },
+      ],
+      poll_votes: [],
+      public_curiosity_profile_stats: [profileStatsFixture],
+      public_profile_locations: locationsFixture,
       event_page_content: [{
         event_id: eventFixture.id,
         hero_eyebrow: "Evento",
@@ -246,6 +315,18 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
         food_bar_text: "Informacoes em breve.",
         bathrooms_text: "Informacoes em breve.",
         security_text: "Informacoes em breve.",
+      }],
+      event_archive_settings: [{
+        event_id: eventFixture.id,
+        archive_enabled: true,
+        post_event_text: "Mensagem final da organizacao.",
+        official_video_url: null,
+        official_video_title: null,
+        official_photo_ids: [],
+        highlight_photo_ids: [],
+        highlights_links: [],
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
       }],
       rpc: [],
     };

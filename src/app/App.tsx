@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
   getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
@@ -45,8 +46,7 @@ import {
   Hash, CheckCircle2, XCircle, AlertTriangle,
   Settings, Tag, FileText, Key, Save,
   UserCheck, UserX, ToggleRight, ToggleLeft,
-  Info, Package, Pencil, Heart, MessageCircle, Star, Send,
-  Laptop, Smartphone, BookOpen, Monitor
+  Info, Package, Pencil, Heart, MessageCircle, Star, Send
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
@@ -320,6 +320,10 @@ type ExtendedHomePageContent = HomePageContent & {
   home_about_overview_json: string;
   home_alumni_overview_json: string;
   home_nostalgia_timeline_json: string;
+  home_profile_stats_json: string;
+  home_map_stats_json: string;
+  home_poll_id: string | null;
+  home_poll_fallback_json: string;
 };
 
 type HomeAboutOverviewCopy = {
@@ -379,6 +383,28 @@ type NostalgiaTimelineItemContent = {
   description?: string;
   desc?: string;
   is_visible?: boolean;
+};
+
+type HomeProfileStatConfig = {
+  key: "women" | "married" | "children";
+  label?: string;
+  mode?: "auto" | "fixed";
+  value?: string | number;
+  fallback_value?: string | number;
+};
+
+type HomeMapStatConfig = {
+  key: "natal" | "interior" | "other_state" | "foreign";
+  label?: string;
+  mode?: "auto" | "fixed";
+  value?: number;
+  fallback_value?: number;
+};
+
+type HomePollFallbackCopy = {
+  question?: string;
+  empty_label?: string;
+  login_required_label?: string;
 };
 
 const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePageContent> = {
@@ -459,6 +485,10 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   home_about_overview_json: "{}",
   home_alumni_overview_json: "{}",
   home_nostalgia_timeline_json: "[]",
+  home_profile_stats_json: "[]",
+  home_map_stats_json: "[]",
+  home_poll_id: null,
+  home_poll_fallback_json: "{}",
 };
 
 function getExtendedHomeContent(content?: HomePageContent | null): ExtendedHomePageContent {
@@ -2045,10 +2075,6 @@ function Header({ page, navigate, auth, logout, content }: {
           </nav>
 
           <div data-public-header-actions className="flex items-center gap-3 shrink-0">
-            {isContentVisible(headerContent.header_cta_visible) && (
-              <Btn size="sm" onClick={() => go("tickets")} className="public-header-desktop-action whitespace-nowrap text-xs xl:text-sm px-7 py-3">{headerContent.header_cta_label}</Btn>
-            )}
-
             {isContentVisible(headerContent.header_auth_visible) && (auth.loggedIn ? (
               <div className="public-header-desktop-action relative">
                 <button
@@ -2457,15 +2483,16 @@ function getHomeAlumniDisplayName(person: DbPerson) {
   return parts.length <= 2 ? name : `${parts[0]} ${parts[parts.length - 1]}`;
 }
 
-function AlumniAvatar({ person, size = "sm" }: { person: DbPerson; size?: "xs" | "sm" }) {
-  const sizeClass = size === "xs" ? "h-9 w-9 text-[10px]" : "h-11 w-11 text-xs";
+function AlumniAvatar({ person, size = "sm", dimension }: { person: DbPerson; size?: "xs" | "sm"; dimension?: number }) {
+  const sizeClass = dimension ? "" : size === "xs" ? "h-9 w-9 text-[10px]" : "h-11 w-11 text-xs";
+  const dimensionStyle = dimension ? { width: dimension, height: dimension, fontSize: Math.max(10, Math.round(dimension / 4)) } : undefined;
   const nameParts = getHomeAlumniDisplayName(person).split(/\s+/).filter(Boolean);
   const initials = `${nameParts[0]?.[0] ?? "E"}${nameParts[nameParts.length - 1]?.[0] ?? "A"}`.toUpperCase();
 
   return person.avatar_url ? (
-    <img src={person.avatar_url} alt={getHomeAlumniDisplayName(person)} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover`} />
+    <img src={person.avatar_url} alt={getHomeAlumniDisplayName(person)} style={dimensionStyle} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover transition-[width,height] duration-300 motion-reduce:transition-none`} />
   ) : (
-    <div role="img" aria-label={getHomeAlumniDisplayName(person)} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold`}>
+    <div role="img" aria-label={getHomeAlumniDisplayName(person)} style={dimensionStyle} className={`${sizeClass} shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center font-mono font-bold transition-[width,height] duration-300 motion-reduce:transition-none`}>
       {initials}
     </div>
   );
@@ -2493,18 +2520,18 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
 
   return (
     <>
-      <div data-home-class-tabs className="flex flex-wrap gap-2 mb-5">
+      <div data-home-class-tabs className="mb-4 flex flex-wrap justify-center gap-1.5">
         {classGroups.map(group => {
           const count = alumni.filter(person => person.class_group === group).length;
           const active = group === activeGroup;
           const label = applyTextTemplate(copy.class_tab_label_template, { group, count }) || `${group} (${count})`;
-          return <button key={group} type="button" aria-pressed={active} onClick={() => { setActiveGroup(group); setPage(0); }} className={`px-3 py-2 border text-[10px] font-mono uppercase tracking-[0.18em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
+          return <button key={group} type="button" aria-pressed={active} onClick={() => { setActiveGroup(group); setPage(0); }} className={`border px-2 py-1.5 text-[9px] font-mono uppercase tracking-[0.12em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
         })}
       </div>
       <div className="mt-auto flex items-center gap-3">
         <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver pessoas anteriores"><ChevronLeft size={18} /></button>
-        <div className="grid min-w-0 flex-1 grid-cols-1 gap-2">
-          {visiblePeople.map(person => <div key={person.id} className="flex min-h-[50px] items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-3 py-2"><AlumniAvatar person={person} size="xs" /><p className="truncate text-sm font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
+        <div data-home-class-people className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+          {visiblePeople.map(person => <div key={person.id} className="flex min-h-24 min-w-0 flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
           {!visiblePeople.length && copy.class_empty_label && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">{copy.class_empty_label}</div>}
         </div>
         <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver próximas pessoas"><ChevronRight size={18} /></button>
@@ -2521,6 +2548,7 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
 function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed: DbPerson[]; emptyLabel?: string; limit: number }) {
   const preview = confirmed.slice(0, limit);
   const count = preview.length;
+  const avatarDimension = count ? Math.max(36, Math.round(144 / Math.sqrt(count))) : 0;
   const gridClass = count === 1
     ? "grid-cols-1 max-w-24"
     : count === 2
@@ -2535,8 +2563,8 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
               ? "grid-cols-5 max-w-xl"
               : "grid-cols-6 sm:grid-cols-10";
   return preview.length ? (
-    <div data-home-confirmed-grid data-count={count} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
-      {preview.map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} size={count <= 4 ? "sm" : "xs"} /></div>)}
+    <div data-home-confirmed-grid data-count={count} data-avatar-size={avatarDimension} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
+      {preview.map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
     </div>
   ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
@@ -2574,58 +2602,232 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
   );
 }
 
-function getNostalgiaIcon(icon?: string) {
-  switch (icon) {
-    case "laptop":
-      return <Laptop size={18} />;
-    case "messages-square":
-      return <MessageCircle size={18} />;
-    case "proportions":
-      return <Monitor size={18} />;
-    case "smartphone":
-      return <Smartphone size={18} />;
-    case "book-image":
-      return <BookOpen size={18} />;
-    case "phone-call":
-    default:
-      return <Phone size={18} />;
-  }
-}
-
 function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemContent[] }) {
-  const [openIndex, setOpenIndex] = useState(0);
+  const [openIndex, setOpenIndex] = useState(-1);
+  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const manualSelectionUntilRef = useRef(0);
   const visibleItems = items.filter(item => item.is_visible !== false && item.year && (item.title || item.label));
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(entries => {
+      if (performance.now() < manualSelectionUntilRef.current) return;
+      const activeEntry = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!activeEntry) return;
+      const index = Number((activeEntry.target as HTMLElement).dataset.timelineIndex);
+      if (Number.isInteger(index)) setOpenIndex(index);
+    }, { rootMargin: "-32% 0px -42% 0px", threshold: [0.2, 0.5, 0.8] });
+
+    itemRefs.current.slice(0, visibleItems.length).forEach(node => node && observer.observe(node));
+    return () => observer.disconnect();
+  }, [visibleItems.length]);
 
   if (!visibleItems.length) return null;
 
   return (
-    <div data-home-nostalgia-timeline className="mt-8 lg:pr-2">
-      <div className="relative ml-5 border-l border-[#2d6a4f]/35 pl-8">
+    <div data-home-nostalgia-timeline className="mt-10 lg:pr-4">
+      <div className="relative ml-7 border-l border-[#2d6a4f]/35 pl-10">
         {visibleItems.map((item, index) => {
           const open = openIndex === index;
           const title = item.title || item.label || "";
           const description = item.description || item.desc || "";
           return (
-            <div key={`${item.year}-${index}`} className={index < visibleItems.length - 1 ? "relative pb-4" : "relative"}>
-              <div className="absolute -left-[54px] top-0 flex h-10 w-10 items-center justify-center rounded-full border border-[#2d6a4f]/50 bg-[#0d1a0f] text-[#c9a84c]">
-                {getNostalgiaIcon(item.icon)}
+            <div
+              key={`${item.year}-${title}`}
+              ref={node => { itemRefs.current[index] = node; }}
+              data-timeline-index={index}
+              data-timeline-active={open ? "true" : "false"}
+              className={`relative transition-[padding] duration-500 motion-reduce:transition-none ${index < visibleItems.length - 1 ? (open ? "pb-12" : "pb-7") : ""}`}
+            >
+              <div className={`absolute -left-[70px] top-0 flex items-center justify-center rounded-full border bg-[#0d1a0f] font-mono font-bold text-[#c9a84c] transition-all duration-500 motion-reduce:transition-none ${open ? "h-16 w-16 -translate-x-1 border-[#c9a84c] text-sm shadow-[0_0_28px_rgba(201,168,76,0.16)]" : "h-14 w-14 border-[#2d6a4f]/50 text-xs"}`}>
+                {item.year}
               </div>
               <button
                 type="button"
-                onClick={() => setOpenIndex(open ? -1 : index)}
-                className="group w-full text-left"
+                onClick={() => {
+                  manualSelectionUntilRef.current = performance.now() + 1000;
+                  setOpenIndex(open ? -1 : index);
+                }}
+                className={`group min-h-14 w-full text-left transition-transform duration-500 motion-reduce:transition-none ${open ? "translate-x-2" : ""}`}
                 aria-expanded={open}
               >
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.24em] text-[#c9a84c]">{item.year}</span>
-                <span className="block font-['Playfair_Display'] text-xl font-bold leading-tight text-[#f0ebe0] transition-colors group-hover:text-[#c9a84c]">{title}</span>
+                <span className={`block font-['Playfair_Display'] font-bold leading-tight text-[#f0ebe0] transition-all duration-500 group-hover:text-[#c9a84c] motion-reduce:transition-none ${open ? "text-2xl md:text-3xl" : "text-lg md:text-xl"}`}>{title}</span>
               </button>
-              {open && description && (
-                <p className="mt-2 max-w-md text-sm leading-relaxed text-[#7a9a7a]">{description}</p>
-              )}
+              <div className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && description ? "grid-rows-[1fr] translate-x-2 opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                <div className="overflow-hidden">
+                  <p className="mt-3 max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function HomeAboutCard({ icon, label, children, className = "" }: { icon: React.ReactNode; label?: string; children: React.ReactNode; className?: string }) {
+  if (!label) return null;
+  return (
+    <article className={`border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6 ${className}`}>
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]">{icon}</div>
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">{label}</h3>
+      </div>
+      {children}
+    </article>
+  );
+}
+
+function HomeMemoriesCarousel({ memories, emptyLabel, description }: { memories: DbMemory[]; emptyLabel?: string; description?: string }) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => setIndex(0), [memories.length]);
+  if (!memories.length) return <p className="text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>;
+
+  const memory = memories[index];
+  const go = (delta: number) => setIndex(current => (current + delta + memories.length) % memories.length);
+  return (
+    <div data-home-memory-carousel>
+      <blockquote className="min-h-28 font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0]">“{memory.memory_text}”</blockquote>
+      <div className="mt-5 flex items-end justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
+        <div className="min-w-0">
+          <p className="truncate text-xs text-[#8ab89a]">{memory.is_anonymous ? "Anônimo" : memory.author_name || "Ex-aluno"}</p>
+          <p className="mt-1 font-mono text-[10px] text-[#3a5a3a]">{index + 1} / {memories.length}</p>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => go(-1)} aria-label="Memória anterior" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronLeft size={16} /></button>
+          <button type="button" onClick={() => go(1)} aria-label="Próxima memória" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronRight size={16} /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function normalizeHomeMetric(value: string | null | undefined) {
+  return (value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
+}
+
+function getHomeClassGroup(value: string | null) {
+  const normalized = normalizeHomeMetric(value).toUpperCase();
+  return normalized.match(/(?:^|\s)([ABCD])$/)?.[1] ?? null;
+}
+
+function percentOf(value: number, total: number) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+function formatConfiguredPercent(config: HomeProfileStatConfig, autoValue: number) {
+  if (config.mode !== "fixed") return `${autoValue}%`;
+  const value = config.value ?? config.fallback_value ?? 0;
+  return typeof value === "number" ? `${value}%` : String(value).includes("%") ? String(value) : `${value}%`;
+}
+
+function HomeProfileMetrics({ configs, people, stats }: { configs: HomeProfileStatConfig[]; people: DbPerson[]; stats: CuriosityProfileStatsRow | null }) {
+  const genderBase = people.filter(person => person.gender === "female" || person.gender === "male");
+  const women = genderBase.filter(person => person.gender === "female").length;
+  const married = stats?.relationship_status_counts.find(row => normalizeHomeMetric(row.label).startsWith("casad"))?.count ?? 0;
+  const registered = stats?.total_registered ?? 0;
+  const automatic: Record<HomeProfileStatConfig["key"], number> = {
+    women: percentOf(women, genderBase.length),
+    married: percentOf(married, registered),
+    children: percentOf(stats?.total_with_children ?? 0, registered),
+  };
+  const orderedKeys: HomeProfileStatConfig["key"][] = ["women", "married", "children"];
+  const rows = orderedKeys.map(key => configs.find(item => item.key === key) ?? { key });
+
+  return (
+    <div data-home-profile-metrics className="grid grid-cols-3 gap-3">
+      {rows.map(row => (
+        <div key={row.key} className="border-l border-[#2d6a4f]/30 pl-3 first:border-l-0 first:pl-0">
+          <p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{formatConfiguredPercent(row, automatic[row.key])}</p>
+          <p className="mt-1 text-[10px] leading-tight text-[#7a9a7a]">{row.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function classifyHomeLocations(locations: LocationStat[]) {
+  const counts: Record<HomeMapStatConfig["key"], number> = { natal: 0, interior: 0, other_state: 0, foreign: 0 };
+  for (const location of locations) {
+    const country = normalizeHomeMetric(location.country || "Brasil");
+    const state = normalizeHomeMetric(location.state).toUpperCase();
+    const city = normalizeHomeMetric(location.city);
+    if (!city) continue;
+    if (country && country !== "brasil" && country !== "brazil") counts.foreign += location.count;
+    else if (!state) continue;
+    else if (state !== "RN") counts.other_state += location.count;
+    else if (city === "natal") counts.natal += location.count;
+    else counts.interior += location.count;
+  }
+  return counts;
+}
+
+function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; locations: LocationStat[] }) {
+  const automatic = classifyHomeLocations(locations);
+  const orderedKeys: HomeMapStatConfig["key"][] = ["natal", "interior", "other_state", "foreign"];
+  const rows = orderedKeys.map(key => {
+    const config = configs.find(item => item.key === key) ?? { key };
+    const count = config.mode === "fixed" ? Number(config.value ?? config.fallback_value ?? 0) : automatic[key];
+    return { key, label: config.label, count: Number.isFinite(count) ? count : 0 };
+  });
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+
+  return (
+    <div data-home-map-chart className="flex flex-col gap-3">
+      {rows.map(row => {
+        const percent = percentOf(row.count, total);
+        return (
+          <div key={row.key}>
+            <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+              <span className="text-[#f0ebe0]">{row.label}</span>
+              <span className="font-mono text-[#c9a84c]">{row.count} · {percent}%</span>
+            </div>
+            <div className="h-2 overflow-hidden bg-[#0d1a0f]"><div className="h-full bg-[#2d6a4f] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${percent}%` }} /></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVote }: {
+  poll: (DbPoll & { poll_options?: DbPollOption[] }) | null;
+  results: Record<string, number>;
+  votes: DbPollVote[];
+  auth: AuthState;
+  fallback: HomePollFallbackCopy;
+  busy: string | null;
+  error: string;
+  onVote: (poll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) => void;
+}) {
+  if (!poll) return <p className="text-sm leading-relaxed text-[#7a9a7a]">{fallback.empty_label}</p>;
+  const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const votedIds = new Set(votes.filter(vote => vote.poll_id === poll.id).map(vote => vote.option_id));
+  const showResults = poll.status === "closed" || votedIds.size > 0;
+  const total = Object.values(results).reduce((sum, count) => sum + Number(count), 0);
+  return (
+    <div data-home-poll>
+      <p className="mb-4 font-['Playfair_Display'] text-xl font-bold leading-tight text-[#f0ebe0]">{poll.question}</p>
+      <div className="flex flex-col gap-2">
+        {options.map(option => {
+          const count = results[option.id] ?? 0;
+          const percent = percentOf(count, total);
+          if (showResults) return (
+            <div key={option.id} className={`border p-3 ${votedIds.has(option.id) ? "border-[#c9a84c]/70 bg-[#1a2e1a]" : "border-[#2d6a4f]/20 bg-[#0d1a0f]"}`}>
+              <div className="mb-2 flex justify-between gap-3 text-xs"><span className="text-[#f0ebe0]">{option.option_text}</span><span className="font-mono text-[#c9a84c]">{percent}%</span></div>
+              <div className="h-1.5 overflow-hidden bg-[#1a2e1a]"><div className="h-full bg-[#c9a84c]" style={{ width: `${percent}%` }} /></div>
+            </div>
+          );
+          return (
+            <button key={option.id} type="button" disabled={busy === option.id} onClick={() => onVote(poll, option.id)} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-3 text-left text-sm text-[#f0ebe0] transition-colors hover:border-[#c9a84c]/60 disabled:opacity-60">{option.option_text}</button>
+          );
+        })}
+      </div>
+      {!auth.loggedIn && poll.status === "open" && <p className="mt-3 font-mono text-[10px] text-[#c9a84c]">{fallback.login_required_label}</p>}
+      {error && <p role="alert" className="mt-3 text-xs text-[#e07a5f]">{error}</p>}
     </div>
   );
 }
@@ -2635,118 +2837,108 @@ function AboutSection({
   navigate,
   people,
   memories,
+  auth,
 }: {
   content: HomePageContent;
   navigate: (p: Page) => void;
   people: DbPerson[];
   memories: DbMemory[];
+  auth: AuthState;
 }) {
-  const totalPeople = people.length;
-  const confirmedPeople = people.filter(person => person.profile_status === "confirmed").length;
-  const registeredPeople = people.filter(person => person.profile_status !== "unclaimed").length;
-  const memoryCount = memories.length;
   const extendedContent = getExtendedHomeContent(content);
   const aboutCopy = parseHomeJsonObject<HomeAboutOverviewCopy>(extendedContent.home_about_overview_json, {});
   const hasRequiredAboutCopy = Boolean(content.about_eyebrow && content.about_title && content.about_body_1 && content.about_body_2);
-  const timelineCount = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, [])
-    .filter(item => item.is_visible !== false)
-    .length;
   const nostalgiaItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(extendedContent.home_nostalgia_timeline_json, []);
+  const profileConfigs = parseHomeJsonArray<HomeProfileStatConfig>(extendedContent.home_profile_stats_json, []);
+  const mapConfigs = parseHomeJsonArray<HomeMapStatConfig>(extendedContent.home_map_stats_json, []);
+  const pollFallback = parseHomeJsonObject<HomePollFallbackCopy>(extendedContent.home_poll_fallback_json, {});
+  const visiblePeople = useMemo(() => people.filter(person => person.is_visible), [people]);
+  const classCounts = useMemo(() => visiblePeople.reduce<Record<string, number>>((counts, person) => {
+    const group = getHomeClassGroup(person.class_group);
+    if (group) counts[group] = (counts[group] ?? 0) + 1;
+    return counts;
+  }, {}), [visiblePeople]);
+  const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
+  const [locations, setLocations] = useState<LocationStat[]>([]);
+  const [poll, setPoll] = useState<(DbPoll & { poll_options?: DbPollOption[] }) | null>(null);
+  const [pollResults, setPollResults] = useState<Record<string, number>>({});
+  const [pollVotes, setPollVotes] = useState<DbPollVote[]>([]);
+  const [pollBusy, setPollBusy] = useState<string | null>(null);
+  const [pollError, setPollError] = useState("");
 
-  const curiosityCards = [
-    {
-      icon: <Clock size={20} />,
-      label: aboutCopy.timeline_label,
-      title: applyTextTemplate(aboutCopy.timeline_title_template, { total: timelineCount }),
-      description: aboutCopy.timeline_description,
-      body: <CompactNostalgiaTimeline items={nostalgiaItems} />,
-    },
-    {
-      icon: <MessageCircle size={20} />,
-      label: aboutCopy.memories_label,
-      title: memoryCount > 0 ? applyTextTemplate(aboutCopy.memories_title_template, { total: memoryCount }) : aboutCopy.memories_empty_title,
-      description: aboutCopy.memories_description,
-    },
-    {
-      icon: <CheckCircle2 size={20} />,
-      label: aboutCopy.polls_label,
-      title: aboutCopy.polls_title,
-      description: aboutCopy.polls_description,
-    },
-    {
-      icon: <BarChart3 size={20} />,
-      label: aboutCopy.charts_label,
-      title: aboutCopy.charts_title,
-      description: aboutCopy.charts_description,
-    },
-    {
-      icon: <Users size={20} />,
-      label: aboutCopy.profile_label,
-      title: applyTextTemplate(aboutCopy.profile_title_template, { total: registeredPeople || 0 }),
-      description: aboutCopy.profile_description,
-    },
-    {
-      icon: <MapPin size={20} />,
-      label: aboutCopy.map_label,
-      title: aboutCopy.map_title,
-      description: aboutCopy.map_description,
-    },
-  ].filter(item => item.label && item.title && item.description);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      getCuriosityProfileStats(DEFAULT_EVENT_ID).catch(() => null),
+      getPublicLocationStats().catch(() => []),
+      getPolls(DEFAULT_EVENT_ID).catch(() => []),
+    ]).then(async ([nextProfileStats, nextLocations, polls]) => {
+      const selectedPoll = polls.find(item => item.id === extendedContent.home_poll_id) ?? polls.find(item => item.status === "open") ?? null;
+      const [nextResults, nextVotes] = selectedPoll ? await Promise.all([
+        getPollResults(selectedPoll.id).catch(() => ({})),
+        auth.loggedIn ? getMyPollVotes(auth.userId, [selectedPoll.id]).catch(() => []) : Promise.resolve([]),
+      ]) : [{}, []];
+      if (!active) return;
+      setProfileStats(nextProfileStats);
+      setLocations(nextLocations);
+      setPoll(selectedPoll);
+      setPollResults(nextResults);
+      setPollVotes(nextVotes);
+    });
+    return () => { active = false; };
+  }, [auth.loggedIn, auth.userId, extendedContent.home_poll_id]);
 
-  const previewStats = [
-    { label: aboutCopy.stats_total_label, value: totalPeople || 0 },
-    { label: aboutCopy.stats_confirmed_label, value: confirmedPeople || 0 },
-    { label: aboutCopy.stats_memories_label, value: memoryCount || 0 },
-  ].filter(stat => stat.label);
+  async function submitHomePollVote(selectedPoll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) {
+    if (!auth.loggedIn) { navigate("login"); return; }
+    setPollBusy(optionId);
+    setPollError("");
+    try {
+      await votePoll({ pollId: selectedPoll.id, optionId, userId: auth.userId, allowMultiple: selectedPoll.allow_multiple_votes });
+      const [nextResults, nextVotes] = await Promise.all([getPollResults(selectedPoll.id), getMyPollVotes(auth.userId, [selectedPoll.id])]);
+      setPollResults(nextResults);
+      setPollVotes(nextVotes);
+    } catch (error) {
+      setPollError(error instanceof Error ? error.message : "Não foi possível registrar o voto.");
+    } finally {
+      setPollBusy(null);
+    }
+  }
 
   if (!hasRequiredAboutCopy) return null;
 
   return (
     <section data-home-section="about" className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[0.78fr_1.22fr] gap-12 lg:gap-16 items-start">
-          <div className="lg:sticky lg:top-28">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:items-start">
+          <div>
             <SectionLabel>{content.about_eyebrow}</SectionLabel>
             <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title}</DisplayTitle>
             <GoldRule />
             <p className="text-[#8ab89a] text-base leading-relaxed mb-4">{content.about_body_1}</p>
-            <p className="text-[#8ab89a] text-base leading-relaxed mb-8">{content.about_body_2}</p>
-
-            <div className="grid grid-cols-3 gap-3 mb-8">
-              {previewStats.map(stat => (
-                <div key={stat.label} className="border border-[#2d6a4f]/25 bg-[#141f14] p-4">
-                  <p className="font-['Playfair_Display'] font-black text-[#c9a84c] text-3xl leading-none mb-2">{stat.value}</p>
-                  <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider leading-tight">{stat.label}</p>
-                </div>
-              ))}
+            <p className="text-[#8ab89a] text-base leading-relaxed">{content.about_body_2}</p>
+            <div className="mt-10">
+              <div className="flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
+              <CompactNostalgiaTimeline items={nostalgiaItems} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {curiosityCards.map((item, index) => {
-              const cardClass = "group text-left border border-[#2d6a4f]/25 bg-[#141f14] transition-all p-6 " + (index === 0 ? "sm:col-span-2" : "");
-              const contentNode = (
-                <>
-                  <div className="flex items-start justify-between gap-4 mb-5">
-                    <div className="w-11 h-11 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c] flex items-center justify-center group-hover:border-[#c9a84c]/60 transition-colors">
-                      {item.icon}
-                    </div>
-                    {!("body" in item) && <ArrowRight size={17} className="text-[#3a5a3a] group-hover:text-[#c9a84c] transition-colors" />}
-                  </div>
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-[0.28em] mb-2">{item.label}</p>
-                  <p className="font-['Playfair_Display'] text-[#f0ebe0] text-2xl font-bold mb-3 leading-tight">{item.title}</p>
-                  <p className="text-[#7a9a7a] text-sm leading-relaxed">{item.description}</p>
-                  {"body" in item && item.body}
-                </>
-              );
-              return "body" in item ? (
-                <div key={item.label} className={cardClass}>{contentNode}</div>
-              ) : (
-                <button key={item.label} type="button" onClick={() => navigate("curiosities")} className={`${cardClass} hover:border-[#c9a84c]/50 hover:bg-[#182818]`}>
-                  {contentNode}
-                </button>
-              );
-            })}
+          <div className="flex flex-col gap-4">
+            <div data-home-about-stats className="border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
+              <div className="flex items-end justify-between gap-4 border-b border-[#2d6a4f]/20 pb-5">
+                <div><p className="font-['Playfair_Display'] text-5xl font-black leading-none text-[#c9a84c]">{visiblePeople.length}</p><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">{aboutCopy.stats_total_label}</p></div>
+                <Users size={24} className="text-[#2d6a4f]" />
+              </div>
+              <div className="mt-5 grid grid-cols-4 gap-3">
+                {(["A", "B", "C", "D"] as const).map(group => <div key={group} data-class-group={group} className="bg-[#0d1a0f] p-3 text-center"><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></div>)}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} /></HomeAboutCard>
+              <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label} className="sm:col-span-2"><HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} /></HomeAboutCard>
+              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label}><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} /></HomeAboutCard>
+              <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label}><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>
+            </div>
           </div>
         </div>
 
@@ -3215,6 +3407,7 @@ function LandingPage({
   onSelectTicket,
   memories,
   attendanceIntentPersonIds,
+  auth,
 }: {
   navigate: (p: Page) => void;
   people: DbPerson[];
@@ -3225,15 +3418,16 @@ function LandingPage({
   onSelectTicket: (id: string) => void;
   memories: DbMemory[];
   attendanceIntentPersonIds: Set<string>;
+  auth: AuthState;
 }) {
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
     hero: <Hero navigate={navigate} content={content} event={event} />,
-    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} />,
+    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} />,
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />,
-    photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
+    photos: null,
     timeline: <TimelineSection content={content} memories={memories} />,
     faq: <FAQSection content={content} />,
   };
@@ -5167,20 +5361,6 @@ function groupQuestionnaireStats(rows: SchoolQuestionnaireOptionStatRow[]) {
   }));
 }
 
-function buildCuriosityInsight(stats: CuriosityProfileStatsRow | null, questionnaireRows: SchoolQuestionnaireOptionStatRow[], locations: LocationStat[]) {
-  const topQuestionnaire = [...questionnaireRows].sort((a, b) => b.answer_count - a.answer_count)[0];
-  const topProfession = stats?.profession_area_counts?.[0];
-  const topRelationship = stats?.relationship_status_counts?.[0];
-  const topLocation = locations[0];
-  const parts = [
-    topQuestionnaire ? `Nos registros do questionário, “${topQuestionnaire.option_label}” aparece entre as respostas mais citadas.` : "À medida que os cadastros avançarem, o questionário vai revelar como a turma se lembra da época do HC.",
-    topProfession ? `Entre as áreas profissionais informadas, ${topProfession.label.toLowerCase()} se destaca até agora.` : "As profissões ainda estão sendo preenchidas pelos ex-alunos.",
-    topRelationship ? `Sobre relacionamentos, a categoria mais comum no momento é ${topRelationship.label.toLowerCase()}.` : "Os dados de relacionamento aparecem apenas de forma agregada.",
-    topLocation ? `${topLocation.city} concentra o maior número de localizações públicas cadastradas.` : "O mapa será preenchido conforme as pessoas autorizarem a exibição da cidade.",
-  ];
-  return parts.join(" ");
-}
-
 function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
   const [results, setResults] = useState<Record<string, Record<string, number>>>({});
@@ -5243,7 +5423,6 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
   }
 
   const questionGroups = groupQuestionnaireStats(questionnaireStats);
-  const insight = buildCuriosityInsight(profileStats, questionnaireStats, locations);
   const relationshipRows = profileStats?.relationship_status_counts ?? [];
   const childrenRows = profileStats?.children_status_counts ?? [];
   const professionRows = profileStats?.profession_area_counts ?? [];
@@ -5253,20 +5432,12 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4">
-        <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-end mb-10">
-          <div>
-            <SectionLabel>Curiosidades da turma</SectionLabel>
-            <DisplayTitle className="text-5xl md:text-7xl">O raio-X da Turma 2006</DisplayTitle>
-            <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">
-              Dados, lembranças, mapa, profissões, relacionamentos e enquetes sobre quem a gente era no HC — e quem a turma se tornou 20 anos depois.
-            </p>
-          </div>
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Leitura por IA</p>
-            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold mb-3">O retrato da turma até agora</h3>
-            <p className="text-[#8ab89a] text-sm leading-relaxed">{insight}</p>
-            <p className="text-[#3a5a3a] text-[11px] font-mono mt-4 uppercase tracking-wider">Prévia local. A geração por IA poderá ser conectada em uma próxima etapa.</p>
-          </div>
+        <section className="mb-10 max-w-4xl text-left">
+          <SectionLabel>Curiosidades da turma</SectionLabel>
+          <DisplayTitle className="text-5xl md:text-7xl">O raio-X da Turma 2006</DisplayTitle>
+          <p className="mt-4 max-w-[48rem] text-left leading-relaxed text-[#8ab89a]">
+            Dados, lembranças, mapa, profissões, relacionamentos e enquetes sobre quem a gente era no HC — e quem a turma se tornou 20 anos depois.
+          </p>
         </section>
 
         {error && <ErrorState message={error} onRetry={loadCuriosities} />}
@@ -5789,36 +5960,9 @@ function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode
 
 // ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
 
-function videoEmbedUrl(url: string) {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes("youtube.com")) {
-      const id = parsed.searchParams.get("v");
-      return id ? `https://www.youtube.com/embed/${id}` : url;
-    }
-    if (parsed.hostname.includes("youtu.be")) {
-      const id = parsed.pathname.replace("/", "");
-      return id ? `https://www.youtube.com/embed/${id}` : url;
-    }
-    if (parsed.hostname.includes("vimeo.com")) {
-      const id = parsed.pathname.split("/").filter(Boolean)[0];
-      return id ? `https://player.vimeo.com/video/${id}` : url;
-    }
-  } catch {
-    return url;
-  }
-  return url;
-}
-
-function isEmbeddableVideo(url: string) {
-  return /youtube\.com|youtu\.be|vimeo\.com/i.test(url);
-}
-
-function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
+function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
   const [event, setEvent] = useState<DbEvent | null>(null);
   const [settings, setSettings] = useState<DbEventArchiveSettings | null>(null);
-  const [memories, setMemories] = useState<DbMemory[]>([]);
-  const [uploadOpen, setUploadOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -5828,15 +5972,13 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
       setLoading(true);
       setError("");
       try {
-        const [eventData, settingsData, memoryData] = await Promise.all([
+        const [eventData, settingsData] = await Promise.all([
           getEventSettings().catch(() => null),
           getEventArchiveSettings(DEFAULT_EVENT_ID).catch(() => null),
-          getApprovedMemories(DEFAULT_EVENT_ID).catch(() => []),
         ]);
         if (!active) return;
         setEvent(eventData);
         setSettings(settingsData);
-        setMemories(memoryData);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Erro ao carregar acervo.");
       } finally {
@@ -5849,26 +5991,12 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
 
   const dateSource = event ? getEventDateTime(event) : new Date(FALLBACK_EVENT_DATE_TIME);
   const archiveOpen = settings?.archive_enabled ?? Date.now() >= dateSource.getTime();
-  const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 8);
-  const officialPhotoIds = new Set(settings?.official_photo_ids ?? []);
-  const highlightPhotoIds = new Set(settings?.highlight_photo_ids ?? []);
-  const configuredOfficialPhotos = photos.filter(p => officialPhotoIds.has(p.id));
-  const configuredHighlightPhotos = photos.filter(p => highlightPhotoIds.has(p.id));
-  const officialPhotos = configuredOfficialPhotos.length ? configuredOfficialPhotos : (featuredPhotos.length ? featuredPhotos : photos.slice(0, 8));
-  const highlightPhotos = configuredHighlightPhotos.length ? configuredHighlightPhotos : officialPhotos.slice(0, 4);
-  const confirmedPeople = people.filter(p => p.profile_status === "confirmed" && p.is_visible).slice(0, 16);
-  const highlightLinks = settings?.highlights_links ?? [];
-  const videoUrl = settings?.official_video_url?.trim() ?? "";
 
   return (
-    <>
-      <PhotoUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} auth={auth} navigate={navigate} />
-      <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
+    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
           <SectionLabel>Pós-festa</SectionLabel>
           <DisplayTitle className="text-4xl md:text-7xl mb-4">Memórias do reencontro</DisplayTitle>
-          <p className="text-[#8ab89a] max-w-2xl mb-10">Um espaço para guardar fotos oficiais, registros enviados pela turma, melhores momentos e lembranças aprovadas pela organização.</p>
-
           {loading && <LoadingState message="Carregando acervo..." />}
           {error && <ErrorState message={error} />}
 
@@ -5902,77 +6030,10 @@ function ArchivePage({ navigate, auth, photos, people }: { navigate: (p: Page) =
                   {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
                 </p>
               </div>
-
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Fotos oficiais e destaques</p>
-                  <Btn size="sm" variant="outline" onClick={() => setUploadOpen(true)}><Upload size={14} />Enviar foto</Btn>
-                </div>
-                {officialPhotos.length === 0 ? <EmptyState title="Nenhuma foto no acervo" subtitle="As fotos aprovadas aparecerão aqui." /> : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {officialPhotos.map(photo => <div key={photo.id} className="aspect-[4/3] overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20"><img src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto do acervo"} className="w-full h-full object-cover opacity-85" /></div>)}
-                  </div>
-                )}
-              </section>
-
-              <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Memórias da turma</p>
-                  {memories.length === 0 ? <EmptyState title="Nenhuma memória aprovada" /> : memories.slice(0, 5).map(memory => <div key={memory.id} className="border-b border-[#2d6a4f]/15 py-4 last:border-b-0"><p className="text-[#f0ebe0] font-['Playfair_Display'] text-lg">“{memory.memory_text}”</p><p className="text-[#7a9a7a] text-xs font-mono mt-2">{memory.is_anonymous ? "Anônimo" : memory.author_name ?? "Ex-aluno"}</p></div>)}
-                </div>
-                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                  <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Melhores momentos</p>
-                  {videoUrl ? (
-                    isEmbeddableVideo(videoUrl) ? (
-                      <iframe
-                        src={videoEmbedUrl(videoUrl)}
-                        title={settings?.official_video_title ?? "Video oficial"}
-                        className="aspect-video w-full border border-[#2d6a4f]/20 bg-[#0a120a] mb-4"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={videoUrl} controls className="aspect-video w-full border border-[#2d6a4f]/20 bg-[#0a120a] mb-4" />
-                    )
-                  ) : (
-                    <EmptyState title="Video oficial ainda nao publicado" subtitle="Quando a organizacao configurar o video, ele aparecera aqui." />
-                  )}
-                  {settings?.official_video_title && <p className="text-[#f0ebe0] font-semibold text-sm mb-4">{settings.official_video_title}</p>}
-                  {highlightPhotos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      {highlightPhotos.map(photo => (
-                        <img key={photo.id} src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Destaque do acervo"} className="aspect-[4/3] w-full object-cover border border-[#2d6a4f]/20" />
-                      ))}
-                    </div>
-                  )}
-                  {highlightLinks.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {highlightLinks.map(link => (
-                        <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="border border-[#2d6a4f]/20 bg-[#0a120a] p-4 hover:border-[#2d6a4f]/50 transition-colors">
-                          <p className="text-[#f0ebe0] text-sm font-semibold">{link.label}</p>
-                          {link.description && <p className="text-[#7a9a7a] text-xs mt-1">{link.description}</p>}
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[#7a9a7a] text-sm">Links de melhores momentos serao exibidos aqui quando publicados pela organizacao.</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4">Lista de presença pública</p>
-                {confirmedPeople.length === 0 ? <EmptyState title="Lista indisponível" subtitle="A lista pública respeita as preferências de privacidade dos perfis." /> : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {confirmedPeople.map(person => <div key={person.id} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4"><p className="text-[#f0ebe0] text-sm font-semibold">{person.full_name}</p><p className="text-[#7a9a7a] text-xs font-mono">Turma 2006{person.class_group ? ` · Sala ${person.class_group}` : ""}</p></div>)}
-                  </div>
-                )}
-              </section>
             </div>
           )}
         </div>
       </div>
-    </>
   );
 }
 
@@ -9036,30 +9097,66 @@ export default function App() {
 
   // ── Inicializa sessão Supabase e escuta mudanças ──────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const u = session.user;
-        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
-        const admin  = !!adminUser;
-        const name   = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
+    let active = true;
+    let authRequestId = 0;
+
+    const setSignedOut = () => {
+      authRequestId += 1;
+      if (active) setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
+    };
+
+    const hydrateSession = async (session: Session | null) => {
+      if (!session?.user) {
+        setSignedOut();
+        return;
       }
-      setAuthLoading(false);
+
+      const requestId = authRequestId + 1;
+      authRequestId = requestId;
+      const user = session.user;
+      const adminUser = await getCurrentAdminUser(user.id).catch(() => null);
+      if (!active || authRequestId !== requestId) return;
+
+      const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Usuário";
+      setAuth({
+        loggedIn: true,
+        isAdmin: Boolean(adminUser),
+        name,
+        userId: user.id,
+        email: user.email,
+        role: adminUser?.role ?? null,
+      });
+    };
+
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) throw error;
+        return hydrateSession(session);
+      })
+      .catch(() => setSignedOut())
+      .finally(() => {
+        if (active) setAuthLoading(false);
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") return;
+      if (event === "SIGNED_OUT" || !session) {
+        setSignedOut();
+        return;
+      }
+
+      // Supabase pode bloquear chamadas feitas dentro do callback de auth.
+      // O timer garante que a consulta de permissões rode depois que o callback terminar.
+      window.setTimeout(() => {
+        if (active) void hydrateSession(session);
+      }, 0);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const u = session.user;
-        const adminUser = await getCurrentAdminUser(u.id).catch(() => null);
-        const admin = !!adminUser;
-        const name  = u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Usuário";
-        setAuth({ loggedIn: true, isAdmin: admin, name, userId: u.id, email: u.email, role: adminUser?.role ?? null });
-      } else if (event === "SIGNED_OUT") {
-        setAuth({ loggedIn: false, isAdmin: false, name: "", userId: "", role: null });
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      authRequestId += 1;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // ── Carrega dados reais do Supabase com fallback para mock ────────────────
@@ -9203,7 +9300,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
