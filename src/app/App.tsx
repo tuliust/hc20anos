@@ -36,6 +36,12 @@ import type {
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
+import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
+import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
+import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
+import brasilInvertidoUrl from "../imports/maps/brasil-invertido.png";
+import rnVerdeUrl from "../imports/maps/rn-verde.png";
+import rnInvertidoUrl from "../imports/maps/rn-invertido.png";
 import {
   Menu, X, Search, CheckCircle, Clock, AlertCircle,
   MapPin, Calendar, Users, ArrowRight, ArrowLeft,
@@ -402,6 +408,8 @@ type HomeMapStatConfig = {
   value?: number;
   fallback_value?: number;
 };
+
+type HomeMapLevel = "world" | "brazil" | "rn" | "natal";
 
 type HomePollFallbackCopy = {
   question?: string;
@@ -2815,46 +2823,194 @@ function HomeProfileMetrics({ configs, people, stats }: { configs: HomeProfileSt
   );
 }
 
-function classifyHomeLocations(locations: LocationStat[]) {
-  const counts: Record<HomeMapStatConfig["key"], number> = { natal: 0, interior: 0, other_state: 0, foreign: 0 };
-  for (const location of locations) {
-    const country = normalizeHomeMetric(location.country || "Brasil");
-    const state = normalizeHomeMetric(location.state).toUpperCase();
-    const city = normalizeHomeMetric(location.city);
-    if (!city) continue;
-    if (country && country !== "brasil" && country !== "brazil") counts.foreign += location.count;
-    else if (!state) continue;
-    else if (state !== "RN") counts.other_state += location.count;
-    else if (city === "natal") counts.natal += location.count;
-    else counts.interior += location.count;
-  }
-  return counts;
+const HOME_MAP_LEVELS: HomeMapLevel[] = ["world", "brazil", "rn", "natal"];
+
+const HOME_MAP_LEVEL_META: Record<HomeMapLevel, {
+  label: string;
+  metricKey: HomeMapStatConfig["key"];
+  defaultMetricLabel: string;
+  normalImage: string;
+  invertedImage: string;
+  nextLevel: HomeMapLevel | null;
+  actionLabel: string;
+  targetClass: string;
+}> = {
+  world: {
+    label: "Mundo",
+    metricKey: "foreign",
+    defaultMetricLabel: "Exterior",
+    normalImage: mundoVerdeUrl,
+    invertedImage: mundoInvertidoUrl,
+    nextLevel: "brazil",
+    actionLabel: "Explorar Brasil",
+    targetClass: "left-[49%] top-[66%]",
+  },
+  brazil: {
+    label: "Brasil",
+    metricKey: "other_state",
+    defaultMetricLabel: "Outros estados",
+    normalImage: brasilVerdeUrl,
+    invertedImage: brasilInvertidoUrl,
+    nextLevel: "rn",
+    actionLabel: "Explorar Rio Grande do Norte",
+    targetClass: "right-[3%] top-[28%]",
+  },
+  rn: {
+    label: "RN",
+    metricKey: "interior",
+    defaultMetricLabel: "Interior do RN",
+    normalImage: rnVerdeUrl,
+    invertedImage: rnInvertidoUrl,
+    nextLevel: "natal",
+    actionLabel: "Explorar Natal",
+    targetClass: "right-[1%] top-[39%]",
+  },
+  natal: {
+    label: "Natal",
+    metricKey: "natal",
+    defaultMetricLabel: "Natal/RN",
+    normalImage: rnVerdeUrl,
+    invertedImage: rnInvertidoUrl,
+    nextLevel: null,
+    actionLabel: "Natal selecionada",
+    targetClass: "right-[1%] top-[39%]",
+  },
+};
+
+function getHomeMapLevelForPerson(person: PublicLocationRow): HomeMapLevel | null {
+  const country = normalizeHomeMetric(person.current_country || "Brasil");
+  const state = normalizeHomeMetric(person.current_state).toUpperCase();
+  const city = normalizeHomeMetric(person.current_city);
+  if (!city) return null;
+  if (country && country !== "brasil" && country !== "brazil") return "world";
+  if (!state) return null;
+  if (state !== "RN") return "brazil";
+  return city === "natal" ? "natal" : "rn";
+}
+
+function getPublicLocationDisplayName(person: PublicLocationRow) {
+  return person.display_name?.trim() || person.full_name?.trim() || "Ex-aluno(a)";
+}
+
+function getPublicLocationLabel(person: PublicLocationRow) {
+  const country = person.current_country?.trim() || "Brasil";
+  const state = person.current_state?.trim().toUpperCase();
+  const cityAndState = `${person.current_city}${state ? `/${state}` : ""}`;
+  return normalizeHomeMetric(country) === "brasil" || normalizeHomeMetric(country) === "brazil"
+    ? cityAndState
+    : `${cityAndState} · ${country}`;
+}
+
+function HomeMapPersonAvatar({ person }: { person: PublicLocationRow }) {
+  const name = getPublicLocationDisplayName(person);
+  const parts = name.split(/\s+/).filter(Boolean);
+  const initials = `${parts[0]?.[0] ?? "E"}${parts[parts.length - 1]?.[0] ?? "A"}`.toUpperCase();
+  return person.avatar_url ? (
+    <img src={person.avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover" />
+  ) : (
+    <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] font-mono text-[10px] font-bold text-[#c9a84c]">{initials}</span>
+  );
 }
 
 function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; locations: LocationStat[] }) {
-  const automatic = classifyHomeLocations(locations);
-  const orderedKeys: HomeMapStatConfig["key"][] = ["natal", "interior", "other_state", "foreign"];
-  const rows = orderedKeys.map(key => {
-    const config = configs.find(item => item.key === key) ?? { key };
-    const count = config.mode === "fixed" ? Number(config.value ?? config.fallback_value ?? 0) : automatic[key];
-    return { key, label: config.label, count: Number.isFinite(count) ? count : 0 };
-  });
-  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  const [level, setLevel] = useState<HomeMapLevel>("world");
+  const peopleByLevel = useMemo(() => {
+    const groups: Record<HomeMapLevel, PublicLocationRow[]> = { world: [], brazil: [], rn: [], natal: [] };
+    const uniquePeople = new Map<string, PublicLocationRow>();
+    locations.flatMap(location => location.people).forEach(person => uniquePeople.set(person.person_id, person));
+    uniquePeople.forEach(person => {
+      const personLevel = getHomeMapLevelForPerson(person);
+      if (personLevel) groups[personLevel].push(person);
+    });
+    HOME_MAP_LEVELS.forEach(key => groups[key].sort((a, b) => getPublicLocationDisplayName(a).localeCompare(getPublicLocationDisplayName(b), "pt-BR")));
+    return groups;
+  }, [locations]);
+  const meta = HOME_MAP_LEVEL_META[level];
+  const selectedPeople = peopleByLevel[level];
+  const total = HOME_MAP_LEVELS.reduce((sum, key) => sum + peopleByLevel[key].length, 0);
+  const percent = percentOf(selectedPeople.length, total);
+  const metricLabel = configs.find(config => config.key === meta.metricKey)?.label || meta.defaultMetricLabel;
+
+  const selectNextLevel = () => {
+    if (meta.nextLevel) setLevel(meta.nextLevel);
+  };
 
   return (
-    <div data-home-map-chart className="flex flex-col gap-3">
-      {rows.map(row => {
-        const percent = percentOf(row.count, total);
-        return (
-          <div key={row.key}>
-            <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
-              <span className="text-[#f0ebe0]">{row.label}</span>
-              <span className="font-mono text-[#c9a84c]">{row.count} · {percent}%</span>
+    <div data-home-map-chart data-map-level={level}>
+      <nav aria-label="Níveis do mapa da turma" className="grid grid-cols-4 border border-[#2d6a4f]/25 bg-[#0d1a0f]">
+        {HOME_MAP_LEVELS.map(key => {
+          const item = HOME_MAP_LEVEL_META[key];
+          const active = key === level;
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-current={active ? "step" : undefined}
+              onClick={() => setLevel(key)}
+              className={`border-l border-[#2d6a4f]/20 px-2 py-2.5 font-mono text-[9px] uppercase tracking-wider transition-colors first:border-l-0 ${active ? "bg-[#c9a84c] text-[#0d1a0f]" : "text-[#7a9a7a] hover:bg-[#1a2e1a] hover:text-[#f0ebe0]"}`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(220px,0.92fr)] lg:items-stretch">
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={selectNextLevel}
+            disabled={!meta.nextLevel}
+            aria-label={meta.actionLabel}
+            className="group relative block aspect-[4/3] w-full overflow-hidden border border-[#2d6a4f]/20 bg-[#0a120a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-default"
+          >
+            <span className={`absolute inset-0 transition-transform duration-500 motion-reduce:transition-none ${level === "natal" ? "scale-[1.75] origin-[92%_45%]" : "group-hover:scale-[1.025] group-focus-visible:scale-[1.025]"}`}>
+              <img src={meta.normalImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-100 transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none" />
+              <img src={meta.invertedImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none" />
+            </span>
+            <span className={`absolute ${meta.targetClass} z-10 -translate-x-1/2 -translate-y-1/2`}>
+              <span className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[#f0ebe0]/70 bg-[#0d1a0f]/90 text-[#c9a84c] shadow-[0_0_22px_rgba(201,168,76,0.35)]">
+                <MapPin size={15} />
+                {level === "natal" && <span className="absolute inset-0 animate-ping rounded-full border border-[#c9a84c]/60 motion-reduce:animate-none" />}
+              </span>
+            </span>
+            <span className="absolute bottom-3 left-3 right-3 z-20 flex items-center justify-between gap-3 bg-[#0d1a0f]/90 px-3 py-2 text-left backdrop-blur-sm">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-[#c9a84c]">{meta.actionLabel}</span>
+              {meta.nextLevel && <ArrowRight size={14} className="shrink-0 text-[#c9a84c] transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />}
+            </span>
+          </button>
+          <p className="mt-3 text-[10px] leading-relaxed text-[#3a5a3a]">Clique no mapa ou escolha um nível acima para explorar. Apenas localizações públicas são exibidas.</p>
+        </div>
+
+        <section aria-live="polite" aria-label={`Pessoas em ${metricLabel}`} className="flex min-h-0 flex-col border border-[#2d6a4f]/20 bg-[#0d1a0f] p-4">
+          <div className="flex items-start justify-between gap-4 border-b border-[#2d6a4f]/20 pb-3">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#7a9a7a]">{metricLabel}</p>
+              <p className="mt-1 font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{selectedPeople.length}</p>
             </div>
-            <div className="h-2 overflow-hidden bg-[#0d1a0f]"><div className="h-full bg-[#2d6a4f] transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${percent}%` }} /></div>
+            <span className="font-mono text-xs text-[#c9a84c]">{percent}%</span>
           </div>
-        );
-      })}
+
+          {selectedPeople.length > 0 ? (
+            <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
+              {selectedPeople.map(person => (
+                <div key={person.person_id} className="flex items-center gap-3 border border-[#2d6a4f]/15 bg-[#141f14] p-2.5">
+                  <HomeMapPersonAvatar person={person} />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-[#f0ebe0]">{getPublicLocationDisplayName(person)}</p>
+                    <p className="mt-0.5 truncate font-mono text-[9px] text-[#7a9a7a]">{getPublicLocationLabel(person)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+              <MapPin size={24} className="mb-3 text-[#2d6a4f]" />
+              <p className="text-xs leading-relaxed text-[#7a9a7a]">Ainda não há pessoas com localização pública nesta região.</p>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
@@ -3002,8 +3158,8 @@ function AboutSection({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} /></HomeAboutCard>
               <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label} className="sm:col-span-2"><HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} /></HomeAboutCard>
-              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label}><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} /></HomeAboutCard>
-              <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label}><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>
+              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label} className="sm:col-span-2"><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} /></HomeAboutCard>
+              <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label} className="sm:col-span-2"><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>
             </div>
           </div>
         </div>

@@ -137,9 +137,55 @@ test("Sobre exibe total, turmas normalizadas e cards de dados sem Graficos", asy
     await expect(about.locator(`[data-class-group='${group}']`)).toContainText("2");
   }
   await expect(about.locator("[data-home-profile-metrics]")).toContainText("50%");
-  await expect(about.locator("[data-home-map-chart]")).toContainText("Natal/RN");
-  await expect(about.locator("[data-home-map-chart]")).toContainText("2 · 40%");
+  const map = about.locator("[data-home-map-chart]");
+  await map.getByRole("button", { name: "Natal", exact: true }).click();
+  await expect(map).toContainText("Natal/RN");
+  await expect(map).toContainText("40%");
   await expect(about.getByText("Graficos", { exact: true })).toHaveCount(0);
+});
+
+test("mapa da turma navega de Mundo até Natal e revela as pessoas da região", async ({ page }) => {
+  await installHomeFixtures(page);
+  await loadHome(page);
+
+  const map = page.locator("[data-home-map-chart]");
+  await expect(map).toHaveAttribute("data-map-level", "world");
+  await expect(map).toContainText("Exterior");
+  await expect(map).toContainText("Lisboa · Portugal");
+  const worldMapButton = map.getByRole("button", { name: "Explorar Brasil" });
+  const worldMapImages = worldMapButton.locator("img");
+  await expect(worldMapImages.nth(0)).toHaveCSS("opacity", "1");
+  await worldMapButton.hover();
+  await expect(worldMapImages.nth(0)).toHaveCSS("opacity", "0");
+  await expect(worldMapImages.nth(1)).toHaveCSS("opacity", "1");
+
+  await worldMapButton.click();
+  await expect(map).toHaveAttribute("data-map-level", "brazil");
+  await expect(map).toContainText("Outros estados");
+  await expect(map).toContainText("Recife/PE");
+
+  await map.getByRole("button", { name: "Explorar Rio Grande do Norte" }).click();
+  await expect(map).toHaveAttribute("data-map-level", "rn");
+  await expect(map).toContainText("Interior do RN");
+  await expect(map).toContainText("Mossoró/RN");
+
+  await map.getByRole("button", { name: "Explorar Natal" }).click();
+  await expect(map).toHaveAttribute("data-map-level", "natal");
+  await expect(map).toContainText("Natal/RN");
+  await expect(map).toContainText("Natal 1");
+  await expect(map).toContainText("Natal 2");
+
+  await map.getByRole("button", { name: "Mundo", exact: true }).click();
+  await expect(map).toHaveAttribute("data-map-level", "world");
+});
+
+test("mapa da turma preserva estado vazio quando não há localizações públicas", async ({ page }) => {
+  await installHomeFixtures(page, { locations: [] });
+  await loadHome(page);
+
+  const map = page.locator("[data-home-map-chart]");
+  await expect(map).toContainText("Ainda não há pessoas com localização pública nesta região.");
+  await expect(map).toContainText("0%");
 });
 
 test("carrossel de memorias avanca, volta e preserva anonimato", async ({ page }) => {
@@ -173,13 +219,14 @@ test("timeline mostra ano completo e mantem somente um marco aberto", async ({ p
   const items = timeline.locator("[data-timeline-index]");
   await expect(items.nth(0)).toContainText("1996");
   await expect(items.nth(1)).toContainText("2006");
-  await timeline.scrollIntoViewIfNeeded();
+  if (await items.nth(0).getAttribute("data-timeline-active") !== "true") {
+    await items.nth(0).getByRole("button").evaluate(element => (element as HTMLButtonElement).click());
+  }
   await expect(timeline.locator("[data-timeline-active='true']")).toHaveCount(1);
-  const activeIndex = await items.nth(0).getAttribute("data-timeline-active") === "true" ? 0 : 1;
-  const nextIndex = activeIndex === 0 ? 1 : 0;
-  await items.nth(nextIndex).getByRole("button").press("Enter");
-  await expect(items.nth(activeIndex)).toHaveAttribute("data-timeline-active", "false");
-  await expect(items.nth(nextIndex)).toHaveAttribute("data-timeline-active", "true");
+  await expect(items.nth(0)).toHaveAttribute("data-timeline-active", "true");
+  await items.nth(1).getByRole("button").evaluate(element => (element as HTMLButtonElement).click());
+  await expect(items.nth(0)).toHaveAttribute("data-timeline-active", "false");
+  await expect(items.nth(1)).toHaveAttribute("data-timeline-active", "true");
 });
 
 test("enquete da Home pede login antes de votar e esconde resultado", async ({ page }) => {

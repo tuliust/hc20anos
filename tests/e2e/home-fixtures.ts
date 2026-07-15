@@ -273,6 +273,7 @@ type InstallOptions = {
   delayHomeMs?: number;
   mutateHome?: (row: Record<string, unknown>) => void;
   people?: typeof peopleFixture;
+  locations?: typeof locationsFixture;
 };
 
 export async function installHomeFixtures(page: Page, options: InstallOptions = {}) {
@@ -300,7 +301,7 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       ],
       poll_votes: [],
       public_curiosity_profile_stats: [profileStatsFixture],
-      public_profile_locations: locationsFixture,
+      public_profile_locations: options.locations ?? locationsFixture,
       event_page_content: [{
         event_id: eventFixture.id,
         hero_eyebrow: "Evento",
