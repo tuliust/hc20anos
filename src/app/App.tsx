@@ -7719,8 +7719,6 @@ const role = auth.role ?? "viewer";
         const squareLogo = await createSquareLogoFile(file);
         const logoUrl = await uploadHeaderLogo(squareLogo, auth.userId);
         const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-          ...homeDraft,
-          event_id: DEFAULT_EVENT_ID,
           header_logo_url: logoUrl,
         } as Partial<HomePageContent>, auth.userId));
         setHomeDraft(updated);
@@ -7740,8 +7738,6 @@ const role = auth.role ?? "viewer";
       await runAction("favicon", async () => {
         const faviconUrl = await uploadFavicon(file, auth.userId);
         const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-          ...homeDraft,
-          event_id: DEFAULT_EVENT_ID,
           favicon_url: faviconUrl,
         } as Partial<HomePageContent>, auth.userId));
         setHomeDraft(updated);
@@ -7758,8 +7754,6 @@ const role = auth.role ?? "viewer";
     if (!canManageEvent) return;
     await runAction("favicon", async () => {
       const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-        ...homeDraft,
-        event_id: DEFAULT_EVENT_ID,
         favicon_url: null,
       } as Partial<HomePageContent>, auth.userId));
       setHomeDraft(updated);
