@@ -47,6 +47,10 @@ export interface HomePageContent extends Partial<DbHomePageContent> {
   home_about_overview_json?: string;
   home_alumni_overview_json?: string;
   home_nostalgia_timeline_json?: string;
+  home_profile_stats_json?: string;
+  home_map_stats_json?: string;
+  home_poll_id?: string | null;
+  home_poll_fallback_json?: string;
   updated_at?: string | null;
   updated_by_admin_id?: string | null;
 }
