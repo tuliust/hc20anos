@@ -7335,8 +7335,11 @@ function AdminTable({ admins, currentUserId, onRole, onRemove }: {
 
 const ADMIN_TAB_PATHS: Record<string, string> = {
   dashboard: "/admin",
+  header: "/admin/content?tab=header",
   "home-content": "/admin/content?tab=home",
   "event-content": "/admin/content?tab=event",
+  sections: "/admin/content?tab=sections",
+  labels: "/admin/content?tab=labels",
   timeline: "/admin/content?tab=timeline",
   faq: "/admin/content?tab=faq",
   footer: "/admin/content?tab=footer",
@@ -7363,7 +7366,7 @@ function adminTabFromPathname() {
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   const tab = new URLSearchParams(window.location.search).get("tab");
   const tabByRoute: Record<string, string> = {
-    "/admin/content": ["home", "event", "timeline", "faq", "footer"].includes(tab ?? "") ? "home-content" : tab === "comments" ? "photo-comments" : tab ?? "home-content",
+    "/admin/content": ["header", "home", "event", "sections", "labels", "timeline", "faq", "footer"].includes(tab ?? "") ? "home-content" : tab === "comments" ? "photo-comments" : tab ?? "home-content",
     "/admin/participants": tab === "profiles" ? "claims" : tab === "tags" ? "tag-mod" : tab ?? "participants",
     "/admin/tickets": tab === "lots" ? "lots" : "orders",
     "/admin/reports": "reports",
@@ -7375,7 +7378,10 @@ function adminTabFromPathname() {
 function adminContentTabFromPathname(): ContentAdminTab {
   if (typeof window === "undefined") return "header";
   const tab = new URLSearchParams(window.location.search).get("tab");
+  if (tab === "header") return "header";
   if (tab === "event") return "event";
+  if (tab === "sections") return "sections";
+  if (tab === "labels") return "labels";
   if (tab === "timeline") return "timeline";
   if (tab === "faq") return "faq";
   if (tab === "footer") return "footer";
@@ -7391,7 +7397,14 @@ function updateAdminBrowserPath(tab: string) {
   }
 }
 
-function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Page) => void; auth: AuthState; onHomeContentUpdated: (content: HomePageContent) => void }) {
+type AdminNavigationGuard = (action: () => void) => void;
+
+function AdminPage({ navigate, auth, onHomeContentUpdated, registerNavigationGuard }: {
+  navigate: (p: Page) => void;
+  auth: AuthState;
+  onHomeContentUpdated: (content: HomePageContent) => void;
+  registerNavigationGuard: (guard: AdminNavigationGuard | null) => void;
+}) {
   const [tab, setTab] = useState(() => adminTabFromPathname());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
@@ -7430,6 +7443,62 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
   const [eventDraft, setEventDraft] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
   const [contentTab, setContentTab] = useState<ContentAdminTab>(() => adminContentTabFromPathname());
+  const persistedHomeDraftRef = useRef<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
+  const persistedEventDraftRef = useRef<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
+  const pendingNavigationRef = useRef<(() => void) | null>(null);
+  const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
+
+  const hasUnsavedChanges = !loading && tab === "home-content" && (
+    contentTab === "event"
+      ? JSON.stringify(eventDraft) !== JSON.stringify(persistedEventDraftRef.current)
+      : JSON.stringify(homeDraft) !== JSON.stringify(persistedHomeDraftRef.current)
+  );
+
+  const discardCurrentPageChanges = useCallback(() => {
+    if (contentTab === "event") {
+      setEventDraft(persistedEventDraftRef.current);
+      return;
+    }
+    setHomeDraft(persistedHomeDraftRef.current);
+  }, [contentTab]);
+
+  const requestNavigation = useCallback<AdminNavigationGuard>((action) => {
+    if (!hasUnsavedChanges) {
+      action();
+      return;
+    }
+    pendingNavigationRef.current = action;
+    setLeaveConfirmationOpen(true);
+  }, [hasUnsavedChanges]);
+
+  function confirmLeaveWithoutSaving() {
+    const action = pendingNavigationRef.current;
+    pendingNavigationRef.current = null;
+    setLeaveConfirmationOpen(false);
+    discardCurrentPageChanges();
+    registerNavigationGuard(null);
+    action?.();
+  }
+
+  function cancelLeaveWithoutSaving() {
+    pendingNavigationRef.current = null;
+    setLeaveConfirmationOpen(false);
+  }
+
+  useEffect(() => {
+    registerNavigationGuard(hasUnsavedChanges ? requestNavigation : null);
+    return () => registerNavigationGuard(null);
+  }, [hasUnsavedChanges, registerNavigationGuard, requestNavigation]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     function syncAdminPath() {
@@ -7470,7 +7539,9 @@ const role = auth.role ?? "viewer";
   const adminGroups = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 size={14} />, tabs: [{ id: "dashboard", label: "Visão geral", icon: <BarChart3 size={13} /> }] },
     { id: "content", label: "Conteúdo", icon: <Pencil size={14} />, tabs: [
-      { id: "home-content", label: "Home", icon: <Pencil size={13} /> }, { id: "event-content", label: "Evento", icon: <Ticket size={13} /> },
+      { id: "header", label: "Header", icon: <Menu size={13} /> }, { id: "home-content", label: "Home", icon: <Pencil size={13} /> },
+      { id: "event-content", label: "Evento", icon: <Ticket size={13} /> }, { id: "sections", label: "Seções", icon: <Package size={13} /> },
+      { id: "labels", label: "Labels", icon: <FileText size={13} /> },
       { id: "timeline", label: "Timeline", icon: <Clock size={13} /> }, { id: "faq", label: "FAQ", icon: <Info size={13} /> },
       { id: "footer", label: "Rodapé", icon: <FileText size={13} /> }, { id: "memories", label: "Memórias", icon: <Star size={13} /> },
       { id: "polls", label: "Enquetes", icon: <BarChart3 size={13} /> }, { id: "photos", label: "Fotos", icon: <Camera size={13} /> },
@@ -7492,18 +7563,24 @@ const role = auth.role ?? "viewer";
     ] },
   ];
 
-  function selectAdminTab(nextTab: string) {
+  function performSelectAdminTab(nextTab: string) {
     if (nextTab === "checkin") {
       navigate("checkin");
       return;
     }
-    if (["event-content", "timeline", "faq", "footer"].includes(nextTab)) {
+    if (["header", "event-content", "sections", "labels", "timeline", "faq", "footer"].includes(nextTab)) {
       setContentTab(nextTab === "event-content" ? "event" : nextTab as ContentAdminTab);
       setTab("home-content");
     } else {
       setTab(nextTab);
     }
     updateAdminBrowserPath(nextTab);
+  }
+
+  function selectAdminTab(nextTab: string) {
+    const nextSelectedSubtab = nextTab === "event-content" ? "event" : nextTab === "home-content" ? "home" : nextTab;
+    if (nextSelectedSubtab === selectedSubtab) return;
+    requestNavigation(() => performSelectAdminTab(nextTab));
   }
 
   const selectedSubtab = tab === "home-content" ? contentTab : tab;
@@ -7558,6 +7635,8 @@ const role = auth.role ?? "viewer";
         });
         const homeData = getExtendedHomeContent(await getHomePageContent(DEFAULT_EVENT_ID));
         const eventPageData = await getEventPageContent(DEFAULT_EVENT_ID);
+        persistedHomeDraftRef.current = homeData;
+        persistedEventDraftRef.current = eventPageData;
         setHomeDraft(homeData);
         setEventDraft(eventPageData);
         onHomeContentUpdated(homeData);
@@ -7613,6 +7692,7 @@ const role = auth.role ?? "viewer";
         ...homeDraft,
         event_id: DEFAULT_EVENT_ID,
       } as Partial<HomePageContent>, auth.userId));
+      persistedHomeDraftRef.current = updated;
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
     });
@@ -7625,6 +7705,7 @@ const role = auth.role ?? "viewer";
         ...eventDraft,
         event_id: DEFAULT_EVENT_ID,
       }, auth.userId);
+      persistedEventDraftRef.current = updated;
       setEventDraft(updated);
     });
   }
@@ -7727,17 +7808,6 @@ const role = auth.role ?? "viewer";
   }
 
 
-  const contentTabs: { id: ContentAdminTab; label: string }[] = [
-    { id: "header", label: "Header" },
-    { id: "home", label: "Home" },
-    { id: "event", label: "Evento" },
-    { id: "sections", label: "Seções" },
-    { id: "labels", label: "Labels" },
-    { id: "timeline", label: "Linha do tempo" },
-    { id: "faq", label: "FAQ" },
-    { id: "footer", label: "Rodapé" },
-  ];
-
   const timelineDraftItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(homeDraft.home_nostalgia_timeline_json, []).map(item => ({
     ...item,
     year: item.year ?? "",
@@ -7832,6 +7902,15 @@ const role = auth.role ?? "viewer";
         onClose={() => setSelectedAdminPerson(null)}
         onSaved={(updated) => setPeopleRows(current => current.map(person => person.id === updated.id ? updated : person).sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR")))}
       />
+      <ConfirmDialog
+        open={leaveConfirmationOpen}
+        onClose={cancelLeaveWithoutSaving}
+        onConfirm={confirmLeaveWithoutSaving}
+        title="Deseja sair sem salvar as alterações?"
+        message="As alterações feitas nesta página serão perdidas."
+        confirmLabel="Sair sem salvar"
+        danger
+      />
       <div className="bg-[#080f08] border-b border-[#2d6a4f]/20 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("home")} className="text-[#7a9a7a] hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={20} /></button>
@@ -7902,29 +7981,6 @@ const role = auth.role ?? "viewer";
 
         {!loading && tab === "home-content" && (!canManageEvent ? <PermissionState /> : (
           <div className="flex flex-col gap-6">
-            <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Conteúdo do site</p>
-                  <p className="text-[#3a5a3a] text-xs mt-1">Gerencie textos, navegação, linha do tempo, FAQ e rodapé da experiência pública.</p>
-                </div>
-                <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar conteúdo</Btn>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {contentTabs.map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setContentTab(item.id)}
-                    className={"px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-wider border transition-colors " + (contentTab === item.id ? "border-[#c9a84c] text-[#c9a84c] bg-[#0a120a]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:text-[#f0ebe0] hover:border-[#2d6a4f]/60")}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {contentTab === "header" && (
               <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
@@ -8206,7 +8262,6 @@ const role = auth.role ?? "viewer";
                       <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Estrutura e orientações</p>
                       <p className="text-[#3a5a3a] text-xs mt-1">Bar/comidas, banheiros, segurança e informações extras.</p>
                     </div>
-                    <Btn size="sm" onClick={saveEventContent} disabled={busy === "event-content"}><Save size={14} />Salvar evento</Btn>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <FieldArea rows={4} label="Bar e comidas" value={eventDraft.food_bar_text} onChange={v => setEventDraft(s => ({ ...s, food_bar_text: v }))} />
@@ -9095,7 +9150,10 @@ function pageFromPathname(pathname: string): Page {
 function updateBrowserPath(nextPage: Page) {
   if (typeof window === "undefined") return;
   const nextPath = PAGE_PATHS[nextPage] ?? "/";
-  if (window.location.pathname !== nextPath) window.history.pushState({}, "", nextPath);
+  if (window.location.pathname !== nextPath) {
+    window.history.pushState({}, "", nextPath);
+    window.dispatchEvent(new Event("pushstate"));
+  }
 }
 
 function inferFaviconType(url: string) {
@@ -9146,6 +9204,15 @@ export default function App() {
   const [homeContentError, setHomeContentError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const homeContentRequestRef = useRef(0);
+  const pageRef = useRef<Page>(initialPage);
+  const currentBrowserUrlRef = useRef(`${window.location.pathname}${window.location.search}`);
+  const navigationGuardRef = useRef<AdminNavigationGuard | null>(null);
+  const allowNextPopstateRef = useRef(false);
+  pageRef.current = page;
+
+  const registerAdminNavigationGuard = useCallback((guard: AdminNavigationGuard | null) => {
+    navigationGuardRef.current = guard;
+  }, []);
 
   useEffect(() => {
     applyDocumentFavicon(homeContent?.favicon_url ?? null);
@@ -9249,9 +9316,37 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onPopState = () => setPage(pageFromPathname(window.location.pathname));
+    const rememberBrowserUrl = () => {
+      currentBrowserUrlRef.current = `${window.location.pathname}${window.location.search}`;
+    };
+    const onPopState = (event: PopStateEvent) => {
+      if (allowNextPopstateRef.current) {
+        allowNextPopstateRef.current = false;
+        rememberBrowserUrl();
+        setPage(pageFromPathname(window.location.pathname));
+        return;
+      }
+
+      const navigationGuard = pageRef.current === "admin" ? navigationGuardRef.current : null;
+      if (navigationGuard) {
+        event.stopImmediatePropagation();
+        window.history.pushState({}, "", currentBrowserUrlRef.current);
+        navigationGuard(() => {
+          allowNextPopstateRef.current = true;
+          window.history.back();
+        });
+        return;
+      }
+
+      rememberBrowserUrl();
+      setPage(pageFromPathname(window.location.pathname));
+    };
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    window.addEventListener("pushstate", rememberBrowserUrl);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("pushstate", rememberBrowserUrl);
+    };
   }, []);
 
   useEffect(() => {
@@ -9279,13 +9374,22 @@ export default function App() {
     }
   }, [authLoading, auth.isAdmin, auth.loggedIn, page]);
 
-  function navigate(p: Page) {
+  function performNavigation(p: Page) {
     if (PROTECTED_ADMIN.includes(p)  && !auth.isAdmin)  { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
     if (PROTECTED_ALUMNI.includes(p) && !auth.loggedIn) { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
     if (p === "home") refreshPublicEventData();
     setPage(p);
     updateBrowserPath(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function navigate(p: Page) {
+    const navigationGuard = page === "admin" ? navigationGuardRef.current : null;
+    if (navigationGuard && p !== "admin") {
+      navigationGuard(() => performNavigation(p));
+      return;
+    }
+    performNavigation(p);
   }
 
   if (authLoading) {
@@ -9375,7 +9479,7 @@ export default function App() {
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
         {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth}                         />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
-        {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} />}
+        {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} registerNavigationGuard={registerAdminNavigationGuard} />}
         {page === "checkin"       && <CheckinPage        navigate={navigate} auth={auth}                           />}
         {page === "login"         && <LoginPage          navigate={navigate} onLogin={handleLogin}                 />}
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
