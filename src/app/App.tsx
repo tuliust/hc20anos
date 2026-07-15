@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo, useRef } from "react";
+import { useState, useEffect, Fragment, useMemo, useRef, useCallback } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
@@ -572,7 +572,7 @@ function updateFooterLink(items: FooterLinkContent[], index: number, patch: Part
   return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
-function updateTimelineItem(items: TimelineItemContent[], index: number, patch: Partial<TimelineItemContent>) {
+function updateNostalgiaTimelineItem(items: NostalgiaTimelineItemContent[], index: number, patch: Partial<NostalgiaTimelineItemContent>) {
   return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
@@ -1194,8 +1194,8 @@ interface ToastState { message: string; type: ToastType; }
 
 function useToast() {
   const [toast, setToast] = useState<ToastState | null>(null);
-  const show = (message: string, type: ToastType = "info") => setToast({ message, type });
-  const hide = () => setToast(null);
+  const show = useCallback((message: string, type: ToastType = "info") => setToast({ message, type }), []);
+  const hide = useCallback(() => setToast(null), []);
   return { toast, show, hide };
 }
 
@@ -1207,7 +1207,7 @@ function ToastNotification({ toast, onClose }: { toast: ToastState; onClose: () 
     info:    "bg-[#141f14] border-[#2d6a4f]/50 text-[#f0ebe0]",
   };
   return (
-    <div className={`fixed top-20 right-4 z-[60] max-w-xs p-4 border flex items-center gap-3 shadow-2xl ${styles[toast.type]}`}>
+    <div role={toast.type === "error" ? "alert" : "status"} aria-live={toast.type === "error" ? "assertive" : "polite"} className={`fixed top-20 right-4 z-[60] max-w-xs p-4 border flex items-center gap-3 shadow-2xl ${styles[toast.type]}`}>
       {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <Info size={18} />}
       <p className="text-sm flex-1">{toast.message}</p>
       <button onClick={onClose} className="opacity-60 hover:opacity-100"><X size={14} /></button>
@@ -1533,6 +1533,31 @@ async function createCroppedAvatarFile(
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
   if (!blob) throw new Error("Não foi possível gerar o arquivo recortado.");
   return new File([blob], filename.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+
+async function createSquareLogoFile(file: File): Promise<File> {
+  const source = URL.createObjectURL(file);
+  try {
+    const image = await loadImageElement(source);
+    const size = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Seu navegador não conseguiu processar o logo.");
+
+    const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    ctx.clearRect(0, 0, size, size);
+    ctx.drawImage(image, (size - drawWidth) / 2, (size - drawHeight) / 2, drawWidth, drawHeight);
+
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("Não foi possível gerar o logo em 512×512 px.");
+    return new File([blob], "header-logo-512.png", { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(source);
+  }
 }
 
 function AvatarCropUpload({
@@ -5432,7 +5457,7 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4">
-        <section className="mb-10 max-w-4xl text-left">
+        <section className="mb-10 w-full text-left">
           <SectionLabel>Curiosidades da turma</SectionLabel>
           <DisplayTitle className="text-5xl md:text-7xl">O raio-X da Turma 2006</DisplayTitle>
           <p className="mt-4 max-w-[48rem] text-left leading-relaxed text-[#8ab89a]">
@@ -7370,8 +7395,8 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
   const [tab, setTab] = useState(() => adminTabFromPathname());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
-  const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const { toast, show: showToast, hide: hideToast } = useToast();
   const [event, setEvent] = useState<DbEvent | null>(null);
   const [lots, setLots] = useState<DbTicketType[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -7400,7 +7425,9 @@ function AdminPage({ navigate, auth, onHomeContentUpdated }: { navigate: (p: Pag
     contactEmail: "", contactPhone: "", description: "", rules: "", companionPolicy: "", refundPolicy: "",
   });
 
-    const [homeDraft, setHomeDraft] = useState<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
+  const [homeDraft, setHomeDraft] = useState<ExtendedHomePageContent>(getExtendedHomeContent(HOME_PAGE_CONTENT_DEFAULTS));
+  const [headerLogoPreviewUrl, setHeaderLogoPreviewUrl] = useState<string | null>(null);
+  const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
   const [eventDraft, setEventDraft] = useState<EventPageContent>(EVENT_PAGE_CONTENT_DEFAULTS);
   const [contentTab, setContentTab] = useState<ContentAdminTab>(() => adminContentTabFromPathname());
 
@@ -7483,7 +7510,6 @@ const role = auth.role ?? "viewer";
 
   async function loadAdminData() {
     setLoading(true);
-    setError("");
     try {
       const [eventData, lotData, orderData, peopleData, photoData, tagData, commentData, memoryData, pollData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
         getEventSettings(),
@@ -7538,7 +7564,7 @@ const role = auth.role ?? "viewer";
         setReports(await getReports(eventData.id));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar dados do admin.");
+      showToast(err instanceof Error ? err.message : "Erro ao carregar dados do admin.", "error");
     } finally {
       setLoading(false);
     }
@@ -7546,16 +7572,17 @@ const role = auth.role ?? "viewer";
 
   useEffect(() => { loadAdminData(); }, [tagFilter, commentFilter, memoryFilter]);
 
-  async function runAction(label: string, action: () => Promise<void>) {
+  async function runAction(label: string, action: () => Promise<void>): Promise<boolean> {
     setBusy(label);
-    setError("");
     try {
       await action();
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
       await loadAdminData();
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nao foi possivel concluir a acao.");
+      showToast(err instanceof Error ? err.message : "Não foi possível concluir a ação.", "error");
+      return false;
     } finally {
       setBusy("");
     }
@@ -7604,31 +7631,46 @@ const role = auth.role ?? "viewer";
 
   async function handleHeaderLogoUpload(file?: File | null) {
     if (!file || !canManageEvent) return;
-    await runAction("header-logo", async () => {
-      const logoUrl = await uploadHeaderLogo(file, auth.userId);
-      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-        ...homeDraft,
-        event_id: DEFAULT_EVENT_ID,
-        header_logo_url: logoUrl,
-      } as Partial<HomePageContent>, auth.userId));
-      setHomeDraft(updated);
-      onHomeContentUpdated(updated);
-    });
+    const previewUrl = URL.createObjectURL(file);
+    setHeaderLogoPreviewUrl(previewUrl);
+    try {
+      await runAction("header-logo", async () => {
+        const squareLogo = await createSquareLogoFile(file);
+        const logoUrl = await uploadHeaderLogo(squareLogo, auth.userId);
+        const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
+          ...homeDraft,
+          event_id: DEFAULT_EVENT_ID,
+          header_logo_url: logoUrl,
+        } as Partial<HomePageContent>, auth.userId));
+        setHomeDraft(updated);
+        onHomeContentUpdated(updated);
+      });
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setHeaderLogoPreviewUrl(null);
+    }
   }
 
   async function handleFaviconUpload(file?: File | null) {
     if (!file || !canManageEvent) return;
-    await runAction("favicon", async () => {
-      const faviconUrl = await uploadFavicon(file, auth.userId);
-      const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-        ...homeDraft,
-        event_id: DEFAULT_EVENT_ID,
-        favicon_url: faviconUrl,
-      } as Partial<HomePageContent>, auth.userId));
-      setHomeDraft(updated);
-      onHomeContentUpdated(updated);
-      applyDocumentFavicon(faviconUrl);
-    });
+    const previewUrl = URL.createObjectURL(file);
+    setFaviconPreviewUrl(previewUrl);
+    try {
+      await runAction("favicon", async () => {
+        const faviconUrl = await uploadFavicon(file, auth.userId);
+        const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
+          ...homeDraft,
+          event_id: DEFAULT_EVENT_ID,
+          favicon_url: faviconUrl,
+        } as Partial<HomePageContent>, auth.userId));
+        setHomeDraft(updated);
+        onHomeContentUpdated(updated);
+        applyDocumentFavicon(faviconUrl);
+      });
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setFaviconPreviewUrl(null);
+    }
   }
 
   async function handleFaviconRemove() {
@@ -7667,7 +7709,7 @@ const role = auth.role ?? "viewer";
     if (!canManageEvent) return;
     const options = pollDraft.optionsText.split("\n").map(o => o.trim()).filter(Boolean);
     if (!pollDraft.question.trim() || options.length < 2) {
-      setError("Informe a pergunta e pelo menos duas opções.");
+      showToast("Informe a pergunta e pelo menos duas opções.", "error");
       return;
     }
     await runAction("poll-create", async () => {
@@ -7696,7 +7738,12 @@ const role = auth.role ?? "viewer";
     { id: "footer", label: "Rodapé" },
   ];
 
-  const timelineDraftItems = parseHomeJsonArray<TimelineItemContent>(homeDraft.timeline_items_json, []);
+  const timelineDraftItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(homeDraft.home_nostalgia_timeline_json, []).map(item => ({
+    ...item,
+    year: item.year ?? "",
+    title: item.title ?? item.label ?? "",
+    description: item.description ?? item.desc ?? "",
+  }));
   const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, []);
   const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
   const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
@@ -7719,8 +7766,25 @@ const role = auth.role ?? "viewer";
     setHomeDraft(s => ({ ...s, [key]: !isContentVisible(s[key]) } as ExtendedHomePageContent));
   }
 
-  function setTimelineDraftItems(items: TimelineItemContent[]) {
-    setHomeDraft(s => ({ ...s, timeline_items_json: JSON.stringify(items, null, 2) }));
+  function setTimelineDraftItems(items: NostalgiaTimelineItemContent[]) {
+    const normalizedItems = items.map(item => ({
+      year: item.year ?? "",
+      title: item.title ?? item.label ?? "",
+      description: item.description ?? item.desc ?? "",
+      ...(item.icon ? { icon: item.icon } : {}),
+      is_visible: item.is_visible !== false,
+    }));
+    const legacyItems = normalizedItems.map(item => ({
+      year: item.year,
+      label: item.title,
+      desc: item.description,
+      is_visible: item.is_visible,
+    }));
+    setHomeDraft(s => ({
+      ...s,
+      home_nostalgia_timeline_json: JSON.stringify(normalizedItems, null, 2),
+      timeline_items_json: JSON.stringify(legacyItems, null, 2),
+    }));
   }
 
   function setFaqDraftItems(items: FAQItemContent[]) {
@@ -7802,7 +7866,7 @@ const role = auth.role ?? "viewer";
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <SaveToast show={saved} />
-        {error && <ErrorState message={error} onRetry={loadAdminData} />}
+        {toast && <ToastNotification toast={toast} onClose={hideToast} />}
         {loading && <LoadingState message="Carregando painel..." />}
 
         {!loading && tab === "dashboard" && (
@@ -7871,10 +7935,10 @@ const role = auth.role ?? "viewer";
                   <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar header</Btn>
                 </div>
 
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
-                  <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
-                    {homeDraft.header_logo_url ? (
-                      <img src={homeDraft.header_logo_url} alt={homeDraft.header_logo_alt} className="max-h-16 max-w-full object-contain" />
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
+                  <div className="aspect-square w-40 max-w-full bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
+                    {headerLogoPreviewUrl || homeDraft.header_logo_url ? (
+                      <img src={headerLogoPreviewUrl ?? homeDraft.header_logo_url ?? ""} alt={homeDraft.header_logo_alt || "Preview do logo"} className="h-full w-full object-contain p-3" />
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className="relative h-12 w-12 rounded-full border border-[#c9a84c]/70 bg-[#0d1a0f] flex items-center justify-center">
@@ -7890,7 +7954,7 @@ const role = auth.role ?? "viewer";
                   </div>
                   <div>
                     <p className="text-[#f0ebe0] font-semibold text-sm mb-1">Logo do header</p>
-                    <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, JPG ou WEBP. O arquivo aparecerá no topo do site público.</p>
+                    <p className="text-[#7a9a7a] text-xs mb-3">Envie PNG, JPG ou WEBP. O preview aparece imediatamente e o arquivo é salvo em 512×512 px.</p>
                     <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#2d6a4f]/50 text-[#f0ebe0] hover:bg-[#1a2e1a] cursor-pointer transition-colors">
                       <Upload size={14} />{busy === "header-logo" ? "Enviando..." : "Enviar logo"}
                       <input
@@ -7910,8 +7974,8 @@ const role = auth.role ?? "viewer";
 
                 <div className="mb-6 grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4 items-center bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
                   <div className="h-20 bg-[#080f08] border border-[#2d6a4f]/25 flex items-center justify-center overflow-hidden">
-                    {homeDraft.favicon_url ? (
-                      <img src={homeDraft.favicon_url} alt="Favicon atual" className="h-10 w-10 object-contain" />
+                    {faviconPreviewUrl || homeDraft.favicon_url ? (
+                      <img src={faviconPreviewUrl ?? homeDraft.favicon_url ?? ""} alt="Preview do favicon" className="h-10 w-10 object-contain" />
                     ) : (
                       <div className="h-10 w-10 border border-[#c9a84c]/60 bg-[#0d1a0f] flex items-center justify-center">
                         <Star size={20} className="text-[#c9a84c]" />
@@ -8244,35 +8308,27 @@ const role = auth.role ?? "viewer";
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
                   <div>
                     <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Linha do tempo</p>
-                    <p className="text-[#3a5a3a] text-xs mt-1">Edite os marcos exibidos na seção “Nossa história”.</p>
+                    <p className="text-[#3a5a3a] text-xs mt-1">Edite os marcos exibidos na timeline da seção Sobre da página inicial.</p>
                   </div>
                   <div className="flex gap-2">
-                    <Btn size="sm" variant="ghost" onClick={() => setTimelineDraftItems([...timelineDraftItems, { year: "2026", label: "Novo marco", desc: "Descreva este momento.", is_visible: true, highlight: false }])}>Adicionar marco</Btn>
+                    <Btn size="sm" variant="ghost" onClick={() => setTimelineDraftItems([...timelineDraftItems, { year: "2026", title: "Novo marco", description: "Descreva este momento.", is_visible: true }])}>Adicionar marco</Btn>
                     <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar timeline</Btn>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <Field label="Eyebrow timeline" value={homeDraft.timeline_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, timeline_eyebrow: v }))} />
-                  <Field label="Título timeline" value={homeDraft.timeline_title} onChange={v => setHomeDraft(s => ({ ...s, timeline_title: v }))} />
                 </div>
 
                 <div className="flex flex-col gap-4">
                   {timelineDraftItems.map((item, i) => (
                     <div key={`${item.year}-${i}`} className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
                       <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4 mb-4">
-                        <Field label="Ano" value={item.year} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { year: v }))} />
-                        <Field label="Título do marco" value={item.label} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { label: v }))} />
+                        <Field label="Ano" value={item.year ?? ""} onChange={v => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { year: v }))} />
+                        <Field label="Título do marco" value={item.title ?? item.label ?? ""} onChange={v => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { title: v, label: undefined }))} />
                         <div className="md:col-span-2">
-                          <FieldArea rows={3} label="Descrição" value={item.desc} onChange={v => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { desc: v }))} />
+                          <FieldArea rows={3} label="Descrição" value={item.description ?? item.desc ?? ""} onChange={v => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { description: v, desc: undefined }))} />
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
+                        <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setTimelineDraftItems(updateNostalgiaTimelineItem(timelineDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
                           {item.is_visible === false ? "Oculto" : "Visível"}
-                        </Btn>
-                        <Btn size="sm" variant={item.highlight ? "gold" : "ghost"} onClick={() => setTimelineDraftItems(updateTimelineItem(timelineDraftItems, i, { highlight: !item.highlight }))}>
-                          {item.highlight ? "Destaque ativo" : "Marcar destaque"}
                         </Btn>
                         <Btn size="sm" variant="danger" onClick={() => setTimelineDraftItems(timelineDraftItems.filter((_, itemIndex) => itemIndex !== i))}>
                           <X size={12} />Remover

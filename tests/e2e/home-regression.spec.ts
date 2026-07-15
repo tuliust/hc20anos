@@ -171,11 +171,15 @@ test("Curiosidades alinha introducao a esquerda e remove leitura por IA", async 
   await installHomeFixtures(page);
   await page.goto("/curiosidades");
 
+  const eyebrow = page.getByText("Curiosidades da turma", { exact: true });
   const subtitle = page.getByText(/Dados, lembranças, mapa, profissões/i);
+  await expect(eyebrow).toBeVisible({ timeout: 20_000 });
   await expect(subtitle).toBeVisible({ timeout: 20_000 });
   await expect(subtitle).toHaveClass(/text-left/);
   const titleBox = await page.getByRole("heading", { name: "O raio-X da Turma 2006" }).boundingBox();
+  const eyebrowBox = await eyebrow.boundingBox();
   const subtitleBox = await subtitle.boundingBox();
+  expect(Math.abs((titleBox?.x ?? 0) - (eyebrowBox?.x ?? 0))).toBeLessThanOrEqual(1);
   expect(Math.abs((titleBox?.x ?? 0) - (subtitleBox?.x ?? 0))).toBeLessThanOrEqual(1);
   await expect(page.getByText("Leitura por IA", { exact: true })).toHaveCount(0);
   await expect(page.getByText("O retrato da turma até agora", { exact: true })).toHaveCount(0);
