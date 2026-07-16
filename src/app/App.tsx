@@ -3741,7 +3741,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
 
 // ─── CHECKOUT ─────────────────────────────────────────────────────────────────
 
-type CheckoutReturnState = { status: PaymentStatus | "cancelled"; orderId: string } | null;
+type CheckoutReturnState = { status: PaymentStatus | "cancelled"; publicToken: string } | null;
 
 function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, checkoutReturn }: {
   navigate: (p: Page) => void;
@@ -9674,10 +9674,10 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("checkout");
-    const orderId = params.get("order") ?? params.get("external_reference");
+    const publicToken = params.get("token") ?? params.get("order");
     const validStatuses = ["pending", "in_process", "approved", "rejected", "expired", "cancelled", "refunded", "charged_back"];
-    if (status && orderId && validStatuses.includes(status)) {
-      setCheckoutReturn({ status: status as PaymentStatus | "cancelled", orderId });
+    if (status && publicToken && validStatuses.includes(status)) {
+      setCheckoutReturn({ status: status as PaymentStatus | "cancelled", publicToken });
       setPage("checkout");
     }
   }, []);

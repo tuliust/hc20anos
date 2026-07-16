@@ -11,7 +11,7 @@ type AuthState = {
   email?: string;
 };
 
-type CheckoutReturnState = { status: PaymentStatus | "cancelled"; orderId: string } | null;
+type CheckoutReturnState = { status: PaymentStatus | "cancelled"; publicToken: string } | null;
 
 type Props = {
   navigate: (page: any) => void;
@@ -109,10 +109,10 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
   }, [auth.email, auth.name, auth.userId]);
 
   useEffect(() => {
-    if (!checkoutReturn?.orderId) return;
+    if (!checkoutReturn?.publicToken) return;
     let active = true;
     setBusy(true);
-    getCheckoutStatus(checkoutReturn.orderId)
+    getCheckoutStatus(checkoutReturn.publicToken)
       .then((data) => { if (active) setStatus(data ?? { payment_status: checkoutReturn.status }); })
       .catch(() => { if (active) setStatus({ payment_status: checkoutReturn.status }); })
       .finally(() => { if (active) setBusy(false); });
@@ -185,7 +185,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
     }
   }
 
-  if (checkoutReturn?.orderId) {
+  if (checkoutReturn?.publicToken) {
     const paymentStatus = status?.payment_status ?? checkoutReturn.status;
     const approved = paymentStatus === "approved";
     return (
