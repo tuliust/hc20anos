@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  CreditCard,
+  LayoutGrid,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Ticket,
+  UserRoundKey,
+  type LucideIcon,
+} from "lucide-react";
 import type { DbFaqCategory, DbFaqItem } from "../../lib/database.types";
 import { filterPublicFaqItems, groupPublicFaqItems } from "../../lib/faqPresentation";
 
@@ -14,6 +25,23 @@ export interface HomeFaqSectionProps {
   initialMode: "featured" | "all";
 }
 
+type FaqCategoryWithIcon = DbFaqCategory & { icon_key?: string | null };
+
+const categoryIcons: Record<string, LucideIcon> = {
+  "user-key": UserRoundKey,
+  "layout-grid": LayoutGrid,
+  "shield-lock": ShieldCheck,
+  "calendar-days": CalendarDays,
+  ticket: Ticket,
+  "credit-card": CreditCard,
+  "refresh-cw": RefreshCw,
+};
+
+function CategoryIcon({ category, size = 30 }: { category: FaqCategoryWithIcon; size?: number }) {
+  const Icon = categoryIcons[category.icon_key ?? ""] ?? LayoutGrid;
+  return <Icon aria-hidden="true" size={size} strokeWidth={1.7} />;
+}
+
 export function HomeFaqSection({
   categories,
   items,
@@ -21,36 +49,53 @@ export function HomeFaqSection({
   title,
   searchPlaceholder,
   emptyLabel,
-  viewAllLabel,
-  initialMode,
 }: HomeFaqSectionProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(initialMode === "all");
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
 
-  useEffect(() => setShowAll(initialMode === "all"), [initialMode]);
-
   const visibleCategories = useMemo(
-    () => categories.filter(category => category.is_visible && category.deleted_at === null).sort((a, b) => a.sort_order - b.sort_order),
+    () => categories
+      .filter(category => category.is_visible && category.deleted_at === null)
+      .sort((a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label, "pt-BR")),
     [categories],
   );
 
+  const categoryIdsWithItems = useMemo(
+    () => new Set(items.filter(item => item.is_visible && item.deleted_at === null).map(item => item.category_id)),
+    [items],
+  );
+
   useEffect(() => {
-    if (categoryId && !visibleCategories.some(category => category.id === categoryId)) setCategoryId(null);
-  }, [categoryId, visibleCategories]);
+    const currentIsValid = categoryId
+      && visibleCategories.some(category => category.id === categoryId && categoryIdsWithItems.has(category.id));
+    if (currentIsValid) return;
+
+    const firstWithItems = visibleCategories.find(category => categoryIdsWithItems.has(category.id));
+    setCategoryId(firstWithItems?.id ?? visibleCategories[0]?.id ?? null);
+  }, [categoryId, categoryIdsWithItems, visibleCategories]);
+
+  const isSearching = Boolean(search.trim());
 
   const filteredItems = useMemo(() => filterPublicFaqItems(items, visibleCategories, {
     search,
-    categoryId,
-    showAll,
-    initialMode,
-  }), [categoryId, initialMode, items, search, showAll, visibleCategories]);
+    categoryId: isSearching ? null : categoryId,
+    showAll: true,
+    initialMode: "all",
+  }), [categoryId, isSearching, items, search, visibleCategories]);
 
   const groups = useMemo(
     () => groupPublicFaqItems(filteredItems, visibleCategories),
     [filteredItems, visibleCategories],
   );
+
+  const selectedCategory = visibleCategories.find(category => category.id === categoryId) ?? null;
+
+  function selectCategory(id: string) {
+    setCategoryId(id);
+    setSearch("");
+    setOpenIds(new Set());
+  }
 
   function toggleItem(id: string) {
     setOpenIds(current => {
@@ -63,11 +108,11 @@ export function HomeFaqSection({
 
   return (
     <section className="home-section bg-[#0d1a0f]" data-home-faq>
-      <div className="max-w-4xl mx-auto px-4">
-        <p className="font-mono text-[#c9a84c] text-xs uppercase tracking-[0.2em] mb-4">{eyebrow}</p>
-        <h2 className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-4xl md:text-5xl mb-8">{title}</h2>
+      <div className="mx-auto max-w-6xl px-4">
+        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-[#c9a84c]">{eyebrow}</p>
+        <h2 className="mb-8 font-['Playfair_Display'] text-4xl font-bold text-[#f0ebe0] md:text-5xl">{title}</h2>
 
-        <label className="relative block mb-5">
+        <label className="relative mb-7 block">
           <span className="sr-only">{searchPlaceholder}</span>
           <Search aria-hidden="true" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
           <input
@@ -76,89 +121,113 @@ export function HomeFaqSection({
             value={search}
             onChange={event => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full border border-[#2d6a4f]/35 bg-[#141f14] py-4 pl-12 pr-4 text-[#f0ebe0] placeholder:text-[#7a9a7a] outline-none transition focus-visible:border-[#c9a84c] focus-visible:ring-2 focus-visible:ring-[#c9a84c]/35"
+            className="w-full border border-[#2d6a4f]/35 bg-[#141f14] py-4 pl-12 pr-4 text-[#f0ebe0] outline-none transition placeholder:text-[#7a9a7a] focus-visible:border-[#c9a84c] focus-visible:ring-2 focus-visible:ring-[#c9a84c]/35"
           />
         </label>
 
-        <nav className="-mx-4 mb-8 overflow-x-auto px-4 [scrollbar-width:thin]" aria-label="Filtrar dúvidas por categoria">
-          <div className="flex min-w-max gap-2 pb-2">
-            <button
-              type="button"
-              aria-pressed={categoryId === null}
-              onClick={() => setCategoryId(null)}
-              className={`border px-4 py-2 font-mono text-[11px] uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${categoryId === null ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8] hover:border-[#2d6a4f]"}`}
+        <div className="mb-6 lg:hidden">
+          <label className="block text-[11px] font-mono uppercase tracking-wider text-[#a8b9a8]">
+            Categoria
+            <select
+              value={categoryId ?? ""}
+              onChange={event => selectCategory(event.target.value)}
+              className="mt-2 w-full border border-[#2d6a4f]/35 bg-[#141f14] px-4 py-4 text-sm text-[#f0ebe0] outline-none focus-visible:border-[#c9a84c] focus-visible:ring-2 focus-visible:ring-[#c9a84c]/35"
             >
-              Todas
-            </button>
-            {visibleCategories.map(category => (
-              <button
-                key={category.id}
-                type="button"
-                aria-pressed={categoryId === category.id}
-                onClick={() => setCategoryId(category.id)}
-                className={`border px-4 py-2 font-mono text-[11px] uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${categoryId === category.id ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8] hover:border-[#2d6a4f]"}`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-        </nav>
+              {visibleCategories.map(category => (
+                <option key={category.id} value={category.id}>{category.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-        {groups.length === 0 ? (
-          <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-8 text-center" role="status">
-            <p className="text-[#a8b9a8] text-sm">{emptyLabel}</p>
-          </div>
-        ) : (
-          <div className="space-y-9">
-            {groups.map(group => (
-              <div key={group.category.id}>
-                {group.category.label && <div className="mb-3 flex items-baseline justify-between gap-4">
-                  <h3 className="font-['Playfair_Display'] text-xl font-bold text-[#f0ebe0]">{group.category.label}</h3>
-                  {group.category.description && <p className="hidden text-right text-xs text-[#7a9a7a] md:block">{group.category.description}</p>}
-                </div>}
-                <div className="flex flex-col gap-2">
-                  {group.items.map(item => {
-                    const isOpen = openIds.has(item.id);
-                    const panelId = `faq-answer-${item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-                    const buttonId = `faq-question-${item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-                    return (
-                      <div key={item.id} className="border border-[#2d6a4f]/25 bg-[#141f14]">
-                        <button
-                          type="button"
-                          id={buttonId}
-                          aria-expanded={isOpen}
-                          aria-controls={panelId}
-                          onClick={() => toggleItem(item.id)}
-                          className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left outline-none transition hover:bg-[#182718] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c9a84c]"
-                        >
-                          <span className="text-sm font-semibold text-[#f0ebe0]">{item.question}</span>
-                          <ChevronDown aria-hidden="true" size={17} className={`shrink-0 text-[#c9a84c] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                        </button>
-                        {isOpen && (
-                          <div id={panelId} aria-labelledby={buttonId} className="border-t border-[#2d6a4f]/20 px-6 pb-5" role="region">
-                            <p className="whitespace-pre-line pt-4 text-sm leading-relaxed text-[#a8b9a8]">{item.answer}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+        <div className="grid items-start gap-8 lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
+          <nav className="hidden grid-cols-2 gap-3 lg:grid" aria-label="Filtrar dúvidas por categoria">
+            {visibleCategories.map(category => {
+              const active = !isSearching && categoryId === category.id;
+              const hasItems = categoryIdsWithItems.has(category.id);
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={!hasItems}
+                  onClick={() => selectCategory(category.id)}
+                  className={`flex aspect-square min-h-[112px] flex-col items-center justify-center gap-3 border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8] hover:border-[#c9a84c]/70 hover:text-[#f0ebe0]"}`}
+                >
+                  <CategoryIcon category={category as FaqCategoryWithIcon} />
+                  <span className="text-[10px] font-mono font-bold uppercase leading-snug tracking-wide">{category.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="min-w-0">
+            {!isSearching && selectedCategory && (
+              <div className="mb-4">
+                <div className="flex items-center gap-3 text-[#c9a84c] lg:hidden">
+                  <CategoryIcon category={selectedCategory as FaqCategoryWithIcon} size={24} />
+                  <h3 className="font-['Playfair_Display'] text-2xl font-bold text-[#f0ebe0]">{selectedCategory.label}</h3>
                 </div>
+                {selectedCategory.description && (
+                  <p className="mt-2 text-sm leading-relaxed text-[#7a9a7a]">{selectedCategory.description}</p>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {!search.trim() && !showAll && initialMode === "featured" && items.some(item => !item.is_featured) && viewAllLabel && (
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="border border-[#c9a84c] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#c9a84c] transition hover:bg-[#c9a84c] hover:text-[#0d1a0f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0ebe0]"
-            >
-              {viewAllLabel}
-            </button>
+            {isSearching && (
+              <p className="mb-4 text-sm text-[#a8b9a8]" role="status">
+                Resultados para <strong className="text-[#f0ebe0]">“{search.trim()}”</strong>
+              </p>
+            )}
+
+            {groups.length === 0 ? (
+              <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-8 text-center" role="status">
+                <p className="text-sm text-[#a8b9a8]">{emptyLabel}</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {groups.map(group => (
+                  <div key={group.category.id}>
+                    {(isSearching || groups.length > 1) && group.category.label && (
+                      <div className="mb-3 flex items-center gap-3">
+                        <span className="text-[#c9a84c]"><CategoryIcon category={group.category as FaqCategoryWithIcon} size={22} /></span>
+                        <h3 className="font-['Playfair_Display'] text-xl font-bold text-[#f0ebe0]">{group.category.label}</h3>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {group.items.map(item => {
+                        const isOpen = openIds.has(item.id);
+                        const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, "-");
+                        const panelId = `faq-answer-${safeId}`;
+                        const buttonId = `faq-question-${safeId}`;
+                        return (
+                          <div key={item.id} className="border border-[#2d6a4f]/25 bg-[#141f14]">
+                            <button
+                              type="button"
+                              id={buttonId}
+                              aria-expanded={isOpen}
+                              aria-controls={panelId}
+                              onClick={() => toggleItem(item.id)}
+                              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left outline-none transition hover:bg-[#182718] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c9a84c] md:px-6 md:py-5"
+                            >
+                              <span className="text-sm font-semibold text-[#f0ebe0]">{item.question}</span>
+                              <ChevronDown aria-hidden="true" size={17} className={`shrink-0 text-[#c9a84c] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                            </button>
+                            {isOpen && (
+                              <div id={panelId} aria-labelledby={buttonId} className="border-t border-[#2d6a4f]/20 px-5 pb-5 md:px-6" role="region">
+                                <p className="whitespace-pre-line pt-4 text-sm leading-relaxed text-[#a8b9a8]">{item.answer}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
