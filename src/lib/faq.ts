@@ -1,6 +1,9 @@
 import type { DbFaqCategory, DbFaqItem } from "./database.types";
 import { supabase } from "./supabase";
 import { writeAudit } from "./services";
+import { normalizeText, slugifyFaqText } from "./faqText";
+
+export { normalizeText, slugifyFaqText } from "./faqText";
 
 export const DEFAULT_FAQ_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -79,21 +82,6 @@ export class FaqCategoryNotEmptyError extends Error {
     this.name = "FaqCategoryNotEmptyError";
     this.itemCount = itemCount;
   }
-}
-
-export function normalizeText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-    .trim();
-}
-
-export function slugifyFaqText(value: string): string {
-  return normalizeText(value)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 96);
 }
 
 function assertNonEmpty(value: string, label: string) {

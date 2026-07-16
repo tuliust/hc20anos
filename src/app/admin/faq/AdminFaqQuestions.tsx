@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import type { DbFaqCategory, DbFaqItem } from "../../../lib/database.types";
-import { normalizeText, type FaqFeaturedFilter, type FaqSort, type FaqVisibilityFilter } from "../../../lib/faq";
+import type { FaqFeaturedFilter, FaqSort, FaqVisibilityFilter } from "../../../lib/faq";
+import { filterAdminFaqItems } from "./faqAdmin.utils";
 
 interface AdminFaqQuestionsProps {
   items: DbFaqItem[];
@@ -27,21 +28,7 @@ export function AdminFaqQuestions({ items, categories, busyId, onCreate, onEdit,
   const [sort, setSort] = useState<FaqSort>("page-order");
 
   const categoryById = useMemo(() => new Map(categories.map(category => [category.id, category])), [categories]);
-  const filtered = useMemo(() => {
-    const term = normalizeText(search);
-    const result = items.filter(item => {
-      if (categoryId && item.category_id !== categoryId) return false;
-      if (visibility === "visible" && !item.is_visible) return false;
-      if (visibility === "hidden" && item.is_visible) return false;
-      if (featured === "featured" && !item.is_featured) return false;
-      if (featured === "regular" && item.is_featured) return false;
-      if (!term) return true;
-      return normalizeText([item.question, item.answer, item.slug, categoryById.get(item.category_id)?.label ?? ""].join(" ")).includes(term);
-    });
-    if (sort === "newest") return result.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
-    if (sort === "alphabetical") return result.sort((a, b) => a.question.localeCompare(b.question, "pt-BR"));
-    return result.sort((a, b) => (categoryById.get(a.category_id)?.sort_order ?? 0) - (categoryById.get(b.category_id)?.sort_order ?? 0) || a.sort_order - b.sort_order);
-  }, [categoryById, categoryId, featured, items, search, sort, visibility]);
+  const filtered = useMemo(() => filterAdminFaqItems(items, categories, { search, categoryId, visibility, featured, sort }), [categories, categoryId, featured, items, search, sort, visibility]);
 
   const metrics = {
     total: items.length,
