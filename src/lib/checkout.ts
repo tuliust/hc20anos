@@ -15,11 +15,10 @@ export interface CheckoutParticipantInput {
   user_id?: string | null;
   sponsor_person_id?: string | null;
   sponsor_user_id?: string | null;
-  guest_approval_request_id?: string | null;
 }
 
 export interface CheckoutExtraInput {
-  participant_client_key: string;
+  participant_key: string;
   extra_type: CheckoutExtraType;
   quantity: number;
 }
@@ -28,7 +27,7 @@ export interface CheckoutCreateInput {
   buyer_name: string;
   buyer_email: string;
   buyer_phone?: string | null;
-  product_code: "simple" | "family_full" | "family_single_parent";
+  product_code: "simple" | "family_full" | "family_single_parent" | "external_guest";
   participants: CheckoutParticipantInput[];
   extras?: CheckoutExtraInput[];
 }
@@ -55,7 +54,7 @@ export async function createSecureCheckout(
   if (!sessionData.session) throw new Error("authentication_required");
 
   const { data, error } = await supabase.functions.invoke<CheckoutCreateResult>("checkout-create", {
-    body: input,
+    body: { ...input, idempotency_key: idempotencyKey },
     headers: { "idempotency-key": idempotencyKey },
   });
 
