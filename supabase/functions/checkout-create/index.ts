@@ -2,6 +2,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const EVENT_ID = "00000000-0000-0000-0000-000000000001";
 const DEFAULT_SITE_URL = "https://hc20anos.com.br";
+const LOCAL_ORIGINS = new Set([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+]);
 
 type CheckoutParticipant = {
   client_key: string;
@@ -40,11 +46,20 @@ function json(body: unknown, status = 200, extraHeaders: HeadersInit = {}) {
   });
 }
 
+function configuredOrigins() {
+  const siteUrl = (Deno.env.get("SITE_URL") ?? DEFAULT_SITE_URL).replace(/\/$/, "");
+  const extras = (Deno.env.get("CHECKOUT_ALLOWED_ORIGINS") ?? "")
+    .split(",")
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  return new Set([siteUrl, ...extras, ...LOCAL_ORIGINS]);
+}
+
 function allowedOrigin(request: Request) {
   const siteUrl = (Deno.env.get("SITE_URL") ?? DEFAULT_SITE_URL).replace(/\/$/, "");
-  const origin = request.headers.get("Origin");
+  const origin = request.headers.get("Origin")?.replace(/\/$/, "");
   if (!origin) return siteUrl;
-  return origin === siteUrl ? origin : siteUrl;
+  return configuredOrigins().has(origin) ? origin : siteUrl;
 }
 
 function corsHeaders(request: Request): HeadersInit {
