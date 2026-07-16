@@ -36,6 +36,7 @@ import type {
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
+import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -311,6 +312,10 @@ type ExtendedHomePageContent = HomePageContent & {
   photos_empty_cta_label: string;
   timeline_items_json: string;
   faq_items_json: string;
+  faq_search_placeholder: string;
+  faq_empty_label: string;
+  faq_view_all_label: string;
+  faq_initial_mode: "featured" | "all";
   footer_links_json: string;
   footer_eyebrow: string;
   footer_title: string;
@@ -479,6 +484,10 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   photos_empty_cta_label: "",
   timeline_items_json: "[]",
   faq_items_json: "[]",
+  faq_search_placeholder: "",
+  faq_empty_label: "",
+  faq_view_all_label: "",
+  faq_initial_mode: "featured",
   footer_links_json: "[]",
   footer_eyebrow: "",
   footer_title: "",
@@ -3603,34 +3612,16 @@ function TimelineSection({ content, memories = [] }: { content: HomePageContent;
 }
 
 function FAQSection({ content }: { content: HomePageContent }) {
-  const [open, setOpen] = useState<number | null>(null);
   const extendedContent = getExtendedHomeContent(content);
-  const faqItems = parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, [])
-    .filter(item => item.is_visible !== false);
-
-  return (
-    <section className="home-section bg-[#0d1a0f]">
-      <div className="max-w-3xl mx-auto px-4">
-        <SectionLabel>{content.faq_eyebrow}</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-12">{content.faq_title}</DisplayTitle>
-        <div className="flex flex-col gap-2">
-          {faqItems.map((item, i) => (
-            <div key={`${item.q}-${i}`} className="border border-[#2d6a4f]/25 bg-[#141f14]">
-              <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex items-center justify-between px-6 py-5 text-left gap-4">
-                <p className="text-[#f0ebe0] font-semibold text-sm">{item.q}</p>
-                <ChevronDown size={16} className={"text-[#c9a84c] shrink-0 transition-transform duration-200 " + (open === i ? "rotate-180" : "")} />
-              </button>
-              {open === i && (
-                <div className="px-6 pb-5 border-t border-[#2d6a4f]/20">
-                  <p className="text-[#7a9a7a] text-sm leading-relaxed pt-4">{item.a}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <HomeFaqSectionLoader
+    eventId={DEFAULT_EVENT_ID}
+    eyebrow={content.faq_eyebrow}
+    title={content.faq_title}
+    searchPlaceholder={extendedContent.faq_search_placeholder}
+    emptyLabel={extendedContent.faq_empty_label}
+    viewAllLabel={extendedContent.faq_view_all_label}
+    initialMode={extendedContent.faq_initial_mode}
+  />;
 }
 
 function LandingPage({
