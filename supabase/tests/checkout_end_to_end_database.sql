@@ -21,6 +21,9 @@ declare
   v_expiring_order record;
   v_payment_result record;
   v_payment_replay record;
+  v_order_id uuid := null;
+  v_expiring_order_id uuid := null;
+  v_total_amount_cents integer := null;
   v_ticket_count integer;
   v_notification_count integer;
   v_extra_total integer;
@@ -58,8 +61,11 @@ begin
       'checkout-e2e-main-' || v_key
     );
 
+    v_order_id := v_order.order_id;
+    v_total_amount_cents := v_order.total_amount_cents;
+
     select count(*)::integer into v_participant_count
-    from public.order_participants op where op.order_id = v_order.order_id;
+    from public.order_participants op where op.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
       'six_participants', '6', v_participant_count::text,
@@ -67,12 +73,12 @@ begin
     );
 
     select coalesce(sum(pe.total_price_cents),0)::integer into v_extra_total
-    from public.participant_extras pe where pe.order_id = v_order.order_id;
+    from public.participant_extras pe where pe.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
-      'extras_total_matches_order', v_order.total_amount_cents::text,
-      ((select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id=v_order.order_id))::text,
-      case when v_order.total_amount_cents = (select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id=v_order.order_id)
+      'extras_total_matches_order', v_total_amount_cents::text,
+      ((select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id = v_order_id))::text,
+      case when v_total_amount_cents = (select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id = v_order_id)
         then 'PASS' else 'FAIL' end
     );
 
@@ -97,33 +103,33 @@ begin
     );
 
     insert into _checkout_e2e_results values (
-      'order_idempotency', v_order.order_id::text, v_same_order.order_id::text,
-      case when v_same_order.order_id = v_order.order_id then 'PASS' else 'FAIL' end
+      'order_idempotency', v_order_id::text, v_same_order.order_id::text,
+      case when v_same_order.order_id = v_order_id then 'PASS' else 'FAIL' end
     );
 
     v_preference_id := 'pref-e2e-' || v_key;
     update public.orders
     set payment_provider_preference_id = v_preference_id,
         payment_environment = 'test'
-    where id = v_order.order_id;
+    where id = v_order_id;
 
     select * into v_payment_result
     from public.apply_mercado_pago_payment(
-      v_order.order_id,
+      v_order_id,
       'payment-e2e-' || v_key,
       'approved',
       'accredited',
       'visa',
       'credit_card',
       1,
-      v_order.total_amount_cents,
+      v_total_amount_cents,
       'BRL',
       v_preference_id,
       now()
     );
 
     select count(*)::integer into v_ticket_count
-    from public.tickets t where t.order_id = v_order.order_id;
+    from public.tickets t where t.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
       'one_ticket_per_participant', '6', v_ticket_count::text,
@@ -133,21 +139,21 @@ begin
     -- Replay the same approved payment. No new tickets may be created.
     select * into v_payment_replay
     from public.apply_mercado_pago_payment(
-      v_order.order_id,
+      v_order_id,
       'payment-e2e-' || v_key,
       'approved',
       'accredited',
       'visa',
       'credit_card',
       1,
-      v_order.total_amount_cents,
+      v_total_amount_cents,
       'BRL',
       v_preference_id,
       now()
     );
 
     select count(*)::integer into v_ticket_count
-    from public.tickets t where t.order_id = v_order.order_id;
+    from public.tickets t where t.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
       'payment_replay_idempotency', '0 new / 6 total',
@@ -157,7 +163,7 @@ begin
 
     select count(*)::integer into v_notification_count
     from public.notification_jobs nj
-    where nj.order_id = v_order.order_id and nj.event_type = 'ticket_issued';
+    where nj.order_id = v_order_id and nj.event_type = 'ticket_issued';
 
     insert into _checkout_e2e_results values (
       'notification_idempotency', '6', v_notification_count::text,
@@ -179,8 +185,10 @@ begin
       'checkout-e2e-expiration-' || v_key
     );
 
+    v_expiring_order_id := v_expiring_order.order_id;
+
     update public.orders set expires_at = now() - interval '1 minute'
-    where id = v_expiring_order.order_id;
+    where id = v_expiring_order_id;
     perform public.release_expired_ticket_reservations(now());
 
     insert into _checkout_e2e_results
@@ -188,19 +196,20 @@ begin
       'reservation_expiration',
       'expired/expired',
       o.payment_status::text || '/' || o.reservation_status,
-      case when o.payment_status::text='expired' and o.reservation_status='expired' then 'PASS' else 'FAIL' end
-    from public.orders o where o.id = v_expiring_order.order_id;
+      case when o.payment_status::text = 'expired' and o.reservation_status = 'expired' then 'PASS' else 'FAIL' end
+    from public.orders o where o.id = v_expiring_order_id;
 
     if exists (select 1 from _checkout_e2e_results where result <> 'PASS') then
       raise exception 'Consolidated checkout checks failed: %',
         (select jsonb_agg(to_jsonb(r)) from _checkout_e2e_results r where result <> 'PASS');
     end if;
 
-    delete from public.orders where id in (v_order.order_id, v_expiring_order.order_id);
+    delete from public.orders
+    where id = any(array_remove(array[v_order_id, v_expiring_order_id]::uuid[], null));
   exception when others then
     v_error := sqlerrm;
-    if v_order.order_id is not null then delete from public.orders where id = v_order.order_id; end if;
-    if v_expiring_order.order_id is not null then delete from public.orders where id = v_expiring_order.order_id; end if;
+    delete from public.orders
+    where id = any(array_remove(array[v_order_id, v_expiring_order_id]::uuid[], null));
     raise exception '%', v_error;
   end;
 end;
