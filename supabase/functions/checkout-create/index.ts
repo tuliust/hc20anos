@@ -149,7 +149,7 @@ async function createPreference(params: {
       pending: checkoutReturnUrl("pending", order.public_token),
     },
     auto_return: "approved",
-    notification_url: `${functionBaseUrl()}/server/make-server-62fab262/mp/webhook`,
+    notification_url: `${functionBaseUrl()}/payment-webhook`,
     statement_descriptor: "TURMA2006HC",
     expires: true,
     expiration_date_to: order.expires_at,
@@ -212,9 +212,9 @@ Deno.serve(async (request) => {
     if (existingPreference?.checkout_url) {
       return json({
         checkout_url: existingPreference.checkout_url,
-        order_public_token: (existingPreference.orders as any)?.public_token,
+        public_token: (existingPreference.orders as any)?.public_token,
         expires_at: existingPreference.expires_at,
-        reused: true,
+        reused_preference: true,
       }, 200, headers);
     }
 
@@ -287,9 +287,9 @@ Deno.serve(async (request) => {
 
     return json({
       checkout_url: checkoutUrl,
-      order_public_token: order.public_token,
+      public_token: order.public_token,
       expires_at: order.expires_at,
-      reused: false,
+      reused_preference: false,
     }, 201, headers);
   } catch (error) {
     console.error("[checkout-create] unexpected error", error);
