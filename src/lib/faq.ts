@@ -525,3 +525,22 @@ export async function reorderFaqCategories(
   if (error) throw mapFaqError(error);
   await writeAudit("reorder_faq_categories", "events", eventId, { categories });
 }
+
+export async function moveFaqCategoryItems(
+  sourceCategoryId: string,
+  targetCategoryId: string,
+  adminId: string,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("move_faq_category_items", {
+    p_source_category_id: sourceCategoryId,
+    p_target_category_id: targetCategoryId,
+    p_admin_id: adminId,
+  });
+  if (error) throw mapFaqError(error);
+  const moved = Number(data ?? 0);
+  await writeAudit("move_faq_category_items", "faq_categories", sourceCategoryId, {
+    target_category_id: targetCategoryId,
+    moved,
+  });
+  return moved;
+}

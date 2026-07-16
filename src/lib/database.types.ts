@@ -724,6 +724,7 @@ export interface Database {
       reorder_faq_items:  { Args: { p_event_id: string; p_category_id: string; p_items: Array<{ id: string; sort_order: number }>; p_admin_id?: string | null }; Returns: void };
       reorder_faq_categories: { Args: { p_event_id: string; p_categories: Array<{ id: string; sort_order: number }>; p_admin_id?: string | null }; Returns: void };
       has_structured_faq_items: { Args: { p_event_id: string }; Returns: boolean };
+      move_faq_category_items: { Args: { p_source_category_id: string; p_target_category_id: string; p_admin_id?: string | null }; Returns: number };
     };
     Enums: {
       event_status:   EventStatus;
