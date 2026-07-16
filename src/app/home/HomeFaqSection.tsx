@@ -3,12 +3,12 @@ import {
   CalendarDays,
   ChevronDown,
   CreditCard,
+  KeyRound,
   LayoutGrid,
   RefreshCw,
   Search,
   ShieldCheck,
   Ticket,
-  UserRoundKey,
   type LucideIcon,
 } from "lucide-react";
 import type { DbFaqCategory, DbFaqItem } from "../../lib/database.types";
@@ -28,7 +28,7 @@ export interface HomeFaqSectionProps {
 type FaqCategoryWithIcon = DbFaqCategory & { icon_key?: string | null };
 
 const categoryIcons: Record<string, LucideIcon> = {
-  "user-key": UserRoundKey,
+  "user-key": KeyRound,
   "layout-grid": LayoutGrid,
   "shield-lock": ShieldCheck,
   "calendar-days": CalendarDays,
