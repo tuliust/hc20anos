@@ -516,6 +516,10 @@ export interface DbHomePageContent {
   timeline_title: string;
   faq_eyebrow: string;
   faq_title: string;
+  faq_search_placeholder: string | null;
+  faq_empty_label: string | null;
+  faq_view_all_label: string | null;
+  faq_initial_mode: "featured" | "all" | null;
   nav_home_label: string;
   nav_event_label: string;
   nav_ex_alumni_label: string;
@@ -619,6 +623,41 @@ export interface DbAuditLog {
   created_at:     string;
 }
 
+export interface DbFaqCategory {
+  id: string;
+  event_id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  sort_order: number;
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by_admin_id: string | null;
+  updated_by_admin_id: string | null;
+  deleted_at: string | null;
+  deleted_by_admin_id: string | null;
+}
+
+export interface DbFaqItem {
+  id: string;
+  event_id: string;
+  category_id: string;
+  slug: string;
+  question: string;
+  answer: string;
+  sort_order: number;
+  is_visible: boolean;
+  is_featured: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by_admin_id: string | null;
+  updated_by_admin_id: string | null;
+  deleted_at: string | null;
+  deleted_by_admin_id: string | null;
+  category?: DbFaqCategory | null;
+}
+
 // ─── INSERT TYPES ──────────────────────────────────────────────────────────────
 
 export type InsertOrder = Omit<DbOrder, "id" | "created_at" | "updated_at">;
@@ -664,6 +703,8 @@ export interface Database {
       poll_votes:             { Row: DbPollVote;           Insert: InsertPollVote;                Update: never                         };
       event_page_content:     { Row: DbEventPageContent;    Insert: Partial<DbEventPageContent>;    Update: Partial<DbEventPageContent>    };
       home_page_content:      { Row: DbHomePageContent;     Insert: Partial<DbHomePageContent>;     Update: Partial<DbHomePageContent>     };
+      faq_categories:         { Row: DbFaqCategory;         Insert: Partial<DbFaqCategory>;         Update: Partial<DbFaqCategory>         };
+      faq_items:              { Row: DbFaqItem;             Insert: Partial<DbFaqItem>;             Update: Partial<DbFaqItem>             };
             event_archive_settings: { Row: DbEventArchiveSettings; Insert: Partial<DbEventArchiveSettings>; Update: Partial<DbEventArchiveSettings> };
       photo_removal_requests: { Row: DbPhotoRemovalRequest; Insert: Partial<DbPhotoRemovalRequest>; Update: Partial<DbPhotoRemovalRequest> };
       profile_claim_disputes: { Row: DbProfileClaimDispute; Insert: Partial<DbProfileClaimDispute>; Update: Partial<DbProfileClaimDispute> };
@@ -680,6 +721,10 @@ export interface Database {
       is_admin:           { Args: Record<string, never>; Returns: boolean };
       fn_increment_sold:  { Args: { p_ticket_type_id: string; delta?: number }; Returns: void };
       get_event_reports:  { Args: { p_event_id: string }; Returns: Record<string, number> };
+      reorder_faq_items:  { Args: { p_event_id: string; p_category_id: string; p_items: Array<{ id: string; sort_order: number }>; p_admin_id?: string | null }; Returns: void };
+      reorder_faq_categories: { Args: { p_event_id: string; p_categories: Array<{ id: string; sort_order: number }>; p_admin_id?: string | null }; Returns: void };
+      has_structured_faq_items: { Args: { p_event_id: string }; Returns: boolean };
+      move_faq_category_items: { Args: { p_source_category_id: string; p_target_category_id: string; p_admin_id?: string | null }; Returns: number };
     };
     Enums: {
       event_status:   EventStatus;

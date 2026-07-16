@@ -36,6 +36,8 @@ import type {
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
+import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
+import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -186,12 +188,6 @@ interface TimelineItemContent {
   highlight?: boolean;
 }
 
-interface FAQItemContent {
-  q: string;
-  a: string;
-  is_visible?: boolean;
-}
-
 type HomeSectionKey = "hero" | "about" | "info" | "tickets" | "confirmed" | "photos" | "timeline" | "faq";
 
 interface HomeSectionContent {
@@ -310,7 +306,12 @@ type ExtendedHomePageContent = HomePageContent & {
   photos_empty_subtitle: string;
   photos_empty_cta_label: string;
   timeline_items_json: string;
+  /** @deprecated Fallback temporário; o Admin relacional não grava este campo. */
   faq_items_json: string;
+  faq_search_placeholder: string;
+  faq_empty_label: string;
+  faq_view_all_label: string;
+  faq_initial_mode: "featured" | "all";
   footer_links_json: string;
   footer_eyebrow: string;
   footer_title: string;
@@ -479,6 +480,10 @@ const EXTENDED_HOME_CONTENT_DEFAULTS: Omit<ExtendedHomePageContent, keyof HomePa
   photos_empty_cta_label: "",
   timeline_items_json: "[]",
   faq_items_json: "[]",
+  faq_search_placeholder: "",
+  faq_empty_label: "",
+  faq_view_all_label: "",
+  faq_initial_mode: "featured",
   footer_links_json: "[]",
   footer_eyebrow: "",
   footer_title: "",
@@ -611,10 +616,6 @@ const ADMIN_STATUS_LABELS: Record<string, string> = {
 
 function adminStatusLabel(status: string) {
   return ADMIN_STATUS_LABELS[status] ?? status;
-}
-
-function updateFaqItem(items: FAQItemContent[], index: number, patch: Partial<FAQItemContent>) {
-  return items.map((item, i) => i === index ? { ...item, ...patch } : item);
 }
 
 function updateEventGalleryItem(items: EventPageGalleryItem[], index: number, patch: Partial<EventPageGalleryItem>) {
@@ -3603,34 +3604,16 @@ function TimelineSection({ content, memories = [] }: { content: HomePageContent;
 }
 
 function FAQSection({ content }: { content: HomePageContent }) {
-  const [open, setOpen] = useState<number | null>(null);
   const extendedContent = getExtendedHomeContent(content);
-  const faqItems = parseHomeJsonArray<FAQItemContent>(extendedContent.faq_items_json, [])
-    .filter(item => item.is_visible !== false);
-
-  return (
-    <section className="home-section bg-[#0d1a0f]">
-      <div className="max-w-3xl mx-auto px-4">
-        <SectionLabel>{content.faq_eyebrow}</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-12">{content.faq_title}</DisplayTitle>
-        <div className="flex flex-col gap-2">
-          {faqItems.map((item, i) => (
-            <div key={`${item.q}-${i}`} className="border border-[#2d6a4f]/25 bg-[#141f14]">
-              <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex items-center justify-between px-6 py-5 text-left gap-4">
-                <p className="text-[#f0ebe0] font-semibold text-sm">{item.q}</p>
-                <ChevronDown size={16} className={"text-[#c9a84c] shrink-0 transition-transform duration-200 " + (open === i ? "rotate-180" : "")} />
-              </button>
-              {open === i && (
-                <div className="px-6 pb-5 border-t border-[#2d6a4f]/20">
-                  <p className="text-[#7a9a7a] text-sm leading-relaxed pt-4">{item.a}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <HomeFaqSectionLoader
+    eventId={DEFAULT_EVENT_ID}
+    eyebrow={content.faq_eyebrow}
+    title={content.faq_title}
+    searchPlaceholder={extendedContent.faq_search_placeholder}
+    emptyLabel={extendedContent.faq_empty_label}
+    viewAllLabel={extendedContent.faq_view_all_label}
+    initialMode={extendedContent.faq_initial_mode}
+  />;
 }
 
 function LandingPage({
@@ -7923,14 +7906,41 @@ const role = auth.role ?? "viewer";
   async function saveHomeContent() {
     if (!canManageEvent) return;
     await runAction("home-content", async () => {
+      const { faq_items_json: _legacyFaqItemsJson, ...homePatch } = homeDraft;
       const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
-        ...homeDraft,
+        ...homePatch,
         event_id: DEFAULT_EVENT_ID,
       } as Partial<HomePageContent>, auth.userId));
       persistedHomeDraftRef.current = updated;
       setHomeDraft(updated);
       onHomeContentUpdated(updated);
     });
+  }
+
+  function setFaqSectionSettings(patch: Partial<FaqSectionSettings>) {
+    setHomeDraft(current => ({
+      ...current,
+      faq_eyebrow: patch.eyebrow ?? current.faq_eyebrow,
+      faq_title: patch.title ?? current.faq_title,
+      faq_search_placeholder: patch.searchPlaceholder ?? current.faq_search_placeholder,
+      faq_empty_label: patch.emptyLabel ?? current.faq_empty_label,
+      faq_view_all_label: patch.viewAllLabel ?? current.faq_view_all_label,
+      faq_initial_mode: patch.initialMode ?? current.faq_initial_mode,
+    }));
+  }
+
+  async function saveFaqSectionSettings() {
+    const updated = getExtendedHomeContent(await updateHomePageContent(DEFAULT_EVENT_ID, {
+      faq_eyebrow: homeDraft.faq_eyebrow,
+      faq_title: homeDraft.faq_title,
+      faq_search_placeholder: homeDraft.faq_search_placeholder,
+      faq_empty_label: homeDraft.faq_empty_label,
+      faq_view_all_label: homeDraft.faq_view_all_label,
+      faq_initial_mode: homeDraft.faq_initial_mode,
+    }, auth.userId));
+    persistedHomeDraftRef.current = updated;
+    setHomeDraft(updated);
+    onHomeContentUpdated(updated);
   }
 
   async function saveEventContent() {
@@ -8084,7 +8094,6 @@ const role = auth.role ?? "viewer";
     title: item.title ?? item.label ?? "",
     description: item.description ?? item.desc ?? "",
   })));
-  const faqDraftItems = parseHomeJsonArray<FAQItemContent>(homeDraft.faq_items_json, []);
   const sectionDraftItems = parseHomeJsonArray<HomeSectionContent>(homeDraft.home_sections_json, HOME_SECTION_DEFAULTS);
   const footerDraftLinks = parseHomeJsonArray<FooterLinkContent>(homeDraft.footer_links_json, FOOTER_LINK_DEFAULTS);
   const eventGalleryItems = parseHomeJsonArray<EventPageGalleryItem>(eventDraft.gallery_json, parseHomeJsonArray<EventPageGalleryItem>(EVENT_PAGE_CONTENT_DEFAULTS.gallery_json, []));
@@ -8126,10 +8135,6 @@ const role = auth.role ?? "viewer";
       home_nostalgia_timeline_json: JSON.stringify(normalizedItems, null, 2),
       timeline_items_json: JSON.stringify(legacyItems, null, 2),
     }));
-  }
-
-  function setFaqDraftItems(items: FAQItemContent[]) {
-    setHomeDraft(s => ({ ...s, faq_items_json: JSON.stringify(items, null, 2) }));
   }
 
   function setSectionDraftItems(items: HomeSectionContent[]) {
@@ -8723,42 +8728,23 @@ const role = auth.role ?? "viewer";
             )}
 
             {contentTab === "faq" && (
-              <div className="bg-[#141f14] border border-[#2d6a4f]/25 p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-                  <div>
-                    <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">FAQ</p>
-                    <p className="text-[#3a5a3a] text-xs mt-1">Gerencie perguntas frequentes, respostas e visibilidade.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Btn size="sm" variant="ghost" onClick={() => setFaqDraftItems([...faqDraftItems, { q: "Nova pergunta", a: "Nova resposta.", is_visible: true }])}>Adicionar pergunta</Btn>
-                    <Btn size="sm" onClick={saveHomeContent} disabled={busy === "home-content"}><Save size={14} />Salvar FAQ</Btn>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <Field label="Eyebrow FAQ" value={homeDraft.faq_eyebrow} onChange={v => setHomeDraft(s => ({ ...s, faq_eyebrow: v }))} />
-                  <Field label="Título FAQ" value={homeDraft.faq_title} onChange={v => setHomeDraft(s => ({ ...s, faq_title: v }))} />
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  {faqDraftItems.map((item, i) => (
-                    <div key={`${item.q}-${i}`} className="bg-[#0a120a] border border-[#2d6a4f]/25 p-4">
-                      <div className="flex flex-col gap-4 mb-4">
-                        <Field label="Pergunta" value={item.q} onChange={v => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { q: v }))} />
-                        <FieldArea rows={3} label="Resposta" value={item.a} onChange={v => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { a: v }))} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Btn size="sm" variant={item.is_visible === false ? "ghost" : "gold"} onClick={() => setFaqDraftItems(updateFaqItem(faqDraftItems, i, { is_visible: item.is_visible === false ? true : false }))}>
-                          {item.is_visible === false ? "Oculta" : "Visível"}
-                        </Btn>
-                        <Btn size="sm" variant="danger" onClick={() => setFaqDraftItems(faqDraftItems.filter((_, itemIndex) => itemIndex !== i))}>
-                          <X size={12} />Remover
-                        </Btn>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AdminFaqPanel
+                eventId={DEFAULT_EVENT_ID}
+                adminId={admins.find(admin => admin.user_id === auth.userId)?.id ?? null}
+                role={auth.role ?? null}
+                adminUsers={admins}
+                sectionSettings={{
+                  eyebrow: homeDraft.faq_eyebrow,
+                  title: homeDraft.faq_title,
+                  searchPlaceholder: homeDraft.faq_search_placeholder,
+                  emptyLabel: homeDraft.faq_empty_label,
+                  viewAllLabel: homeDraft.faq_view_all_label,
+                  initialMode: homeDraft.faq_initial_mode,
+                }}
+                onSectionSettingsChange={setFaqSectionSettings}
+                onSaveSectionSettings={saveFaqSectionSettings}
+                notify={showToast}
+              />
             )}
 
             {contentTab === "footer" && (

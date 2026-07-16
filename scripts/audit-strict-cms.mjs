@@ -154,6 +154,41 @@ for (const [file, message] of [
 assertIncludes('package.json', '"test:e2e"', 'script de regressÃ£o Playwright deve permanecer configurado.');
 assertIncludes('package.json', '"audit:cms-production"', 'script de auditoria do Supabase real deve permanecer configurado.');
 
+// FAQ relacional: fonte estruturada, filtros públicos e Admin individual não podem regredir.
+for (const [file, message] of [
+  ['src/lib/faq.ts', 'serviço relacional de FAQ deve existir.'],
+  ['src/lib/faqPresentation.ts', 'filtros públicos puros do FAQ devem existir.'],
+  ['src/app/home/HomeFaqSection.tsx', 'componente público estruturado deve existir.'],
+  ['src/app/home/HomeFaqSectionLoader.tsx', 'loader público do FAQ deve existir.'],
+  ['src/app/admin/faq/AdminFaqPanel.tsx', 'painel administrativo relacional deve existir.'],
+  ['tests/unit/faq.test.mjs', 'testes unitários do FAQ devem existir.'],
+]) {
+  if (!exists(file)) fail(`${file}: ${message}`);
+}
+
+assertIncludes('src/app/App.tsx', '<HomeFaqSectionLoader', 'Home deve montar o FAQ estruturado.');
+assertIncludes('src/app/App.tsx', '<AdminFaqPanel', 'AdminFaqPanel deve permanecer montado na aba FAQ.');
+assertIncludes('src/app/App.tsx', 'faq_items_json: _legacyFaqItemsJson', 'salvamento geral da Home deve remover o JSON legado do payload.');
+assertNotIncludes('src/app/App.tsx', 'setFaqDraftItems', 'editor antigo de array JSON não pode ser reintroduzido.');
+assertNotIncludes('src/app/App.tsx', 'faqDraftItems', 'draft antigo do FAQ JSON não pode ser reintroduzido.');
+assertNotIncludes('src/app/App.tsx', 'parseHomeJsonArray<FAQItemContent>', 'Home não pode voltar a ler FAQ exclusivamente do JSON.');
+assertIncludes('src/app/home/HomeFaqSectionLoader.tsx', 'getPublicFaqItems(props.eventId)', 'Home deve usar getPublicFaqItems.');
+assertIncludes('src/app/home/HomeFaqSectionLoader.tsx', 'getPublicFaqCategories(props.eventId)', 'Home deve carregar categorias relacionais.');
+assertIncludes('src/lib/faq.ts', '.eq("is_visible", true)', 'consulta pública deve filtrar visibilidade.');
+assertIncludes('src/lib/faq.ts', '.is("deleted_at", null)', 'consulta pública deve excluir soft deletes.');
+assertIncludes('src/lib/faq.ts', '.eq("category.is_visible", true)', 'consulta pública deve filtrar categoria oculta.');
+assertIncludes('src/lib/faq.ts', 'hasStructuredFaqItems(eventId)', 'fallback legado deve distinguir tabela vazia de itens ocultos.');
+assertIncludes('src/lib/faqPresentation.ts', 'item.deleted_at === null', 'renderização pública deve defender contra item apagado.');
+assertIncludes('src/lib/faqPresentation.ts', 'category.is_visible && category.deleted_at === null', 'renderização pública deve defender contra categoria oculta/apagada.');
+assertIncludes('src/app/home/HomeFaqSection.tsx', 'aria-expanded={isOpen}', 'acordeão público deve preservar acessibilidade.');
+assertIncludes('package.json', '"test:faq"', 'script de testes do FAQ deve permanecer configurado.');
+
+for (const forbidden of ['"q": "Quem pode participar?"', 'const FAQ_CATEGORIES', 'const FAQ_CATEGORY']) {
+  if (app.includes(forbidden) || services.includes(forbidden)) {
+    fail(`FAQ: conteúdo editorial/categorias não podem ser hardcoded em App.tsx ou services.ts: ${forbidden}`);
+  }
+}
+
 for (const forbiddenHomeText of [
   'Uma amostra dos momentos que conectam escola, reencontro e bastidores da turma.',
   'Relatos curtos, lembranÃ§as de corredor e histÃ³rias que ajudam a reconstruir a Ã©poca do HC.',
