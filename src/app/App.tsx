@@ -36,6 +36,7 @@ import type {
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
+import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
@@ -3740,7 +3741,7 @@ function TicketsPage({ navigate, ticketTypes: liveTypes, onSelectTicket }: { nav
 
 // ─── CHECKOUT ─────────────────────────────────────────────────────────────────
 
-type CheckoutReturnState = { status: PaymentStatus | "cancelled"; orderId: string } | null;
+type CheckoutReturnState = { status: PaymentStatus | "cancelled"; publicToken: string } | null;
 
 function CheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, checkoutReturn }: {
   navigate: (p: Page) => void;
@@ -9673,10 +9674,10 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("checkout");
-    const orderId = params.get("order") ?? params.get("external_reference");
+    const publicToken = params.get("token") ?? params.get("order");
     const validStatuses = ["pending", "in_process", "approved", "rejected", "expired", "cancelled", "refunded", "charged_back"];
-    if (status && orderId && validStatuses.includes(status)) {
-      setCheckoutReturn({ status: status as PaymentStatus | "cancelled", orderId });
+    if (status && publicToken && validStatuses.includes(status)) {
+      setCheckoutReturn({ status: status as PaymentStatus | "cancelled", publicToken });
       setPage("checkout");
     }
   }, []);
@@ -9784,7 +9785,7 @@ export default function App() {
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
-        {page === "checkout"      && <CheckoutPage      navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
+        {page === "checkout"      && <SecureCheckoutPage navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
         {page === "confirmation"  && <ConfirmationPage  navigate={navigate}                                        />}
         {page === "who-going"     && <WhoGoingPage      navigate={navigate} people={people}                       />}
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
