@@ -1,15 +1,24 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "https://hc20anos.com.br",
-  "Access-Control-Allow-Headers": "content-type,x-signature,x-request-id",
-  "Access-Control-Allow-Methods": "POST,OPTIONS",
-};
+const DEFAULT_SITE_URL = "https://hc20anos.com.br";
+const MAX_SIGNATURE_AGE_SECONDS = 15 * 60;
 
-function json(body: unknown, status = 200) {
+function corsHeaders(request: Request): HeadersInit {
+  const configuredOrigin = (Deno.env.get("SITE_URL") ?? DEFAULT_SITE_URL).replace(/\/$/, "");
+  const requestOrigin = request.headers.get("Origin")?.replace(/\/$/, "");
+  return {
+    "Access-Control-Allow-Origin": requestOrigin === configuredOrigin ? requestOrigin : configuredOrigin,
+    "Access-Control-Allow-Headers": "content-type,x-signature,x-request-id",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Max-Age": "600",
+    "Vary": "Origin",
+  };
+}
+
+function json(request: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(request), "Content-Type": "application/json" },
   });
 }
 
@@ -21,7 +30,30 @@ function adminClient() {
   );
 }
 
-async function hmacSha256Hex(secret: string, message: string) {
+function parseSignature(value: string) {
+  const parsed = new Map<string, string>();
+  for (const part of value.split(",")) {
+    const separator = part.indexOf("=");
+    if (separator < 1) continue;
+    parsed.set(part.slice(0, separator).trim().toLowerCase(), part.slice(separator + 1).trim());
+  }
+  return parsed;
+}
+
+function normalizeDataId(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function hexToBytes(hex: string) {
+  if (!/^[0-9a-f]+$/i.test(hex) || hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+async function hmacSha256Bytes(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -29,43 +61,78 @@ async function hmacSha256Hex(secret: string, message: string) {
     false,
     ["sign"],
   );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message)));
 }
 
-async function validateSignature(req: Request, url: URL, body: any) {
-  const secret = Deno.env.get("MERCADO_PAGO_WEBHOOK_SECRET");
-  if (!secret) return false;
-
-  const xSignature = req.headers.get("x-signature") ?? "";
-  const requestId = req.headers.get("x-request-id") ?? "";
-  const parts = Object.fromEntries(xSignature.split(",").map((part) => {
-    const [key, ...value] = part.trim().split("=");
-    return [key, value.join("=")];
-  }));
-
-  const ts = parts.ts;
-  const v1 = parts.v1;
-  const dataId = url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? body?.data?.id ?? body?.id;
-  if (!requestId || !ts || !v1 || !dataId) return false;
-
-  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  const expected = await hmacSha256Hex(secret, manifest);
-  return expected.toLowerCase() === String(v1).toLowerCase();
+function timingSafeEqual(left: Uint8Array, right: Uint8Array) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) difference |= left[index] ^ right[index];
+  return difference === 0;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+async function validateSignature(request: Request, url: URL, body: any) {
+  const secret = Deno.env.get("MERCADO_PAGO_WEBHOOK_SECRET")?.trim();
+  if (!secret) return { valid: false, reason: "missing_webhook_secret" };
 
-  const url = new URL(req.url);
-  const body = await req.json().catch(() => ({}));
-  const signatureValid = await validateSignature(req, url, body);
-  if (!signatureValid) return json({ error: "invalid_signature" }, 401);
+  const signature = parseSignature(request.headers.get("x-signature") ?? "");
+  const requestId = request.headers.get("x-request-id")?.trim() ?? "";
+  const timestamp = signature.get("ts") ?? "";
+  const suppliedSignature = signature.get("v1") ?? "";
+  const dataId = normalizeDataId(
+    url.searchParams.get("data.id") ??
+      url.searchParams.get("id") ??
+      body?.data?.id ??
+      body?.id,
+  );
 
-  const providerEventId = String(body?.id ?? body?.data?.id ?? "");
-  const paymentId = String(body?.data?.id ?? body?.id ?? "");
+  if (!requestId || !timestamp || !suppliedSignature || !dataId) {
+    return { valid: false, reason: "signature_fields_missing" };
+  }
+
+  const timestampNumber = Number(timestamp);
+  if (!Number.isFinite(timestampNumber)) return { valid: false, reason: "signature_timestamp_invalid" };
+  const timestampSeconds = timestampNumber > 10_000_000_000 ? Math.floor(timestampNumber / 1000) : Math.floor(timestampNumber);
+  if (Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds) > MAX_SIGNATURE_AGE_SECONDS) {
+    return { valid: false, reason: "signature_timestamp_expired" };
+  }
+
+  const suppliedBytes = hexToBytes(suppliedSignature);
+  if (!suppliedBytes) return { valid: false, reason: "signature_format_invalid" };
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+  const expectedBytes = await hmacSha256Bytes(secret, manifest);
+  return {
+    valid: timingSafeEqual(expectedBytes, suppliedBytes),
+    reason: timingSafeEqual(expectedBytes, suppliedBytes) ? null : "signature_mismatch",
+    dataId,
+    requestId,
+    timestamp,
+  };
+}
+
+function isPaymentNotification(body: any) {
+  const type = String(body?.type ?? "").toLowerCase();
+  const action = String(body?.action ?? "").toLowerCase();
+  return type === "payment" || action.startsWith("payment.");
+}
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(request) });
+  if (request.method !== "POST") return json(request, { error: "method_not_allowed" }, 405);
+
+  const url = new URL(request.url);
+  const body = await request.json().catch(() => ({}));
+  const signature = await validateSignature(request, url, body);
+  if (!signature.valid) {
+    console.warn("payment_webhook_invalid_signature", signature.reason);
+    return json(request, { error: "invalid_signature" }, 401);
+  }
+
+  const paymentId = normalizeDataId(body?.data?.id ?? url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? body?.id);
   const eventType = String(body?.type ?? body?.action ?? "unknown");
+  const action = String(body?.action ?? "");
+  const providerEventId = [eventType, action, paymentId, signature.requestId].filter(Boolean).join(":");
   const db = adminClient();
 
   const { data: eventRow, error: eventInsertError } = await db
@@ -80,44 +147,50 @@ Deno.serve(async (req) => {
       processing_status: "received",
       attempt_count: 1,
     })
-    .select("id,processing_status,processed_at")
+    .select("id")
     .single();
 
   if (eventInsertError) {
-    if (eventInsertError.code === "23505") {
-      return json({ received: true, duplicate: true });
-    }
+    if (eventInsertError.code === "23505") return json(request, { received: true, duplicate: true });
     console.error("payment_event_insert_failed", eventInsertError);
-    return json({ error: "temporary_processing_failure" }, 503);
+    return json(request, { error: "temporary_processing_failure" }, 503);
   }
 
-  if (!paymentId || (body?.type !== "payment" && body?.action !== "payment.updated")) {
-    await db.from("payment_events").update({ processing_status: "ignored", processed_at: new Date().toISOString() }).eq("id", eventRow.id);
-    return json({ received: true, ignored: true });
+  if (!paymentId || !isPaymentNotification(body)) {
+    await db.from("payment_events")
+      .update({ processing_status: "ignored", processed_at: new Date().toISOString() })
+      .eq("id", eventRow.id);
+    return json(request, { received: true, ignored: true });
   }
 
-  const token = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
-  if (!token) {
-    await db.from("payment_events").update({ processing_status: "failed", processing_error: "missing_access_token" }).eq("id", eventRow.id);
-    return json({ error: "temporary_processing_failure" }, 503);
+  const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")?.trim();
+  if (!accessToken) {
+    await db.from("payment_events")
+      .update({ processing_status: "failed", processing_error: "missing_access_token" })
+      .eq("id", eventRow.id);
+    return json(request, { error: "temporary_processing_failure" }, 503);
   }
 
   try {
     const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
-
     if (!paymentResponse.ok) {
       const detail = await paymentResponse.text();
-      await db.from("payment_events").update({ processing_status: "failed", processing_error: `payment_fetch_${paymentResponse.status}:${detail.slice(0, 500)}` }).eq("id", eventRow.id);
-      return json({ error: "temporary_processing_failure" }, 503);
+      throw new Error(`payment_fetch_${paymentResponse.status}:${detail.slice(0, 500)}`);
     }
 
     const payment = await paymentResponse.json();
-    const orderId = payment.external_reference;
-    if (!orderId) throw new Error("missing_external_reference");
+    if (String(payment.id) !== paymentId) throw new Error("payment_id_mismatch");
 
-    const amountCents = Math.round(Number(payment.transaction_amount ?? 0) * 100);
+    const orderId = String(payment.external_reference ?? "").trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
+      throw new Error("missing_or_invalid_external_reference");
+    }
+
+    const transactionAmount = Number(payment.transaction_amount);
+    if (!Number.isFinite(transactionAmount) || transactionAmount < 0) throw new Error("invalid_transaction_amount");
+    const amountCents = Math.round(transactionAmount * 100);
     const paidAt = payment.date_approved ? new Date(payment.date_approved).toISOString() : null;
 
     const { data: result, error: applyError } = await db.rpc("apply_mercado_pago_payment", {
@@ -133,7 +206,6 @@ Deno.serve(async (req) => {
       p_preference_id: payment.preference_id ? String(payment.preference_id) : null,
       p_paid_at: paidAt,
     });
-
     if (applyError) throw applyError;
 
     await db.from("payment_events").update({
@@ -143,7 +215,7 @@ Deno.serve(async (req) => {
       processed_at: new Date().toISOString(),
     }).eq("id", eventRow.id);
 
-    return json({ received: true, result: result?.[0] ?? null });
+    return json(request, { received: true, result: result?.[0] ?? null });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("payment_webhook_failed", error);
@@ -151,6 +223,6 @@ Deno.serve(async (req) => {
       processing_status: "failed",
       processing_error: message.slice(0, 1000),
     }).eq("id", eventRow.id);
-    return json({ error: "temporary_processing_failure" }, 503);
+    return json(request, { error: "temporary_processing_failure" }, 503);
   }
 });
