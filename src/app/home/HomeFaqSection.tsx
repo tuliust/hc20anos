@@ -107,7 +107,7 @@ export function HomeFaqSection({
   }
 
   return (
-    <section className="home-section bg-[#0d1a0f]" data-home-faq>
+    <section className="home-section home-faq-section" data-home-faq>
       <div className="mx-auto max-w-6xl px-4">
         <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-[#c9a84c]">{eyebrow}</p>
         <h2 className="mb-8 font-['Playfair_Display'] text-4xl font-bold text-[#f0ebe0] md:text-5xl">{title}</h2>
