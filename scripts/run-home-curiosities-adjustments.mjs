@@ -7,36 +7,15 @@ const tempPath = path.resolve("scripts/.apply-home-curiosities-content-adjustmen
 
 let script = fs.readFileSync(sourcePath, "utf8");
 
+// Corrige padrões frágeis do aplicador sem modificar o script histórico.
 script = script.replace("text\\[#e74c3c\\]", "text-\\[#e74c3c\\]");
-
-const heroBlock = String.raw`replaceOnce(
-  "hero attendance handler",
-  /  return \(\r?\n    <section data-home-section="hero"/,
-  \
-  async function handleAttendanceIntent() {
-    window.sessionStorage.setItem("hc-attendance-intent", "yes");
-    if (!auth.loggedIn || !auth.userId) {
-      navigate("claim-profile");
-      return;
-    }
-    setAttendanceState("saving");
-    try {
-      await saveMyPublicProfile(auth.userId, { intends_to_attend: true });
-      window.sessionStorage.removeItem("hc-attendance-intent");
-      setAttendanceState("saved");
-    } catch {
-      setAttendanceState("error");
-    }
-  }
-
-  return (
-    <section data-home-section="hero"\
-,
-);`;
-
 script = script.replace(
-  /replaceOnce\(\n  "hero attendance handler",[\s\S]*?\n\);\nreplaceOnce\(\n  "hero secondary CTA"/,
-  `${heroBlock}\nreplaceOnce(\n  "hero secondary CTA"`,
+  'let source = fs.readFileSync(file, "utf8");',
+  'let source = fs.readFileSync(file, "utf8").replace(/\\r\\n/g, "\\n");',
+);
+script = script.replace(
+  '/\\n  return \\(\\n    <section data-home-section="hero"/',
+  '/\\n\\s*return \\(\\n\\s*<section data-home-section="hero"/',
 );
 
 fs.writeFileSync(tempPath, script, "utf8");
