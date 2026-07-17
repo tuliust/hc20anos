@@ -4,7 +4,7 @@ import { createSecureCheckout, getCheckoutStatus, type CheckoutCreateInput, type
 import { supabase } from "../lib/supabase";
 import type { DbTicketType, PaymentStatus } from "../lib/database.types";
 
- type AuthState = {
+type AuthState = {
   loggedIn: boolean;
   name: string;
   userId: string;
