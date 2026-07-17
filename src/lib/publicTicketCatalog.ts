@@ -10,7 +10,6 @@ export const PUBLIC_TICKET_PRODUCT_CODES = [
 export type PublicTicketProductCode = typeof PUBLIC_TICKET_PRODUCT_CODES[number];
 
 type PublicTicketGroup = "alumni" | "family" | "guest";
-type PublishedLotCode = "initial" | "lot_1" | "lot_2" | "lot_3";
 
 export interface PublicTicketCardModel {
   ticketType: DbTicketType;
@@ -19,72 +18,50 @@ export interface PublicTicketCardModel {
   sortOrder: number;
 }
 
-type TicketWithProductCode = DbTicketType & {
+type TicketWithCatalogMetadata = DbTicketType & {
   product_code?: string | null;
   active_lot_code?: string | null;
   active_lot_name?: string | null;
+  active_price_cents?: number | null;
+  current_lot_code?: string | null;
+  current_lot_name?: string | null;
+  current_price_cents?: number | null;
+  lot_code?: string | null;
+  lot_name?: string | null;
+  lot_price_cents?: number | null;
 };
 
-const LOT_TRANSITIONS = [
-  { code: "lot_3" as const, startsAt: Date.parse("2026-09-01T03:00:00Z") },
-  { code: "lot_2" as const, startsAt: Date.parse("2026-08-15T03:00:00Z") },
-  { code: "lot_1" as const, startsAt: Date.parse("2026-08-01T03:00:00Z") },
-];
+let resolvedLotCode: string | null = null;
+let resolvedLotName: string | null = null;
 
-const PUBLISHED_PRICES: Record<PublishedLotCode, Partial<Record<PublicTicketProductCode, number>>> = {
-  initial: {
-    simple: 10000,
-    family_full: 18000,
-    family_single_parent: 12000,
-    external_guest: 13000,
-  },
-  lot_1: {
-    simple: 12000,
-    family_full: 20000,
-    family_single_parent: 14000,
-    external_guest: 15000,
-  },
-  lot_2: {
-    simple: 14000,
-    family_full: 22000,
-    family_single_parent: 16000,
-    external_guest: 17000,
-  },
-  lot_3: {
-    simple: 16000,
-    family_full: 24000,
-    family_single_parent: 18000,
-    external_guest: 19000,
-  },
-};
-
-let resolvedPublicLotCode: PublishedLotCode = "initial";
+function metadata(ticket: DbTicketType): TicketWithCatalogMetadata {
+  return ticket as TicketWithCatalogMetadata;
+}
 
 function productCode(ticket: DbTicketType): string {
-  return String((ticket as TicketWithProductCode).product_code ?? "");
+  return String(metadata(ticket).product_code ?? "");
 }
 
-function publishedLotAt(now = Date.now()): PublishedLotCode {
-  return LOT_TRANSITIONS.find((lot) => now >= lot.startsAt)?.code ?? "initial";
+function activePrice(ticket: DbTicketType): number {
+  const row = metadata(ticket);
+  return row.active_price_cents
+    ?? row.current_price_cents
+    ?? row.lot_price_cents
+    ?? ticket.price_cents;
 }
 
-function displayLotNumber(code: PublishedLotCode): number {
-  if (code === "lot_2") return 2;
-  if (code === "lot_3") return 3;
-  return 1;
-}
+function withActiveCatalogMetadata(ticket: DbTicketType): DbTicketType {
+  const row = metadata(ticket);
+  const lotCode = row.active_lot_code ?? row.current_lot_code ?? row.lot_code ?? null;
+  const lotName = row.active_lot_name ?? row.current_lot_name ?? row.lot_name ?? null;
 
-function withPublishedPrice(ticket: DbTicketType, lotCode: PublishedLotCode): DbTicketType {
-  const code = productCode(ticket) as PublicTicketProductCode;
-  const publishedPrice = PUBLISHED_PRICES[lotCode][code];
-  if (publishedPrice === undefined) return ticket;
+  if (!resolvedLotCode && lotCode) resolvedLotCode = lotCode;
+  if (!resolvedLotName && lotName) resolvedLotName = lotName;
 
   return {
     ...ticket,
-    price_cents: publishedPrice,
-    active_lot_code: lotCode,
-    active_lot_name: `Lote ${displayLotNumber(lotCode)}`,
-  } as TicketWithProductCode;
+    price_cents: activePrice(ticket),
+  };
 }
 
 export function isCheckoutExtra(ticket: DbTicketType): boolean {
@@ -117,11 +94,13 @@ export function toPublicTicketCard(ticket: DbTicketType): PublicTicketCardModel 
   return null;
 }
 
-export function selectPublicTicketCards(ticketTypes: DbTicketType[], now = Date.now()): PublicTicketCardModel[] {
-  resolvedPublicLotCode = publishedLotAt(now);
+export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTicketCardModel[] {
+  resolvedLotCode = null;
+  resolvedLotName = null;
+
   const candidates = ticketTypes
     .filter((ticket) => ticket.status === "open")
-    .map((ticket) => withPublishedPrice(ticket, resolvedPublicLotCode))
+    .map(withActiveCatalogMetadata)
     .map(toPublicTicketCard)
     .filter((model): model is PublicTicketCardModel => Boolean(model));
 
@@ -134,8 +113,8 @@ export function selectPublicTicketCards(ticketTypes: DbTicketType[], now = Date.
       continue;
     }
 
-    // O card Família representa a categoria e abre o pacote de menor preço.
-    // No checkout o usuário pode alternar para Família completa.
+    // O card Família representa a categoria e abre o pacote familiar de menor preço.
+    // No checkout o usuário pode alternar entre as duas composições disponíveis.
     if (model.group === "family" && model.ticketType.price_cents < current.ticketType.price_cents) {
       byGroup.set(model.group, model);
     }
@@ -145,16 +124,15 @@ export function selectPublicTicketCards(ticketTypes: DbTicketType[], now = Date.
 }
 
 export function formatLotLabel(lotCode?: string | null, lotName?: string | null): string {
-  const explicitCode = String(lotCode ?? "").toLowerCase();
-  const explicitMatch = explicitCode.match(/^lot_(\d+)$/);
+  const code = String(resolvedLotCode ?? lotCode ?? "").toLowerCase();
+  const codeMatch = code.match(/^lot_(\d+)$/);
+  if (codeMatch) return `LOTE ${codeMatch[1]}`;
 
-  // A Home chama esta função após resolver o catálogo. Nesse fluxo, prevalece
-  // o lote comercial vigente publicado para evitar o antigo rótulo estático.
-  if (resolvedPublicLotCode) return `LOTE ${displayLotNumber(resolvedPublicLotCode)}`;
-  if (explicitMatch) return `LOTE ${explicitMatch[1]}`;
-
-  const nameMatch = String(lotName ?? "").match(/(\d+)/);
+  const name = String(resolvedLotName ?? lotName ?? "");
+  const nameMatch = name.match(/(\d+)/);
   if (nameMatch) return `LOTE ${nameMatch[1]}`;
 
+  // O lote inicial é apresentado publicamente como LOTE 1.
+  if (code === "initial") return "LOTE 1";
   return "LOTE 1";
 }
