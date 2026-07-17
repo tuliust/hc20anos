@@ -4,7 +4,7 @@ import { createSecureCheckout, getCheckoutStatus, type CheckoutCreateInput, type
 import { supabase } from "../lib/supabase";
 import type { DbTicketType, PaymentStatus } from "../lib/database.types";
 
-type AuthState = {
+ type AuthState = {
   loggedIn: boolean;
   name: string;
   userId: string;
@@ -21,13 +21,14 @@ type Props = {
   checkoutReturn: CheckoutReturnState;
 };
 
-type ProductCode = "simple" | "family_full" | "family_single_parent";
+type ProductCode = "simple" | "family_full" | "family_single_parent" | "external_guest";
 type ParticipantDraft = CheckoutParticipantInput & { drinks: number; barbecue: number };
 
 const PRODUCT_LABELS: Record<ProductCode, string> = {
-  simple: "Ingresso simples",
+  simple: "Ingresso Ex-Aluno",
   family_full: "Família completa",
   family_single_parent: "Família sem cônjuge",
+  external_guest: "Ingresso Convidado",
 };
 
 function key(prefix: string) {
@@ -40,14 +41,27 @@ function inputClass() {
 
 function productFromTicket(ticket?: DbTicketType | null): ProductCode {
   const code = String((ticket as any)?.product_code ?? "");
-  if (code === "family_full" || code === "family_single_parent" || code === "simple") return code;
+  if (["family_full", "family_single_parent", "simple", "external_guest"].includes(code)) return code as ProductCode;
   const name = String(ticket?.name ?? "").toLowerCase();
+  if (name.includes("convidado")) return "external_guest";
   if (name.includes("família") && (name.includes("sem cônjuge") || name.includes("monoparental"))) return "family_single_parent";
   if (name.includes("família") || name.includes("casal")) return "family_full";
   return "simple";
 }
 
 function defaultParticipants(product: ProductCode, auth: AuthState): ParticipantDraft[] {
+  if (product === "external_guest") {
+    return [{
+      client_key: key("guest"),
+      participant_type: "external_guest",
+      full_name: auth.name || "",
+      email: auth.email || "",
+      user_id: auth.userId || null,
+      drinks: 0,
+      barbecue: 0,
+    }];
+  }
+
   const alumni: ParticipantDraft = {
     client_key: key("alumni"),
     participant_type: "alumni",
@@ -74,10 +88,18 @@ function defaultParticipants(product: ProductCode, auth: AuthState): Participant
   ];
 }
 
+function isFamilyProduct(product: ProductCode) {
+  return product === "family_full" || product === "family_single_parent";
+}
+
 export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicketTypeId, checkoutReturn }: Props) {
+  const selectableTicketTypes = useMemo(
+    () => ticketTypes.filter((item) => ["simple", "family_full", "family_single_parent", "external_guest"].includes(String((item as any).product_code ?? ""))),
+    [ticketTypes],
+  );
   const selectedTicket = useMemo(
-    () => ticketTypes.find((item) => item.id === selectedTicketTypeId) ?? ticketTypes.find((item) => item.status === "open") ?? null,
-    [selectedTicketTypeId, ticketTypes],
+    () => selectableTicketTypes.find((item) => item.id === selectedTicketTypeId) ?? selectableTicketTypes.find((item) => item.status === "open") ?? null,
+    [selectedTicketTypeId, selectableTicketTypes],
   );
   const initialProduct = productFromTicket(selectedTicket);
   const [productCode, setProductCode] = useState<ProductCode>(initialProduct);
@@ -97,7 +119,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         const name = data.display_name || data.people?.full_name || auth.name || "";
         const email = data.contact_email || auth.email || "";
         setBuyer((current) => ({ ...current, name: current.name || name, email: current.email || email, phone: current.phone || data.contact_whatsapp || "" }));
-        setParticipants((current) => current.map((participant) => participant.participant_type === "alumni" ? {
+        setParticipants((current) => current.map((participant) => participant.participant_type === "alumni" || participant.participant_type === "external_guest" ? {
           ...participant,
           full_name: participant.full_name || name,
           email: participant.email || email,
@@ -130,7 +152,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
   }
 
   function addChild() {
-    if (participants.length >= 6) return;
+    if (!isFamilyProduct(productCode) || participants.length >= 6) return;
     setParticipants((current) => [...current, {
       client_key: key("child"), participant_type: "child", full_name: "", birth_date: "", drinks: 0, barbecue: 0,
     }]);
@@ -211,8 +233,8 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         <p className="mt-3 text-[#8ab89a]">A reserva dura 30 minutos. O valor final é calculado no servidor conforme o lote vigente.</p>
 
         <section className="mt-8 border border-[#2d6a4f]/30 bg-[#141f14] p-6">
-          <h2 className="text-xl font-semibold text-[#f0ebe0]">Pacote</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">{(Object.keys(PRODUCT_LABELS) as ProductCode[]).map((code) => <button key={code} onClick={() => changeProduct(code)} className={`border p-4 text-left ${productCode === code ? "border-[#c9a84c] bg-[#1a2e1a] text-[#f0ebe0]" : "border-[#2d6a4f]/30 text-[#8ab89a]"}`}><strong>{PRODUCT_LABELS[code]}</strong></button>)}</div>
+          <h2 className="text-xl font-semibold text-[#f0ebe0]">Categoria</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">{(Object.keys(PRODUCT_LABELS) as ProductCode[]).map((code) => <button key={code} onClick={() => changeProduct(code)} className={`border p-4 text-left ${productCode === code ? "border-[#c9a84c] bg-[#1a2e1a] text-[#f0ebe0]" : "border-[#2d6a4f]/30 text-[#8ab89a]"}`}><strong>{PRODUCT_LABELS[code]}</strong></button>)}</div>
         </section>
 
         <section className="mt-6 border border-[#2d6a4f]/30 bg-[#141f14] p-6">
@@ -221,8 +243,8 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         </section>
 
         <section className="mt-6 space-y-4">
-          {participants.map((participant, index) => <div key={participant.client_key} className="border border-[#2d6a4f]/30 bg-[#141f14] p-6"><div className="flex items-center justify-between"><div><p className="font-mono text-xs uppercase tracking-wider text-[#c9a84c]">Participante {index + 1}</p><h3 className="mt-1 text-lg font-semibold text-[#f0ebe0]">{participant.participant_type === "alumni" ? "Ex-aluno" : participant.participant_type === "spouse" ? "Cônjuge" : "Filho(a)"}</h3></div>{participant.participant_type === "child" && participants.filter((item) => item.participant_type === "child").length > 1 && <button onClick={() => removeParticipant(participant.client_key)} className="text-[#c0392b]"><Trash2 size={18} /></button>}</div><div className="mt-4 grid gap-4 md:grid-cols-2"><input className={inputClass()} placeholder="Nome completo" value={participant.full_name} onChange={(e) => updateParticipant(participant.client_key, { full_name: e.target.value })} />{participant.participant_type === "child" ? <input className={inputClass()} type="date" value={participant.birth_date ?? ""} onChange={(e) => updateParticipant(participant.client_key, { birth_date: e.target.value })} /> : <input className={inputClass()} placeholder="E-mail do participante (opcional)" value={participant.email ?? ""} onChange={(e) => updateParticipant(participant.client_key, { email: e.target.value })} />}</div><div className="mt-4 grid gap-4 md:grid-cols-2"><label className="text-sm text-[#8ab89a]">Pacotes de bebidas<input className={`${inputClass()} mt-2`} type="number" min="0" value={participant.drinks} onChange={(e) => updateParticipant(participant.client_key, { drinks: Math.max(0, Number(e.target.value) || 0) })} /></label><label className="text-sm text-[#8ab89a]">Pacotes de churrasco<input className={`${inputClass()} mt-2`} type="number" min="0" value={participant.barbecue} onChange={(e) => updateParticipant(participant.client_key, { barbecue: Math.max(0, Number(e.target.value) || 0) })} /></label></div></div>)}
-          {productCode !== "simple" && participants.length < 6 && <button onClick={addChild} className="flex items-center gap-2 border border-[#2d6a4f]/40 px-4 py-3 text-[#f0ebe0]"><Plus size={16} />Adicionar filho(a)</button>}
+          {participants.map((participant, index) => <div key={participant.client_key} className="border border-[#2d6a4f]/30 bg-[#141f14] p-6"><div className="flex items-center justify-between"><div><p className="font-mono text-xs uppercase tracking-wider text-[#c9a84c]">Participante {index + 1}</p><h3 className="mt-1 text-lg font-semibold text-[#f0ebe0]">{participant.participant_type === "alumni" ? "Ex-aluno" : participant.participant_type === "spouse" ? "Cônjuge" : participant.participant_type === "external_guest" ? "Convidado" : "Filho(a)"}</h3></div>{participant.participant_type === "child" && participants.filter((item) => item.participant_type === "child").length > 1 && <button onClick={() => removeParticipant(participant.client_key)} className="text-[#c0392b]"><Trash2 size={18} /></button>}</div><div className="mt-4 grid gap-4 md:grid-cols-2"><input className={inputClass()} placeholder="Nome completo" value={participant.full_name} onChange={(e) => updateParticipant(participant.client_key, { full_name: e.target.value })} />{participant.participant_type === "child" ? <input className={inputClass()} type="date" value={participant.birth_date ?? ""} onChange={(e) => updateParticipant(participant.client_key, { birth_date: e.target.value })} /> : <input className={inputClass()} placeholder="E-mail do participante (opcional)" value={participant.email ?? ""} onChange={(e) => updateParticipant(participant.client_key, { email: e.target.value })} />}</div><div className="mt-4 grid gap-4 md:grid-cols-2"><label className="text-sm text-[#8ab89a]">Pacotes de bebidas<input className={`${inputClass()} mt-2`} type="number" min="0" value={participant.drinks} onChange={(e) => updateParticipant(participant.client_key, { drinks: Math.max(0, Number(e.target.value) || 0) })} /></label><label className="text-sm text-[#8ab89a]">Pacotes de churrasco<input className={`${inputClass()} mt-2`} type="number" min="0" value={participant.barbecue} onChange={(e) => updateParticipant(participant.client_key, { barbecue: Math.max(0, Number(e.target.value) || 0) })} /></label></div></div>)}
+          {isFamilyProduct(productCode) && participants.length < 6 && <button onClick={addChild} className="flex items-center gap-2 border border-[#2d6a4f]/40 px-4 py-3 text-[#f0ebe0]"><Plus size={16} />Adicionar filho(a)</button>}
         </section>
 
         <section className="mt-6 border border-[#2d6a4f]/30 bg-[#141f14] p-6"><label className="flex items-start gap-3 text-sm text-[#8ab89a]"><input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-1" /><span>Li e aceito os Termos de Uso, a Política de Privacidade e as regras de reembolso e transferência.</span></label>{error && <p className="mt-4 border border-[#c0392b]/50 bg-[#2e0a0a] p-3 text-sm text-[#f0ebe0]">{error}</p>}<button disabled={busy} onClick={submit} className="mt-6 flex w-full items-center justify-center gap-2 bg-[#2d6a4f] px-6 py-4 font-bold text-white disabled:opacity-50">{busy ? <><RefreshCw size={18} className="animate-spin" />Preparando pagamento...</> : <><Shield size={18} />Ir para o Mercado Pago</>}</button><p className="mt-3 text-center text-xs text-[#7a9a7a]">Pix ou cartão de crédito em até 3 parcelas. Boleto não disponível.</p></section>
