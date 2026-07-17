@@ -46,12 +46,33 @@ canvas {
   padding-bottom: clamp(4.5rem, 8vw, 7.5rem);
 }
 
+/* A FAQ usa um plano próprio, distinto da área de ex-alunos e do rodapé. */
+.home-faq-section {
+  background: #122218;
+  padding-top: clamp(2.5rem, 4vw, 4rem);
+}
+
+/* Reduz apenas a transição entre o bloco anterior e a FAQ. */
+[data-home-section="alumni-overview"],
+[data-home-alumni-overview] {
+  padding-bottom: clamp(2rem, 3vw, 3.5rem) !important;
+}
+
 @media (max-width: 767px) {
   .home-section,
   .home-section-compact,
   .home-section-spacious {
     padding-top: 3.5rem;
     padding-bottom: 3.5rem;
+  }
+
+  .home-faq-section {
+    padding-top: 2.5rem;
+  }
+
+  [data-home-section="alumni-overview"],
+  [data-home-alumni-overview] {
+    padding-bottom: 2rem !important;
   }
 }
 
