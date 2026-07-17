@@ -1,6 +1,7 @@
 name: Apply home curiosities adjustments
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feat/home-curiosities-content-adjustments
