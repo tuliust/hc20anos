@@ -11,7 +11,8 @@
     "test:e2e": "playwright test",
     "test:faq": "node --test tests/unit/faq.test.mjs",
     "test:e2e:visual": "playwright test tests/e2e/home-visual.spec.ts",
-    "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
+    "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs",
+    "apply:home-curiosities": "node scripts/run-home-curiosities-adjustments.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
