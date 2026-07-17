@@ -39,6 +39,7 @@ import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
+import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -2176,13 +2177,13 @@ function Header({ page, navigate, auth, logout, content }: {
                     </div>
 
                     <div className="pt-3 flex flex-col">
+                      <button onClick={() => go("alumni-area")} className="text-left px-3 py-3 text-[#c9a84c] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Minha Área</button>
                       {auth.role === "superadmin" && (
                         <button onClick={() => go("admin")} className="text-left px-3 py-3 text-[#c9a84c] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">PAINEL ADMIN</button>
                       )}
                       <button onClick={() => go("edit-profile")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Editar perfil</button>
                       <button onClick={() => { setProfileMenuOpen(false); setPhotoModalOpen(true); }} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Alterar foto</button>
                       <button onClick={() => { setProfileMenuOpen(false); setPasswordModalOpen(true); }} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Mudar senha</button>
-                      <button onClick={() => go("alumni-area")} className="text-left px-3 py-3 text-[#f0ebe0] hover:bg-[#141f14] text-xs font-mono uppercase tracking-wider transition-colors">Seus ingressos e atualizações</button>
                       <button onClick={() => { setProfileMenuOpen(false); logout(); }} className="text-left px-3 py-3 text-[#e74c3c] hover:bg-[#2e0a0a] text-xs font-mono uppercase tracking-wider transition-colors">Sair</button>
                     </div>
                   </div>
@@ -2476,10 +2477,11 @@ function LoginPage({ navigate, onLogin }: {
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 
-function Hero({ navigate, content, event }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null }) {
+function Hero({ navigate, content, event, auth }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null; auth: AuthState }) {
   const extendedContent = getExtendedHomeContent(content);
   const showSubtitle = shouldShowHeroSubtitle(content.hero_subtitle);
   const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
+  const [attendanceState, setAttendanceState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     const update = () => setTime(getTimeLeft(getEventDateTime(event)));
@@ -2487,6 +2489,21 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [event?.event_date, event?.event_time]);
+  async function handleAttendanceIntent() {
+    window.sessionStorage.setItem("hc-attendance-intent", "yes");
+    if (!auth.loggedIn || !auth.userId) {
+      navigate("claim-profile");
+      return;
+    }
+    setAttendanceState("saving");
+    try {
+      await saveMyPublicProfile(auth.userId, { intends_to_attend: true });
+      window.sessionStorage.removeItem("hc-attendance-intent");
+      setAttendanceState("saved");
+    } catch {
+      setAttendanceState("error");
+    }
+  }
 
   return (
     <section data-home-section="hero" className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
@@ -2507,8 +2524,10 @@ function Hero({ navigate, content, event }: { navigate: (p: Page) => void; conte
         <p className={`text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 ${showSubtitle ? "mt-1" : "mt-0"} mb-8 md:mb-10`}>{content.hero_event_line}</p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 md:mb-12">
           <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
-          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.secondary_cta_page, "who-going"))}>{content.secondary_cta_label}</Btn>
+          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" disabled={attendanceState === "saving"} onClick={handleAttendanceIntent}>{attendanceState === "saving" ? "Salvando..." : attendanceState === "saved" ? "Presença marcada" : content.secondary_cta_label}</Btn>
         </div>
+        {attendanceState === "saved" && <p className="-mt-5 mb-7 text-sm font-mono text-[#74c69d]">Sua intenção de participar foi registrada.</p>}
+        {attendanceState === "error" && <p className="-mt-5 mb-7 text-sm font-mono text-[#e07a5f]">Não foi possível marcar sua presença. Tente novamente.</p>}
         <div className="inline-flex">
           {[
             { v: time.days, l: extendedContent.countdown_days_label },
@@ -3434,9 +3453,7 @@ function TicketsPreview({
   onSelectTicket: (id: string) => void;
 }) {
   const extendedContent = getExtendedHomeContent(content);
-  const publicTickets = ticketTypes
-    .filter(isTicketVisibleOnHome)
-    .slice(0, parsePositiveInteger(extendedContent.tickets_preview_limit, 3));
+  const publicTickets = selectPublicTicketCards(ticketTypes);
 
   return (
     <section className="home-section bg-[#0a120a]">
@@ -3454,44 +3471,24 @@ function TicketsPreview({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {publicTickets.map(ticket => {
-              const availability = getTicketAvailability(ticket);
+            {publicTickets.map(card => {
+              const ticket = card.ticketType;
               const visualStatus = getTicketVisualStatus(ticket);
               const disabled = visualStatus === "sold-out";
-              const descriptionItems = getTicketDescriptionItems(ticket.description);
-
               return (
-                <div key={ticket.id} className={"bg-[#141f14] border p-8 flex flex-col gap-4 transition-colors " + (disabled ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
+                <div key={ticket.id} className={"bg-[#141f14] border p-8 flex min-h-[300px] flex-col gap-6 transition-colors " + (disabled ? "border-[#c0392b]/20 opacity-60" : "border-[#2d6a4f]/30 hover:border-[#2d6a4f]/60")}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{extendedContent.tickets_active_lot_label}</p>
-                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mt-1">{ticket.name}</p>
+                      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{formatLotLabel("lot_1", "1º lote")}</p>
+                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-2xl mt-2">{card.displayName}</p>
                     </div>
                     <StatusBadge status={visualStatus} />
                   </div>
-
-                  <div className="border-t border-[#2d6a4f]/20 pt-4">
+                  <div className="border-t border-[#2d6a4f]/20 pt-5">
                     <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl">{formatCurrencyBR(ticket.price_cents)}</p>
-                    {ticket.available_quantity > 0 && (
-                      <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{applyTextTemplate(extendedContent.tickets_remaining_label_template, { available: availability, total: ticket.available_quantity })}</p>
-                    )}
                   </div>
-
-                  <ul className="flex flex-col gap-2">
-                    {descriptionItems.map(item => (
-                      <li key={item} className="flex items-start gap-2 text-[#7a9a7a] text-xs">
-                        <Check size={12} className="text-[#2d6a4f] mt-0.5 shrink-0" />{item}
-                      </li>
-                    ))}
-                  </ul>
-
                   <div className="mt-auto">
-                    <Btn
-                      full
-                      disabled={disabled}
-                      onClick={() => { onSelectTicket(ticket.id); navigate("checkout"); }}
-                      variant={visualStatus === "last-units" ? "gold" : "primary"}
-                    >
+                    <Btn full disabled={disabled} onClick={() => { onSelectTicket(ticket.id); navigate("checkout"); }} variant={visualStatus === "last-units" ? "gold" : "primary"}>
                       {disabled ? extendedContent.tickets_sold_out_label : extendedContent.tickets_buy_label}
                     </Btn>
                   </div>
@@ -3642,7 +3639,7 @@ function LandingPage({
 }) {
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
-    hero: <Hero navigate={navigate} content={content} event={event} />,
+    hero: <Hero navigate={navigate} content={content} event={event} auth={auth} />,
     about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} />,
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
@@ -4540,7 +4537,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     relationshipStatus: "" as RelationshipStatus | "",
     hasChildren: "" as "" | "yes" | "no",
     childrenCount: "",
-    intendsToAttend: "" as "" | "yes" | "no",
+    intendsToAttend: (window.sessionStorage.getItem("hc-attendance-intent") === "yes" ? "yes" : "") as "" | "yes" | "no",
   });
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: true, showInList: true, allowTagging: true });
   const [bioAssistantOpen, setBioAssistantOpen] = useState(false);
@@ -4799,6 +4796,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       if (photoUrl && effectiveUserId) {
         await saveMyPublicProfile(effectiveUserId, { current_photo_url: photoUrl }, { avatar_url: photoUrl }).catch(() => {});
       }
+      window.sessionStorage.removeItem("hc-attendance-intent");
       setPendingEmailConfirmation(false);
       setDone(true);
       goToStep(6);
@@ -5098,7 +5096,8 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
     .map(tag => tag.tagged_name_snapshot)
     .filter(Boolean) as string[])))).sort();
 
-  const filteredPhotos = photos.filter(p => {
+  const managedPhotos = photos.filter(p => p.is_featured);
+  const filteredPhotos = managedPhotos.filter(p => {
     const matchesYear = filter === "all" || String(p.year_approx) === filter;
     const tags = ((p as DbPhoto & { photo_tags?: { tagged_name_snapshot?: string | null; status?: string | null }[] }).photo_tags ?? []);
     const approvedTagNames = tags
@@ -5109,8 +5108,8 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
     return matchesYear && matchesPerson;
   });
 
-  const featuredPhotos = photos.filter(p => p.is_featured).slice(0, 6);
-  const popularPhotos = [...photos].sort((a, b) => (stats[b.id]?.likes_count ?? 0) - (stats[a.id]?.likes_count ?? 0)).slice(0, 6);
+  const featuredPhotos: DbPhoto[] = [];
+  const popularPhotos = [...managedPhotos].sort((a, b) => (stats[b.id]?.likes_count ?? 0) - (stats[a.id]?.likes_count ?? 0)).slice(0, 6);
 
   async function loadStats() {
     const photoIds = photos.map(p => p.id);
@@ -5160,7 +5159,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
             <div>
               <SectionLabel>Nossa História</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Fotos da Época</DisplayTitle>
-              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{photos.length} fotos · curtidas e comentários moderados</p>
+              <p className="text-[#7a9a7a] mt-2 font-mono text-sm">{managedPhotos.length} fotos selecionadas pela organização</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Btn variant="outline" onClick={() => navigate("memories")}><MessageCircle size={16} />Caixa de Memórias</Btn>
@@ -5646,8 +5645,6 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const relationshipRows = profileStats?.relationship_status_counts ?? [];
   const childrenRows = profileStats?.children_status_counts ?? [];
   const professionRows = profileStats?.profession_area_counts ?? [];
-  const childrenCountRows = profileStats?.children_count_distribution ?? [];
-  const topLocations = locations.slice(0, 8);
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -5700,11 +5697,6 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
                 <MiniBarChart title="Filhos" description="Dados declarados no cadastro, exibidos somente de forma agregada." rows={childrenRows} />
                 <MiniBarChart title="Profissões por área" description="Agrupamento aproximado das profissões informadas publicamente." rows={professionRows} />
               </div>
-              {childrenCountRows.length > 0 && (
-                <div className="mt-5">
-                  <MiniBarChart title="Quantidade de filhos declarada" rows={childrenCountRows} />
-                </div>
-              )}
             </section>
 
             <section className="mb-12">
@@ -5716,20 +5708,21 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
                 </div>
                 <Btn variant="outline" onClick={() => navigate("ex-alumni")}><Users size={16} />Ver ex-alunos</Btn>
               </div>
-              {topLocations.length === 0 ? (
+              {locations.length === 0 ? (
                 <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
                   <EmptyState icon={<MapPin size={42} />} title="Mapa ainda sem dados públicos" subtitle="As cidades aparecerão conforme os ex-alunos autorizarem a exibição da localização." />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {topLocations.map(location => (
-                    <div key={location.key} className="bg-[#141f14] border border-[#2d6a4f]/30 p-5">
-                      <p className="text-[#f0ebe0] font-semibold text-lg">{location.city}</p>
-                      <p className="text-[#7a9a7a] text-xs font-mono mt-1">{[location.state, location.country].filter(Boolean).join(" · ")}</p>
-                      <p className="text-[#c9a84c] font-mono text-2xl font-bold mt-4">{location.count}</p>
-                      <p className="text-[#3a5a3a] text-xs mt-2 truncate">{location.people.map(person => person.display_name || person.full_name).slice(0, 4).join(" · ")}</p>
-                    </div>
-                  ))}
+                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 md:p-6">
+                  <HomeMapChart
+                    configs={[
+                      { key: "foreign", label: "Exterior" },
+                      { key: "other_state", label: "Outros estados" },
+                      { key: "interior", label: "Interior do RN" },
+                      { key: "natal", label: "Natal/RN" },
+                    ] as HomeMapStatConfig[]}
+                    locations={locations}
+                  />
                 </div>
               )}
             </section>
@@ -5754,6 +5747,7 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
                     const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
                     const total = Math.max(totalVotes(poll.id), 1);
                     const votedOptions = myVotes.filter(v => v.poll_id === poll.id).map(v => v.option_id);
+                    const hasVoted = votedOptions.length > 0;
                     return (
                       <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5">
                         <div className="flex items-start justify-between gap-3">
@@ -5770,24 +5764,25 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
                             const count = results[poll.id]?.[option.id] ?? 0;
                             const percent = Math.round((count / total) * 100);
                             const voted = votedOptions.includes(option.id);
-                            const disabled = poll.status !== "open" || busy === option.id;
+                            const disabled = !auth.loggedIn || poll.status !== "open" || busy === option.id || (hasVoted && !poll.allow_multiple_votes);
                             return (
                               <button key={option.id} disabled={disabled} onClick={() => submitVote(poll, option.id)}
                                 className={`text-left border p-4 transition-colors disabled:cursor-not-allowed ${voted ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
-                                <div className="flex items-center justify-between gap-3 mb-2">
+                                <div className={`flex items-center justify-between gap-3 ${hasVoted ? "mb-2" : ""}`}>
                                   <span className="text-[#f0ebe0] text-sm font-semibold">{option.option_text}</span>
-                                  <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>
+                                  {hasVoted && <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>}
                                 </div>
-                                <div className="h-2 bg-[#1a2e1a] overflow-hidden">
-                                  <div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} />
-                                </div>
-                                <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
+                                {hasVoted && <>
+                                  <div className="h-2 bg-[#1a2e1a] overflow-hidden"><div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} /></div>
+                                  <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
+                                </>}
                               </button>
                             );
                           })}
                         </div>
 
-                        {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar.</p>}
+                        {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar e visualizar os resultados.</p>}
+                        {auth.loggedIn && !hasVoted && poll.status === "open" && <p className="text-[#7a9a7a] text-xs font-mono">Os resultados serão exibidos depois do seu voto.</p>}
                         {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
                       </div>
                     );
