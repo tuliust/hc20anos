@@ -7,6 +7,7 @@ import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
+import './mobile-touch-targets.css';
 
 installNeutralCmsDefaults();
 const rootElement = document.getElementById('root');
