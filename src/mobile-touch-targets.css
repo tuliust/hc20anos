@@ -12,4 +12,18 @@
     min-inline-size: 2.75rem !important;
     min-block-size: 2.75rem !important;
   }
+
+  /* A seta permanece fixa e clicável; o movimento contínuo não deve impedir
+     interação por toque nem tornar o alvo instável em testes automatizados. */
+  [data-home-hero-next] {
+    animation: none !important;
+  }
+
+  /* Dropdowns mobile participam do fluxo para não cobrirem o seletor seguinte
+     nem ficarem sob o header fixo durante a rolagem. */
+  [data-year-multiselect] > div,
+  [data-person-multiselect] > div {
+    position: static !important;
+    margin-top: 0.5rem;
+  }
 }
