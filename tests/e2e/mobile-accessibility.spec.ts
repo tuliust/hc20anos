@@ -31,17 +31,42 @@ test.describe("mobile accessibility safeguards", () => {
     await page.goto("/");
     await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
 
-    const duration = await page.locator("[data-home-section='hero']").evaluate(element => {
-      const probe = element.querySelector<HTMLElement>("*") ?? element as HTMLElement;
+    const result = await page.evaluate(() => {
+      const toMilliseconds = (value: string) => value
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(item => item.endsWith("ms") ? Number.parseFloat(item) : Number.parseFloat(item) * 1000)
+        .filter(Number.isFinite);
+
+      const probe = document.createElement("div");
+      probe.style.animationName = "mobile-reduced-motion-probe";
+      probe.style.animationDuration = "2s";
+      probe.style.animationIterationCount = "infinite";
+      probe.style.transitionProperty = "opacity";
+      probe.style.transitionDuration = "2s";
+      document.body.appendChild(probe);
+
       const style = window.getComputedStyle(probe);
+      const animationDurations = toMilliseconds(style.animationDuration);
+      const transitionDurations = toMilliseconds(style.transitionDuration);
+      const animationIterations = style.animationIterationCount
+        .split(",")
+        .map(item => item.trim());
+      probe.remove();
+
       return {
-        animationDuration: style.animationDuration,
-        transitionDuration: style.transitionDuration,
+        reducedMotionMatches: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        maximumAnimationDurationMs: Math.max(0, ...animationDurations),
+        maximumTransitionDurationMs: Math.max(0, ...transitionDurations),
+        animationIterations,
       };
     });
 
-    expect(duration.animationDuration === "0.01ms" || duration.animationDuration === "0s").toBeTruthy();
-    expect(duration.transitionDuration === "0.01ms" || duration.transitionDuration === "0s").toBeTruthy();
+    expect(result.reducedMotionMatches).toBe(true);
+    expect(result.maximumAnimationDurationMs).toBeLessThanOrEqual(0.01);
+    expect(result.maximumTransitionDurationMs).toBeLessThanOrEqual(0.01);
+    expect(result.animationIterations.every(value => value === "1")).toBe(true);
   });
 
   test("orientação horizontal mantém a Home dentro da viewport", async ({ page }) => {
