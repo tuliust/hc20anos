@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, splitVendorChunkPlugin } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -15,35 +15,6 @@ function figmaAssetResolver() {
   }
 }
 
-const vendorChunks = {
-  'vendor-react': [
-    'react',
-    'react-dom',
-    'react-router',
-  ],
-  'vendor-supabase': [
-    '@supabase/supabase-js',
-  ],
-  'vendor-mui': [
-    '@mui/material',
-    '@mui/icons-material',
-    '@emotion/react',
-    '@emotion/styled',
-  ],
-  'vendor-charts': [
-    'recharts',
-  ],
-  'vendor-motion': [
-    'motion',
-    'embla-carousel-react',
-  ],
-  'vendor-ui': [
-    'lucide-react',
-    'sonner',
-    'vaul',
-  ],
-}
-
 export default defineConfig({
   plugins: [
     figmaAssetResolver(),
@@ -51,18 +22,12 @@ export default defineConfig({
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    splitVendorChunkPlugin(),
   ],
   resolve: {
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: vendorChunks,
-      },
     },
   },
 
