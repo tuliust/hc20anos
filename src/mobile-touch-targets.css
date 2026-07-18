@@ -1,0 +1,15 @@
+@media (max-width: 767px) {
+  /* Camada final de acessibilidade: classes utilitárias de largura não podem
+     reduzir botões e links interativos abaixo da área mínima de toque. */
+  [data-app-main] :where(button, a):has(svg),
+  [data-admin-root] :where(button, a):has(svg) {
+    min-inline-size: 2.75rem !important;
+    min-block-size: 2.75rem !important;
+  }
+
+  [data-app-main] :where(button, a)[aria-label],
+  [data-admin-root] :where(button, a)[aria-label] {
+    min-inline-size: 2.75rem !important;
+    min-block-size: 2.75rem !important;
+  }
+}
