@@ -849,6 +849,30 @@ function EventInfoSection({ content, event, navigate }: { content: HomePageConte
 }
 
 
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 shrink-0 text-[#c9a84c]">{icon}</div>
+      <div className="min-w-0">
+        <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">
+          {label}
+        </p>
+        <p className="break-words text-sm leading-relaxed text-[#f0ebe0]">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function extractIframeSrc(value?: string | null) {
   const raw = value?.trim();
   if (!raw) return null;
