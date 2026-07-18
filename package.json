@@ -9,8 +9,10 @@
     "audit:cms-strict": "node scripts/audit-strict-cms.mjs",
     "audit:cms-production": "node scripts/audit-home-cms-production.mjs --production",
     "audit:bundle": "node scripts/audit-bundle-size.mjs",
+    "audit:mobile-structure": "node scripts/audit-mobile-structure.mjs",
     "test:e2e": "playwright test",
     "test:faq": "node --test tests/unit/faq.test.mjs",
+    "test:mobile-pending": "node --test tests/unit/mobile-pending-audit.test.mjs",
     "test:e2e:visual": "playwright test tests/e2e/home-visual.spec.ts",
     "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
   },
