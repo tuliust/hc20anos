@@ -1,4 +1,4 @@
-﻿import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { installAuthenticatedFixtures, loginWithFixtures } from "./auth-fixtures";
 import { installHomeFixtures, peopleFixture } from "./home-fixtures";
 
@@ -51,7 +51,7 @@ test("seta da Hero usa scroll suave e leva Ã  seÃ§Ã£o seguinte", async ({ 
   await expect.poll(() => page.locator("#home-about").evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeLessThan(90);
 });
 
-test("timeline abre o item ao cruzar o centro e mantÃ©m apenas um expandido", async ({ page }) => {
+test("timeline abre o item ao cruzar o centro e mantém apenas um expandido", async ({ page }) => {
   await openFixtureHome(page);
   const items = page.locator("[data-home-nostalgia-timeline] [data-timeline-index]");
   await expect(items).toHaveCount(2);
@@ -66,7 +66,7 @@ test("badges DISPONÃVEL e ABERTO ficam em uma linha e acima do tÃ­tulo no m
   await page.setViewportSize({ width: 390, height: 844 });
   await installHomeFixtures(page);
   await page.route("**/rest/v1/ticket_types**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{
-    id: "ticket-mobile", event_id: "00000000-0000-0000-0000-000000000001", name: "Ingresso Individual â€” 1Âº Lote", description: null,
+    id: "ticket-mobile", event_id: "00000000-0000-0000-0000-000000000001", name: "Ingresso Individual — 1º Lote", description: null,
     price_cents: 12000, available_quantity: 100, sold_quantity: 20, status: "open", is_visible: true, max_per_order: 4,
   }]) }));
 
@@ -87,7 +87,7 @@ test("badges DISPONÃVEL e ABERTO ficam em uma linha e acima do tÃ­tulo no m
   expect(positions.badge).toBeLessThan(positions.title);
 });
 
-test("filtros de ex-alunos sÃ£o compactos e nomes aceitam duas linhas", async ({ page }) => {
+test("filtros de ex-alunos são compactos e nomes aceitam duas linhas", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await installHomeFixtures(page, { people: peopleFixture.map((person, index) => index === 0 ? { ...person, display_name: "Maria Eduarda Albuquerque de Vasconcelos" } : person) });
   await page.goto("/ex-alunos");
@@ -100,16 +100,16 @@ test("filtros de ex-alunos sÃ£o compactos e nomes aceitam duas linhas", async 
   await expect(page.locator("[data-alumni-name]").first()).toHaveCSS("-webkit-line-clamp", "2");
 });
 
-test("Nossa HistÃ³ria mantÃ©m aÃ§Ãµes lado a lado e oferece multiselect de anos e pessoas", async ({ page }) => {
+test("Nossa História mantém ações lado a lado e oferece multiselect de anos e pessoas", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await installHomeFixtures(page);
   await page.goto("/nossa-historia");
 
   const actions = page.locator("[data-history-actions] button");
-  await expect(actions).toHaveText(["MemÃ³rias", "Enviar foto"]);
+  await expect(actions).toHaveText(["Memórias", "Enviar foto"]);
   const actionTops = await actions.evaluateAll(buttons => buttons.map(button => Math.round(button.getBoundingClientRect().top)));
   expect(new Set(actionTops).size).toBe(1);
-  await expect(page.getByText(/fotos selecionadas pela organizaÃ§Ã£o/i)).toHaveCount(0);
+  await expect(page.getByText(/fotos selecionadas pela organização/i)).toHaveCount(0);
 
   await page.locator("[data-year-multiselect] > button").click();
   await expect(page.locator("[data-year-multiselect]")).toContainText("Todos os anos");
@@ -119,12 +119,12 @@ test("Nossa HistÃ³ria mantÃ©m aÃ§Ãµes lado a lado e oferece multiselect 
   await expect(page.locator("[data-person-multiselect]")).toContainText("Todas as pessoas");
 });
 
-test("mudanÃ§a de pathname aplica ScrollToTop global", async ({ page }) => {
+test("mudança de pathname aplica ScrollToTop global", async ({ page }) => {
   await openFixtureHome(page);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
   await page.locator("[data-public-header-menu]").click();
-  await page.getByRole("button", { name: "PÃ³s-Festa", exact: true }).click();
+  await page.getByRole("button", { name: "Pós-Festa", exact: true }).click();
   await expect(page).toHaveURL(/\/pos-festa$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 });
