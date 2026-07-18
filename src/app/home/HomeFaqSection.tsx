@@ -125,20 +125,25 @@ export function HomeFaqSection({
           />
         </label>
 
-        <div className="mb-6 lg:hidden">
-          <label className="block text-[11px] font-mono uppercase tracking-wider text-[#a8b9a8]">
-            Categoria
-            <select
-              value={categoryId ?? ""}
-              onChange={event => selectCategory(event.target.value)}
-              className="mt-2 w-full border border-[#2d6a4f]/35 bg-[#141f14] px-4 py-4 text-sm text-[#f0ebe0] outline-none focus-visible:border-[#c9a84c] focus-visible:ring-2 focus-visible:ring-[#c9a84c]/35"
-            >
-              {visibleCategories.map(category => (
-                <option key={category.id} value={category.id}>{category.label}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <nav className="mb-6 grid grid-cols-2 gap-2 lg:hidden" aria-label="Filtrar dúvidas por categoria">
+          {visibleCategories.map(category => {
+            const active = !isSearching && categoryId === category.id;
+            const hasItems = categoryIdsWithItems.has(category.id);
+            return (
+              <button
+                key={category.id}
+                type="button"
+                aria-pressed={active}
+                disabled={!hasItems}
+                onClick={() => selectCategory(category.id)}
+                className={`min-w-0 flex items-center gap-2 border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8]"}`}
+              >
+                <span className="shrink-0"><CategoryIcon category={category as FaqCategoryWithIcon} size={18} /></span>
+                <span className="min-w-0 text-[10px] font-mono font-bold uppercase leading-snug tracking-wide break-words">{category.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
         <div className="grid items-start gap-8 lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
           <nav className="hidden grid-cols-2 gap-3 lg:grid" aria-label="Filtrar dúvidas por categoria">
