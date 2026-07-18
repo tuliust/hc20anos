@@ -4,10 +4,12 @@ import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
+import { installMobileEnhancements } from './mobileEnhancements';
 import './styles.css';
 import './mobile.css';
 
 installNeutralCmsDefaults();
+installMobileEnhancements();
 
 const rootElement = document.getElementById('root');
 
