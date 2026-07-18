@@ -3,6 +3,8 @@ const ITEM_SELECTOR = '[data-timeline-index]';
 const ACTIVE_ITEM_SELECTOR = `${ITEM_SELECTOR}[data-timeline-active="true"]`;
 const DEFAULT_STEP_DELAY_MS = 420;
 const MANUAL_BYPASS_MS = 1200;
+const ACTIVATION_LINE_RATIO = 0.45;
+const SYNTHETIC_SCROLL_GUARD_MS = 80;
 
 function readTimelineIndex(element: Element | null): number | null {
   if (!(element instanceof HTMLElement)) return null;
@@ -12,6 +14,29 @@ function readTimelineIndex(element: Element | null): number | null {
 
 function getActiveIndex(timeline: HTMLElement): number | null {
   return readTimelineIndex(timeline.querySelector(ACTIVE_ITEM_SELECTOR));
+}
+
+function getViewportTargetIndex(timeline: HTMLElement): number | null {
+  const timelineRect = timeline.getBoundingClientRect();
+  if (timelineRect.bottom < 0 || timelineRect.top > window.innerHeight) return null;
+
+  const activationLine = window.innerHeight * ACTIVATION_LINE_RATIO;
+  let closestIndex: number | null = null;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  timeline.querySelectorAll<HTMLElement>(ITEM_SELECTOR).forEach(item => {
+    const index = readTimelineIndex(item);
+    if (index === null) return;
+    const anchor = item.querySelector<HTMLElement>('button[type="button"]') ?? item;
+    const rect = anchor.getBoundingClientRect();
+    const anchorPosition = rect.top + Math.min(rect.height, 56) / 2;
+    const distance = Math.abs(anchorPosition - activationLine);
+    if (distance >= closestDistance) return;
+    closestDistance = distance;
+    closestIndex = index;
+  });
+
+  return closestIndex;
 }
 
 function clickTimelineItem(timeline: HTMLElement, index: number): boolean {
@@ -36,7 +61,10 @@ function enhanceTimeline(timeline: HTMLElement) {
   let expectedIndex: number | null = null;
   let stepTimer: number | null = null;
   let fallbackTimer: number | null = null;
+  let scrollFrame: number | null = null;
   let manualBypassUntil = 0;
+  let syntheticLockUntil = 0;
+  let lastSyntheticStepAt = 0;
 
   const clearTimers = () => {
     if (stepTimer !== null) window.clearTimeout(stepTimer);
@@ -60,6 +88,8 @@ function enhanceTimeline(timeline: HTMLElement) {
 
     const nextIndex = stableIndex + Math.sign(targetIndex - stableIndex);
     expectedIndex = nextIndex;
+    lastSyntheticStepAt = performance.now();
+    syntheticLockUntil = lastSyntheticStepAt + MANUAL_BYPASS_MS;
 
     if (!clickTimelineItem(timeline, nextIndex)) {
       resetSequence();
@@ -80,6 +110,31 @@ function enhanceTimeline(timeline: HTMLElement) {
     stepTimer = window.setTimeout(advanceSequence, stepDelayMs);
   };
 
+  const updateTargetFromViewport = () => {
+    scrollFrame = null;
+    const now = performance.now();
+    if (now < manualBypassUntil || now - lastSyntheticStepAt < SYNTHETIC_SCROLL_GUARD_MS) return;
+    if (now >= syntheticLockUntil && targetIndex === null && expectedIndex === null) return;
+
+    const viewportTarget = getViewportTargetIndex(timeline);
+    if (viewportTarget === null || stableIndex === null) return;
+    targetIndex = viewportTarget;
+
+    if (
+      expectedIndex === null
+      && stepTimer === null
+      && fallbackTimer === null
+      && targetIndex !== stableIndex
+    ) {
+      advanceSequence();
+    }
+  };
+
+  const handleScroll = () => {
+    if (scrollFrame !== null) return;
+    scrollFrame = window.requestAnimationFrame(updateTargetFromViewport);
+  };
+
   timeline.addEventListener('click', event => {
     if (!event.isTrusted) return;
     const target = event.target;
@@ -88,9 +143,12 @@ function enhanceTimeline(timeline: HTMLElement) {
     if (!item || !timeline.contains(item)) return;
 
     manualBypassUntil = performance.now() + MANUAL_BYPASS_MS;
+    syntheticLockUntil = 0;
     stableIndex = readTimelineIndex(item);
     resetSequence();
   }, true);
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
 
   const observer = new MutationObserver(() => {
     const activeIndex = getActiveIndex(timeline);
