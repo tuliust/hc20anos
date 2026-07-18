@@ -109,12 +109,12 @@
     font-size: 1.75rem !important;
   }
 
-  [data-home-section="hero"] .inline-flex .font-\['JetBrains_Mono'\] {
+  [data-home-section="hero"] .inline-flex [class*="JetBrains_Mono"] {
     font-size: clamp(1.85rem, 10vw, 2.5rem) !important;
     line-height: 1 !important;
   }
 
-  [data-home-section="hero"] .inline-flex .tracking-\[0\.3em\] {
+  [data-home-section="hero"] .inline-flex [class*="tracking-"] {
     letter-spacing: 0.12em !important;
     font-size: 0.5rem !important;
   }
@@ -142,7 +142,7 @@
     font-size: 1.4rem !important;
   }
 
-  [data-home-section="hero"] .inline-flex .font-\['JetBrains_Mono'\] {
+  [data-home-section="hero"] .inline-flex [class*="JetBrains_Mono"] {
     font-size: 1.8rem !important;
   }
 }
