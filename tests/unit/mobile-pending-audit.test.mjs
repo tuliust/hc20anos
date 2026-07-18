@@ -17,12 +17,13 @@ test('ScrollToTop global reage ao pathname', () => {
   assert.match(app, /window\.scrollTo\(\{\s*top:\s*0/);
 });
 
-test('multiselect de anos expõe aria-expanded', () => {
+test('multiselect de anos expõe aria-expanded e opções pressionáveis', () => {
   assert.match(publicPages, /data-year-multiselect[\s\S]*?aria-expanded=\{yearDropdownOpen\}/);
+  assert.match(publicPages, /aria-pressed=\{selected\}/);
 });
 
-test('multiselect de pessoas expõe aria-expanded', () => {
-  assert.match(publicPages, /data-person-multiselect[\s\S]*?aria-expanded=\{personDropdownOpen\}/);
+test('multiselect de pessoas mantém opção global dentro do dropdown', () => {
+  assert.match(publicPages, /data-person-multiselect[\s\S]*?Todas as pessoas/);
 });
 
 test('CSS mobile não mascara overflow horizontal globalmente', () => {
