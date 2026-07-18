@@ -1,5 +1,8 @@
 const MOBILE_QUERY = "(max-width: 767px)";
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const ENHANCER_ATTRIBUTE = "data-mobile-account-actions";
+const HERO_SCROLL_ATTRIBUTE = "data-mobile-hero-scroll";
+const MOBILE_HEADER_OFFSET = 64;
 
 function normalizeLabel(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
@@ -85,8 +88,73 @@ function buildMobileAccountActions(menu: HTMLElement) {
   if (dropdown && trigger) trigger.click();
 }
 
-function enhanceMobileUi() {
+function findMobileHeroScrollTrigger(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[data-home-section="hero"] .animate-bounce');
+}
+
+function updateMobileHeroScrollTrigger() {
+  const trigger = findMobileHeroScrollTrigger();
+  if (!trigger) return;
+
+  if (window.matchMedia(MOBILE_QUERY).matches) {
+    trigger.setAttribute(HERO_SCROLL_ATTRIBUTE, "true");
+    trigger.setAttribute("role", "button");
+    trigger.setAttribute("tabindex", "0");
+    trigger.setAttribute("aria-label", "Ir para a próxima seção");
+    trigger.style.cursor = "pointer";
+    return;
+  }
+
+  if (!trigger.hasAttribute(HERO_SCROLL_ATTRIBUTE)) return;
+  trigger.removeAttribute(HERO_SCROLL_ATTRIBUTE);
+  trigger.removeAttribute("role");
+  trigger.removeAttribute("tabindex");
+  trigger.removeAttribute("aria-label");
+  trigger.style.removeProperty("cursor");
+}
+
+function scrollToSectionAfterHero(trigger: Element) {
   if (!window.matchMedia(MOBILE_QUERY).matches) return;
+
+  const hero = trigger.closest<HTMLElement>('[data-home-section="hero"]');
+  const explicitTarget = document.querySelector<HTMLElement>('[data-home-section="about"]');
+  const adjacentTarget = hero?.nextElementSibling instanceof HTMLElement ? hero.nextElementSibling : null;
+  const target = explicitTarget ?? adjacentTarget;
+  if (!target) return;
+
+  const top = target.getBoundingClientRect().top + window.scrollY - MOBILE_HEADER_OFFSET;
+  const behavior: ScrollBehavior = window.matchMedia(REDUCED_MOTION_QUERY).matches ? "auto" : "smooth";
+  window.scrollTo({ top: Math.max(0, top), behavior });
+}
+
+function handleMobileHeroClick(event: MouseEvent) {
+  if (!window.matchMedia(MOBILE_QUERY).matches) return;
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  const trigger = target.closest(`[${HERO_SCROLL_ATTRIBUTE}]`);
+  if (!trigger) return;
+
+  event.preventDefault();
+  scrollToSectionAfterHero(trigger);
+}
+
+function handleMobileHeroKeyDown(event: KeyboardEvent) {
+  if (!window.matchMedia(MOBILE_QUERY).matches || (event.key !== "Enter" && event.key !== " ")) return;
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  const trigger = target.closest(`[${HERO_SCROLL_ATTRIBUTE}]`);
+  if (!trigger) return;
+
+  event.preventDefault();
+  scrollToSectionAfterHero(trigger);
+}
+
+function enhanceMobileUi() {
+  updateMobileHeroScrollTrigger();
+  if (!window.matchMedia(MOBILE_QUERY).matches) return;
+
   const menu = findPublicMobileMenu();
   if (menu) buildMobileAccountActions(menu);
 }
@@ -95,8 +163,12 @@ export function installMobileEnhancements() {
   if (typeof window === "undefined" || typeof MutationObserver === "undefined") return;
 
   const observer = new MutationObserver(enhanceMobileUi);
+  const mobileMedia = window.matchMedia(MOBILE_QUERY);
   const start = () => {
     observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("click", handleMobileHeroClick);
+    document.addEventListener("keydown", handleMobileHeroKeyDown);
+    mobileMedia.addEventListener("change", enhanceMobileUi);
     enhanceMobileUi();
   };
 
