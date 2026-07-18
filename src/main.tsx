@@ -7,6 +7,7 @@ import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import './styles.css';
 import './mobile.css';
+import './mobile-a11y.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
