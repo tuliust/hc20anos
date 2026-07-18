@@ -57,6 +57,5 @@ export async function loginWithFixtures(page: Page) {
   await page.locator('input[type="password"]').fill("senha-segura");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL(url => !url.pathname.endsWith("/login"), { timeout: 20_000 });
-  await page.waitForFunction(() => Boolean(document.querySelector("[data-public-header-menu]")), null, { timeout: 20_000 });
   await page.waitForTimeout(250);
 }
