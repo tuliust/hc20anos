@@ -5,6 +5,7 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import './styles.css';
+import './mobile.css';
 
 installNeutralCmsDefaults();
 
