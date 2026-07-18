@@ -121,6 +121,11 @@
 
   [data-home-map-chart] nav button {
     min-height: 44px;
+    font-size: 8px !important;
+  }
+
+  [data-home-map-chart] button[aria-label] + p {
+    display: none;
   }
 
   [data-home-map-chart] [aria-live="polite"] {
