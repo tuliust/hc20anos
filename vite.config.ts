@@ -3,7 +3,6 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
@@ -14,6 +13,48 @@ function figmaAssetResolver() {
       }
     },
   }
+}
+
+function vendorChunkName(id: string) {
+  if (!id.includes('node_modules')) return undefined
+
+  if (
+    id.includes('/react/')
+    || id.includes('/react-dom/')
+    || id.includes('/scheduler/')
+    || id.includes('/react-router/')
+  ) return 'vendor-react'
+
+  if (id.includes('/@supabase/')) return 'vendor-supabase'
+
+  if (
+    id.includes('/@mui/')
+    || id.includes('/@emotion/')
+    || id.includes('/@popperjs/')
+  ) return 'vendor-mui'
+
+  if (id.includes('/@radix-ui/')) return 'vendor-radix'
+
+  if (
+    id.includes('/recharts/')
+    || id.includes('/d3-')
+    || id.includes('/victory-vendor/')
+  ) return 'vendor-charts'
+
+  if (
+    id.includes('/motion/')
+    || id.includes('/framer-motion/')
+    || id.includes('/embla-carousel')
+    || id.includes('/react-slick/')
+  ) return 'vendor-motion'
+
+  if (
+    id.includes('/lucide-react/')
+    || id.includes('/date-fns/')
+    || id.includes('/canvas-confetti/')
+  ) return 'vendor-utilities'
+
+  return 'vendor'
 }
 
 export default defineConfig({
@@ -28,6 +69,13 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: vendorChunkName,
+      },
     },
   },
 
