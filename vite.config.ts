@@ -15,8 +15,9 @@ function figmaAssetResolver() {
   }
 }
 
-function vendorChunkName(id: string) {
-  if (!id.includes('node_modules')) return undefined
+function vendorChunkName(rawId: string) {
+  const id = rawId.replaceAll('\\', '/')
+  if (!id.includes('/node_modules/')) return undefined
 
   if (
     id.includes('/react/')
