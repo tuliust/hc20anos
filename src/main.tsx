@@ -5,12 +5,14 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
+import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
+installTimelineSequentialActivation();
 
 const rootElement = document.getElementById('root');
 
