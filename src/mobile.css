@@ -39,16 +39,22 @@
     overflow-wrap: anywhere;
   }
 
+  /* Painel Admin: o cabeçalho principal e os subtabs viram grades mobile. */
   .min-h-screen.bg-\[\#080f08\] > .bg-\[\#080f08\].border-b {
-    align-items: flex-start !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
     gap: 0.75rem !important;
     padding: 0.875rem 1rem !important;
+  }
+
+  .min-h-screen.bg-\[\#080f08\] > .bg-\[\#080f08\].border-b > div:first-child {
+    width: 100%;
   }
 
   .min-h-screen.bg-\[\#080f08\] > .bg-\[\#080f08\].border-b > nav {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    width: min(100%, 19rem) !important;
+    width: 100% !important;
     gap: 0.375rem !important;
   }
 
@@ -79,6 +85,13 @@
     line-height: 1.2 !important;
   }
 
+  .min-h-screen.bg-\[\#080f08\] > .p-4.md\:p-8 .flex.items-center.justify-between,
+  .min-h-screen.bg-\[\#080f08\] > .p-4.md\:p-8 .flex.items-start.justify-between {
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Filtros não usam mais faixas deslizáveis lateralmente. */
   main .overflow-x-auto {
     overflow-x: visible !important;
     display: grid !important;
@@ -95,6 +108,7 @@
     text-align: center;
   }
 
+  /* Cards de ex-alunos: status e ação permanecem dentro do card. */
   main .grid.grid-cols-2 > .bg-\[\#141f14\] {
     min-width: 0;
     padding: 0.75rem !important;
@@ -114,38 +128,176 @@
     white-space: normal !important;
   }
 
-  [data-home-section="tickets"] h3,
-  [data-home-section="tickets"] .ticket-title {
-    font-size: clamp(1.7rem, 8vw, 2.25rem) !important;
+  /* Menu autenticado mobile: mesmas ações e ordem do menu desktop. */
+  [data-mobile-original-auth-actions="true"] > :not([data-mobile-account-actions]) {
+    display: none !important;
+  }
+
+  [data-mobile-account-actions] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .mobile-account-action {
+    min-height: 2.875rem;
+    border: 1px solid rgba(45, 106, 79, 0.4);
+    padding: 0.625rem 0.5rem;
+    color: #f0ebe0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .mobile-account-action:first-child,
+  .mobile-account-action:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-account-action:first-child {
+    border-color: #c9a84c;
+    color: #c9a84c;
+  }
+
+  .mobile-account-action-danger {
+    border-color: rgba(192, 57, 43, 0.45);
+    color: #ffb4a8;
+  }
+
+  /* Turmas — Distribuição por sala. */
+  [data-home-class-tabs] {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+    width: 100%;
+  }
+
+  [data-home-class-tabs] > button {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.2rem !important;
+    font-size: 0.52rem !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+  }
+
+  [data-home-class-people] {
+    gap: 0.35rem !important;
+  }
+
+  [data-home-class-people] > div {
+    min-height: 7.25rem !important;
+    padding: 0.55rem 0.25rem !important;
+    gap: 0.45rem !important;
+  }
+
+  [data-home-class-people] > div p {
+    font-size: 0.7rem !important;
+    line-height: 1.15 !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  div:has(> [data-home-class-people]) {
+    gap: 0.35rem !important;
+  }
+
+  div:has(> [data-home-class-people]) > button {
+    width: 2rem !important;
+    height: 7.25rem !important;
+    padding: 0 !important;
+  }
+
+  /* Cards de ingressos da Home. */
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div {
+    padding: 1.25rem !important;
+    gap: 1.25rem !important;
+  }
+
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child {
+    align-items: flex-start !important;
+  }
+
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child p:last-child {
+    font-size: clamp(1.55rem, 7vw, 2rem) !important;
     white-space: nowrap;
-    overflow-wrap: normal;
+    overflow-wrap: normal !important;
     word-break: keep-all;
+  }
+
+  /* Rodapé compacto em duas colunas. */
+  footer {
+    padding-top: 2.5rem !important;
+    padding-bottom: 1.5rem !important;
   }
 
   footer .grid,
   [data-public-footer] .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 1.25rem 1rem !important;
+    margin-bottom: 2rem !important;
   }
 
   footer .grid > :first-child,
-  footer .grid > :last-child,
-  [data-public-footer] .grid > :first-child,
-  [data-public-footer] .grid > :last-child {
+  [data-public-footer] .grid > :first-child {
     grid-column: 1 / -1;
   }
 
+  footer .grid > :nth-child(2),
+  footer .grid > :nth-child(3),
+  [data-public-footer] .grid > :nth-child(2),
+  [data-public-footer] .grid > :nth-child(3) {
+    min-width: 0;
+  }
+
+  footer .flex.flex-col.gap-3,
+  [data-public-footer] .flex.flex-col.gap-3 {
+    gap: 0.6rem !important;
+  }
+
+  footer button,
+  footer p,
   footer a,
+  [data-public-footer] button,
+  [data-public-footer] p,
   [data-public-footer] a {
-    font-size: 0.875rem !important;
+    font-size: 0.78rem !important;
     line-height: 1.35 !important;
+    overflow-wrap: anywhere;
+  }
+
+  footer .border-t,
+  [data-public-footer] .border-t {
+    padding-top: 1.25rem !important;
   }
 }
 
 @media (max-width: 359px) {
   .min-h-screen.bg-\[\#080f08\] > .bg-\[\#080f08\].border-b > nav,
   .min-h-screen.bg-\[\#080f08\] > .flex.flex-wrap.gap-1.border-b,
-  main .overflow-x-auto {
+  main .overflow-x-auto,
+  [data-mobile-account-actions] {
     grid-template-columns: 1fr !important;
+  }
+
+  .mobile-account-action,
+  .mobile-account-action:first-child,
+  .mobile-account-action:last-child {
+    grid-column: auto;
+  }
+
+  [data-home-class-tabs] > button {
+    font-size: 0.47rem !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  div:has(> [data-home-class-people]) > button {
+    width: 1.75rem !important;
   }
 }
