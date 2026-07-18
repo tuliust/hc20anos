@@ -62,7 +62,10 @@ function countInFiles(files, pattern) {
 const srcFiles = collectFiles('src');
 const indexHtml = read('index.html');
 const services = exists('src/lib/services.ts') ? read('src/lib/services.ts') : '';
-const app = exists('src/app/App.tsx') ? read('src/app/App.tsx') : '';
+// O aplicativo é modular: as garantias editoriais e de CMS devem acompanhar o
+// grafo React completo, não ficar acopladas ao arquivo de roteamento raiz.
+const appFiles = srcFiles.filter((file) => file.startsWith('src/app/'));
+const app = appFiles.map((file) => read(file)).join('\n');
 
 // Arquitetura de entrada única.
 assertIncludes('index.html', '/src/main.tsx', 'index.html deve carregar apenas a entrada React principal.');
@@ -166,12 +169,12 @@ for (const [file, message] of [
   if (!exists(file)) fail(`${file}: ${message}`);
 }
 
-assertIncludes('src/app/App.tsx', '<HomeFaqSectionLoader', 'Home deve montar o FAQ estruturado.');
-assertIncludes('src/app/App.tsx', '<AdminFaqPanel', 'AdminFaqPanel deve permanecer montado na aba FAQ.');
-assertIncludes('src/app/App.tsx', 'faq_items_json: _legacyFaqItemsJson', 'salvamento geral da Home deve remover o JSON legado do payload.');
-assertNotIncludes('src/app/App.tsx', 'setFaqDraftItems', 'editor antigo de array JSON não pode ser reintroduzido.');
-assertNotIncludes('src/app/App.tsx', 'faqDraftItems', 'draft antigo do FAQ JSON não pode ser reintroduzido.');
-assertNotIncludes('src/app/App.tsx', 'parseHomeJsonArray<FAQItemContent>', 'Home não pode voltar a ler FAQ exclusivamente do JSON.');
+assertIncludes('src/app/pages/public/HomePages.tsx', '<HomeFaqSectionLoader', 'Home deve montar o FAQ estruturado.');
+assertIncludes('src/app/pages/admin/AdminPage.tsx', '<AdminFaqPanel', 'AdminFaqPanel deve permanecer montado na aba FAQ.');
+assertIncludes('src/app/pages/admin/AdminPage.tsx', 'faq_items_json: _legacyFaqItemsJson', 'salvamento geral da Home deve remover o JSON legado do payload.');
+assertNotIncludes('src/app/pages/admin/AdminPage.tsx', 'setFaqDraftItems', 'editor antigo de array JSON não pode ser reintroduzido.');
+assertNotIncludes('src/app/pages/admin/AdminPage.tsx', 'faqDraftItems', 'draft antigo do FAQ JSON não pode ser reintroduzido.');
+assertNotIncludes('src/app/pages/public/HomePages.tsx', 'parseHomeJsonArray<FAQItemContent>', 'Home não pode voltar a ler FAQ exclusivamente do JSON.');
 assertIncludes('src/app/home/HomeFaqSectionLoader.tsx', 'getPublicFaqItems(props.eventId)', 'Home deve usar getPublicFaqItems.');
 assertIncludes('src/app/home/HomeFaqSectionLoader.tsx', 'getPublicFaqCategories(props.eventId)', 'Home deve carregar categorias relacionais.');
 assertIncludes('src/lib/faq.ts', '.eq("is_visible", true)', 'consulta pública deve filtrar visibilidade.');
@@ -227,7 +230,7 @@ const legacyCounts = {
   unsplashInSrc: countInFiles(srcFiles, 'images.unsplash.com'),
   colegioInSrc: countInFiles(srcFiles, 'Colégio Henrique Castriciano'),
   turma2006InSrc: countInFiles(srcFiles, 'Turma 2006'),
-  fallbackEventDateInApp: exists('src/app/App.tsx') ? countOccurrences(read('src/app/App.tsx'), '2026-10-17') : 0,
+  fallbackEventDateInApp: countOccurrences(app, '2026-10-17'),
   mockTicketTypesInServices: exists('src/lib/services.ts') ? countOccurrences(read('src/lib/services.ts'), 'MOCK_TICKET_TYPES') : 0,
 };
 

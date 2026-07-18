@@ -90,6 +90,7 @@ export function HomeFaqSection({
   );
 
   const selectedCategory = visibleCategories.find(category => category.id === categoryId) ?? null;
+  const mobileVisibleCategories = visibleCategories.filter(category => category.label.trim().toLocaleLowerCase("pt-BR") !== "dados e privacidade");
 
   function selectCategory(id: string) {
     setCategoryId(id);
@@ -125,8 +126,8 @@ export function HomeFaqSection({
           />
         </label>
 
-        <nav className="mb-6 grid grid-cols-2 gap-2 lg:hidden" aria-label="Filtrar dúvidas por categoria">
-          {visibleCategories.map(category => {
+        <nav data-faq-mobile-categories className="mb-6 grid grid-cols-2 gap-2 lg:hidden" aria-label="Filtrar dúvidas por categoria">
+          {mobileVisibleCategories.map(category => {
             const active = !isSearching && categoryId === category.id;
             const hasItems = categoryIdsWithItems.has(category.id);
             return (
@@ -146,7 +147,7 @@ export function HomeFaqSection({
         </nav>
 
         <div className="grid items-start gap-8 lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
-          <nav className="hidden grid-cols-2 gap-3 lg:grid" aria-label="Filtrar dúvidas por categoria">
+          <nav data-faq-desktop-categories className="hidden grid-cols-2 gap-3 lg:grid" aria-label="Filtrar dúvidas por categoria">
             {visibleCategories.map(category => {
               const active = !isSearching && categoryId === category.id;
               const hasItems = categoryIdsWithItems.has(category.id);

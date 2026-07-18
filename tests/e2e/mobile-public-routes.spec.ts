@@ -46,12 +46,14 @@ for (const viewport of mobileViewports) {
   test.describe(viewport.name, () => {
     for (const route of publicRoutes) {
       test(`${route} permanece dentro da viewport`, async ({ page }, testInfo) => {
+        const pageErrors: string[] = [];
+        page.on("pageerror", error => pageErrors.push(error.message));
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await installHomeFixtures(page);
         await page.goto(route);
 
         await expect(page.locator("body")).toBeVisible();
-        await expect(page.locator("main")).toBeVisible({ timeout: 20_000 });
+        await expect(page.locator("main"), pageErrors.join("\n")).toBeVisible({ timeout: 20_000 });
         await expectNoHorizontalOverflow(page);
 
         const overflowingElements = await page.evaluate(() => {

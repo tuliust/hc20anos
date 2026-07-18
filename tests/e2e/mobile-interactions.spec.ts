@@ -10,6 +10,7 @@ const viewports = [
 const faqCategories = [
   { id: "faq-cat-1", event_id: "00000000-0000-0000-0000-000000000001", key: "evento", label: "Evento", description: null, sort_order: 10, is_visible: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", created_by_admin_id: null, updated_by_admin_id: null, deleted_at: null, deleted_by_admin_id: null },
   { id: "faq-cat-2", event_id: "00000000-0000-0000-0000-000000000001", key: "ingressos", label: "Ingressos", description: null, sort_order: 20, is_visible: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", created_by_admin_id: null, updated_by_admin_id: null, deleted_at: null, deleted_by_admin_id: null },
+  { id: "faq-cat-3", event_id: "00000000-0000-0000-0000-000000000001", key: "privacidade", label: "Dados e Privacidade", description: null, sort_order: 30, is_visible: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", created_by_admin_id: null, updated_by_admin_id: null, deleted_at: null, deleted_by_admin_id: null },
 ];
 
 const faqItems = faqCategories.map((category, index) => ({
@@ -17,8 +18,8 @@ const faqItems = faqCategories.map((category, index) => ({
   event_id: category.event_id,
   category_id: category.id,
   slug: `pergunta-${index + 1}`,
-  question: index === 0 ? "Quando será o evento?" : "Como comprar o ingresso?",
-  answer: index === 0 ? "O evento será em outubro de 2026." : "A compra é feita pela página de ingressos.",
+  question: index === 0 ? "Quando será o evento?" : index === 1 ? "Como comprar o ingresso?" : "Como meus dados são usados?",
+  answer: index === 0 ? "O evento será em outubro de 2026." : index === 1 ? "A compra é feita pela página de ingressos." : "Os dados seguem as escolhas de privacidade.",
   sort_order: 10,
   is_visible: true,
   is_featured: true,
@@ -73,6 +74,7 @@ for (const viewport of viewports) {
         document.documentElement.scrollWidth - document.documentElement.clientWidth
       );
       expect(overflow).toBeLessThanOrEqual(1);
+      await expect(faq.locator("[data-faq-mobile-categories]")).not.toContainText("Dados e Privacidade");
     });
 
     test("turmas permanecem em quatro colunas e carrossel cabe no card", async ({ page }) => {

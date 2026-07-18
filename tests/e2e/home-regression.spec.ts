@@ -277,9 +277,9 @@ test("Curiosidades alinha introducao a esquerda e remove leitura por IA", async 
   await page.goto("/curiosidades");
 
   const eyebrow = page.getByText("Curiosidades da turma", { exact: true });
-  const subtitle = page.getByText(/Dados, lembranças, mapa, profissões/i);
+  const subtitle = page.locator("[data-curiosities-intro]");
   await expect(eyebrow).toBeVisible({ timeout: 20_000 });
-  await expect(subtitle).toBeVisible({ timeout: 20_000 });
+  await expect(subtitle).toContainText(/Dados, lembranças, mapa, profissões/i);
   await expect(subtitle).toHaveClass(/text-left/);
   const titleBox = await page.getByRole("heading", { name: "O raio-X da Turma 2006" }).boundingBox();
   const eyebrowBox = await eyebrow.boundingBox();

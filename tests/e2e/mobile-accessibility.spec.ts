@@ -5,7 +5,34 @@ async function expectNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth
   );
-  expect(overflow).toBeLessThanOrEqual(1);
+  const overflowingElements = overflow > 1 ? await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const elements = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .filter(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && (
+          rect.left < -1 ||
+          rect.right > viewportWidth + 1 ||
+          element.scrollWidth > element.clientWidth + 1
+        );
+      })
+      .slice(0, 12)
+      .map(element => ({
+        tag: element.tagName,
+        data: Array.from(element.attributes).filter(attribute => attribute.name.startsWith("data-")).map(attribute => attribute.name).join(","),
+        className: `${typeof element.className === "string" ? element.className : ""} [${element.clientWidth}/${element.scrollWidth}]`,
+        text: element.textContent?.trim().slice(0, 80) ?? "",
+      }));
+    const htmlRect = document.documentElement.getBoundingClientRect();
+    const bodyRect = document.body.getBoundingClientRect();
+    return [{
+      tag: "DOCUMENT",
+      data: "",
+      className: `html ${htmlRect.width}x${document.documentElement.scrollWidth}; body ${bodyRect.left}..${bodyRect.right} (${bodyRect.width})`,
+      text: getComputedStyle(document.body).width,
+    }, ...elements];
+  }) : [];
+  expect(overflow, JSON.stringify(overflowingElements, null, 2)).toBeLessThanOrEqual(1);
 }
 
 test.describe("mobile accessibility safeguards", () => {
