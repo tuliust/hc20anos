@@ -15,47 +15,33 @@ function figmaAssetResolver() {
   }
 }
 
-function vendorChunkName(rawId: string) {
-  const id = rawId.replaceAll('\\', '/')
-  if (!id.includes('/node_modules/')) return undefined
-
-  if (
-    id.includes('/react/')
-    || id.includes('/react-dom/')
-    || id.includes('/scheduler/')
-    || id.includes('/react-router/')
-  ) return 'vendor-react'
-
-  if (id.includes('/@supabase/')) return 'vendor-supabase'
-
-  if (
-    id.includes('/@mui/')
-    || id.includes('/@emotion/')
-    || id.includes('/@popperjs/')
-  ) return 'vendor-mui'
-
-  if (id.includes('/@radix-ui/')) return 'vendor-radix'
-
-  if (
-    id.includes('/recharts/')
-    || id.includes('/d3-')
-    || id.includes('/victory-vendor/')
-  ) return 'vendor-charts'
-
-  if (
-    id.includes('/motion/')
-    || id.includes('/framer-motion/')
-    || id.includes('/embla-carousel')
-    || id.includes('/react-slick/')
-  ) return 'vendor-motion'
-
-  if (
-    id.includes('/lucide-react/')
-    || id.includes('/date-fns/')
-    || id.includes('/canvas-confetti/')
-  ) return 'vendor-utilities'
-
-  return 'vendor'
+const vendorChunks = {
+  'vendor-react': [
+    'react',
+    'react-dom',
+    'react-router',
+  ],
+  'vendor-supabase': [
+    '@supabase/supabase-js',
+  ],
+  'vendor-mui': [
+    '@mui/material',
+    '@mui/icons-material',
+    '@emotion/react',
+    '@emotion/styled',
+  ],
+  'vendor-charts': [
+    'recharts',
+  ],
+  'vendor-motion': [
+    'motion',
+    'embla-carousel-react',
+  ],
+  'vendor-ui': [
+    'lucide-react',
+    'sonner',
+    'vaul',
+  ],
 }
 
 export default defineConfig({
@@ -75,7 +61,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: vendorChunkName,
+        manualChunks: vendorChunks,
       },
     },
   },
