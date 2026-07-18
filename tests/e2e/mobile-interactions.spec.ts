@@ -7,11 +7,37 @@ const viewports = [
   { width: 412, height: 915 },
 ];
 
+const faqCategories = [
+  { id: "faq-cat-1", event_id: "00000000-0000-0000-0000-000000000001", key: "evento", label: "Evento", description: null, sort_order: 10, is_visible: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", created_by_admin_id: null, updated_by_admin_id: null, deleted_at: null, deleted_by_admin_id: null },
+  { id: "faq-cat-2", event_id: "00000000-0000-0000-0000-000000000001", key: "ingressos", label: "Ingressos", description: null, sort_order: 20, is_visible: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", created_by_admin_id: null, updated_by_admin_id: null, deleted_at: null, deleted_by_admin_id: null },
+];
+
+const faqItems = faqCategories.map((category, index) => ({
+  id: `faq-item-${index + 1}`,
+  event_id: category.event_id,
+  category_id: category.id,
+  slug: `pergunta-${index + 1}`,
+  question: index === 0 ? "Quando será o evento?" : "Como comprar o ingresso?",
+  answer: index === 0 ? "O evento será em outubro de 2026." : "A compra é feita pela página de ingressos.",
+  sort_order: 10,
+  is_visible: true,
+  is_featured: true,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  created_by_admin_id: null,
+  updated_by_admin_id: null,
+  deleted_at: null,
+  deleted_by_admin_id: null,
+  category,
+}));
+
 for (const viewport of viewports) {
   test.describe(`mobile interactions ${viewport.width}x${viewport.height}`, () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize(viewport);
       await installHomeFixtures(page);
+      await page.route("**/rest/v1/faq_categories**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(faqCategories) }));
+      await page.route("**/rest/v1/faq_items**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(faqItems) }));
       await page.goto("/");
       await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
     });
