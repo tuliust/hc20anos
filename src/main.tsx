@@ -29,6 +29,7 @@ import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
+import './mobilePublicHistoryRefinements.css';
 
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';

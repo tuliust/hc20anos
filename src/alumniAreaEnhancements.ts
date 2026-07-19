@@ -10,7 +10,10 @@ const PROFILE_ROW_ATTRIBUTE = "data-alumni-area-profile-row-stretched";
 const PROFILE_PHOTO_ATTRIBUTE = "data-alumni-area-profile-photo-stretched";
 const PROFILE_PHOTO_IMAGE_ATTRIBUTE = "data-alumni-area-profile-photo-image-stretched";
 const CLASSMATE_STATUS_ATTRIBUTE = "data-alumni-area-classmate-status-translated";
+<<<<<<< HEAD
 const ORDERS_LINK_ATTRIBUTE = "data-buyer-orders-link";
+=======
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
 
 const CLASSMATE_STATUS_LABELS: Record<string, string> = {
   unclaimed: "Não atualizado",
@@ -83,10 +86,15 @@ function updateGreetingClassLabel() {
 }
 
 function findProfileCard() {
+<<<<<<< HEAD
   const profileLabel = Array.from(
     document.querySelectorAll<HTMLElement>("main p"),
   ).find(element => normalizeText(element.textContent) === "meu perfil");
 
+=======
+  const profileLabel = Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .find(element => normalizeText(element.textContent) === "meu perfil");
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
   return profileLabel?.parentElement ?? null;
 }
 
@@ -113,6 +121,7 @@ function updateProfileName() {
   if (!isAlumniAreaRoute()) return;
 
   const profileCard = findProfileCard();
+<<<<<<< HEAD
   const name = Array.from(
     profileCard?.querySelectorAll<HTMLElement>("p") ?? [],
   ).find(
@@ -120,6 +129,10 @@ function updateProfileName() {
       element.className.includes("Playfair_Display")
       && normalizeText(element.textContent) !== "meu perfil",
   );
+=======
+  const name = Array.from(profileCard?.querySelectorAll<HTMLElement>("p") ?? [])
+    .find(element => element.className.includes("Playfair_Display") && normalizeText(element.textContent) !== "meu perfil");
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
 
   if (!name) return;
 
@@ -139,6 +152,7 @@ function updateProfileName() {
 }
 
 function restoreProfilePhotoLayout() {
+<<<<<<< HEAD
   document
     .querySelectorAll<HTMLElement>(`[${PROFILE_ROW_ATTRIBUTE}]`)
     .forEach(element => {
@@ -172,6 +186,22 @@ function restoreProfilePhotoLayout() {
 
       image.removeAttribute(PROFILE_PHOTO_IMAGE_ATTRIBUTE);
     });
+=======
+  document.querySelectorAll<HTMLElement>(`[${PROFILE_ROW_ATTRIBUTE}]`).forEach(element => {
+    element.style.removeProperty("align-items");
+    element.removeAttribute(PROFILE_ROW_ATTRIBUTE);
+  });
+
+  document.querySelectorAll<HTMLElement>(`[${PROFILE_PHOTO_ATTRIBUTE}]`).forEach(element => {
+    ["width", "min-width", "height", "min-height", "align-self", "position"].forEach(property => element.style.removeProperty(property));
+    element.removeAttribute(PROFILE_PHOTO_ATTRIBUTE);
+  });
+
+  document.querySelectorAll<HTMLImageElement>(`img[${PROFILE_PHOTO_IMAGE_ATTRIBUTE}]`).forEach(image => {
+    ["position", "inset", "width", "height", "object-fit"].forEach(property => image.style.removeProperty(property));
+    image.removeAttribute(PROFILE_PHOTO_IMAGE_ATTRIBUTE);
+  });
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
 }
 
 function updateProfilePhotoLayout() {
@@ -181,6 +211,7 @@ function updateProfilePhotoLayout() {
   }
 
   const profileCard = findProfileCard();
+<<<<<<< HEAD
   const profileLabel = Array.from(profileCard?.children ?? []).find(
     (element): element is HTMLElement =>
       element instanceof HTMLElement
@@ -197,6 +228,12 @@ function updateProfilePhotoLayout() {
       ? row.firstElementChild
       : null;
 
+=======
+  const profileLabel = Array.from(profileCard?.children ?? [])
+    .find((element): element is HTMLElement => element instanceof HTMLElement && normalizeText(element.textContent) === "meu perfil");
+  const row = profileLabel?.nextElementSibling instanceof HTMLElement ? profileLabel.nextElementSibling : null;
+  const photo = row?.firstElementChild instanceof HTMLElement ? row.firstElementChild : null;
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
   const image = photo?.querySelector<HTMLImageElement>("img") ?? null;
 
   if (!row || !photo) return;
@@ -223,6 +260,7 @@ function updateProfilePhotoLayout() {
 }
 
 function restoreClassmateStatuses() {
+<<<<<<< HEAD
   document
     .querySelectorAll<HTMLElement>(`[${CLASSMATE_STATUS_ATTRIBUTE}]`)
     .forEach(element => {
@@ -235,6 +273,14 @@ function restoreClassmateStatuses() {
       delete element.dataset.alumniAreaOriginalStatus;
       element.removeAttribute(CLASSMATE_STATUS_ATTRIBUTE);
     });
+=======
+  document.querySelectorAll<HTMLElement>(`[${CLASSMATE_STATUS_ATTRIBUTE}]`).forEach(element => {
+    const original = element.dataset.alumniAreaOriginalStatus;
+    if (original) element.textContent = original;
+    delete element.dataset.alumniAreaOriginalStatus;
+    element.removeAttribute(CLASSMATE_STATUS_ATTRIBUTE);
+  });
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
 }
 
 function updateClassmateStatuses() {
@@ -243,22 +289,34 @@ function updateClassmateStatuses() {
     return;
   }
 
+<<<<<<< HEAD
   const heading = Array.from(
     document.querySelectorAll<HTMLElement>("main p"),
   ).find(element => normalizeText(element.textContent) === "ex-colegas da turma");
 
   const card = heading?.parentElement?.parentElement;
 
+=======
+  const heading = Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .find(element => normalizeText(element.textContent) === "ex-colegas da turma");
+  const card = heading?.parentElement?.parentElement;
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
   if (!card) return;
 
   card.querySelectorAll<HTMLElement>("p").forEach(element => {
     const status = normalizeText(element.textContent);
     const translated = CLASSMATE_STATUS_LABELS[status];
+<<<<<<< HEAD
 
     if (!translated) return;
 
     element.dataset.alumniAreaOriginalStatus =
       element.textContent ?? status;
+=======
+    if (!translated) return;
+
+    element.dataset.alumniAreaOriginalStatus = element.textContent ?? status;
+>>>>>>> f7f58a6d80d88f0b6d9ef06d5fb5235875d15cab
     element.textContent = translated;
     element.setAttribute(CLASSMATE_STATUS_ATTRIBUTE, "true");
   });
