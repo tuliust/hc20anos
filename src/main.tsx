@@ -7,8 +7,10 @@ import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
+import { installMemorySyncEnhancements } from './memorySyncEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
+import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
@@ -17,12 +19,15 @@ import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhan
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
+import './mobileHeroRefinements.css';
 import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
+installMobileHeroRefinements();
 installAdminLayoutEnhancements();
+installMemorySyncEnhancements();
 installExAlumniEnhancements();
 installHeaderMenuEnhancements();
 installHistoryContentEnhancements();
