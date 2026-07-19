@@ -156,6 +156,41 @@ function buildMobileNavigationCards(menu: HTMLElement) {
   });
 }
 
+function enhanceExAlumniDirectorySummary() {
+  const title = Array.from(document.querySelectorAll<HTMLElement>("h1, h2"))
+    .find(element => normalizeLabel(element.textContent) === "ex-alunos");
+  const section = title?.closest<HTMLElement>("section");
+  const headingColumn = title?.parentElement;
+  if (!title || !section || !headingColumn) return;
+
+  const subtitle = Array.from(headingColumn.children).find((element): element is HTMLParagraphElement =>
+    element instanceof HTMLParagraphElement
+    && normalizeLabel(element.textContent).startsWith("uma visão consolidada da turma"));
+
+  if (subtitle) {
+    if (subtitle.classList.contains("max-w-3xl")) subtitle.classList.remove("max-w-3xl");
+    if (subtitle.style.width !== "100%") subtitle.style.width = "100%";
+    if (subtitle.style.maxWidth !== "48rem") subtitle.style.maxWidth = "48rem";
+    if (subtitle.style.marginLeft !== "0px") subtitle.style.marginLeft = "0px";
+    if (subtitle.style.marginRight !== "0px") subtitle.style.marginRight = "0px";
+  }
+
+  const summaryGrid = Array.from(section.children).find((element): element is HTMLElement =>
+    element instanceof HTMLElement
+    && element.classList.contains("grid-cols-2")
+    && Array.from(element.children).filter(child => child instanceof HTMLElement).length === 4);
+  if (!summaryGrid) return;
+
+  const labels = ["Ex-Alunos", "Já compraram", "Eu vou!", "Cadastrados no site"];
+  const cards = Array.from(summaryGrid.children).filter((element): element is HTMLElement => element instanceof HTMLElement);
+
+  cards.slice(0, labels.length).forEach((card, index) => {
+    const paragraphs = Array.from(card.querySelectorAll<HTMLParagraphElement>("p"));
+    const label = paragraphs[paragraphs.length - 1];
+    if (label && label.textContent !== labels[index]) label.textContent = labels[index];
+  });
+}
+
 function enhanceMobileHeroTypography() {
   const hero = document.querySelector<HTMLElement>('[data-home-section="hero"]');
   const title = hero?.querySelector<HTMLElement>("h1");
@@ -269,6 +304,7 @@ function handleMobileHeroKeyDown(event: KeyboardEvent) {
 }
 
 function enhanceMobileUi() {
+  enhanceExAlumniDirectorySummary();
   enhanceMobileHeroTypography();
   updateMobileHeroScrollTrigger();
   if (!window.matchMedia(MOBILE_QUERY).matches) return;
