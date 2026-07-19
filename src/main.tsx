@@ -4,6 +4,7 @@ import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
+import { installAdminReadResilience } from './adminReadResilience';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
@@ -23,6 +24,7 @@ import './mobileHeroRefinements.css';
 import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
 
+installAdminReadResilience();
 installNeutralCmsDefaults();
 installMobileEnhancements();
 installMobileHeroRefinements();
