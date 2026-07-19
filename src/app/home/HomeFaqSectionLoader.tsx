@@ -7,6 +7,15 @@ interface HomeFaqSectionLoaderProps extends Omit<HomeFaqSectionProps, "categorie
   eventId: string;
 }
 
+function normalizeFaqCategoryLabel(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
 export function HomeFaqSectionLoader(props: HomeFaqSectionLoaderProps) {
   const [categories, setCategories] = useState<DbFaqCategory[]>([]);
   const [items, setItems] = useState<DbFaqItem[]>([]);
@@ -18,8 +27,14 @@ export function HomeFaqSectionLoader(props: HomeFaqSectionLoaderProps) {
       getPublicFaqItems(props.eventId),
     ]).then(([nextCategories, nextItems]) => {
       if (!active) return;
-      setCategories(nextCategories);
-      setItems(nextItems);
+
+      const visibleCategories = nextCategories.filter(
+        category => normalizeFaqCategoryLabel(category.label) !== "dados e privacidade",
+      );
+      const visibleCategoryIds = new Set(visibleCategories.map(category => category.id));
+
+      setCategories(visibleCategories);
+      setItems(nextItems.filter(item => visibleCategoryIds.has(item.category_id)));
     }).catch(() => {
       if (!active) return;
       setCategories([]);
