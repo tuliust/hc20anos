@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
+import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
@@ -21,6 +22,7 @@ import './eventProgramEnhancements.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
+installAdminLayoutEnhancements();
 installExAlumniEnhancements();
 installHeaderMenuEnhancements();
 installHistoryContentEnhancements();
