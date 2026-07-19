@@ -11,6 +11,7 @@ import { installMobileEnhancements } from './mobileEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
+import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhancements';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
@@ -25,6 +26,7 @@ installHistoryContentEnhancements();
 installTimelineSequentialActivation();
 installEventProgramEnhancements();
 installAdminEventAttractionImages();
+installCuriositiesSummaryEnhancements();
 
 const rootElement = document.getElementById('root');
 
