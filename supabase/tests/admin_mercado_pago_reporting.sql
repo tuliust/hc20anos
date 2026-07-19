@@ -79,6 +79,36 @@ from (values
   ('approved_ticket_counters', 'PASS')
 ) as checks(check_name, result);
 
+-- The secured RPCs intentionally require an authenticated admin JWT. SQL Editor
+-- does not provide one, even with "Run without RLS". Reuse an existing admin
+-- identity only for this diagnostic session; no role or database row is changed.
+do $$
+declare
+  v_admin_user_id uuid;
+begin
+  select au.user_id
+    into v_admin_user_id
+  from public.admin_users au
+  where au.user_id is not null
+  order by au.created_at
+  limit 1;
+
+  if v_admin_user_id is null then
+    raise exception 'FAIL: no admin_users row is available for secured RPC diagnostics';
+  end if;
+
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+      'sub', v_admin_user_id::text,
+      'role', 'authenticated'
+    )::text,
+    false
+  );
+  perform set_config('request.jwt.claim.sub', v_admin_user_id::text, false);
+  perform set_config('request.jwt.claim.role', 'authenticated', false);
+end $$;
+
 -- Diagnostic result set used to compare the orders page with the source of truth.
 select
   id,
