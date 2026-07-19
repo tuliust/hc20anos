@@ -5,6 +5,7 @@ const LOCK_ATTRIBUTE = "data-checkout-category-locked";
 const SELECTION_MAX_AGE_MS = 10 * 60 * 1000;
 
 let scheduled = false;
+let redirectingToTickets = false;
 
 function normalize(value: string | null | undefined) {
   return String(value ?? "")
@@ -17,6 +18,13 @@ function normalize(value: string | null | undefined) {
 
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
+}
+
+function isCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("checkout");
+  const publicToken = params.get("token") ?? params.get("order");
+  return Boolean(status && publicToken);
 }
 
 function saveTicketSelection() {
@@ -73,9 +81,26 @@ function restoreCategorySection() {
   });
 }
 
+function redirectToTicketSelection() {
+  if (redirectingToTickets) return;
+  redirectingToTickets = true;
+  window.location.replace(TICKETS_PATH);
+}
+
 function applyCheckoutSelection() {
-  if (currentPath() !== CHECKOUT_PATH || !hasRecentTicketSelection()) {
+  if (currentPath() !== CHECKOUT_PATH) {
+    redirectingToTickets = false;
     restoreCategorySection();
+    return;
+  }
+
+  if (isCheckoutReturn()) {
+    restoreCategorySection();
+    return;
+  }
+
+  if (!hasRecentTicketSelection()) {
+    redirectToTicketSelection();
     return;
   }
 
