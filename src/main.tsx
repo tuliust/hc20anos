@@ -7,6 +7,7 @@ import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
+import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhancements';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
@@ -54,6 +55,7 @@ if (!isBuyerOrdersRoute) {
   installAdminLayoutEnhancements();
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
+  installCheckoutSelectionEnhancements();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
   installHeaderMenuEnhancements();
