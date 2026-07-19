@@ -28,6 +28,7 @@ import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
+import './mobilePublicHistoryRefinements.css';
 
 installAdminReadResilience();
 installNeutralCmsDefaults();
