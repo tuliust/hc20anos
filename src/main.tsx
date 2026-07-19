@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
+import { OperationsPage } from './app/OperationsPage';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
@@ -35,18 +36,14 @@ import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
 import './ticketsPageEnhancements.css';
 
-const buyerOrdersRoutes = new Set([
-  '/meus-pedidos',
-  '/meus-ingressos',
-]);
+const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
+const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
+const isBuyerOrdersRoute = buyerOrdersRoutes.has(normalizedPath);
+const isOperationsRoute = operationsRoutes.has(normalizedPath);
+const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute;
 
-const normalizedPath =
-  window.location.pathname.replace(/\/+$/, '') || '/';
-
-const isBuyerOrdersRoute =
-  buyerOrdersRoutes.has(normalizedPath);
-
-if (!isBuyerOrdersRoute) {
+if (!isStandaloneRoute) {
   installAdminReadResilience();
   installNeutralCmsDefaults();
   installMobileEnhancements();
@@ -69,21 +66,14 @@ if (!isBuyerOrdersRoute) {
 }
 
 const rootElement = document.getElementById('root');
-
-if (!rootElement) {
-  throw new Error('Root element #root not found.');
-}
+if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? (
-      <BuyerOrdersPage />
-    ) : (
-      <>
-        <App />
-        <AdminCmsPanelsMount />
-        <PublicCmsStrictGuard />
-      </>
-    )}
+    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <OperationsPage /> : <>
+      <App />
+      <AdminCmsPanelsMount />
+      <PublicCmsStrictGuard />
+    </>}
   </React.StrictMode>,
 );
