@@ -3,12 +3,47 @@ const COMPACT_NAV_ATTRIBUTE = "data-admin-secondary-nav-compact";
 const REJECTED_ACTION_ATTRIBUTE = "data-admin-rejected-action-hidden";
 const MEMORY_ACTION_ATTRIBUTE = "data-memory-action-badge-sized";
 
+const ADMIN_REPORT_LABELS: Record<string, string> = {
+  "pix orders": "Pedidos via Pix",
+  "card orders": "Pedidos via cartão",
+  "orders total": "Total de pedidos",
+  "photos total": "Total de fotos",
+  "tickets sold": "Ingressos vendidos",
+  "checkins done": "Check-ins realizados",
+  "checkins pending": "Check-ins pendentes",
+  "revenue cents": "Receita total",
+  "subtotal cents": "Subtotal",
+  "claims pending": "Reivindicações pendentes",
+  "disputes pending": "Contestações pendentes",
+  "removals pending": "Remoções pendentes",
+  "orders expired": "Pedidos expirados",
+  "orders pending": "Pedidos pendentes",
+  "orders approved": "Pedidos aprovados",
+  "orders refunded": "Pedidos reembolsados",
+  "orders rejected": "Pedidos rejeitados",
+  "orders cancelled": "Pedidos cancelados",
+  "people confirmed": "Pessoas confirmadas",
+  "people claimed": "Perfis reivindicados",
+  "people unclaimed": "Perfis não reivindicados",
+  "photos pending": "Fotos pendentes",
+  "photos approved": "Fotos aprovadas",
+  "photos rejected": "Fotos rejeitadas",
+  "transfers open": "Transferências em aberto",
+  "drinks packages": "Pacotes de bebidas",
+};
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
 }
 
 function isAdminRoute() {
   return window.location.pathname.startsWith("/admin");
+}
+
+function isAdminReportsRoute() {
+  const pathname = window.location.pathname.replace(/\/+$/, "");
+  return pathname === "/admin/reports"
+    || (pathname.startsWith("/admin") && new URLSearchParams(window.location.search).get("tab") === "reports");
 }
 
 function getDirectButtons(container: HTMLElement) {
@@ -208,6 +243,15 @@ function sizeMemoryModerationActions() {
     });
 }
 
+function translateAdminReportLabels() {
+  if (!isAdminReportsRoute()) return;
+
+  document.querySelectorAll<HTMLParagraphElement>("main p").forEach(label => {
+    const translated = ADMIN_REPORT_LABELS[normalizeText(label.textContent)];
+    if (translated && label.textContent !== translated) label.textContent = translated;
+  });
+}
+
 let scheduled = false;
 
 function runEnhancements() {
@@ -215,6 +259,7 @@ function runEnhancements() {
   compactAdminSecondaryNavigation();
   updateRejectedPhotoActions();
   sizeMemoryModerationActions();
+  translateAdminReportLabels();
 }
 
 function scheduleEnhancements() {
