@@ -342,7 +342,8 @@ function enhanceMobilePersonFilter(root: HTMLElement) {
   const check = option.querySelector<HTMLElement>('[data-mobile-history-person-all-check="true"]');
   if (check) {
     check.className = `w-4 h-4 border flex items-center justify-center ${noPeopleSelected ? "bg-[#c9a84c] border-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/50"}`;
-    check.textContent = noPeopleSelected ? "✓" : "";
+    const nextCheck = noPeopleSelected ? "✓" : "";
+    if (check.textContent !== nextCheck) check.textContent = nextCheck;
   }
 }
 
