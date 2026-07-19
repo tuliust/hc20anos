@@ -9,6 +9,7 @@ import { installTimelineSequentialActivation } from './timelineSequentialActivat
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
+import './eventPageLayout.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
