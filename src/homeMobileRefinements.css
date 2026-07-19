@@ -1,0 +1,52 @@
+/* A observação abaixo foi removida da Home em todas as resoluções. */
+[data-home-alumni-overview] > div > div[class~="mt-10"][class~="items-center"][class~="text-center"] > p {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  /* Cards de ingressos: reforça a hierarquia entre lote e nome do ingresso. */
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child > div:first-child > p:first-child {
+    font-size: 0.78rem !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0.18em !important;
+  }
+
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child > div:first-child > p:last-child {
+    margin-top: 0.95rem !important;
+  }
+
+  /* Texto introdutório da prévia de ex-alunos. */
+  [data-home-alumni-overview] > div > div:first-child > p {
+    max-width: 100% !important;
+    font-size: clamp(1.05rem, 4.6vw, 1.18rem) !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Fotos de confirmados sempre quadradas e circulares. */
+  [data-home-confirmed-grid] img,
+  [data-home-confirmed-grid] [role="img"] {
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 9999px !important;
+    object-fit: cover !important;
+  }
+
+  [data-home-confirmed-grid][data-count="1"] img,
+  [data-home-confirmed-grid][data-count="1"] [role="img"] {
+    width: clamp(8.75rem, 40vw, 10.5rem) !important;
+    height: clamp(8.75rem, 40vw, 10.5rem) !important;
+  }
+
+  /* Rodapé: compacta somente a coluna de navegação. */
+  footer .grid > :nth-child(2) .flex.flex-col {
+    gap: 0.15rem !important;
+  }
+
+  footer .grid > :nth-child(2) button {
+    display: flex !important;
+    min-height: 2rem !important;
+    align-items: center !important;
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+    line-height: 1.2 !important;
+  }
+}
