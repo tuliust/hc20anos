@@ -19,6 +19,14 @@ begin
     raise exception 'FAIL: refresh_ticket_type_sold_quantity(uuid) is not installed';
   end if;
 
+  if to_regprocedure('public.get_event_reports_mercado_pago_base(uuid)') is null then
+    raise exception 'FAIL: source-classified event report base is missing';
+  end if;
+
+  if to_regprocedure('public.get_admin_orders_mercado_pago_base(text)') is null then
+    raise exception 'FAIL: source-classified admin orders base is missing';
+  end if;
+
   if not exists (
     select 1 from pg_trigger
     where tgname = 'tickets_sync_ticket_type_sales'
@@ -35,7 +43,7 @@ begin
     raise exception 'FAIL: order payment synchronization trigger is missing';
   end if;
 
-  select pg_get_functiondef('public.get_event_reports(uuid)'::regprocedure)
+  select pg_get_functiondef('public.get_event_reports_mercado_pago_base(uuid)'::regprocedure)
     into v_definition;
 
   if position('payment_preferences' in v_definition) = 0
@@ -76,7 +84,8 @@ from (values
   ('get_event_reports_rpc', 'PASS'),
   ('ticket_sales_sync_triggers', 'PASS'),
   ('mercado_pago_report_sources', 'PASS'),
-  ('approved_ticket_counters', 'PASS')
+  ('approved_ticket_counters', 'PASS'),
+  ('commerce_source_classification', 'PASS')
 ) as checks(check_name, result);
 
 -- The secured RPCs intentionally require an authenticated admin JWT. SQL Editor
@@ -109,13 +118,14 @@ begin
   perform set_config('request.jwt.claim.role', 'authenticated', false);
 end $$;
 
--- Diagnostic result set used to compare the orders page with the source of truth.
 select
   id,
   buyer_name,
   buyer_email,
   ticket_type_id as product_name,
   lot_name,
+  commerce_source,
+  data_quality_alert,
   participant_count,
   extras_count,
   total_amount_cents,
@@ -136,6 +146,8 @@ from jsonb_to_recordset(public.get_admin_orders(null)) as order_row(
   buyer_email text,
   ticket_type_id text,
   lot_name text,
+  commerce_source text,
+  data_quality_alert text,
   participant_count integer,
   extras_count integer,
   total_amount_cents integer,
@@ -154,7 +166,6 @@ from jsonb_to_recordset(public.get_admin_orders(null)) as order_row(
 order by created_at desc
 limit 20;
 
--- Diagnostic payload used to compare /admin and /admin/reports.
 select public.get_event_reports(
   coalesce(
     (select id from public.events where slug = 'turma-2006-20-anos' limit 1),
