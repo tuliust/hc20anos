@@ -78,3 +78,56 @@ from (values
   ('mercado_pago_report_sources', 'PASS'),
   ('approved_ticket_counters', 'PASS')
 ) as checks(check_name, result);
+
+-- Diagnostic result set used to compare the orders page with the source of truth.
+select
+  id,
+  buyer_name,
+  buyer_email,
+  ticket_type_id as product_name,
+  lot_name,
+  participant_count,
+  extras_count,
+  total_amount_cents,
+  payment_status,
+  reservation_status,
+  payment_type,
+  installments,
+  payment_environment,
+  payment_provider_order_id,
+  payment_provider_preference_id,
+  preference_status,
+  webhook_events,
+  webhook_failures,
+  created_at
+from jsonb_to_recordset(public.get_admin_orders(null)) as order_row(
+  id uuid,
+  buyer_name text,
+  buyer_email text,
+  ticket_type_id text,
+  lot_name text,
+  participant_count integer,
+  extras_count integer,
+  total_amount_cents integer,
+  payment_status text,
+  reservation_status text,
+  payment_type text,
+  installments integer,
+  payment_environment text,
+  payment_provider_order_id text,
+  payment_provider_preference_id text,
+  preference_status text,
+  webhook_events integer,
+  webhook_failures integer,
+  created_at timestamptz
+)
+order by created_at desc
+limit 20;
+
+-- Diagnostic payload used to compare /admin and /admin/reports.
+select public.get_event_reports(
+  coalesce(
+    (select id from public.events where slug = 'turma-2006-20-anos' limit 1),
+    '00000000-0000-0000-0000-000000000001'::uuid
+  )
+) as mercado_pago_admin_report;
