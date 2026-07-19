@@ -44,6 +44,7 @@ import './mobilePublicHistoryRefinements.css';
 import './ticketsPageEnhancements.css';
 import './curiositiesPollMobileEnhancements.css';
 import './mobileNavigationAndDirectoryEnhancements.css';
+import './postEventPageRefinements.css';
 import './checkoutExtrasEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
