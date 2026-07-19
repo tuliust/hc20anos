@@ -23,6 +23,7 @@ import { installMemorySyncEnhancements } from './memorySyncEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installMobileHeroRefinements } from './mobileHeroRefinements';
+import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
@@ -42,6 +43,7 @@ import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
 import './ticketsPageEnhancements.css';
 import './curiositiesPollMobileEnhancements.css';
+import './mobileNavigationAndDirectoryEnhancements.css';
 import './checkoutExtrasEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -58,6 +60,7 @@ if (!isStandaloneRoute) {
   installNeutralCmsDefaults();
   installMobileEnhancements();
   installMobileHeroRefinements();
+  installMobileNavigationAndDirectoryEnhancements();
   installHomeMobileDomRefinements();
   installAdminLayoutEnhancements();
   installMemorySyncEnhancements();
