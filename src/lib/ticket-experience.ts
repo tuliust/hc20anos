@@ -1,6 +1,8 @@
+import QRCode from "qrcode";
+
 // ================================================================
 // Ticket experience helpers
-// QR real, leitura por câmera e download de convite sem novas deps.
+// QR local, leitura por câmera e download de convite.
 // ================================================================
 
 type DetectedBarcode = { rawValue: string };
@@ -13,7 +15,6 @@ declare global {
   }
 }
 
-const QR_SERVICE_URL = "https://quickchart.io/qr";
 const CODE_RE = /\b[A-Z0-9][A-Z0-9_-]{5,80}\b/g;
 
 export type CameraScanStatus =
@@ -25,8 +26,25 @@ export type CameraScanStatus =
   | "paused"
   | "error";
 
-export function getTicketQrImageUrl(code: string, size = 224) {
-  return `${QR_SERVICE_URL}?size=${size}&margin=1&text=${encodeURIComponent(code)}`;
+export async function getTicketQrDataUrl(code: string, size = 224) {
+  if (!code.trim()) throw new Error("ticket_qr_payload_required");
+  return QRCode.toDataURL(code, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    width: size,
+    type: "image/png",
+    color: { dark: "#173c2f", light: "#ffffff" },
+  });
+}
+
+export async function renderTicketQrToCanvas(canvas: HTMLCanvasElement, code: string, size = 224) {
+  if (!code.trim()) throw new Error("ticket_qr_payload_required");
+  await QRCode.toCanvas(canvas, code, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    width: size,
+    color: { dark: "#173c2f", light: "#ffffff" },
+  });
 }
 
 export function likelyTicketCode(text: string): string | null {
@@ -146,7 +164,15 @@ export async function startQrCameraScanner(params: {
   }
 
   let active = true;
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  } catch (error) {
+    const denied = error instanceof DOMException && ["NotAllowedError", "SecurityError"].includes(error.name);
+    params.onStatus?.(denied ? "permission_denied" : "error", denied ? "Permissão de câmera negada. Use o código textual." : "Não foi possível iniciar a câmera.");
+    return () => undefined;
+  }
+
   params.video.autoplay = true;
   params.video.muted = true;
   params.video.playsInline = true;
