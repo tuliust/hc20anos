@@ -1,0 +1,47 @@
+@media (max-width: 767px) {
+  [data-curiosities-poll-header="true"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    justify-content: initial !important;
+    column-gap: 1rem !important;
+    row-gap: 0 !important;
+  }
+
+  [data-curiosities-poll-content="true"] {
+    display: contents !important;
+  }
+
+  [data-curiosities-poll-label="true"] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    margin: 0 !important;
+  }
+
+  [data-curiosities-poll-badge="true"] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    justify-self: end !important;
+    width: auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  [data-curiosities-poll-question="true"] {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    margin-top: 1.75rem !important;
+  }
+
+  [data-curiosities-poll-content="true"] > p:not([data-curiosities-poll-label="true"]) {
+    grid-column: 1 / -1 !important;
+  }
+}
