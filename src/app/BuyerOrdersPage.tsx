@@ -1,0 +1,210 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CheckCircle2, Clock3, Download, Mail, RefreshCw, Ticket, Users, XCircle } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import "./BuyerOrdersPage.css";
+
+type TicketData = {
+  id: string;
+  attendee_name: string;
+  attendee_email: string;
+  qr_code: string;
+  qr_token: string;
+  status: string;
+  checked_in: boolean;
+  checked_in_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  transferred_from_ticket_id: string | null;
+  created_at: string;
+};
+
+type Participant = {
+  id: string;
+  participant_type: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  relationship_to_alumni: string | null;
+  status: string;
+  unit_price_cents: number;
+  extras: Array<{ id: string; extra_type: string; quantity: number; units_per_package: number; total_price_cents: number; physical_vouchers_delivered_at: string | null }>;
+  ticket: TicketData | null;
+};
+
+type BuyerOrder = {
+  id: string;
+  public_token: string;
+  created_at: string;
+  buyer_name: string;
+  buyer_email: string;
+  quantity: number;
+  subtotal_amount_cents: number;
+  extras_amount_cents: number;
+  total_amount_cents: number;
+  currency_id: string;
+  payment_status: string;
+  payment_status_detail: string | null;
+  payment_method: string | null;
+  paid_at: string | null;
+  expires_at: string | null;
+  reservation_status: string;
+  ticket_type: { id: string; name: string; description: string | null; product_code: string | null; package_kind: string | null };
+  lot: { id: string; code: string; name: string } | null;
+  participants: Participant[];
+};
+
+const money = (cents: number, currency = "BRL") => new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format((cents || 0) / 100);
+const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
+
+const paymentLabels: Record<string, string> = {
+  pending: "Pagamento pendente",
+  in_process: "Pagamento em análise",
+  approved: "Pagamento aprovado",
+  rejected: "Pagamento rejeitado",
+  expired: "Pagamento expirado",
+  cancelled: "Pedido cancelado",
+  refunded: "Pagamento reembolsado",
+  charged_back: "Pagamento contestado",
+};
+
+const ticketLabels: Record<string, string> = {
+  active: "Válido",
+  used: "Utilizado",
+  transferred: "Transferido",
+  cancelled: "Cancelado",
+  refunded: "Reembolsado",
+  chargeback: "Contestado",
+};
+
+function statusClass(status: string) {
+  if (["approved", "active", "used"].includes(status)) return "is-success";
+  if (["pending", "in_process"].includes(status)) return "is-pending";
+  return "is-danger";
+}
+
+function qrImageUrl(ticket: TicketData) {
+  const payload = ticket.qr_token || ticket.qr_code;
+  return `https://quickchart.io/qr?size=260&margin=2&text=${encodeURIComponent(payload)}`;
+}
+
+function downloadTicket(order: BuyerOrder, participant: Participant) {
+  if (!participant.ticket) return;
+  const ticket = participant.ticket;
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Ingresso ${participant.full_name}</title><style>body{font-family:Arial,sans-serif;background:#f5f2ea;margin:0;padding:32px;color:#183c2f}.card{max-width:540px;margin:auto;background:white;border:1px solid #d8d2c3;border-radius:20px;padding:28px;text-align:center}.qr{width:260px;height:260px}.muted{color:#66746e}.status{font-weight:700;text-transform:uppercase;letter-spacing:.08em}</style></head><body><main class="card"><h1>HC 20 Anos</h1><p class="muted">24 de outubro de 2026</p><h2>${participant.full_name}</h2><p>${order.ticket_type.name}${order.lot ? ` · ${order.lot.name}` : ""}</p><img class="qr" src="${qrImageUrl(ticket)}" alt="QR Code do ingresso"><p class="status">${ticketLabels[ticket.status] ?? ticket.status}</p><p>Código: <strong>${ticket.qr_code}</strong></p><p class="muted">Pedido ${order.id.slice(0, 8).toUpperCase()}</p></main></body></html>`;
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `ingresso-${participant.full_name.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}.html`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+export function BuyerOrdersPage() {
+  const [orders, setOrders] = useState<BuyerOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      window.location.assign(`/login?next=${encodeURIComponent("/meus-pedidos")}`);
+      return;
+    }
+    const { data, error: rpcError } = await supabase.rpc("get_my_commerce_orders");
+    if (rpcError) setError(rpcError.message);
+    else setOrders(Array.isArray(data) ? data as BuyerOrder[] : []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const ticketsCount = useMemo(() => orders.reduce((sum, order) => sum + order.participants.filter(p => p.ticket).length, 0), [orders]);
+
+  async function resend(ticketId: string) {
+    setResending(ticketId);
+    setNotice(null);
+    const { error: resendError } = await supabase.rpc("request_ticket_resend", { p_ticket_id: ticketId });
+    setResending(null);
+    if (resendError) setNotice(`Não foi possível reenviar: ${resendError.message}`);
+    else setNotice("Reenvio solicitado. O ingresso será enviado por e-mail e, quando configurado, por WhatsApp.");
+  }
+
+  return <main className="buyer-orders-page">
+    <header className="buyer-orders-header">
+      <button onClick={() => window.location.assign("/minha-area")} className="buyer-back"><ArrowLeft size={18}/> Minha área</button>
+      <div>
+        <p className="buyer-eyebrow">Área do comprador</p>
+        <h1>Meus pedidos e ingressos</h1>
+        <p>Acompanhe pagamentos, participantes e QR Codes individuais.</p>
+      </div>
+      <button onClick={() => void load()} className="buyer-refresh" disabled={loading}><RefreshCw size={18}/> Atualizar</button>
+    </header>
+
+    {notice && <div className="buyer-notice" role="status">{notice}</div>}
+    {loading && <div className="buyer-empty"><RefreshCw className="spin"/> Carregando pedidos...</div>}
+    {error && <div className="buyer-error"><XCircle/> {error}</div>}
+
+    {!loading && !error && <>
+      <section className="buyer-summary">
+        <div><strong>{orders.length}</strong><span>pedidos</span></div>
+        <div><strong>{ticketsCount}</strong><span>ingressos</span></div>
+        <div><strong>{orders.filter(o => ["pending", "in_process"].includes(o.payment_status)).length}</strong><span>pagamentos pendentes</span></div>
+      </section>
+
+      {orders.length === 0 ? <div className="buyer-empty"><Ticket size={34}/><h2>Nenhum pedido encontrado</h2><p>Pedidos feitos com este e-mail ou conta aparecerão aqui.</p><button onClick={() => window.location.assign("/ingressos")}>Comprar ingresso</button></div> :
+      <section className="buyer-order-list">
+        {orders.map(order => <article className="buyer-order" key={order.id}>
+          <div className="buyer-order-top">
+            <div><span>Pedido</span><strong>#{order.id.slice(0, 8).toUpperCase()}</strong><small>{dateTime(order.created_at)}</small></div>
+            <div className={`buyer-status ${statusClass(order.payment_status)}`}>
+              {order.payment_status === "approved" ? <CheckCircle2 size={18}/> : <Clock3 size={18}/>} {paymentLabels[order.payment_status] ?? order.payment_status}
+            </div>
+          </div>
+
+          <div className="buyer-order-meta">
+            <div><span>Produto</span><strong>{order.ticket_type.name}</strong></div>
+            <div><span>Lote</span><strong>{order.lot?.name ?? "—"}</strong></div>
+            <div><span>Total</span><strong>{money(order.total_amount_cents, order.currency_id)}</strong></div>
+            <div><span>Pagamento</span><strong>{order.payment_method ?? "Aguardando"}</strong></div>
+          </div>
+
+          {["pending", "in_process"].includes(order.payment_status) && <div className="buyer-payment-pending">
+            <Clock3 size={20}/><div><strong>Pagamento ainda não confirmado</strong><p>Atualize esta página após concluir o pagamento. A liberação dos ingressos ocorre somente após confirmação do Mercado Pago.</p>{order.expires_at && <small>Reserva válida até {dateTime(order.expires_at)}</small>}</div>
+          </div>}
+
+          <div className="buyer-participants-title"><Users size={19}/><h2>Participantes</h2></div>
+          <div className="buyer-participants">
+            {order.participants.map(participant => <div className="buyer-participant" key={participant.id}>
+              <div className="buyer-participant-info">
+                <strong>{participant.full_name}</strong>
+                <span>{participant.participant_type.replaceAll("_", " ")}</span>
+                {participant.extras.length > 0 && <small>{participant.extras.map(extra => `${extra.quantity}× ${extra.extra_type === "drinks" ? "bebidas" : "churrasco"}`).join(" · ")}</small>}
+              </div>
+              {!participant.ticket ? <div className="buyer-ticket-waiting">Ingresso será emitido após aprovação do pagamento.</div> : <div className={`buyer-ticket-card ${statusClass(participant.ticket.status)}`}>
+                <div className="buyer-qr-wrap">
+                  <img src={qrImageUrl(participant.ticket)} alt={`QR Code de ${participant.full_name}`} width="180" height="180"/>
+                  {participant.ticket.status !== "active" && <div className="buyer-qr-blocked">{ticketLabels[participant.ticket.status] ?? participant.ticket.status}</div>}
+                </div>
+                <div className="buyer-ticket-details">
+                  <div className={`buyer-status ${statusClass(participant.ticket.status)}`}>{ticketLabels[participant.ticket.status] ?? participant.ticket.status}</div>
+                  <p>Código <strong>{participant.ticket.qr_code}</strong></p>
+                  {participant.ticket.transferred_from_ticket_id && <p className="buyer-transfer-note">Este ingresso substitui um QR Code anterior, que foi invalidado.</p>}
+                  {participant.ticket.cancelled_at && <p>Cancelado em {dateTime(participant.ticket.cancelled_at)}</p>}
+                  {participant.ticket.checked_in && <p>Check-in realizado em {dateTime(participant.ticket.checked_in_at)}</p>}
+                  <div className="buyer-ticket-actions">
+                    <button onClick={() => downloadTicket(order, participant)}><Download size={17}/> Baixar</button>
+                    <button onClick={() => void resend(participant.ticket!.id)} disabled={participant.ticket.status !== "active" || resending === participant.ticket.id}><Mail size={17}/> {resending === participant.ticket.id ? "Solicitando..." : "Reenviar"}</button>
+                  </div>
+                </div>
+              </div>}
+            </div>)}
+          </div>
+        </article>)}
+      </section>}
+    </>}
+  </main>;
+}
