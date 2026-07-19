@@ -1,0 +1,11 @@
+/* A hero da página do evento já está dentro do container global da página.
+   Impede que o max-w-4xl interno receba novamente o gutter global e fique
+   centralizado com um segundo recuo lateral. */
+main > div > section[class*="min-h-[72vh]"] > .max-w-7xl > .max-w-4xl {
+  width: 100% !important;
+  max-width: 56rem !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
