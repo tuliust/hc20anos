@@ -61,7 +61,32 @@ select check_name, case when passed then 'PASS' else 'FAIL' end as result
 from checks
 order by check_name;
 
--- Expected dashboard source after the reset.
+-- SQL Editor has no authenticated JWT. Reuse an existing admin identity only
+-- for this diagnostic session; no user or role is changed.
+do $$
+declare
+  v_admin_user_id uuid;
+begin
+  select au.user_id
+    into v_admin_user_id
+  from public.admin_users au
+  where au.user_id is not null
+  order by au.created_at
+  limit 1;
+
+  if v_admin_user_id is null then
+    raise exception 'FAIL: no admin_users row is available for secured report diagnostics';
+  end if;
+
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', v_admin_user_id::text, 'role', 'authenticated')::text,
+    false
+  );
+  perform set_config('request.jwt.claim.sub', v_admin_user_id::text, false);
+  perform set_config('request.jwt.claim.role', 'authenticated', false);
+end $$;
+
 select public.get_event_reports(
   '00000000-0000-0000-0000-000000000001'::uuid
 ) as admin_report_after_reset;
