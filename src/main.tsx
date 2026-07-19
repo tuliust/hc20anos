@@ -15,6 +15,7 @@ import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhance
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
@@ -66,6 +67,7 @@ if (!isStandaloneRoute) {
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
+  installGuestApprovalNavigation();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
   installPhotoUploadModalEnhancement();
