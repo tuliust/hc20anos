@@ -7,15 +7,18 @@ import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
+import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
 import './eventPageLayout.css';
+import './eventProgramEnhancements.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
 installExAlumniEnhancements();
 installTimelineSequentialActivation();
+installEventProgramEnhancements();
 
 const rootElement = document.getElementById('root');
 
