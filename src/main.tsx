@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
+import { GuestApprovalPage } from './app/GuestApprovalPage';
 import { OperationsPage } from './app/OperationsPage';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
@@ -14,6 +15,7 @@ import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhance
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
@@ -45,9 +47,11 @@ import './checkoutExtrasEnhancements.css';
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
 const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
+const guestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
 const isBuyerOrdersRoute = buyerOrdersRoutes.has(normalizedPath);
 const isOperationsRoute = operationsRoutes.has(normalizedPath);
-const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute;
+const isGuestApprovalRoute = guestApprovalRoutes.has(normalizedPath);
+const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute || isGuestApprovalRoute;
 
 if (!isStandaloneRoute) {
   installAdminReadResilience();
@@ -63,6 +67,7 @@ if (!isStandaloneRoute) {
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
+  installGuestApprovalNavigation();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
   installPhotoUploadModalEnhancement();
@@ -79,7 +84,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <OperationsPage /> : <>
+    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <OperationsPage /> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
       <App />
       <AdminCmsPanelsMount />
       <PublicCmsStrictGuard />
