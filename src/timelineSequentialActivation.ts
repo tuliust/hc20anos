@@ -5,6 +5,21 @@ const DEFAULT_STEP_DELAY_MS = 420;
 const MANUAL_BYPASS_MS = 1200;
 const ACTIVATION_LINE_RATIO = 0.45;
 const SYNTHETIC_SCROLL_GUARD_MS = 80;
+const SPACING_STYLE_ID = 'hc-timeline-marker-spacing';
+const ITEM_MIN_HEIGHT = 'clamp(9rem, 30vh, 18rem)';
+
+function installTimelineSpacingStyles() {
+  if (document.getElementById(SPACING_STYLE_ID)) return;
+
+  const style = document.createElement('style');
+  style.id = SPACING_STYLE_ID;
+  style.textContent = `
+${TIMELINE_SELECTOR}[data-sequential-activation="true"] ${ITEM_SELECTOR}:not(:last-child) {
+  min-height: ${ITEM_MIN_HEIGHT};
+}
+`;
+  document.head.appendChild(style);
+}
 
 function readTimelineIndex(element: Element | null): number | null {
   if (!(element instanceof HTMLElement)) return null;
@@ -197,6 +212,8 @@ function scanForTimelines() {
 
 export function installTimelineSequentialActivation() {
   if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+  installTimelineSpacingStyles();
 
   const start = () => {
     scanForTimelines();
