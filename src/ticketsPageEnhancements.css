@@ -33,6 +33,44 @@
   justify-content: center !important;
 }
 
+[data-public-ticket-catalog="true"] article > div:first-child {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+  column-gap: 1rem !important;
+  row-gap: 0.75rem !important;
+}
+
+[data-public-ticket-catalog="true"] article > div:first-child > div:first-child {
+  display: contents !important;
+}
+
+[data-public-ticket-catalog="true"] article > div:first-child p {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+[data-public-ticket-catalog="true"] article > div:first-child span {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+[data-public-ticket-catalog="true"] article > div:first-child h2 {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  margin-top: 0 !important;
+  white-space: nowrap !important;
+  font-size: clamp(1.15rem, 1.45vw, 1.5rem) !important;
+  line-height: 1.2 !important;
+}
+
+[data-tickets-page-card] h2,
+[data-tickets-page-card] h3 {
+  white-space: nowrap !important;
+  font-size: clamp(1.15rem, 1.45vw, 1.5rem) !important;
+  line-height: 1.2 !important;
+}
+
 @media (min-width: 1024px) {
   [data-tickets-page-grid="true"] {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
