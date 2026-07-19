@@ -2,22 +2,6 @@ const ADMIN_DESKTOP_QUERY = "(min-width: 1024px)";
 const COMPACT_NAV_ATTRIBUTE = "data-admin-secondary-nav-compact";
 const REJECTED_ACTION_ATTRIBUTE = "data-admin-rejected-action-hidden";
 
-const CONTENT_NAV_LABELS = new Set([
-  "header",
-  "home",
-  "evento",
-  "seções",
-  "pós-festa",
-  "labels",
-  "timeline",
-  "faq",
-  "rodapé",
-  "memórias",
-  "enquetes",
-  "fotos",
-  "comentários",
-]);
-
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
 }
@@ -32,21 +16,19 @@ function getDirectButtons(container: HTMLElement) {
   );
 }
 
-function findContentSecondaryNavigation(): HTMLElement | null {
-  const candidates = Array.from(document.querySelectorAll<HTMLElement>("main div"));
+function findAdminSecondaryNavigation(): HTMLElement | null {
+  const panelTitle = Array.from(document.querySelectorAll<HTMLParagraphElement>("main p"))
+    .find(element => normalizeText(element.textContent) === "painel admin");
 
-  return candidates.find(container => {
-    const buttons = getDirectButtons(container);
-    if (buttons.length < 6) return false;
+  let topHeader = panelTitle?.parentElement ?? null;
+  while (topHeader && topHeader !== document.body) {
+    if (topHeader.querySelector(":scope > nav")) break;
+    topHeader = topHeader.parentElement;
+  }
 
-    const labels = buttons.map(button => normalizeText(button.textContent));
-    const matchingLabels = labels.filter(label => CONTENT_NAV_LABELS.has(label));
-
-    return matchingLabels.length >= 6
-      && labels.includes("header")
-      && labels.includes("fotos")
-      && labels.includes("comentários");
-  }) ?? null;
+  const secondaryNavigation = topHeader?.nextElementSibling;
+  if (!(secondaryNavigation instanceof HTMLElement)) return null;
+  return getDirectButtons(secondaryNavigation).length >= 2 ? secondaryNavigation : null;
 }
 
 function resetCompactNavigation(container: HTMLElement) {
@@ -75,8 +57,8 @@ function resetCompactNavigation(container: HTMLElement) {
   });
 }
 
-function compactContentSecondaryNavigation() {
-  const container = findContentSecondaryNavigation();
+function compactAdminSecondaryNavigation() {
+  const container = findAdminSecondaryNavigation();
   if (!container) return;
 
   if (!window.matchMedia(ADMIN_DESKTOP_QUERY).matches) {
@@ -169,7 +151,7 @@ let scheduled = false;
 
 function runEnhancements() {
   if (!isAdminRoute()) return;
-  compactContentSecondaryNavigation();
+  compactAdminSecondaryNavigation();
   updateRejectedPhotoActions();
 }
 
