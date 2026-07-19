@@ -40,6 +40,14 @@ function getPhotoSource(photo: DbPhoto) {
   return photo.thumbnail_url?.trim() || photo.image_url?.trim() || "";
 }
 
+function resolveSource(source: string) {
+  try {
+    return new URL(source, window.location.href).href;
+  } catch {
+    return source;
+  }
+}
+
 function getActiveYear(root: HTMLElement) {
   const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("button"))
     .filter(button => normalizeText(button.textContent) === "todos os anos" || /^20\d{2}$/.test(normalizeText(button.textContent)));
@@ -119,25 +127,41 @@ async function enhancePublicPhotoWall() {
     return;
   }
 
+  const countLabel = `${approvedPhotos.length} fotos selecionadas pela organização`;
   const counter = Array.from(root.querySelectorAll<HTMLParagraphElement>("p"))
     .find(element => normalizeText(element.textContent).includes("fotos selecionadas pela organização"));
-  if (counter) counter.textContent = `${approvedPhotos.length} fotos selecionadas pela organização`;
+  if (counter && counter.textContent !== countLabel) counter.textContent = countLabel;
 
-  gallery.querySelectorAll<HTMLElement>(`[${INJECTED_PHOTO_ATTRIBUTE}]`).forEach(element => element.remove());
+  const activeYear = getActiveYear(root);
+  const visiblePhotos = approvedPhotos.filter(photo => !activeYear || String(photo.year_approx ?? "") === activeYear);
 
-  const existingSources = new Set(
-    Array.from(gallery.querySelectorAll<HTMLImageElement>("img"))
+  const reactSources = new Set(
+    Array.from(gallery.children)
+      .filter(element => element instanceof HTMLElement && !element.hasAttribute(INJECTED_PHOTO_ATTRIBUTE))
+      .flatMap(element => Array.from(element.querySelectorAll<HTMLImageElement>("img")))
       .flatMap(image => [image.getAttribute("src") ?? "", image.src])
       .filter(Boolean),
   );
-  const activeYear = getActiveYear(root);
 
-  approvedPhotos
-    .filter(photo => !activeYear || String(photo.year_approx ?? "") === activeYear)
-    .filter(photo => {
-      const source = getPhotoSource(photo);
-      return source && !existingSources.has(source) && !existingSources.has(new URL(source, window.location.href).href);
-    })
+  const photosToInject = visiblePhotos.filter(photo => {
+    const source = getPhotoSource(photo);
+    return source && !reactSources.has(source) && !reactSources.has(resolveSource(source));
+  });
+  const desiredIds = new Set(photosToInject.map(photo => photo.id));
+
+  gallery.querySelectorAll<HTMLElement>(`[${INJECTED_PHOTO_ATTRIBUTE}]`).forEach(element => {
+    const id = element.getAttribute(INJECTED_PHOTO_ATTRIBUTE) ?? "";
+    if (!desiredIds.has(id)) element.remove();
+  });
+
+  const injectedIds = new Set(
+    Array.from(gallery.querySelectorAll<HTMLElement>(`[${INJECTED_PHOTO_ATTRIBUTE}]`))
+      .map(element => element.getAttribute(INJECTED_PHOTO_ATTRIBUTE) ?? "")
+      .filter(Boolean),
+  );
+
+  photosToInject
+    .filter(photo => !injectedIds.has(photo.id))
     .forEach(photo => gallery.appendChild(createApprovedPhotoCard(photo)));
 }
 
@@ -173,8 +197,10 @@ function enhanceAdminApprovedPhotos() {
 
   Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-admin-approved-hidden="true"]'))
     .forEach(button => {
-      button.style.removeProperty("display");
-      button.removeAttribute("data-admin-approved-hidden");
+      if (!approvedIsActive) {
+        button.style.removeProperty("display");
+        button.removeAttribute("data-admin-approved-hidden");
+      }
     });
 
   if (!approvedIsActive) return;
@@ -182,7 +208,7 @@ function enhanceAdminApprovedPhotos() {
   Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
     .filter(button => normalizeText(button.textContent) === "aprovar")
     .forEach(button => {
-      button.style.display = "none";
+      if (button.style.display !== "none") button.style.display = "none";
       button.setAttribute("data-admin-approved-hidden", "true");
     });
 }
@@ -201,7 +227,7 @@ function enhanceMemoriesForm() {
   if (anonymousControl) {
     const toggle = anonymousControl.querySelector<HTMLButtonElement>("button");
     if (toggle?.className.includes("bg-[#2d6a4f]")) toggle.click();
-    anonymousControl.style.display = "none";
+    if (anonymousControl.style.display !== "none") anonymousControl.style.display = "none";
   }
 
   Array.from(formCard.querySelectorAll<HTMLButtonElement>("button"))
