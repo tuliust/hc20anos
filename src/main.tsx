@@ -20,6 +20,7 @@ import { installTimelineSequentialActivation } from './timelineSequentialActivat
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
 import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhancements';
+import { installTicketsPageEnhancements } from './ticketsPageEnhancements';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
@@ -29,6 +30,7 @@ import './eventProgramEnhancements.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
+import './ticketsPageEnhancements.css';
 
 installAdminReadResilience();
 installNeutralCmsDefaults();
@@ -47,6 +49,7 @@ installTimelineSequentialActivation();
 installEventProgramEnhancements();
 installAdminEventAttractionImages();
 installCuriositiesSummaryEnhancements();
+installTicketsPageEnhancements();
 
 const rootElement = document.getElementById('root');
 
