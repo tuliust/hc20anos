@@ -221,7 +221,20 @@
   }
 
   .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child {
-    align-items: flex-start !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: start !important;
+    column-gap: 0.75rem !important;
+  }
+
+  .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child > :last-child {
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
   }
 
   .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child p:last-child {
