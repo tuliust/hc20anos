@@ -4,6 +4,7 @@ import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
@@ -17,6 +18,7 @@ import './eventProgramEnhancements.css';
 installNeutralCmsDefaults();
 installMobileEnhancements();
 installExAlumniEnhancements();
+installHeaderMenuEnhancements();
 installTimelineSequentialActivation();
 installEventProgramEnhancements();
 
