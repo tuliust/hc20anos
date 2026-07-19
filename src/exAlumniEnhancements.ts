@@ -66,12 +66,22 @@ function enhanceExAlumniAllFilter(pageRoot: HTMLElement) {
   if (description && description.textContent !== "Ex-alunos 2006") description.textContent = "Ex-alunos 2006";
 }
 
+function enhanceExAlumniEyebrow(pageRoot: HTMLElement) {
+  const eyebrow = Array.from(pageRoot.querySelectorAll<HTMLElement>("p"))
+    .find(element => normalizeText(element.textContent) === "turma 2006 · diretório");
+
+  if (eyebrow && eyebrow.textContent !== "Pré HC 2006") {
+    eyebrow.textContent = "Pré HC 2006";
+  }
+}
+
 function enhanceExAlumniPage() {
   const pageRoot = findExAlumniPageRoot();
   if (!pageRoot) return;
 
   enhanceExAlumniClaimButtons(pageRoot);
   enhanceExAlumniAllFilter(pageRoot);
+  enhanceExAlumniEyebrow(pageRoot);
 }
 
 export function installExAlumniEnhancements() {
