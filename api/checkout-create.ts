@@ -4,6 +4,26 @@ function firstHeader(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function parseJsonPayload(value: string): any {
+  let parsed: any = value;
+
+  for (let attempt = 0; attempt < 2 && typeof parsed === "string"; attempt += 1) {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return { message: parsed };
+    }
+  }
+
+  return parsed && typeof parsed === "object" ? parsed : {};
+}
+
+function unwrapPayload(payload: any) {
+  if (payload?.data && typeof payload.data === "object") return payload.data;
+  if (payload?.result && typeof payload.result === "object") return payload.result;
+  return payload ?? {};
+}
+
 export default async function handler(request: any, response: any) {
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
@@ -43,10 +63,45 @@ export default async function handler(request: any, response: any) {
         : JSON.stringify(request.body ?? {}),
     });
 
-    const body = await upstream.text();
+    const rawBody = await upstream.text();
+    const parsedBody = parseJsonPayload(rawBody);
+    const payload = unwrapPayload(parsedBody);
+
     response.setHeader("Cache-Control", "no-store");
-    response.setHeader("Content-Type", upstream.headers.get("content-type") ?? "application/json; charset=utf-8");
-    return response.status(upstream.status).send(body);
+
+    if (!upstream.ok) {
+      return response.status(upstream.status).json(
+        payload && typeof payload === "object"
+          ? payload
+          : { error: "checkout_upstream_error" },
+      );
+    }
+
+    const checkoutUrl = payload.checkout_url
+      ?? payload.init_point
+      ?? payload.sandbox_init_point
+      ?? null;
+    const publicToken = payload.public_token
+      ?? payload.token
+      ?? null;
+    const expiresAt = payload.expires_at
+      ?? payload.expiration_date_to
+      ?? null;
+
+    if (!checkoutUrl) {
+      console.error("[api/checkout-create] Successful upstream response without checkout URL", {
+        upstreamStatus: upstream.status,
+        payloadKeys: Object.keys(payload ?? {}),
+      });
+      return response.status(502).json({ error: "invalid_checkout_response" });
+    }
+
+    return response.status(upstream.status).json({
+      ...payload,
+      checkout_url: checkoutUrl,
+      public_token: publicToken,
+      expires_at: expiresAt,
+    });
   } catch (error) {
     console.error("[api/checkout-create] Upstream request failed", error);
     return response.status(502).json({ error: "checkout_service_unavailable" });
