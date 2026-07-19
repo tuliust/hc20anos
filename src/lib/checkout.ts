@@ -51,19 +51,29 @@ export async function createSecureCheckout(
   idempotencyKey = createIdempotencyKey(),
 ): Promise<CheckoutCreateResult> {
   const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) throw new Error("authentication_required");
+  const session = sessionData.session;
+  if (!session) throw new Error("authentication_required");
 
-  const { data, error } = await supabase.functions.invoke<CheckoutCreateResult>("checkout-create", {
-    body: { ...input, idempotency_key: idempotencyKey },
-    headers: { "idempotency-key": idempotencyKey },
+  const response = await fetch("/api/checkout-create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      "idempotency-key": idempotencyKey,
+    },
+    body: JSON.stringify({ ...input, idempotency_key: idempotencyKey }),
   });
 
-  if (error) throw error;
-  if (!data?.checkout_url || !data.public_token || !data.expires_at) {
+  const data = await response.json().catch(() => ({})) as Partial<CheckoutCreateResult> & { error?: string };
+  if (!response.ok) {
+    throw new Error(data.error ?? "Não foi possível iniciar o pagamento.");
+  }
+  if (!data.checkout_url || !data.public_token || !data.expires_at) {
     throw new Error("invalid_checkout_response");
   }
 
-  return data;
+  return data as CheckoutCreateResult;
 }
 
 export async function getCheckoutStatus(publicToken: string) {
