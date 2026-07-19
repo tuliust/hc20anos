@@ -1,5 +1,6 @@
 const ALUMNI_AREA_ROUTES = new Set(["/minha-area", "/alumni-area"]);
 const HIDDEN_ATTRIBUTE = "data-alumni-area-header-exit-hidden";
+const ORDERS_LINK_ATTRIBUTE = "data-buyer-orders-link";
 
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
@@ -7,6 +8,42 @@ function currentPath() {
 
 function isAlumniAreaRoute() {
   return ALUMNI_AREA_ROUTES.has(currentPath());
+}
+
+function ensureOrdersLink() {
+  document.querySelectorAll<HTMLElement>(`[${ORDERS_LINK_ATTRIBUTE}]`).forEach(element => {
+    if (!isAlumniAreaRoute()) element.remove();
+  });
+
+  if (!isAlumniAreaRoute() || document.querySelector(`[${ORDERS_LINK_ATTRIBUTE}]`)) return;
+
+  const main = document.querySelector("main");
+  if (!main) return;
+
+  const heading = Array.from(main.querySelectorAll("h1, h2")).find(element =>
+    /minha área|área do ex-aluno|olá/i.test(element.textContent ?? "")
+  );
+  const anchor = heading?.parentElement ?? main.firstElementChild;
+  if (!anchor?.parentElement) return;
+
+  const link = document.createElement("a");
+  link.href = "/meus-pedidos";
+  link.setAttribute(ORDERS_LINK_ATTRIBUTE, "true");
+  link.textContent = "Meus pedidos e ingressos";
+  link.setAttribute("aria-label", "Abrir meus pedidos e ingressos");
+  Object.assign(link.style, {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "12px",
+    padding: "11px 18px",
+    borderRadius: "999px",
+    background: "#173c2f",
+    color: "#ffffff",
+    fontWeight: "700",
+    textDecoration: "none",
+  });
+  anchor.appendChild(link);
 }
 
 function updateHeaderExitButton() {
@@ -39,6 +76,7 @@ function scheduleUpdate() {
   window.requestAnimationFrame(() => {
     scheduled = false;
     updateHeaderExitButton();
+    ensureOrdersLink();
   });
 }
 
