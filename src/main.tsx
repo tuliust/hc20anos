@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
+import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
@@ -13,6 +14,7 @@ import './eventPageLayout.css';
 
 installNeutralCmsDefaults();
 installMobileEnhancements();
+installExAlumniEnhancements();
 installTimelineSequentialActivation();
 
 const rootElement = document.getElementById('root');
