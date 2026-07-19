@@ -38,7 +38,7 @@ as $$
   from public.people p
   where p.claimed_by_user_id is not null
     and p.is_visible = true
-    and coalesce(p.profile_status, '') = 'confirmed'
+    and p.profile_status = 'confirmed'
     and (
       nullif(btrim(p_search), '') is null
       or p.full_name ilike '%' || btrim(p_search) || '%'
