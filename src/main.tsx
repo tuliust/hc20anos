@@ -16,6 +16,7 @@ import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhance
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installFooterLogoEnhancements } from './footerLogoEnhancements';
 import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
@@ -48,6 +49,7 @@ import './ticketsPageEnhancements.css';
 import './curiositiesPollMobileEnhancements.css';
 import './mobileNavigationAndDirectoryEnhancements.css';
 import './postEventPageRefinements.css';
+import './footerLogoEnhancements.css';
 import './checkoutExtrasEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -74,6 +76,7 @@ if (!isStandaloneRoute) {
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
+  installFooterLogoEnhancements();
   installGuestApprovalNavigation();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
