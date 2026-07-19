@@ -4,8 +4,23 @@ const SELECTION_KEY = "hc-checkout-ticket-selected";
 const LOCK_ATTRIBUTE = "data-checkout-category-locked";
 const SELECTION_MAX_AGE_MS = 10 * 60 * 1000;
 
+type ProductCode = "simple" | "family_full" | "family_single_parent" | "external_guest";
+type StoredSelection = {
+  selectedAt: number;
+  productCode?: ProductCode | null;
+  ticketTypeId?: string | null;
+};
+
+const PRODUCT_LABELS: Record<ProductCode, string> = {
+  simple: "ingresso ex-aluno",
+  family_full: "familia completa",
+  family_single_parent: "familia sem conjuge",
+  external_guest: "ingresso convidado",
+};
+
 let scheduled = false;
 let redirectingToTickets = false;
+let lastAppliedProductCode: ProductCode | null = null;
 
 function normalize(value: string | null | undefined) {
   return String(value ?? "")
@@ -27,26 +42,77 @@ function isCheckoutReturn() {
   return Boolean(status && publicToken);
 }
 
-function saveTicketSelection() {
-  window.sessionStorage.setItem(SELECTION_KEY, String(Date.now()));
+function isProductCode(value: unknown): value is ProductCode {
+  return ["simple", "family_full", "family_single_parent", "external_guest"].includes(String(value));
+}
+
+function saveTicketSelection(productCode?: ProductCode | null, ticketTypeId?: string | null) {
+  const selection: StoredSelection = {
+    selectedAt: Date.now(),
+    productCode: productCode ?? null,
+    ticketTypeId: ticketTypeId ?? null,
+  };
+  window.sessionStorage.setItem(SELECTION_KEY, JSON.stringify(selection));
 }
 
 function clearTicketSelection() {
   window.sessionStorage.removeItem(SELECTION_KEY);
+  lastAppliedProductCode = null;
 }
 
-function hasRecentTicketSelection() {
-  const storedAt = Number(window.sessionStorage.getItem(SELECTION_KEY) ?? "");
-  if (!Number.isFinite(storedAt) || storedAt <= 0) return false;
+function readTicketSelection(): StoredSelection | null {
+  const raw = window.sessionStorage.getItem(SELECTION_KEY);
+  if (!raw) return null;
 
-  const isRecent = Date.now() - storedAt <= SELECTION_MAX_AGE_MS;
-  if (!isRecent) clearTicketSelection();
-  return isRecent;
+  let selection: StoredSelection | null = null;
+  const legacyTimestamp = Number(raw);
+
+  if (Number.isFinite(legacyTimestamp) && legacyTimestamp > 0) {
+    selection = { selectedAt: legacyTimestamp };
+  } else {
+    try {
+      const parsed = JSON.parse(raw) as Partial<StoredSelection>;
+      const selectedAt = Number(parsed.selectedAt);
+      if (Number.isFinite(selectedAt) && selectedAt > 0) {
+        selection = {
+          selectedAt,
+          productCode: isProductCode(parsed.productCode) ? parsed.productCode : null,
+          ticketTypeId: typeof parsed.ticketTypeId === "string" ? parsed.ticketTypeId : null,
+        };
+      }
+    } catch {
+      selection = null;
+    }
+  }
+
+  if (!selection || Date.now() - selection.selectedAt > SELECTION_MAX_AGE_MS) {
+    clearTicketSelection();
+    return null;
+  }
+
+  return selection;
 }
 
 function isPurchaseButton(button: HTMLButtonElement) {
   const label = normalize(button.textContent);
   return label === "comprar agora" || label === "comprar ingresso" || label === "garantir minha vaga";
+}
+
+function inferProductCode(button: HTMLButtonElement): ProductCode | null {
+  const attributedCard = button.closest<HTMLElement>("[data-ticket-product-code]");
+  const attributedCode = attributedCard?.getAttribute("data-ticket-product-code");
+  if (isProductCode(attributedCode)) return attributedCode;
+
+  let card: HTMLElement | null = button.parentElement;
+  while (card && card.tagName !== "MAIN") {
+    const text = normalize(card.textContent);
+    if (text.includes("ingresso convidado")) return "external_guest";
+    if (text.includes("ingresso familia") || text.includes("ingresso família")) return "family_full";
+    if (text.includes("ingresso ex-aluno") || text.includes("ingresso ex aluno")) return "simple";
+    card = card.parentElement;
+  }
+
+  return null;
 }
 
 function handleClick(event: MouseEvent) {
@@ -58,7 +124,8 @@ function handleClick(event: MouseEvent) {
 
   const path = currentPath();
   if ((path === "/" || path === TICKETS_PATH) && isPurchaseButton(button)) {
-    saveTicketSelection();
+    const card = button.closest<HTMLElement>("[data-ticket-type-id]");
+    saveTicketSelection(inferProductCode(button), card?.getAttribute("data-ticket-type-id") ?? null);
     return;
   }
 
@@ -87,9 +154,24 @@ function redirectToTicketSelection() {
   window.location.replace(TICKETS_PATH);
 }
 
+function applySelectedProduct(section: HTMLElement, productCode?: ProductCode | null) {
+  if (!productCode || lastAppliedProductCode === productCode) return true;
+
+  const expectedLabel = PRODUCT_LABELS[productCode];
+  const productButton = Array.from(section.querySelectorAll<HTMLButtonElement>("button"))
+    .find(button => normalize(button.textContent) === expectedLabel);
+
+  if (!productButton) return false;
+
+  lastAppliedProductCode = productCode;
+  productButton.click();
+  return false;
+}
+
 function applyCheckoutSelection() {
   if (currentPath() !== CHECKOUT_PATH) {
     redirectingToTickets = false;
+    lastAppliedProductCode = null;
     restoreCategorySection();
     return;
   }
@@ -99,13 +181,19 @@ function applyCheckoutSelection() {
     return;
   }
 
-  if (!hasRecentTicketSelection()) {
+  const selection = readTicketSelection();
+  if (!selection) {
     redirectToTicketSelection();
     return;
   }
 
   const section = findCategorySection();
   if (!section) return;
+
+  if (!applySelectedProduct(section, selection.productCode)) {
+    schedule();
+    return;
+  }
 
   section.style.setProperty("display", "none", "important");
   section.setAttribute("aria-hidden", "true");
