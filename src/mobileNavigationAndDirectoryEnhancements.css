@@ -1,0 +1,116 @@
+@media (max-width: 767px) {
+  /* Centraliza a grade de navegação entre o header e as ações da conta. */
+  [data-mobile-public-menu="true"] {
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
+  }
+
+  [data-mobile-public-menu="true"] [data-mobile-nav-grid="true"] {
+    align-self: center !important;
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+  }
+
+  [data-mobile-public-menu="true"] [data-mobile-original-auth-actions="true"] {
+    align-self: end !important;
+    margin-top: 0 !important;
+  }
+
+  /* Área de toque maior para abrir e fechar o menu do header. */
+  [data-public-header-menu] {
+    width: 3.5rem !important;
+    min-width: 3.5rem !important;
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    padding: 0.65rem !important;
+  }
+
+  [data-public-header-menu] svg {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+
+  /* Filtro de turmas: quatro opções compactas em uma única linha. */
+  [data-mobile-class-filter-row="true"] {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  [data-mobile-all-classes-filter="true"] {
+    display: none !important;
+  }
+
+  [data-mobile-class-filter] {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.75rem !important;
+    padding: 0.55rem 0.15rem !important;
+    font-size: clamp(0.58rem, 2.7vw, 0.68rem) !important;
+    line-height: 1 !important;
+    letter-spacing: 0.025em !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+  }
+
+  [data-mobile-class-filter][data-mobile-class-selected="true"] {
+    border-color: #c9a84c !important;
+    background: #c9a84c !important;
+    color: #0d1a0f !important;
+  }
+
+  /* Filtros de presença: duas colunas e duas linhas. */
+  [data-mobile-attendance-filter-row="true"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  [data-mobile-attendance-filter="true"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 5.25rem !important;
+    padding: 0.85rem !important;
+    white-space: normal !important;
+    text-align: left !important;
+  }
+
+  /* Mantém o CTA do questionário em uma única linha. */
+  [data-mobile-questionnaire-cta="true"] {
+    gap: 0.4rem !important;
+    padding-right: 0.55rem !important;
+    padding-left: 0.55rem !important;
+    font-size: clamp(0.66rem, 3vw, 0.78rem) !important;
+    letter-spacing: 0.075em !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+  }
+
+  [data-mobile-questionnaire-cta="true"] svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex: none !important;
+  }
+}
+
+@media (max-width: 359px) {
+  [data-mobile-class-filter] {
+    font-size: 0.54rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  [data-mobile-questionnaire-cta="true"] {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.045em !important;
+  }
+}
