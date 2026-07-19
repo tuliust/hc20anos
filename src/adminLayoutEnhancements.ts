@@ -68,27 +68,27 @@ function compactAdminSecondaryNavigation() {
 
   container.setAttribute(COMPACT_NAV_ATTRIBUTE, "true");
   container.style.flexWrap = "nowrap";
-  container.style.gap = "2px";
-  container.style.paddingTop = "6px";
-  container.style.paddingBottom = "6px";
-  container.style.paddingLeft = "12px";
-  container.style.paddingRight = "12px";
+  container.style.gap = "3px";
+  container.style.paddingTop = "7px";
+  container.style.paddingBottom = "7px";
+  container.style.paddingLeft = "14px";
+  container.style.paddingRight = "14px";
 
   getDirectButtons(container).forEach(button => {
-    button.style.gap = "4px";
-    button.style.paddingTop = "6px";
-    button.style.paddingBottom = "6px";
-    button.style.paddingLeft = "7px";
-    button.style.paddingRight = "7px";
-    button.style.fontSize = "9px";
-    button.style.letterSpacing = "0.06em";
-    button.style.lineHeight = "1";
+    button.style.gap = "5px";
+    button.style.paddingTop = "7px";
+    button.style.paddingBottom = "7px";
+    button.style.paddingLeft = "9px";
+    button.style.paddingRight = "9px";
+    button.style.fontSize = "10px";
+    button.style.letterSpacing = "0.07em";
+    button.style.lineHeight = "1.1";
     button.style.whiteSpace = "nowrap";
 
     const icon = button.querySelector<SVGElement>("svg");
     if (icon) {
-      icon.style.width = "11px";
-      icon.style.height = "11px";
+      icon.style.width = "12px";
+      icon.style.height = "12px";
     }
   });
 }
