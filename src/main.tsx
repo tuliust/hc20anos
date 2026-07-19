@@ -2,8 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
-import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
+import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
@@ -21,6 +21,8 @@ import { installTimelineSequentialActivation } from './timelineSequentialActivat
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
 import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhancements';
+import { installTicketsPageEnhancements } from './ticketsPageEnhancements';
+
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
@@ -30,10 +32,18 @@ import './eventProgramEnhancements.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
+import './ticketsPageEnhancements.css';
 
-const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
-const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
-const isBuyerOrdersRoute = buyerOrdersRoutes.has(normalizedPath);
+const buyerOrdersRoutes = new Set([
+  '/meus-pedidos',
+  '/meus-ingressos',
+]);
+
+const normalizedPath =
+  window.location.pathname.replace(/\/+$/, '') || '/';
+
+const isBuyerOrdersRoute =
+  buyerOrdersRoutes.has(normalizedPath);
 
 if (!isBuyerOrdersRoute) {
   installAdminReadResilience();
@@ -53,6 +63,7 @@ if (!isBuyerOrdersRoute) {
   installEventProgramEnhancements();
   installAdminEventAttractionImages();
   installCuriositiesSummaryEnhancements();
+  installTicketsPageEnhancements();
 }
 
 const rootElement = document.getElementById('root');
@@ -63,10 +74,14 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : <>
-      <App />
-      <AdminCmsPanelsMount />
-      <PublicCmsStrictGuard />
-    </>}
-  </React.StrictMode>
+    {isBuyerOrdersRoute ? (
+      <BuyerOrdersPage />
+    ) : (
+      <>
+        <App />
+        <AdminCmsPanelsMount />
+        <PublicCmsStrictGuard />
+      </>
+    )}
+  </React.StrictMode>,
 );
