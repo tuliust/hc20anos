@@ -1,0 +1,248 @@
+[data-edit-profile-back-button="true"] {
+  display: none !important;
+}
+
+[data-edit-profile-photo-card="true"] [data-edit-profile-avatar-row="true"] {
+  align-items: flex-start !important;
+}
+
+[data-edit-profile-photo-card="true"] [data-edit-profile-avatar-box="true"] {
+  width: 7rem !important;
+  height: 7rem !important;
+  min-width: 7rem !important;
+  min-height: 7rem !important;
+  overflow: hidden !important;
+}
+
+[data-edit-profile-photo-card="true"] [data-edit-profile-avatar-box="true"] img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+[data-edit-profile-avatar-controls="true"] {
+  display: grid !important;
+  grid-template-columns: max-content max-content !important;
+  align-items: start !important;
+  gap: 0.75rem !important;
+  min-width: 0 !important;
+}
+
+[data-edit-profile-avatar-upload="true"],
+[data-edit-profile-avatar-delete="true"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 3.125rem !important;
+  margin: 0 !important;
+  padding: 0.8rem 1.25rem !important;
+  border: 0 !important;
+  background: #2d6a4f !important;
+  color: #f0ebe0 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: background-color 160ms ease !important;
+}
+
+[data-edit-profile-avatar-upload="true"]:hover,
+[data-edit-profile-avatar-delete="true"]:hover {
+  background: #40916c !important;
+  color: #f0ebe0 !important;
+}
+
+[data-edit-profile-avatar-helper="true"] {
+  grid-column: 1 / -1 !important;
+  margin: 0.15rem 0 0 !important;
+  color: #7a9a7a !important;
+  font-size: 0.75rem !important;
+  line-height: 1.45 !important;
+}
+
+.edit-profile-questionnaire {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border: 1px solid rgba(45, 106, 79, 0.3);
+  background: #141f14;
+  padding: 2rem;
+}
+
+.edit-profile-questionnaire-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.edit-profile-questionnaire-eyebrow {
+  color: #7a9a7a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.edit-profile-questionnaire-title {
+  color: #f0ebe0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.edit-profile-questionnaire-description {
+  max-width: 42rem;
+  color: #8ab89a;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.edit-profile-questionnaire-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.edit-profile-questionnaire-question {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid rgba(45, 106, 79, 0.2);
+  padding: 1.4rem 0 0;
+}
+
+.edit-profile-questionnaire-legend {
+  margin-bottom: 0.9rem;
+  color: #f0ebe0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.edit-profile-questionnaire-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.edit-profile-questionnaire-option {
+  min-height: 2.9rem;
+  border: 1px solid rgba(45, 106, 79, 0.32);
+  background: #0d1a0f;
+  padding: 0.7rem 0.85rem;
+  color: #8ab89a;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.edit-profile-questionnaire-option:hover {
+  border-color: rgba(201, 168, 76, 0.6);
+  color: #f0ebe0;
+}
+
+.edit-profile-questionnaire-option[data-selected="true"] {
+  border-color: #c9a84c;
+  background: #1a2e1a;
+  color: #f0ebe0;
+}
+
+.edit-profile-questionnaire-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(45, 106, 79, 0.2);
+  padding-top: 1.25rem;
+}
+
+.edit-profile-questionnaire-status {
+  color: #7a9a7a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.edit-profile-questionnaire-status[data-tone="success"] {
+  color: #74c69d;
+}
+
+.edit-profile-questionnaire-status[data-tone="error"] {
+  color: #e07a5f;
+}
+
+.edit-profile-questionnaire-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  flex: 0 0 auto;
+  border: 0;
+  background: #2d6a4f;
+  padding: 0.75rem 1.25rem;
+  color: #f0ebe0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.edit-profile-questionnaire-save:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 639px) {
+  [data-edit-profile-photo-card="true"] {
+    padding: 1.25rem !important;
+  }
+
+  [data-edit-profile-photo-card="true"] [data-edit-profile-avatar-row="true"] {
+    gap: 1rem !important;
+  }
+
+  [data-edit-profile-photo-card="true"] [data-edit-profile-avatar-box="true"] {
+    width: 7.5rem !important;
+    height: 7.5rem !important;
+    min-width: 7.5rem !important;
+    min-height: 7.5rem !important;
+  }
+
+  [data-edit-profile-avatar-controls="true"] {
+    width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  [data-edit-profile-avatar-upload="true"],
+  [data-edit-profile-avatar-delete="true"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .edit-profile-questionnaire {
+    padding: 1.25rem;
+  }
+
+  .edit-profile-questionnaire-options {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-profile-questionnaire-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .edit-profile-questionnaire-save {
+    width: 100%;
+  }
+}
