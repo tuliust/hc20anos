@@ -5,6 +5,7 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { OperationsPage } from './app/OperationsPage';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
+import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
@@ -76,6 +77,7 @@ createRoot(rootElement).render(
       <App />
       <AdminCmsPanelsMount />
       <PublicCmsStrictGuard />
+      <PublicTicketsCatalogMount />
     </>}
   </React.StrictMode>,
 );
