@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, RotateCcw, Search, TicketCheck, Utensils, XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { CheckinScanner } from "./CheckinScanner";
 import "./OperationsPage.css";
 
 type CheckinRow = {
@@ -36,9 +37,10 @@ export function OperationsPage() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const loadTickets = useCallback(async () => {
+  const loadTickets = useCallback(async (searchOverride?: string) => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: search || null });
+    const term = searchOverride ?? search;
+    const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: term || null });
     setLoading(false);
     if (error) return setNotice(error.message);
     setTickets((data ?? []) as CheckinRow[]);
@@ -54,6 +56,10 @@ export function OperationsPage() {
 
   useEffect(() => {
     void (tab === "checkin" ? loadTickets() : loadRefunds());
+    const interval = window.setInterval(() => {
+      void (tab === "checkin" ? loadTickets() : loadRefunds());
+    }, 10000);
+    return () => window.clearInterval(interval);
   }, [tab, loadTickets, loadRefunds]);
 
   async function checkin(ticketId: string, undo = false) {
@@ -64,6 +70,25 @@ export function OperationsPage() {
       setNotice(undo ? "Check-in desfeito." : "Check-in registrado.");
       await loadTickets();
     }
+  }
+
+  async function handleScannedCode(rawValue: string) {
+    const normalized = rawValue.trim();
+    setSearch(normalized);
+    const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: normalized });
+    if (error) return setNotice(error.message);
+    const found = (data ?? []) as CheckinRow[];
+    setTickets(found);
+    if (found.length !== 1) {
+      setNotice(found.length === 0 ? "QR Code não encontrado ou inválido." : "Mais de um resultado encontrado. Confirme o participante.");
+      return;
+    }
+    const ticket = found[0];
+    if (ticket.checked_in) {
+      setNotice(`Check-in já realizado para ${ticket.attendee_name}.`);
+      return;
+    }
+    await checkin(ticket.ticket_id);
   }
 
   async function vouchers(ticketId: string, delivered: boolean) {
@@ -113,7 +138,8 @@ export function OperationsPage() {
     {notice && <div className="operations-notice">{notice}</div>}
 
     {tab === "checkin" ? <>
-      <section className="operations-summary"><strong>{checkedInCount}</strong><span>check-ins de {tickets.length} resultados</span></section>
+      <section className="operations-summary"><strong>{checkedInCount}</strong><span>check-ins de {tickets.length} resultados · atualização automática a cada 10 segundos</span></section>
+      <CheckinScanner onCode={code => void handleScannedCode(code)}/>
       <form className="operations-search" onSubmit={event => { event.preventDefault(); void loadTickets(); }}>
         <Search size={18}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome, e-mail ou código"/><button>Buscar</button>
       </form>
