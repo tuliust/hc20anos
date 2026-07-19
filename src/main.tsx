@@ -9,6 +9,7 @@ import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
+import { installAdminEventAttractionImages } from './adminEventAttractionImages';
 import './styles.css';
 import './mobile.css';
 import './mobile-a11y.css';
@@ -21,6 +22,7 @@ installExAlumniEnhancements();
 installHeaderMenuEnhancements();
 installTimelineSequentialActivation();
 installEventProgramEnhancements();
+installAdminEventAttractionImages();
 
 const rootElement = document.getElementById('root');
 
