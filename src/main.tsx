@@ -25,6 +25,7 @@ import { installTimelineSequentialActivation } from './timelineSequentialActivat
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
 import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhancements';
+import { installCuriositiesPollMobileEnhancements } from './curiositiesPollMobileEnhancements';
 import { installTicketsPageEnhancements } from './ticketsPageEnhancements';
 
 import './styles.css';
@@ -37,6 +38,7 @@ import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
 import './ticketsPageEnhancements.css';
+import './curiositiesPollMobileEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
@@ -65,6 +67,7 @@ if (!isStandaloneRoute) {
   installEventProgramEnhancements();
   installAdminEventAttractionImages();
   installCuriositiesSummaryEnhancements();
+  installCuriositiesPollMobileEnhancements();
   installTicketsPageEnhancements();
 }
 
