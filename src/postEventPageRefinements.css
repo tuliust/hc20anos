@@ -1,0 +1,17 @@
+/* Página /pos-festa: mantém a mensagem do estado "Em breve" no padrão de corpo de texto. */
+main > div.min-h-screen.bg-\[\#080f08\].pt-24.pb-20
+  > div.max-w-7xl.mx-auto.px-4
+  > div.bg-\[\#141f14\].border.border-\[\#2d6a4f\]\/30
+  p.text-\[\#8ab89a\].leading-relaxed.mb-8 {
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+
+@media (min-width: 768px) {
+  main > div.min-h-screen.bg-\[\#080f08\].pt-24.pb-20
+    > div.max-w-7xl.mx-auto.px-4
+    > div.bg-\[\#141f14\].border.border-\[\#2d6a4f\]\/30
+    p.text-\[\#8ab89a\].leading-relaxed.mb-8 {
+    font-size: 1rem !important;
+  }
+}
