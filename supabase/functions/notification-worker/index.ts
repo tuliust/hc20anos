@@ -8,10 +8,7 @@ const corsHeaders = {
 };
 
 function respond(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
 function getDb() {
@@ -22,32 +19,33 @@ function getDb() {
 }
 
 function escapeHtml(value: unknown) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
 function formatMoney(cents: unknown) {
-  const value = Number(cents ?? 0) / 100;
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(cents ?? 0) / 100);
+}
+
+function baseEventType(eventType: string) {
+  return eventType.replace(/_(email|whatsapp)$/, "");
+}
+
+function normalizeWhatsAppPhone(value: unknown) {
+  let digits = String(value ?? "").replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
+  if (!/^\d{12,15}$/.test(digits)) throw new Error("recipient_phone_invalid");
+  return digits;
 }
 
 async function hydratePayload(db: ReturnType<typeof getDb>, job: any) {
   const payload = { ...(job.payload_json ?? {}) };
   if (!job.ticket_id) return payload;
-
-  const { data, error } = await db
-    .from("tickets")
+  const { data, error } = await db.from("tickets")
     .select("id, order_id, attendee_name, attendee_email, attendee_phone, qr_code, qr_token, status, orders!inner(buyer_name, buyer_email, buyer_phone, payment_status, total_amount_cents), ticket_types(name)")
-    .eq("id", job.ticket_id)
-    .maybeSingle();
-
+    .eq("id", job.ticket_id).maybeSingle();
   if (error) throw new Error(`ticket_hydration_failed:${error.message}`);
   if (!data) throw new Error("ticket_not_found");
-
   const order = Array.isArray(data.orders) ? data.orders[0] : data.orders;
   const ticketType = Array.isArray(data.ticket_types) ? data.ticket_types[0] : data.ticket_types;
   return {
@@ -65,25 +63,36 @@ async function hydratePayload(db: ReturnType<typeof getDb>, job: any) {
   };
 }
 
-function notificationCopy(eventType: string, payload: Record<string, unknown>) {
-  const paymentStatus = String(payload.payment_status || "");
-  const person = escapeHtml(payload.participant_name || payload.buyer_name || "Participante");
+function notificationCopy(rawEventType: string, payload: Record<string, unknown>) {
+  const eventType = baseEventType(rawEventType);
+  const paymentStatus = String(payload.payment_status || eventType.replace("payment_", ""));
+  const person = escapeHtml(payload.participant_name || payload.guest_name || payload.buyer_name || "Participante");
   const orderId = escapeHtml(String(payload.order_id || "").slice(0, 8).toUpperCase());
   const amount = escapeHtml(formatMoney(payload.total_amount_cents));
 
   if (eventType.startsWith("payment_")) {
     const copies: Record<string, { subject: string; title: string; message: string }> = {
       pending: { subject: "Pedido recebido - HC 20 Anos", title: "Pedido recebido", message: `Seu pedido ${orderId ? `#${orderId}` : ""} foi criado e aguarda pagamento. Total: ${amount}.` },
-      in_process: { subject: "Pagamento em análise - HC 20 Anos", title: "Pagamento em análise", message: "O Mercado Pago está analisando o pagamento. Avisaremos quando houver uma atualização." },
-      approved: { subject: "Pagamento aprovado - HC 20 Anos", title: "Pagamento aprovado", message: "O pagamento foi confirmado. Seus ingressos individuais já podem ser consultados na Área do Comprador." },
-      rejected: { subject: "Pagamento não aprovado - HC 20 Anos", title: "Pagamento não aprovado", message: "O pagamento foi recusado. Consulte o Mercado Pago ou faça uma nova tentativa de compra." },
-      expired: { subject: "Pagamento expirado - HC 20 Anos", title: "Pagamento expirado", message: "A reserva e a preferência de pagamento expiraram. Para participar, será necessário iniciar uma nova compra." },
-      cancelled: { subject: "Pedido cancelado - HC 20 Anos", title: "Pedido cancelado", message: "O pedido foi cancelado e os ingressos vinculados não são válidos." },
-      refunded: { subject: "Pagamento reembolsado - HC 20 Anos", title: "Pagamento reembolsado", message: "O reembolso foi registrado. Os QR Codes vinculados ao pedido foram invalidados." },
-      charged_back: { subject: "Pagamento contestado - HC 20 Anos", title: "Pagamento contestado", message: "O pagamento foi contestado. Os ingressos permanecerão inválidos enquanto a ocorrência estiver aberta." },
+      in_process: { subject: "Pagamento em análise - HC 20 Anos", title: "Pagamento em análise", message: "O Mercado Pago está analisando o pagamento." },
+      approved: { subject: "Pagamento aprovado - HC 20 Anos", title: "Pagamento aprovado", message: "O pagamento foi confirmado. Seus ingressos já estão na Área do Comprador." },
+      rejected: { subject: "Pagamento não aprovado - HC 20 Anos", title: "Pagamento não aprovado", message: "O pagamento foi recusado. Faça uma nova tentativa de compra." },
+      expired: { subject: "Pagamento expirado - HC 20 Anos", title: "Pagamento expirado", message: "A reserva expirou. Para participar, inicie uma nova compra." },
+      cancelled: { subject: "Pedido cancelado - HC 20 Anos", title: "Pedido cancelado", message: "O pedido foi cancelado." },
+      refunded: { subject: "Pagamento reembolsado - HC 20 Anos", title: "Pagamento reembolsado", message: "O reembolso foi registrado e os ingressos foram invalidados." },
+      charged_back: { subject: "Pagamento contestado - HC 20 Anos", title: "Pagamento contestado", message: "O pagamento foi contestado e os ingressos estão inválidos." },
     };
     const copy = copies[paymentStatus] ?? copies.pending;
     return { ...copy, person, actionLabel: "Acompanhar pedido", actionUrl: `${SITE_URL}/meus-pedidos`, ticketCode: "" };
+  }
+
+  if (eventType === "guest_approval_requested") {
+    return { subject: "Nova solicitação de convidado - HC 20 Anos", title: "Solicitação de convidado", message: `${person} solicitou sua aprovação para participar como convidado.`, person: escapeHtml(payload.sponsor_name || "Ex-aluno"), actionLabel: "Analisar solicitação", actionUrl: `${SITE_URL}/convidado`, ticketCode: "" };
+  }
+  if (eventType === "guest_approval_approved") {
+    return { subject: "Convite aprovado - HC 20 Anos", title: "Seu convite foi aprovado", message: "A aprovação foi concluída. Você já pode seguir para a compra do ingresso.", person, actionLabel: "Comprar ingresso", actionUrl: `${SITE_URL}/ingressos`, ticketCode: "" };
+  }
+  if (eventType === "guest_approval_rejected") {
+    return { subject: "Solicitação de convidado atualizada - HC 20 Anos", title: "Solicitação não aprovada", message: escapeHtml(payload.decision_notes || "A solicitação não foi aprovada pelo ex-aluno responsável."), person, actionLabel: "Ver solicitações", actionUrl: `${SITE_URL}/convidado`, ticketCode: "" };
   }
 
   const isResend = eventType.includes("resend");
@@ -102,85 +111,81 @@ async function deliverEmail(job: any, payload: Record<string, unknown>) {
   const providerKey = Deno.env.get("RESEND_API_KEY");
   const sender = Deno.env.get("TRANSACTIONAL_FROM_EMAIL");
   if (!providerKey || !sender) throw new Error("email_configuration_missing");
-
   const recipient = String(payload.recipient_email || job.recipient_email || "");
   if (!recipient) throw new Error("recipient_email_missing");
   const copy = notificationCopy(String(job.event_type || ""), payload);
-
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: sender,
-      to: [recipient],
-      subject: copy.subject,
-      html: `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f1e8;font-family:Arial,sans-serif;color:#173c2f"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:28px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;margin:auto;background:#ffffff;border-radius:18px"><tr><td style="padding:32px"><p style="text-transform:uppercase;letter-spacing:.12em;color:#9a7b3f;font-weight:700">HC 20 Anos</p><h1 style="margin:0 0 18px">${copy.title}</h1><p>Olá, <strong>${copy.person}</strong>.</p><p>${copy.message}</p>${copy.ticketCode ? `<p style="font-size:18px">Código: <strong>${copy.ticketCode}</strong></p>` : ""}<p><a href="${copy.actionUrl}" style="display:inline-block;background:#173c2f;color:#ffffff;text-decoration:none;border-radius:999px;padding:13px 20px;font-weight:700">${copy.actionLabel}</a></p><hr style="border:none;border-top:1px solid #ece7dc;margin:28px 0"><p style="color:#66746e">Evento: 24 de outubro de 2026, às 14h.</p><p style="color:#66746e">QR Codes cancelados, reembolsados, transferidos ou substituídos não são válidos.</p></td></tr></table></td></tr></table></body></html>`,
+      from: sender, to: [recipient], subject: copy.subject,
+      html: `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f1e8;font-family:Arial,sans-serif;color:#173c2f"><table role="presentation" width="100%"><tr><td style="padding:28px"><table role="presentation" width="100%" style="max-width:620px;margin:auto;background:#fff;border-radius:18px"><tr><td style="padding:32px"><p style="text-transform:uppercase;color:#9a7b3f;font-weight:700">HC 20 Anos</p><h1>${copy.title}</h1><p>Olá, <strong>${copy.person}</strong>.</p><p>${copy.message}</p>${copy.ticketCode ? `<p>Código: <strong>${copy.ticketCode}</strong></p>` : ""}<p><a href="${copy.actionUrl}" style="display:inline-block;background:#173c2f;color:#fff;text-decoration:none;border-radius:999px;padding:13px 20px;font-weight:700">${copy.actionLabel}</a></p></td></tr></table></td></tr></table></body></html>`,
     }),
   });
+  const providerPayload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`email_provider_error_${response.status}:${JSON.stringify(providerPayload).slice(0, 300)}`);
+  return { provider: "resend", messageId: String(providerPayload.id ?? ""), response: providerPayload };
+}
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`email_provider_error_${response.status}:${detail.slice(0, 180)}`);
-  }
+function whatsappTemplate(eventType: string) {
+  const base = baseEventType(eventType);
+  const envName = base.startsWith("payment_") ? "WHATSAPP_TEMPLATE_PAYMENT"
+    : base.startsWith("ticket_") ? "WHATSAPP_TEMPLATE_TICKET"
+    : base.startsWith("ticket_transfer_") ? "WHATSAPP_TEMPLATE_TRANSFER"
+    : base.includes("refund") ? "WHATSAPP_TEMPLATE_REFUND"
+    : base === "guest_approval_requested" ? "WHATSAPP_TEMPLATE_GUEST_REQUEST"
+    : base.startsWith("guest_approval_") ? "WHATSAPP_TEMPLATE_GUEST_DECISION"
+    : "WHATSAPP_TEMPLATE_DEFAULT";
+  const template = Deno.env.get(envName);
+  if (!template) throw new Error(`whatsapp_template_missing:${envName}`);
+  return template;
 }
 
 async function deliverWhatsApp(eventType: string, payload: Record<string, unknown>) {
-  const providerUrl = Deno.env.get("WHATSAPP_PROVIDER_URL");
-  const providerToken = Deno.env.get("WHATSAPP_PROVIDER_TOKEN");
-  const ticketTemplate = Deno.env.get("WHATSAPP_TICKET_TEMPLATE");
-  const paymentTemplate = Deno.env.get("WHATSAPP_PAYMENT_TEMPLATE") ?? ticketTemplate;
-  const template = eventType.startsWith("payment_") ? paymentTemplate : ticketTemplate;
-  if (!providerUrl || !providerToken || !template) throw new Error("whatsapp_configuration_missing");
-
-  const phone = String(payload.recipient_phone || "").replace(/\D/g, "");
-  if (!phone) throw new Error("recipient_phone_missing");
+  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  const graphVersion = Deno.env.get("WHATSAPP_GRAPH_VERSION");
+  const language = Deno.env.get("WHATSAPP_TEMPLATE_LANGUAGE") ?? "pt_BR";
+  if (!accessToken || !phoneNumberId || !graphVersion) throw new Error("whatsapp_configuration_missing");
+  const phone = normalizeWhatsAppPhone(payload.recipient_phone);
   const copy = notificationCopy(eventType, payload);
-
-  const response = await fetch(providerUrl, {
+  const template = whatsappTemplate(eventType);
+  const parameters = [
+    String(payload.participant_name || payload.guest_name || payload.buyer_name || payload.sponsor_name || "Participante"),
+    copy.title,
+    copy.message,
+    String(payload.ticket_code || payload.order_id || "—").slice(0, 80),
+    copy.actionUrl,
+  ].map(text => ({ type: "text", text }));
+  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${providerToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: phone,
-      template,
-      language: "pt_BR",
-      variables: {
-        name: String(payload.participant_name || payload.buyer_name || "Participante"),
-        title: copy.title,
-        message: copy.message,
-        ticket_code: String(payload.ticket_code || ""),
-        order_id: String(payload.order_id || "").slice(0, 8).toUpperCase(),
-        payment_status: String(payload.payment_status || ""),
-        ticket_url: copy.actionUrl,
-        event_date: "24/10/2026",
-        event_time: "14h",
-      },
-    }),
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to: phone, type: "template", template: { name: template, language: { code: language }, components: [{ type: "body", parameters }] } }),
   });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`whatsapp_provider_error_${response.status}:${detail.slice(0, 180)}`);
-  }
+  const providerPayload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`whatsapp_provider_error_${response.status}:${JSON.stringify(providerPayload).slice(0, 500)}`);
+  return { provider: "meta_whatsapp_cloud", messageId: String(providerPayload.messages?.[0]?.id ?? ""), response: providerPayload };
 }
 
 async function deliver(db: ReturnType<typeof getDb>, job: any) {
   const payload = await hydratePayload(db, job);
   const eventType = String(job.event_type || "");
-  if (eventType.endsWith("_whatsapp")) await deliverWhatsApp(eventType, payload);
-  else await deliverEmail(job, payload);
+  const result = eventType.endsWith("_whatsapp") ? await deliverWhatsApp(eventType, payload) : await deliverEmail(job, payload);
+  await db.from("notification_jobs").update({
+    channel: eventType.endsWith("_whatsapp") ? "whatsapp" : "email",
+    provider_message_id: result.messageId || null,
+    provider_response_json: result.response,
+  }).eq("id", job.id);
 }
 
-Deno.serve(async (request) => {
+Deno.serve(async request => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return respond({ error: "method_not_allowed" }, 405);
-
   const expectedKey = Deno.env.get("NOTIFICATION_WORKER_KEY");
   if (!expectedKey || request.headers.get("x-worker-key") !== expectedKey) return respond({ error: "unauthorized" }, 401);
-
   const db = getDb();
   const { data: jobs, error: claimError } = await db.rpc("claim_notification_jobs", { p_limit: 20, p_worker_id: crypto.randomUUID() });
   if (claimError) return respond({ error: claimError.message }, 500);
-
   const results = [];
   for (const job of jobs ?? []) {
     try {
@@ -193,6 +198,5 @@ Deno.serve(async (request) => {
       results.push({ id: job.id, event_type: job.event_type, success: false, error: message });
     }
   }
-
   return respond({ claimed: jobs?.length ?? 0, results });
 });
