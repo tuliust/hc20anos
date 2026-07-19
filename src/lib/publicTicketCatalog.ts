@@ -38,8 +38,49 @@ function metadata(ticket: DbTicketType): TicketWithCatalogMetadata {
   return ticket as TicketWithCatalogMetadata;
 }
 
+function normalize(value: string | null | undefined): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
+function inferProductCodeFromName(ticket: DbTicketType): PublicTicketProductCode | "" {
+  const name = normalize(ticket.name);
+
+  if (name.includes("convidado")) return "external_guest";
+
+  if (
+    name.includes("familia sem conjuge")
+    || name.includes("sem conjuge")
+    || name.includes("monoparental")
+  ) {
+    return "family_single_parent";
+  }
+
+  if (name.includes("familia") || name.includes("casal")) return "family_full";
+
+  if (
+    name.includes("ex-aluno")
+    || name.includes("ex aluno")
+    || name.includes("individual")
+    || name.includes("aluno")
+  ) {
+    return "simple";
+  }
+
+  return "";
+}
+
 function productCode(ticket: DbTicketType): string {
-  return String(metadata(ticket).product_code ?? "");
+  const explicitCode = String(metadata(ticket).product_code ?? "").trim();
+  if (PUBLIC_TICKET_PRODUCT_CODES.includes(explicitCode as PublicTicketProductCode)) {
+    return explicitCode;
+  }
+
+  return inferProductCodeFromName(ticket);
 }
 
 function activePrice(ticket: DbTicketType): number {
@@ -94,16 +135,7 @@ export function toPublicTicketCard(ticket: DbTicketType): PublicTicketCardModel 
   return null;
 }
 
-export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTicketCardModel[] {
-  resolvedLotCode = null;
-  resolvedLotName = null;
-
-  const candidates = ticketTypes
-    .filter((ticket) => ticket.status === "open")
-    .map(withActiveCatalogMetadata)
-    .map(toPublicTicketCard)
-    .filter((model): model is PublicTicketCardModel => Boolean(model));
-
+function groupPublicCards(candidates: PublicTicketCardModel[]): PublicTicketCardModel[] {
   const byGroup = new Map<PublicTicketGroup, PublicTicketCardModel>();
 
   for (const model of candidates) {
@@ -113,14 +145,37 @@ export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTick
       continue;
     }
 
-    // O card Família representa a categoria e abre o pacote familiar de menor preço.
-    // No checkout o usuário pode alternar entre as duas composições disponíveis.
-    if (model.group === "family" && model.ticketType.price_cents < current.ticketType.price_cents) {
+    const modelIsOpen = model.ticketType.status === "open";
+    const currentIsOpen = current.ticketType.status === "open";
+
+    if (modelIsOpen && !currentIsOpen) {
+      byGroup.set(model.group, model);
+      continue;
+    }
+
+    // O card Família representa a categoria e usa a composição disponível de menor preço.
+    if (model.group === "family" && modelIsOpen === currentIsOpen && model.ticketType.price_cents < current.ticketType.price_cents) {
       byGroup.set(model.group, model);
     }
   }
 
   return Array.from(byGroup.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTicketCardModel[] {
+  resolvedLotCode = null;
+  resolvedLotName = null;
+
+  const mappedCandidates = ticketTypes
+    .map(withActiveCatalogMetadata)
+    .map(toPublicTicketCard)
+    .filter((model): model is PublicTicketCardModel => Boolean(model));
+
+  const openCandidates = mappedCandidates.filter((model) => model.ticketType.status === "open");
+
+  // Prioriza vendas abertas. Se o backend não retornar nenhum status aberto,
+  // mantém as três categorias visíveis em vez de deixar a página vazia.
+  return groupPublicCards(openCandidates.length > 0 ? openCandidates : mappedCandidates);
 }
 
 export function formatLotLabel(lotCode?: string | null, lotName?: string | null): string {
@@ -132,7 +187,6 @@ export function formatLotLabel(lotCode?: string | null, lotName?: string | null)
   const nameMatch = name.match(/(\d+)/);
   if (nameMatch) return `LOTE ${nameMatch[1]}`;
 
-  // O lote inicial é apresentado publicamente como LOTE 1.
   if (code === "initial") return "LOTE 1";
   return "LOTE 1";
 }

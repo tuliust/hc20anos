@@ -9,6 +9,7 @@ import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
 import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhancements';
+import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
@@ -53,6 +54,7 @@ if (!isStandaloneRoute) {
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
   installCheckoutSelectionEnhancements();
+  installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
   installHeaderMenuEnhancements();
