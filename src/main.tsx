@@ -23,6 +23,7 @@ import './mobile-a11y.css';
 import './mobileHeroRefinements.css';
 import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
+import './homeMobileRefinements.css';
 
 installAdminReadResilience();
 installNeutralCmsDefaults();
