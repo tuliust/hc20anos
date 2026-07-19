@@ -3,15 +3,29 @@
     transform: translateY(-2.75rem);
   }
 
+  [data-mobile-hero-eyebrow="true"] {
+    margin-bottom: 1.2rem !important;
+  }
+
+  [data-mobile-hero-title="true"] {
+    line-height: 0.88 !important;
+  }
+
+  [data-mobile-hero-tagline="true"] {
+    margin-top: 0.95rem !important;
+    font-size: clamp(1.55rem, 6.6vw, 1.9rem) !important;
+    line-height: 1.08 !important;
+  }
+
   [data-mobile-hero-event-line="true"] {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 0.3rem !important;
+    gap: 0.45rem !important;
     margin-bottom: 1.5rem !important;
-    font-size: clamp(0.72rem, 3.1vw, 0.86rem) !important;
-    line-height: 1.35 !important;
-    letter-spacing: 0.045em !important;
+    font-size: clamp(0.82rem, 3.45vw, 0.98rem) !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.035em !important;
     text-transform: none !important;
     overflow-wrap: normal !important;
     word-break: keep-all !important;
@@ -28,6 +42,10 @@
 
   [data-mobile-hero-event-separator="true"] {
     display: none !important;
+  }
+
+  [data-home-section="hero"] [data-mobile-hero-content="true"] > .inline-flex {
+    transform: translateY(clamp(4rem, 9svh, 5.5rem));
   }
 
   [data-home-section="hero"] .inline-flex > .flex.items-center > span {
@@ -54,12 +72,30 @@
   [data-home-section="hero"] [data-mobile-hero-content="true"] {
     transform: translateY(-1.5rem);
   }
+
+  [data-home-section="hero"] [data-mobile-hero-content="true"] > .inline-flex {
+    transform: translateY(2.5rem);
+  }
 }
 
 @media (max-width: 359px) {
+  [data-mobile-hero-eyebrow="true"] {
+    margin-bottom: 0.95rem !important;
+  }
+
+  [data-mobile-hero-tagline="true"] {
+    margin-top: 0.75rem !important;
+    font-size: 1.45rem !important;
+  }
+
   [data-mobile-hero-event-line="true"] {
-    font-size: 0.66rem !important;
-    letter-spacing: 0.025em !important;
+    gap: 0.35rem !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  [data-home-section="hero"] [data-mobile-hero-content="true"] > .inline-flex {
+    transform: translateY(3.5rem);
   }
 
   [data-home-section="hero"] .inline-flex > .flex.items-center > span {
