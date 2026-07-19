@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, BadgeDollarSign, Check, Clock3, ExternalLink, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import "./BuyerCommerceActions.css";
 
 type TransferRow = {
   id: string;
