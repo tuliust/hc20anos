@@ -26,6 +26,7 @@ import { installMobileEnhancements } from './mobileEnhancements';
 import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
+import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
@@ -77,6 +78,7 @@ if (!isStandaloneRoute) {
   installHistoryContentEnhancements();
   installHistoryHeaderEnhancements();
   installPhotoUploadModalEnhancement();
+  installPostEventClosedMessageEnhancements();
   installTimelineSequentialActivation();
   installEventProgramEnhancements();
   installAdminEventAttractionImages();
