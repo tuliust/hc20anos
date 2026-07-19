@@ -12,7 +12,7 @@
   }
 
   .home-section.bg-\[\#0a120a\] .grid.grid-cols-1.md\:grid-cols-3 > div > div:first-child > div:first-child > p:last-child {
-    margin-top: 0.95rem !important;
+    margin-top: 1.75rem !important;
   }
 
   /* Texto introdutório da prévia de ex-alunos. */
@@ -22,31 +22,42 @@
     line-height: 1.55 !important;
   }
 
-  /* Fotos de confirmados sempre quadradas e circulares. */
+  /* Fallback CSS para fotos de confirmados. O reforço principal é feito via DOM. */
   [data-home-confirmed-grid] img,
-  [data-home-confirmed-grid] [role="img"] {
+  [data-home-confirmed-grid] [role="img"],
+  [data-mobile-confirmed-avatar="true"] {
     aspect-ratio: 1 / 1 !important;
-    border-radius: 9999px !important;
+    border-radius: 50% !important;
     object-fit: cover !important;
   }
 
   [data-home-confirmed-grid][data-count="1"] img,
-  [data-home-confirmed-grid][data-count="1"] [role="img"] {
+  [data-home-confirmed-grid][data-count="1"] [role="img"],
+  [data-mobile-confirmed-avatar="true"] {
     width: clamp(8.75rem, 40vw, 10.5rem) !important;
     height: clamp(8.75rem, 40vw, 10.5rem) !important;
+    min-width: clamp(8.75rem, 40vw, 10.5rem) !important;
+    min-height: clamp(8.75rem, 40vw, 10.5rem) !important;
+    max-width: clamp(8.75rem, 40vw, 10.5rem) !important;
+    max-height: clamp(8.75rem, 40vw, 10.5rem) !important;
   }
 
   /* Rodapé: compacta somente a coluna de navegação. */
-  footer .grid > :nth-child(2) .flex.flex-col {
-    gap: 0.15rem !important;
+  footer .grid > :nth-child(2) .flex.flex-col,
+  [data-public-footer] .grid > :nth-child(2) .flex.flex-col {
+    gap: 0 !important;
+    row-gap: 0 !important;
   }
 
-  footer .grid > :nth-child(2) button {
+  footer .grid > :nth-child(2) button,
+  [data-public-footer] .grid > :nth-child(2) button {
     display: flex !important;
-    min-height: 2rem !important;
+    height: 1.65rem !important;
+    min-height: 1.65rem !important;
+    max-height: 1.65rem !important;
     align-items: center !important;
-    padding-top: 0.15rem !important;
-    padding-bottom: 0.15rem !important;
-    line-height: 1.2 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.05 !important;
   }
 }
