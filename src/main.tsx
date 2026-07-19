@@ -5,6 +5,7 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { GuestApprovalPage } from './app/GuestApprovalPage';
 import { OperationsPage } from './app/OperationsPage';
+import { OperationsReportingPanel } from './app/OperationsReportingPanel';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
@@ -92,7 +93,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <OperationsPage /> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
+    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
       <App />
       <AdminCmsPanelsMount />
       <PublicCmsStrictGuard />
