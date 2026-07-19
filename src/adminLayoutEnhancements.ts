@@ -1,6 +1,7 @@
 const ADMIN_DESKTOP_QUERY = "(min-width: 1024px)";
 const COMPACT_NAV_ATTRIBUTE = "data-admin-secondary-nav-compact";
 const REJECTED_ACTION_ATTRIBUTE = "data-admin-rejected-action-hidden";
+const MEMORY_ACTION_ATTRIBUTE = "data-memory-action-badge-sized";
 
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
@@ -93,22 +94,34 @@ function compactAdminSecondaryNavigation() {
   });
 }
 
-function findPhotosAdminRoot(): HTMLElement | null {
+function findModerationRoot(automaticApprovalText: string, requiredFilters: string[]): HTMLElement | null {
   const automaticApprovalLabel = Array.from(document.querySelectorAll<HTMLElement>("label"))
-    .find(element => normalizeText(element.textContent).includes("aprovar novas fotos automaticamente"));
+    .find(element => normalizeText(element.textContent).includes(automaticApprovalText));
 
   let current = automaticApprovalLabel?.parentElement ?? null;
   while (current && current !== document.body) {
     const labels = Array.from(current.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
 
-    if (labels.includes("pendente") && labels.includes("aprovado") && labels.includes("rejeitado") && labels.includes("todos")) {
-      return current;
-    }
+    if (requiredFilters.every(label => labels.includes(label))) return current;
     current = current.parentElement;
   }
 
   return null;
+}
+
+function findPhotosAdminRoot() {
+  return findModerationRoot(
+    "aprovar novas fotos automaticamente",
+    ["pendente", "aprovado", "rejeitado", "todos"],
+  );
+}
+
+function findMemoriesAdminRoot() {
+  return findModerationRoot(
+    "aprovar novas memórias automaticamente",
+    ["pendente", "aprovado", "rejeitado", "oculto", "todos"],
+  );
 }
 
 function isFilterActive(button: HTMLButtonElement | undefined) {
@@ -147,12 +160,61 @@ function updateRejectedPhotoActions() {
     });
 }
 
+function findApprovedMemoryBadge(root: HTMLElement): HTMLElement | null {
+  return Array.from(root.querySelectorAll<HTMLElement>("span, div"))
+    .find(element => (
+      normalizeText(element.textContent) === "aprovado"
+      && !element.closest("button")
+      && element.className.includes("font-mono")
+    )) ?? null;
+}
+
+function sizeMemoryModerationActions() {
+  const root = findMemoriesAdminRoot();
+  if (!root) return;
+
+  const badge = findApprovedMemoryBadge(root);
+  const badgeStyle = badge ? window.getComputedStyle(badge) : null;
+  const badgeHeight = badge?.getBoundingClientRect().height ?? 23;
+  const actionLabels = new Set(["aprovar", "rejeitar", "destacar", "remover destaque"]);
+
+  Array.from(root.querySelectorAll<HTMLButtonElement>("button"))
+    .filter(button => actionLabels.has(normalizeText(button.textContent)))
+    .forEach(button => {
+      button.setAttribute(MEMORY_ACTION_ATTRIBUTE, "true");
+      button.style.width = "auto";
+      button.style.minWidth = "0";
+      button.style.minHeight = "0";
+      button.style.height = `${Math.round(badgeHeight)}px`;
+      button.style.flex = "0 0 auto";
+      button.style.paddingTop = badgeStyle?.paddingTop || "4px";
+      button.style.paddingBottom = badgeStyle?.paddingBottom || "4px";
+      button.style.paddingLeft = badgeStyle?.paddingLeft || "10px";
+      button.style.paddingRight = badgeStyle?.paddingRight || "10px";
+      button.style.fontFamily = badgeStyle?.fontFamily || "monospace";
+      button.style.fontSize = badgeStyle?.fontSize || "10px";
+      button.style.fontWeight = badgeStyle?.fontWeight || "700";
+      button.style.lineHeight = badgeStyle?.lineHeight || "1";
+      button.style.letterSpacing = badgeStyle?.letterSpacing || "0.05em";
+      button.style.textTransform = badgeStyle?.textTransform || "uppercase";
+      button.style.gap = "4px";
+      button.style.whiteSpace = "nowrap";
+
+      const icon = button.querySelector<SVGElement>("svg");
+      if (icon) {
+        icon.style.width = "10px";
+        icon.style.height = "10px";
+      }
+    });
+}
+
 let scheduled = false;
 
 function runEnhancements() {
   if (!isAdminRoute()) return;
   compactAdminSecondaryNavigation();
   updateRejectedPhotoActions();
+  sizeMemoryModerationActions();
 }
 
 function scheduleEnhancements() {
