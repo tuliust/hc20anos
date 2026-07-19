@@ -9,6 +9,7 @@ import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
+import { installCheckoutExtrasEnhancements } from './checkoutExtrasEnhancements';
 import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhancements';
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
@@ -39,6 +40,7 @@ import './editProfileEnhancements.css';
 import './mobilePublicHistoryRefinements.css';
 import './ticketsPageEnhancements.css';
 import './curiositiesPollMobileEnhancements.css';
+import './checkoutExtrasEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
@@ -57,6 +59,7 @@ if (!isStandaloneRoute) {
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
   installCheckoutSelectionEnhancements();
+  installCheckoutExtrasEnhancements();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installExAlumniEnhancements();
