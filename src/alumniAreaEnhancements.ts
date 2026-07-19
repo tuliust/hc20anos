@@ -5,6 +5,16 @@ const TICKET_MESSAGE_ATTRIBUTE = "data-alumni-area-ticket-message-hidden";
 const PHOTOS_LINK_ATTRIBUTE = "data-alumni-area-photos-link-hidden";
 const PROFILE_NAME_ATTRIBUTE = "data-alumni-area-profile-name-expanded";
 const ACTION_BORDER_ATTRIBUTE = "data-alumni-area-action-bordered";
+const PROFILE_ROW_ATTRIBUTE = "data-alumni-area-profile-row-stretched";
+const PROFILE_PHOTO_ATTRIBUTE = "data-alumni-area-profile-photo-stretched";
+const PROFILE_PHOTO_IMAGE_ATTRIBUTE = "data-alumni-area-profile-photo-image-stretched";
+const CLASSMATE_STATUS_ATTRIBUTE = "data-alumni-area-classmate-status-translated";
+
+const CLASSMATE_STATUS_LABELS: Record<string, string> = {
+  unclaimed: "Não atualizado",
+  claimed: "Perfil completo",
+  confirmed: "Confirmado",
+};
 
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
@@ -59,6 +69,12 @@ function updateGreetingClassLabel() {
   hideElement(classLabel ?? null, GREETING_CLASS_ATTRIBUTE);
 }
 
+function findProfileCard() {
+  const profileLabel = Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .find(element => normalizeText(element.textContent) === "meu perfil");
+  return profileLabel?.parentElement ?? null;
+}
+
 function updateProfileName() {
   document.querySelectorAll<HTMLElement>(`[${PROFILE_NAME_ATTRIBUTE}]`).forEach(element => {
     if (isAlumniAreaRoute()) return;
@@ -74,9 +90,7 @@ function updateProfileName() {
 
   if (!isAlumniAreaRoute()) return;
 
-  const profileLabel = Array.from(document.querySelectorAll<HTMLElement>("main p"))
-    .find(element => normalizeText(element.textContent) === "meu perfil");
-  const profileCard = profileLabel?.parentElement;
+  const profileCard = findProfileCard();
   const name = Array.from(profileCard?.querySelectorAll<HTMLElement>("p") ?? [])
     .find(element => element.className.includes("Playfair_Display") && normalizeText(element.textContent) !== "meu perfil");
 
@@ -92,6 +106,90 @@ function updateProfileName() {
   name.style.textOverflow = "clip";
   name.style.maxWidth = "225px";
   name.style.lineHeight = "1.15";
+}
+
+function restoreProfilePhotoLayout() {
+  document.querySelectorAll<HTMLElement>(`[${PROFILE_ROW_ATTRIBUTE}]`).forEach(element => {
+    element.style.removeProperty("align-items");
+    element.removeAttribute(PROFILE_ROW_ATTRIBUTE);
+  });
+
+  document.querySelectorAll<HTMLElement>(`[${PROFILE_PHOTO_ATTRIBUTE}]`).forEach(element => {
+    ["width", "min-width", "height", "min-height", "align-self", "position"].forEach(property => element.style.removeProperty(property));
+    element.removeAttribute(PROFILE_PHOTO_ATTRIBUTE);
+  });
+
+  document.querySelectorAll<HTMLImageElement>(`img[${PROFILE_PHOTO_IMAGE_ATTRIBUTE}]`).forEach(image => {
+    ["position", "inset", "width", "height", "object-fit"].forEach(property => image.style.removeProperty(property));
+    image.removeAttribute(PROFILE_PHOTO_IMAGE_ATTRIBUTE);
+  });
+}
+
+function updateProfilePhotoLayout() {
+  if (!isAlumniAreaRoute()) {
+    restoreProfilePhotoLayout();
+    return;
+  }
+
+  const profileCard = findProfileCard();
+  const profileLabel = Array.from(profileCard?.children ?? [])
+    .find((element): element is HTMLElement => element instanceof HTMLElement && normalizeText(element.textContent) === "meu perfil");
+  const row = profileLabel?.nextElementSibling instanceof HTMLElement ? profileLabel.nextElementSibling : null;
+  const photo = row?.firstElementChild instanceof HTMLElement ? row.firstElementChild : null;
+  const image = photo?.querySelector<HTMLImageElement>("img") ?? null;
+
+  if (!row || !photo) return;
+
+  row.style.setProperty("align-items", "stretch", "important");
+  row.setAttribute(PROFILE_ROW_ATTRIBUTE, "true");
+
+  photo.style.setProperty("width", "7.5rem", "important");
+  photo.style.setProperty("min-width", "7.5rem", "important");
+  photo.style.setProperty("height", "auto", "important");
+  photo.style.setProperty("min-height", "7.5rem", "important");
+  photo.style.setProperty("align-self", "stretch", "important");
+  photo.style.setProperty("position", "relative", "important");
+  photo.setAttribute(PROFILE_PHOTO_ATTRIBUTE, "true");
+
+  if (image) {
+    image.style.setProperty("position", "absolute", "important");
+    image.style.setProperty("inset", "0", "important");
+    image.style.setProperty("width", "100%", "important");
+    image.style.setProperty("height", "100%", "important");
+    image.style.setProperty("object-fit", "cover", "important");
+    image.setAttribute(PROFILE_PHOTO_IMAGE_ATTRIBUTE, "true");
+  }
+}
+
+function restoreClassmateStatuses() {
+  document.querySelectorAll<HTMLElement>(`[${CLASSMATE_STATUS_ATTRIBUTE}]`).forEach(element => {
+    const original = element.dataset.alumniAreaOriginalStatus;
+    if (original) element.textContent = original;
+    delete element.dataset.alumniAreaOriginalStatus;
+    element.removeAttribute(CLASSMATE_STATUS_ATTRIBUTE);
+  });
+}
+
+function updateClassmateStatuses() {
+  if (!isAlumniAreaRoute()) {
+    restoreClassmateStatuses();
+    return;
+  }
+
+  const heading = Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .find(element => normalizeText(element.textContent) === "ex-colegas da turma");
+  const card = heading?.parentElement?.parentElement;
+  if (!card) return;
+
+  card.querySelectorAll<HTMLElement>("p").forEach(element => {
+    const status = normalizeText(element.textContent);
+    const translated = CLASSMATE_STATUS_LABELS[status];
+    if (!translated) return;
+
+    element.dataset.alumniAreaOriginalStatus = element.textContent ?? status;
+    element.textContent = translated;
+    element.setAttribute(CLASSMATE_STATUS_ATTRIBUTE, "true");
+  });
 }
 
 function updateTicketMessage() {
@@ -140,6 +238,8 @@ function updateAlumniArea() {
   updateHeaderExitButton();
   updateGreetingClassLabel();
   updateProfileName();
+  updateProfilePhotoLayout();
+  updateClassmateStatuses();
   updateTicketMessage();
   updatePhotosHeaderLink();
   updateEmptyStateActionBorders();
