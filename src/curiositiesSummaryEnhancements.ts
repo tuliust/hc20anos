@@ -1,3 +1,5 @@
+import { supabase } from "./lib/supabase";
+
 const REMOVED_LABELS = new Set([
   "cadastrados",
   "pre-confirmados",
@@ -11,7 +13,21 @@ const RENAMED_LABELS: Record<string, string> = {
   "filhos declarados": "Total de filhos dos ex-alunos",
 };
 
+const CHART_TITLE_RENAMES: Record<string, string> = {
+  "relacionamentos": "Solteiros e Casados",
+  "filhos": "Quem já tem filho",
+  "profissoes por area": "Em que área estamos atuando",
+};
+
+const REMOVED_CHART_DESCRIPTIONS = new Set([
+  "distribuicao agregada dos perfis cadastrados.",
+  "dados declarados no cadastro, exibidos somente de forma agregada.",
+  "agrupamento aproximado das profissoes informadas publicamente.",
+]);
+
 let scheduled = false;
+let questionnaireCtaVisible: boolean | null = null;
+let questionnaireStatusRequest = 0;
 
 function normalizeText(value?: string | null) {
   return (value ?? "")
@@ -65,8 +81,6 @@ function findSummaryGrid() {
 }
 
 function applySummaryChanges() {
-  if (!isCuriositiesPage()) return;
-
   const grid = findSummaryGrid();
   if (!grid) return;
 
@@ -97,13 +111,138 @@ function applySummaryChanges() {
   grid.dataset.curiositiesSummaryAdjusted = "true";
 }
 
+function applyChartContentChanges() {
+  Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .filter(element => normalizeText(element.textContent) === "infografico")
+    .forEach(element => element.remove());
+
+  Array.from(document.querySelectorAll<HTMLElement>("main h3"))
+    .forEach(title => {
+      const replacement = CHART_TITLE_RENAMES[normalizeText(title.textContent)];
+      if (replacement) title.textContent = replacement;
+    });
+
+  Array.from(document.querySelectorAll<HTMLElement>("main p"))
+    .filter(element => REMOVED_CHART_DESCRIPTIONS.has(normalizeText(element.textContent)))
+    .forEach(element => element.remove());
+}
+
+function findQuestionnaireButton() {
+  const sectionTitle = Array.from(document.querySelectorAll<HTMLElement>("main h2"))
+    .find(element => normalizeText(element.textContent) === "o que a turma contou no cadastro");
+  const section = sectionTitle?.closest("section");
+  if (!section) return null;
+
+  return Array.from(section.querySelectorAll<HTMLButtonElement>("button"))
+    .find(button => {
+      const text = normalizeText(button.textContent);
+      return text.includes("responder questionario") || text.includes("ja respondeu as perguntas");
+    }) ?? null;
+}
+
+function replaceButtonLabel(button: HTMLButtonElement, label: string) {
+  const textNodes = Array.from(button.childNodes)
+    .filter(node => node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()));
+
+  if (textNodes.length > 0) {
+    textNodes[textNodes.length - 1].textContent = label;
+    return;
+  }
+
+  const textualChild = Array.from(button.children)
+    .find((child): child is HTMLElement => child instanceof HTMLElement && !child.matches("svg"));
+
+  if (textualChild) {
+    textualChild.textContent = label;
+    return;
+  }
+
+  button.append(document.createTextNode(label));
+}
+
+function applyQuestionnaireCta() {
+  const button = findQuestionnaireButton();
+  if (!button) return;
+
+  replaceButtonLabel(button, "Já respondeu as perguntas?");
+
+  const shouldShow = questionnaireCtaVisible !== false;
+  button.hidden = !shouldShow;
+  button.style.display = shouldShow ? "" : "none";
+  button.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+  button.dataset.questionnaireEligibility = questionnaireCtaVisible === null
+    ? "loading"
+    : shouldShow ? "eligible" : "answered";
+}
+
+async function refreshQuestionnaireEligibility() {
+  const requestId = questionnaireStatusRequest + 1;
+  questionnaireStatusRequest = requestId;
+  questionnaireCtaVisible = null;
+  scheduleApply();
+
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (requestId !== questionnaireStatusRequest) return;
+
+    const userId = session?.user?.id;
+    if (!userId) {
+      questionnaireCtaVisible = true;
+      scheduleApply();
+      return;
+    }
+
+    const { data: profile, error: profileError } = await (supabase as any)
+      .from("profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (requestId !== questionnaireStatusRequest) return;
+
+    if (!profile?.id) {
+      questionnaireCtaVisible = true;
+      scheduleApply();
+      return;
+    }
+
+    const { data: answers, error: answersError } = await (supabase as any)
+      .from("profile_school_questionnaire_answers")
+      .select("question_id")
+      .eq("profile_id", profile.id)
+      .limit(1);
+    if (answersError) throw answersError;
+    if (requestId !== questionnaireStatusRequest) return;
+
+    questionnaireCtaVisible = !Array.isArray(answers) || answers.length === 0;
+  } catch (error) {
+    console.warn("Não foi possível verificar as respostas do questionário.", error);
+    if (requestId === questionnaireStatusRequest) questionnaireCtaVisible = true;
+  }
+
+  scheduleApply();
+}
+
+function applyCuriositiesChanges() {
+  if (!isCuriositiesPage()) return;
+  applySummaryChanges();
+  applyChartContentChanges();
+  applyQuestionnaireCta();
+}
+
 function scheduleApply() {
   if (scheduled) return;
   scheduled = true;
   window.requestAnimationFrame(() => {
     scheduled = false;
-    applySummaryChanges();
+    applyCuriositiesChanges();
   });
+}
+
+function refreshForNavigation() {
+  scheduleApply();
+  if (isCuriositiesPage()) void refreshQuestionnaireEligibility();
 }
 
 export function installCuriositiesSummaryEnhancements() {
@@ -111,6 +250,7 @@ export function installCuriositiesSummaryEnhancements() {
   (window as any).__hcCuriositiesSummaryEnhancementsInstalled = true;
 
   scheduleApply();
+  void refreshQuestionnaireEligibility();
 
   const startObserver = () => {
     if (!document.body) return;
@@ -123,5 +263,12 @@ export function installCuriositiesSummaryEnhancements() {
   if (document.body) startObserver();
   else window.addEventListener("DOMContentLoaded", startObserver, { once: true });
 
-  window.addEventListener("popstate", scheduleApply);
+  window.addEventListener("popstate", refreshForNavigation);
+  window.addEventListener("pushstate", refreshForNavigation);
+
+  supabase.auth.onAuthStateChange(() => {
+    window.setTimeout(() => {
+      void refreshQuestionnaireEligibility();
+    }, 0);
+  });
 }
