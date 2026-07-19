@@ -2,6 +2,8 @@ const CHECKOUT_PATH = "/checkout";
 const SOURCE_ATTRIBUTE = "data-checkout-extra-source";
 const OPTIONS_ATTRIBUTE = "data-checkout-extra-options";
 const OPTION_ATTRIBUTE = "data-checkout-extra-option";
+const FAMILY_HELP_ATTRIBUTE = "data-checkout-family-children-help";
+const FAMILY_BUTTON_ATTRIBUTE = "data-checkout-family-add-child";
 
 let scheduled = false;
 
@@ -104,6 +106,67 @@ function enhanceCheckoutExtras() {
   });
 }
 
+function findAddChildButton() {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>("main button"))
+    .find(button => {
+      const text = normalize(button.textContent);
+      return text === "adicionar filho(a)" || text === "adicionar filho adicional";
+    }) ?? null;
+}
+
+function renameAddChildButton(button: HTMLButtonElement) {
+  const textNode = Array.from(button.childNodes)
+    .find(node => node.nodeType === Node.TEXT_NODE);
+
+  if (textNode) {
+    if (normalize(textNode.textContent) !== "adicionar filho adicional") {
+      textNode.textContent = "Adicionar filho adicional";
+    }
+  } else if (!normalize(button.textContent).includes("adicionar filho adicional")) {
+    button.appendChild(document.createTextNode("Adicionar filho adicional"));
+  }
+}
+
+function createFamilyHelp(button: HTMLButtonElement) {
+  const help = document.createElement("div");
+  help.setAttribute(FAMILY_HELP_ATTRIBUTE, "true");
+
+  const title = document.createElement("p");
+  title.setAttribute("data-checkout-family-children-title", "true");
+  title.textContent = "Filhos adicionais";
+
+  const description = document.createElement("p");
+  description.setAttribute("data-checkout-family-children-description", "true");
+  description.textContent = "Inclua outros filhos que também participarão do reencontro.";
+
+  help.append(title, description);
+  button.parentElement?.insertBefore(help, button);
+}
+
+function enhanceFamilyChildrenOption() {
+  if (currentPath() !== CHECKOUT_PATH) {
+    document.querySelectorAll<HTMLElement>(`[${FAMILY_HELP_ATTRIBUTE}]`).forEach(element => element.remove());
+    document.querySelectorAll<HTMLElement>(`[${FAMILY_BUTTON_ATTRIBUTE}]`).forEach(element => element.removeAttribute(FAMILY_BUTTON_ATTRIBUTE));
+    return;
+  }
+
+  const button = findAddChildButton();
+  const existingHelp = document.querySelector<HTMLElement>(`[${FAMILY_HELP_ATTRIBUTE}]`);
+
+  if (!button) {
+    existingHelp?.remove();
+    return;
+  }
+
+  button.setAttribute(FAMILY_BUTTON_ATTRIBUTE, "true");
+  renameAddChildButton(button);
+
+  if (!existingHelp || existingHelp.nextElementSibling !== button) {
+    existingHelp?.remove();
+    createFamilyHelp(button);
+  }
+}
+
 function handleOptionClick(event: MouseEvent) {
   const target = event.target;
   if (!(target instanceof Element)) return;
@@ -130,6 +193,7 @@ function schedule() {
   window.requestAnimationFrame(() => {
     scheduled = false;
     enhanceCheckoutExtras();
+    enhanceFamilyChildrenOption();
   });
 }
 
