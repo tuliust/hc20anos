@@ -19,6 +19,11 @@ function isMobile() {
   return window.matchMedia(MOBILE_QUERY).matches;
 }
 
+function hasClassFilterLabels(labels: string[]) {
+  const hasAll = labels.includes("todas as turmas") || labels.includes("todas");
+  return hasAll && ["turma a", "turma b", "turma c", "turma d"].every(label => labels.includes(label));
+}
+
 function restorePageOffsets() {
   document.querySelectorAll<HTMLElement>('[data-mobile-page-offset="true"]').forEach(root => {
     const original = root.dataset.mobileOriginalPaddingTop ?? "";
@@ -32,12 +37,10 @@ function restorePageOffsets() {
 function applyPageOffset() {
   restorePageOffsets();
   if (!isMobile() || normalizePath(window.location.pathname) === "/") return;
-
   const main = document.querySelector<HTMLElement>("main");
   const root = main?.querySelector<HTMLElement>(":scope > div.min-h-screen")
     ?? (main?.firstElementChild instanceof HTMLElement ? main.firstElementChild : null);
   if (!root || root.querySelector('[data-home-section="hero"]')) return;
-
   const computedPadding = Number.parseFloat(window.getComputedStyle(root).paddingTop) || 0;
   root.dataset.mobileOriginalPaddingTop = root.style.paddingTop;
   root.setAttribute("data-mobile-page-offset", "true");
@@ -47,9 +50,7 @@ function applyPageOffset() {
 function markQuestionnaireCta() {
   document.querySelectorAll<HTMLElement>('[data-mobile-questionnaire-cta="true"]')
     .forEach(element => element.removeAttribute("data-mobile-questionnaire-cta"));
-
   if (!isMobile() || !CURIOSITIES_PATHS.has(normalizePath(window.location.pathname))) return;
-
   const button = Array.from(document.querySelectorAll<HTMLButtonElement>("main button"))
     .find(candidate => normalizeText(candidate.textContent) === "ja respondeu as perguntas?");
   button?.setAttribute("data-mobile-questionnaire-cta", "true");
@@ -75,16 +76,13 @@ function findExAlumniFilterPanel() {
   const search = Array.from(document.querySelectorAll<HTMLInputElement>('main input[placeholder]'))
     .find(input => normalizeText(input.placeholder) === "buscar por nome...");
   if (!search) return null;
-
   let current: HTMLElement | null = search.parentElement;
   while (current && current !== document.body) {
-    const buttonLabels = Array.from(current.querySelectorAll<HTMLButtonElement>("button"))
+    const labels = Array.from(current.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
-    const hasClassFilters = ["todas as turmas", "turma a", "turma b", "turma c", "turma d"]
-      .every(label => buttonLabels.includes(label));
-    const hasAttendanceFilters = ["todos", "confirmados", "pre-confirmados", "cadastrados"]
-      .every(label => buttonLabels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
-    if (hasClassFilters && hasAttendanceFilters) return current;
+    const hasAttendance = ["todos", "confirmados", "pre-confirmados", "cadastrados"]
+      .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
+    if (hasClassFilterLabels(labels) && hasAttendance) return current;
     current = current.parentElement;
   }
   return null;
@@ -93,17 +91,18 @@ function findExAlumniFilterPanel() {
 function markExAlumniMobileLayout() {
   clearDirectoryMarkers();
   if (!isMobile()) return;
-
   const panel = findExAlumniFilterPanel();
   if (!panel) return;
 
   const directChildren = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
   const classRow = directChildren.find(child => {
-    const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button")).map(button => normalizeText(button.textContent));
-    return ["todas as turmas", "turma a", "turma b", "turma c", "turma d"].every(label => labels.includes(label));
+    const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button"))
+      .map(button => normalizeText(button.textContent));
+    return hasClassFilterLabels(labels);
   });
   const attendanceRow = directChildren.find(child => {
-    const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button")).map(button => normalizeText(button.textContent));
+    const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button"))
+      .map(button => normalizeText(button.textContent));
     return ["todos", "confirmados", "pre-confirmados", "cadastrados"]
       .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
   });
@@ -123,10 +122,7 @@ function markExAlumniMobileLayout() {
   }
 
   const resultsSection = panel.nextElementSibling instanceof HTMLElement ? panel.nextElementSibling : null;
-  const cards = resultsSection
-    ? Array.from(resultsSection.querySelectorAll<HTMLElement>('div[role="button"]'))
-    : [];
-
+  const cards = resultsSection ? Array.from(resultsSection.querySelectorAll<HTMLElement>('div[role="button"]')) : [];
   cards.forEach(card => {
     const name = Array.from(card.querySelectorAll<HTMLElement>("p"))
       .find(paragraph => paragraph.classList.contains("truncate") && paragraph.classList.contains("font-semibold"))
@@ -154,7 +150,6 @@ export function installMobileNavigationAndDirectoryEnhancements() {
   if (typeof window === "undefined" || typeof MutationObserver === "undefined") return;
   if ((window as any).__hcMobileNavigationAndDirectoryEnhancementsInstalled) return;
   (window as any).__hcMobileNavigationAndDirectoryEnhancementsInstalled = true;
-
   const media = window.matchMedia(MOBILE_QUERY);
   const start = () => {
     new MutationObserver(scheduleApply).observe(document.body, { childList: true, subtree: true });
@@ -164,7 +159,6 @@ export function installMobileNavigationAndDirectoryEnhancements() {
     window.addEventListener("resize", scheduleApply);
     scheduleApply();
   };
-
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
 }
