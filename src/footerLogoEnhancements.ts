@@ -1,5 +1,11 @@
 const FOOTER_LOGO_ATTRIBUTE = "data-footer-header-logo";
+const FOOTER_REPLACED_IMAGE_ATTRIBUTE = "data-footer-replaced-image";
+const FOOTER_TITLE_ATTRIBUTE = "data-footer-brand-title";
 let scheduled = false;
+
+function normalizeText(value: string | null | undefined) {
+  return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+}
 
 function findHeaderLogo(): HTMLImageElement | null {
   const header = document.querySelector<HTMLElement>("[data-public-header]")
@@ -24,7 +30,24 @@ function findHeaderLogo(): HTMLImageElement | null {
   })[0] ?? null;
 }
 
+function findFooterBrandTitle(footer: HTMLElement): HTMLElement | null {
+  return Array.from(footer.querySelectorAll<HTMLElement>("h1, h2, h3, h4, p, span"))
+    .find(element => normalizeText(element.textContent) === "pré hc 2026") ?? null;
+}
+
 function findFooterBrandColumn(footer: HTMLElement): HTMLElement | null {
+  const title = findFooterBrandTitle(footer);
+  if (title) {
+    let current: HTMLElement | null = title.parentElement;
+    while (current && current !== footer) {
+      const hasImage = Boolean(current.querySelector("img"));
+      const hasDescription = Array.from(current.querySelectorAll<HTMLElement>("p"))
+        .some(element => normalizeText(element.textContent).includes("reencontro"));
+      if (hasImage || hasDescription) return current;
+      current = current.parentElement;
+    }
+  }
+
   const grid = Array.from(footer.querySelectorAll<HTMLElement>("div"))
     .find(element => {
       const children = Array.from(element.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
@@ -41,7 +64,18 @@ function applyFooterLogo() {
   const brandColumn = footer ? findFooterBrandColumn(footer) : null;
   if (!footer || !headerLogo || !brandColumn) return;
 
-  let footerLogo = footer.querySelector<HTMLImageElement>(`img[${FOOTER_LOGO_ATTRIBUTE}]`);
+  const brandTitle = findFooterBrandTitle(footer);
+  brandTitle?.setAttribute(FOOTER_TITLE_ATTRIBUTE, "true");
+
+  const originalImages = Array.from(brandColumn.querySelectorAll<HTMLImageElement>("img"))
+    .filter(image => !image.hasAttribute(FOOTER_LOGO_ATTRIBUTE));
+  originalImages.forEach(image => {
+    image.setAttribute(FOOTER_REPLACED_IMAGE_ATTRIBUTE, "true");
+    image.hidden = true;
+    image.style.setProperty("display", "none", "important");
+  });
+
+  let footerLogo = brandColumn.querySelector<HTMLImageElement>(`img[${FOOTER_LOGO_ATTRIBUTE}]`);
   if (!footerLogo) {
     footerLogo = document.createElement("img");
     footerLogo.setAttribute(FOOTER_LOGO_ATTRIBUTE, "true");
@@ -53,6 +87,11 @@ function applyFooterLogo() {
 
   const source = headerLogo.currentSrc || headerLogo.src;
   if (footerLogo.src !== source) footerLogo.src = source;
+
+  const sourceSet = headerLogo.getAttribute("srcset");
+  if (sourceSet) footerLogo.setAttribute("srcset", sourceSet);
+  else footerLogo.removeAttribute("srcset");
+
   footerLogo.alt = headerLogo.alt?.trim() || "Pré HC 2006";
 }
 
