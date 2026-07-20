@@ -11,7 +11,6 @@ let peopleLoaded = false;
 let peopleLoading: Promise<void> | null = null;
 let scheduled = false;
 let previousPath = "";
-let internalNativeReset = false;
 
 function normalizePath(pathname: string) {
   return pathname.replace(/\/+$/, "") || "/";
@@ -138,56 +137,60 @@ function findFilterPanel(root: HTMLElement) {
   return null;
 }
 
-function smallestCommonParent(elements: HTMLElement[]) {
-  if (!elements.length) return null;
-  let current: HTMLElement | null = elements[0].parentElement;
-  while (current) {
-    if (elements.every(element => current?.contains(element))) return current;
-    current = current.parentElement;
-  }
-  return null;
-}
-
 function buttonClassGroup(button: HTMLButtonElement) {
   const match = normalizeText(button.textContent).match(/^turma\s+([a-d])$/);
   return validClassGroup(match?.[1]);
 }
 
-function ensureNativeAllClasses(panel: HTMLElement) {
-  const allButton = Array.from(panel.querySelectorAll<HTMLButtonElement>("button"))
-    .find(button => normalizeText(button.textContent) === "todas as turmas");
-  if (!allButton) return;
+function findAllClassesButton(panel: HTMLElement) {
+  return Array.from(panel.querySelectorAll<HTMLButtonElement>("button"))
+    .find(button => {
+      const label = normalizeText(button.textContent);
+      return label === "todas as turmas" || label === "todas";
+    }) ?? null;
+}
 
-  allButton.setAttribute("data-mobile-all-classes-filter", "true");
-  allButton.hidden = true;
-  allButton.style.display = "none";
+function findTightGroup(elements: HTMLButtonElement[], rejectedButtons: HTMLButtonElement[]) {
+  if (!elements.length) return null;
 
-  const isNativeAllSelected = typeof allButton.className === "string"
-    && allButton.className.includes("bg-[#c9a84c]");
-  if (isNativeAllSelected || internalNativeReset) return;
+  let current: HTMLElement | null = elements[0].parentElement;
+  while (current) {
+    const containsAll = elements.every(element => current?.contains(element));
+    const containsRejected = rejectedButtons.some(element => current?.contains(element));
+    if (containsAll && !containsRejected) return current;
+    current = current.parentElement;
+  }
 
-  internalNativeReset = true;
-  allButton.click();
-  window.setTimeout(() => {
-    internalNativeReset = false;
-    scheduleApply();
-  }, 0);
+  return null;
 }
 
 function markDirectoryFilters(panel: HTMLElement) {
   const allButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>("button"));
+  const nativeAllButton = findAllClassesButton(panel);
   const classButtons = allButtons.filter(button => Boolean(buttonClassGroup(button)));
+  const classFilterButtons = nativeAllButton ? [nativeAllButton, ...classButtons] : classButtons;
   const attendanceLabels = new Set(["todos", "confirmados", "pre-confirmados", "cadastrados"]);
   const attendanceButtons = allButtons.filter(button => {
+    if (button === nativeAllButton) return false;
     const firstLine = normalizeText(button.querySelector("span")?.textContent || button.textContent).split(" ").slice(0, 2).join(" ");
     const full = normalizeText(button.textContent);
     return Array.from(attendanceLabels).some(label => full === label || full.startsWith(`${label} `) || firstLine === label);
   });
 
-  const classRow = smallestCommonParent(classButtons);
-  const attendanceRow = smallestCommonParent(attendanceButtons);
+  const classRow = findTightGroup(classFilterButtons, attendanceButtons);
+  const attendanceRow = findTightGroup(attendanceButtons, classFilterButtons);
   classRow?.setAttribute("data-mobile-class-filter-row", "true");
   attendanceRow?.setAttribute("data-mobile-attendance-filter-row", "true");
+
+  if (nativeAllButton) {
+    nativeAllButton.hidden = false;
+    nativeAllButton.style.removeProperty("display");
+    nativeAllButton.setAttribute("data-mobile-all-classes-filter", "true");
+    nativeAllButton.setAttribute("data-mobile-class-filter", "ALL");
+    nativeAllButton.setAttribute("data-mobile-class-selected", selectedClasses.size === 0 ? "true" : "false");
+    nativeAllButton.setAttribute("aria-pressed", selectedClasses.size === 0 ? "true" : "false");
+    if (normalizeText(nativeAllButton.textContent) !== "todas") nativeAllButton.textContent = "Todas";
+  }
 
   classButtons.forEach(button => {
     const group = buttonClassGroup(button);
@@ -209,14 +212,22 @@ function cardName(card: HTMLElement) {
     .find(value => personClassByName.has(normalizeText(value))) ?? null;
 }
 
+function markCardName(card: HTMLElement, name: string) {
+  const normalizedName = normalizeText(name);
+  const candidate = Array.from(card.querySelectorAll<HTMLElement>("p, h2, h3, h4, span"))
+    .find(element => normalizeText(element.textContent) === normalizedName);
+  candidate?.setAttribute("data-mobile-alumni-name", "true");
+}
+
 function applyClassCardFilter(root: HTMLElement) {
   const cards = Array.from(root.querySelectorAll<HTMLElement>('div[role="button"]'));
   cards.forEach(card => {
     const name = cardName(card);
     const group = name ? personClassByName.get(normalizeText(name)) : null;
-    if (!group) return;
+    if (!group || !name) return;
 
     card.setAttribute("data-mobile-alumni-class-card", group);
+    markCardName(card, name);
     const visible = selectedClasses.size === 0 || selectedClasses.has(group);
     card.style.setProperty("display", visible ? "" : "none", visible ? "" : "important");
   });
@@ -228,6 +239,8 @@ function restoreDirectoryCards() {
       card.style.removeProperty("display");
       card.removeAttribute("data-mobile-alumni-class-card");
     });
+  document.querySelectorAll<HTMLElement>('[data-mobile-alumni-name="true"]')
+    .forEach(name => name.removeAttribute("data-mobile-alumni-name"));
 }
 
 function applyDirectoryFilters() {
@@ -241,32 +254,35 @@ function applyDirectoryFilters() {
   const panel = findFilterPanel(root);
   if (!panel) return;
 
-  ensureNativeAllClasses(panel);
   markDirectoryFilters(panel);
   applyClassCardFilter(root);
   if (!peopleLoaded) void loadPeopleClasses();
 }
 
 function handleClassFilterClick(event: MouseEvent) {
-  if (!isMobile() || normalizePath(window.location.pathname) !== EX_ALUMNI_PATH || internalNativeReset) return;
+  if (!isMobile() || normalizePath(window.location.pathname) !== EX_ALUMNI_PATH) return;
   const target = event.target;
   if (!(target instanceof Element)) return;
 
   const button = target.closest<HTMLButtonElement>("button");
   if (!button) return;
-  const group = buttonClassGroup(button);
-  if (!group) return;
 
   const root = findExAlumniRoot();
   const panel = root ? findFilterPanel(root) : null;
   if (!panel || !panel.contains(button)) return;
 
+  const isAllButton = button.hasAttribute("data-mobile-all-classes-filter")
+    || ["todas", "todas as turmas"].includes(normalizeText(button.textContent));
+  const group = buttonClassGroup(button);
+  if (!isAllButton && !group) return;
+
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
 
-  if (selectedClasses.has(group)) selectedClasses.delete(group);
-  else selectedClasses.add(group);
+  if (isAllButton) selectedClasses.clear();
+  else if (group && selectedClasses.has(group)) selectedClasses.delete(group);
+  else if (group) selectedClasses.add(group);
 
   markDirectoryFilters(panel);
   applyClassCardFilter(root!);
