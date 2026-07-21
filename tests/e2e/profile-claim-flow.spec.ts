@@ -48,11 +48,11 @@ test.describe("reivindicação de perfil", () => {
     await expect(page.getByText("Data não registrada — reivindicação anterior a esta atualização", { exact: false })).toBeVisible();
   });
 
-  test("gera o perfil com IA sem enviar dados sensíveis e mantém o texto editável", async ({ page }) => {
+  test("gera o perfil com IA incluindo relacionamento e filhos, sem enviar dados sensíveis", async ({ page }) => {
     await installAuthenticatedProfileClaimFixtures(page);
 
     let aiRequest: Record<string, any> | null = null;
-    const generatedBio = "Maria era conhecida pela comunicação fácil e pela presença marcante na turma. Vinte anos depois, volta ao reencontro pronta para rever pessoas e criar novas memórias.";
+    const generatedBio = "Maria era conhecida pela comunicação fácil e pela presença marcante na turma. Hoje está namorando, tem dois filhos e volta ao reencontro pronta para rever pessoas e criar novas memórias.";
 
     await page.route("**/api/generate-profile-bio", async route => {
       aiRequest = (route.request().postDataJSON() ?? {}) as Record<string, any>;
@@ -83,6 +83,10 @@ test.describe("reivindicação de perfil", () => {
     await expect(page.getByRole("button", { name: "Casado (a)", exact: true })).toBeVisible();
     await expect(page.getByText("A integração com IA será ativada depois", { exact: false })).toHaveCount(0);
 
+    await page.getByRole("button", { name: "Namorando", exact: true }).click();
+    await page.getByRole("button", { name: "Tenho filhos", exact: true }).click();
+    await inputBelowText(page, "Quantidade de filhos").fill("2");
+
     await page.getByRole("button", { name: /Responda 5 perguntas/ }).click();
     await expect(page.getByText("Gerando perfil com IA", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Adorava me comunicar", exact: true }).click();
@@ -97,6 +101,9 @@ test.describe("reivindicação de perfil", () => {
     expect(aiRequest).not.toBeNull();
     expect(aiRequest).toMatchObject({
       name: "Maria Cabeção da Silva Souza",
+      relationshipStatus: "dating",
+      hasChildren: true,
+      childrenCount: 2,
       answers: expect.arrayContaining([
         expect.objectContaining({
           id: "school_personality",
