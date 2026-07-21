@@ -7,6 +7,12 @@ begin;
 
 create extension if not exists unaccent with schema extensions;
 
+-- Fresh databases may have been created directly by the structured FAQ
+-- migration, without the temporary legacy columns used by this consolidation.
+alter table public.faq_items
+  add column if not exists category_key text,
+  add column if not exists category_label text;
+
 -- Preserve the original category fields before any remapping. The backup is
 -- deliberately data-only and remains available to the corrective migration.
 create table if not exists public.faq_items_backup_20260716
