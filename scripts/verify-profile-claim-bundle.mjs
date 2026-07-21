@@ -27,11 +27,31 @@ const requiredMarkers = [
   "Qual é a sua data de nascimento?",
   "Essas informações ajudam a proteger o vínculo do perfil",
   "complete_profile_registration_v3",
+  "Apelido, nickname ou ex-perfil do Fotolog",
+  "Meu perfil",
+  "Responda 5 perguntas",
+  "Gerando perfil com IA",
+  "Eu vou!",
+  "Não sei ainda...",
+  "Solteiro (a)",
+  "Casado (a)",
+  "/api/generate-profile-bio",
 ];
 
 const forbiddenMarkers = [
   "Qual é seu ano de nascimento?",
   "Ex.: 1988",
+  "Apelido da época",
+  "A integração com IA será ativada depois",
+  "Mini bio em 5 perguntas",
+  "Apresente seu perfil com apenas 5 perguntas",
+  "Sim, pretendo ir",
+  "Ainda não / não pretendo",
+  "Solteiro(a)",
+  "Casado(a)",
+  "Gerar prévia",
+  "OPENAI_API_KEY",
+  "api.openai.com",
 ];
 
 let files;
@@ -69,10 +89,10 @@ for (const marker of requiredMarkers) {
 for (const marker of forbiddenMarkers) {
   const matches = bundles.filter(bundle => bundle.content.includes(marker));
   if (matches.length > 0) {
-    failures.push(`Marcador legado ainda presente: ${JSON.stringify(marker)} em ${matches.map(match => relative(root, match.file)).join(", ")}`);
+    failures.push(`Marcador legado ou secreto ainda presente: ${JSON.stringify(marker)} em ${matches.map(match => relative(root, match.file)).join(", ")}`);
     continue;
   }
-  console.log(`PASS legado ausente: ${JSON.stringify(marker)}`);
+  console.log(`PASS ausente: ${JSON.stringify(marker)}`);
 }
 
 if (failures.length > 0) {
