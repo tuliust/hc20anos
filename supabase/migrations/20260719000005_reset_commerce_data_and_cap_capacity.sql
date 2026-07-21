@@ -1,80 +1,54 @@
 -- ================================================================
--- Reset fallback commerce data and cap product capacity at 500
--- HC 20 Anos
+-- Normalize HC 20 Anos commerce capacity without deleting transactions
 -- ================================================================
--- Destructive only for commerce records linked to the HC 20 Anos event.
--- Preserves people, content, photos, admins, event settings, products, lots
--- and configured prices.
+-- Historical versions of this migration reset commerce data. Destructive
+-- maintenance was removed from the automatic migration path and is now kept
+-- under supabase/manual/reset-commerce-data.sql.
 
 begin;
 
-create temporary table _hc20_target_orders (
-  id uuid primary key
-) on commit drop;
+-- Do not silently truncate a real sold quantity. An environment with more than
+-- 500 sold units requires an explicit business decision before migration.
+do $$
+begin
+  if exists (
+    select 1
+    from public.ticket_types
+    where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+      and coalesce(sold_quantity, 0) > 500
+  ) then
+    raise exception 'HC20_COMMERCE_SOLD_QUANTITY_ABOVE_CAPACITY';
+  end if;
+end
+$$;
 
-insert into _hc20_target_orders (id)
-select o.id
-from public.orders o
-where o.event_id = '00000000-0000-0000-0000-000000000001'::uuid;
-
--- Delete dependent transactional records in explicit dependency order.
-delete from public.ticket_transfers tr
-where tr.ticket_id in (
-  select t.id
-  from public.tickets t
-  join _hc20_target_orders target on target.id = t.order_id
-);
-
-delete from public.refund_requests rr
-where rr.order_id in (select id from _hc20_target_orders)
-   or rr.ticket_id in (
-     select t.id
-     from public.tickets t
-     join _hc20_target_orders target on target.id = t.order_id
-   );
-
-delete from public.notification_jobs nj
-where nj.order_id in (select id from _hc20_target_orders)
-   or nj.ticket_id in (
-     select t.id
-     from public.tickets t
-     join _hc20_target_orders target on target.id = t.order_id
-   );
-
-delete from public.participant_extras pe
-where pe.order_id in (select id from _hc20_target_orders);
-
-delete from public.payment_preferences pp
-where pp.order_id in (select id from _hc20_target_orders);
-
-delete from public.payment_events pe
-where pe.order_id in (select id from _hc20_target_orders);
-
-delete from public.tickets t
-where t.order_id in (select id from _hc20_target_orders);
-
-delete from public.order_participants op
-where op.order_id in (select id from _hc20_target_orders);
-
-delete from public.orders o
-where o.id in (select id from _hc20_target_orders);
-
--- Guest approval records are part of the commerce flow but are not tied to an
--- order until checkout. Clear them for a completely clean commercial state.
-delete from public.guest_approval_requests gar
-where gar.event_id = '00000000-0000-0000-0000-000000000001'::uuid;
-
--- Normalize every product and lot for this event.
+-- Normalize only invalid capacity values. Existing transactional counters are
+-- preserved and available_quantity never becomes lower than sold_quantity.
 update public.ticket_types
-set available_quantity = 500,
-    sold_quantity = 0,
+set available_quantity = least(
+      500,
+      greatest(
+        coalesce(available_quantity, 500),
+        greatest(coalesce(sold_quantity, 0), 0)
+      )
+    ),
+    sold_quantity = greatest(coalesce(sold_quantity, 0), 0),
     updated_at = now()
-where event_id = '00000000-0000-0000-0000-000000000001'::uuid;
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+  and (
+    available_quantity is null
+    or available_quantity < 0
+    or available_quantity > 500
+    or sold_quantity is null
+    or sold_quantity < 0
+    or sold_quantity > available_quantity
+  );
 
 update public.ticket_lots
-set capacity = 500,
+set capacity = least(500, greatest(coalesce(capacity, 500), 0)),
     updated_at = now()
-where event_id = '00000000-0000-0000-0000-000000000001'::uuid;
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+  and (capacity is null or capacity < 0 or capacity > 500);
 
 -- Enforce the maximum for future admin changes and new products/lots.
 create or replace function public.enforce_hc20_commerce_capacity()
@@ -115,6 +89,6 @@ on public.ticket_lots
 for each row execute function public.enforce_hc20_commerce_capacity();
 
 comment on function public.enforce_hc20_commerce_capacity() is
-  'Enforces a maximum capacity of 500 for HC 20 Anos products and lots.';
+  'Enforces a maximum capacity of 500 for HC 20 Anos products and lots without deleting commerce data.';
 
 commit;
