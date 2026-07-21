@@ -1,10 +1,23 @@
 -- Consolidação da taxonomia do FAQ em sete categorias e inclusão de ícones.
--- Idempotente: pode ser executada novamente sem duplicar categorias ou perguntas.
+-- Idempotente: preserva um backup pré-consolidação e reconhece tanto as chaves
+-- legadas quanto as chaves finais em execuções subsequentes.
 -- Pré-requisito: 20260716000100_structured_faq.sql já aplicada.
 
 begin;
 
 create extension if not exists unaccent with schema extensions;
+
+-- Preserve the original category fields before any remapping. The backup is
+-- deliberately data-only and remains available to the corrective migration.
+create table if not exists public.faq_items_backup_20260716
+as table public.faq_items with no data;
+
+create unique index if not exists faq_items_backup_20260716_id_unique
+  on public.faq_items_backup_20260716 (id);
+
+insert into public.faq_items_backup_20260716
+select * from public.faq_items
+on conflict (id) do nothing;
 
 alter table public.faq_categories
   add column if not exists icon_key text;
@@ -95,6 +108,17 @@ with classified as (
       when lower(extensions.unaccent(fi.question || ' ' || fi.answer)) ~
         '(minha area|mural|album|enquete|perfil no site|secoes do site|secao do site|pagina do site|funcionalidades do site|onde encontro|onde acessar)'
         then 'site-sections'
+
+      -- Preserve the already consolidated key on subsequent executions.
+      when fi.category_key in (
+        'account-access',
+        'site-sections',
+        'data-privacy',
+        'event-information',
+        'tickets-pricing',
+        'checkout-payment',
+        'refund-transfer'
+      ) then fi.category_key
 
       when fi.category_key in ('pricing', 'tickets') then 'tickets-pricing'
       when fi.category_key = 'payments' then 'checkout-payment'
