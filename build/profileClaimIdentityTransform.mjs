@@ -60,8 +60,8 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `      window.sessionStorage.removeItem("hc-attendance-intent");`,
-    `      clearPendingProfileRegistration();\n      window.sessionStorage.removeItem("hc-attendance-intent");`,
+    `      window.sessionStorage.removeItem("hc-attendance-intent");\n      setPendingEmailConfirmation(false);`,
+    `      clearPendingProfileRegistration();\n      window.sessionStorage.removeItem("hc-attendance-intent");\n      setPendingEmailConfirmation(false);`,
     "limpeza do cadastro pendente",
   );
 
