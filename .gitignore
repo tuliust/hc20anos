@@ -10,3 +10,6 @@ dist
 supabase/.temp/
 playwright-report/
 test-results/
+migration-list-final.txt
+supabase-migration-list-*.txt
+supabase-db-push-dry-run-*.txt
