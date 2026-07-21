@@ -27,6 +27,8 @@ function assertMarkers(code) {
     "Solteiro (a)",
     "Casado (a)",
     "generateProfileBio",
+    "relationshipStatus: profileDraft.relationshipStatus || undefined",
+    "hasChildren: profileDraft.hasChildren ? profileDraft.hasChildren === \"yes\" : undefined",
   ];
 
   const forbidden = [
@@ -59,7 +61,7 @@ function transformApp(source) {
     code,
     `  function formatBioList(items: string[]) {`,
     `  function selectPerson(person: DbPerson) {`,
-    `  async function finishBioAssistant() {\n    const name = (profileDraft.displayName || profileDraft.fullName || "Esse ex-aluno").trim();\n    const answersForGeneration = SCHOOL_PROFILE_QUESTIONS.map(question => ({\n      id: question.id,\n      question: question.title,\n      options: bioAssistantAnswers[question.id] ?? [],\n    }));\n\n    setBioGenerating(true);\n    try {\n      const generatedBio = await generateProfileBio({\n        name,\n        nickname: profileDraft.nickname.trim() || undefined,\n        city: profileDraft.city.trim() || undefined,\n        profession: profileDraft.profession.trim() || undefined,\n        answers: answersForGeneration,\n      });\n\n      setProfileDraft(f => ({ ...f, bio: generatedBio }));\n      setBioGenerated(true);\n      setBioAssistantOpen(false);\n      showSuccess("Perfil gerado com IA. Você pode revisar o texto antes de continuar.");\n    } catch (error) {\n      showError(error instanceof Error ? error.message : "Não foi possível gerar seu perfil com IA.");\n    } finally {\n      setBioGenerating(false);\n    }\n  }\n\n`,
+    `  async function finishBioAssistant() {\n    const name = (profileDraft.displayName || profileDraft.fullName || "Esse ex-aluno").trim();\n    const answersForGeneration = SCHOOL_PROFILE_QUESTIONS.map(question => ({\n      id: question.id,\n      question: question.title,\n      options: bioAssistantAnswers[question.id] ?? [],\n    }));\n\n    setBioGenerating(true);\n    try {\n      const generatedBio = await generateProfileBio({\n        name,\n        nickname: profileDraft.nickname.trim() || undefined,\n        city: profileDraft.city.trim() || undefined,\n        profession: profileDraft.profession.trim() || undefined,\n        relationshipStatus: profileDraft.relationshipStatus || undefined,\n        hasChildren: profileDraft.hasChildren ? profileDraft.hasChildren === "yes" : undefined,\n        childrenCount: profileDraft.hasChildren === "yes" && profileDraft.childrenCount.trim() ? Number(profileDraft.childrenCount) : undefined,\n        answers: answersForGeneration,\n      });\n\n      setProfileDraft(f => ({ ...f, bio: generatedBio }));\n      setBioGenerated(true);\n      setBioAssistantOpen(false);\n      showSuccess("Perfil gerado com IA. Você pode revisar o texto antes de continuar.");\n    } catch (error) {\n      showError(error instanceof Error ? error.message : "Não foi possível gerar seu perfil com IA.");\n    } finally {\n      setBioGenerating(false);\n    }\n  }\n\n`,
     "substituição do gerador local pela OpenAI",
   );
 
