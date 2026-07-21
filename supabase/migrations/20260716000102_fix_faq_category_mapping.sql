@@ -1,10 +1,19 @@
 -- Corrige a distribuição das perguntas após a consolidação das categorias do FAQ.
--- Motivo: a migration 20260716000101 era reexecutável apenas parcialmente;
--- em uma segunda execução, category_key já continha as novas chaves e os itens
--- comerciais caíam no fallback event-information.
--- Esta correção usa o backup pré-migração faq_items_backup_20260716 como fonte.
+-- A fonte preferencial é o backup pré-consolidação. Em ambientes que ainda não
+-- o possuam, a migration cria uma cópia dos itens atuais e usa também as chaves
+-- finais como entrada válida, sem interromper o replay por ausência da tabela.
 
 begin;
+
+create table if not exists public.faq_items_backup_20260716
+as table public.faq_items with no data;
+
+create unique index if not exists faq_items_backup_20260716_id_unique
+  on public.faq_items_backup_20260716 (id);
+
+insert into public.faq_items_backup_20260716
+select * from public.faq_items
+on conflict (id) do nothing;
 
 -- Corrige os textos das sete categorias usando escapes Unicode,
 -- evitando qualquer dependência da codificação do terminal/clipboard.
@@ -31,21 +40,13 @@ where event_id = '00000000-0000-0000-0000-000000000001'
     'refund-transfer'
   );
 
-do $$
-begin
-  if to_regclass('public.faq_items_backup_20260716') is null then
-    raise exception 'FAQ_BACKUP_NOT_FOUND: public.faq_items_backup_20260716';
-  end if;
-end
-$$;
-
 with source_items as (
   select
     fi.id,
     fi.slug,
     fi.question,
     fi.answer,
-    backup.category_key as original_category_key,
+    coalesce(backup.category_key, fi.category_key) as original_category_key,
     case
       when fi.slug in (
         'conjuge-e-filhos-precisam-de-conta',
@@ -70,15 +71,29 @@ with source_items as (
         '(minha area|mural|album|enquete|perfil no site|secoes do site|secao do site|pagina do site|funcionalidades do site|onde encontro|onde acessar)'
         then 'site-sections'
 
-      when backup.category_key in ('pricing', 'tickets') then 'tickets-pricing'
-      when backup.category_key = 'payments' then 'checkout-payment'
-      when backup.category_key in ('refunds', 'transfers') then 'refund-transfer'
-      when backup.category_key in ('general', 'participants', 'guests', 'extras', 'checkin')
-        then 'event-information'
+      when coalesce(backup.category_key, fi.category_key) in (
+        'account-access',
+        'site-sections',
+        'data-privacy',
+        'event-information',
+        'tickets-pricing',
+        'checkout-payment',
+        'refund-transfer'
+      ) then coalesce(backup.category_key, fi.category_key)
+
+      when coalesce(backup.category_key, fi.category_key) in ('pricing', 'tickets')
+        then 'tickets-pricing'
+      when coalesce(backup.category_key, fi.category_key) = 'payments'
+        then 'checkout-payment'
+      when coalesce(backup.category_key, fi.category_key) in ('refunds', 'transfers')
+        then 'refund-transfer'
+      when coalesce(backup.category_key, fi.category_key) in (
+        'general', 'participants', 'guests', 'extras', 'checkin'
+      ) then 'event-information'
       else 'event-information'
     end as target_key
   from public.faq_items fi
-  join public.faq_items_backup_20260716 backup
+  left join public.faq_items_backup_20260716 backup
     on backup.id = fi.id
   where fi.event_id = '00000000-0000-0000-0000-000000000001'
 ),
@@ -119,23 +134,18 @@ where fi.category_id = fc.id
 
 do $$
 declare
-  backup_count integer;
-  mapped_count integer;
+  missing_backup_count integer;
   inconsistent_count integer;
 begin
   select count(*)
-  into backup_count
-  from public.faq_items_backup_20260716
-  where event_id = '00000000-0000-0000-0000-000000000001';
+  into missing_backup_count
+  from public.faq_items fi
+  left join public.faq_items_backup_20260716 backup on backup.id = fi.id
+  where fi.event_id = '00000000-0000-0000-0000-000000000001'
+    and backup.id is null;
 
-  select count(*)
-  into mapped_count
-  from public.faq_items
-  where event_id = '00000000-0000-0000-0000-000000000001';
-
-  if mapped_count <> backup_count then
-    raise exception 'FAQ_BACKUP_COUNT_MISMATCH:backup=%,current=%',
-      backup_count, mapped_count;
+  if missing_backup_count > 0 then
+    raise exception 'FAQ_BACKUP_INCOMPLETE:%', missing_backup_count;
   end if;
 
   select count(*)
