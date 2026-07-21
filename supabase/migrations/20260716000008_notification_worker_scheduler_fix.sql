@@ -1,24 +1,18 @@
 -- ================================================================
--- Notification worker scheduler fix
--- HC 20 Anos — use a versioned Vault secret and trim its value
+-- Notification worker scheduler compatibility fix
+-- HC 20 Anos
+-- ================================================================
+-- Historical versions scheduled a production Edge Function through pg_cron
+-- and required a Vault secret during migration replay. The scheduler is now
+-- externalized to .github/workflows/notification-worker-cron.yml.
 -- ================================================================
 
 create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net with schema extensions;
 create extension if not exists supabase_vault with schema vault;
 
-do $$
-begin
-  if not exists (
-    select 1
-    from vault.decrypted_secrets
-    where name = 'notification_worker_key_v2'
-  ) then
-    raise exception 'vault secret notification_worker_key_v2 is required before applying this migration';
-  end if;
-end;
-$$;
-
+-- Ensure no legacy database job survives a clean replay or an upgrade from an
+-- environment where the original migration had already scheduled it.
 do $$
 declare
   v_job_id bigint;
@@ -31,29 +25,12 @@ begin
   if v_job_id is not null then
     perform cron.unschedule(v_job_id);
   end if;
+
+  raise notice 'Legacy notification worker database cron is disabled; GitHub Actions owns scheduling.';
 end;
 $$;
 
-select cron.schedule(
-  'hc20anos-notification-worker',
-  '* * * * *',
-  $cron$
-  select net.http_post(
-    url := 'https://tjnqqsbwgjcdzcxykyif.supabase.co/functions/v1/notification-worker',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'x-worker-key', (
-        select btrim(decrypted_secret)
-        from vault.decrypted_secrets
-        where name = 'notification_worker_key_v2'
-        order by created_at desc
-        limit 1
-      )
-    ),
-    body := '{}'::jsonb,
-    timeout_milliseconds := 10000
-  );
-  $cron$
-);
+revoke all on table cron.job from public, anon, authenticated;
+revoke all on table cron.job_run_details from public, anon, authenticated;
 
 notify pgrst, 'reload schema';
