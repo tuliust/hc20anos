@@ -7,7 +7,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "supabase/manual/**"
-      - "scripts/validate-supabase-migrations.mjs"
+      - "scripts/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/database-migrations.yml"
@@ -39,6 +39,10 @@ jobs:
 
       - name: Audit migration filenames and destructive SQL
         run: npm run audit:migrations
+
+      - name: Validate remote history repair script in planning mode
+        shell: pwsh
+        run: ./scripts/repair-supabase-migration-history.ps1
 
       - name: Build application
         run: npm run build
