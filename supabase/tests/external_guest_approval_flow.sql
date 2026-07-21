@@ -26,7 +26,16 @@ with checks as (
   select 'authenticated_can_create_guest_request',
     case when has_function_privilege('authenticated','public.create_guest_approval_request(uuid,text,text,text,text)','EXECUTE') then 'PASS' else 'FAIL' end
   union all
-  select 'guest_notification_defer_trigger_exists',
-    case when exists(select 1 from pg_trigger where tgname='defer_guest_approval_notification_job' and not tgisinternal) then 'PASS' else 'FAIL' end
+  select 'legacy_guest_defer_trigger_removed',
+    case when not exists(
+      select 1 from pg_trigger
+      where tgname='defer_guest_approval_notification_job' and not tgisinternal
+    ) then 'PASS' else 'FAIL' end
+  union all
+  select 'guest_whatsapp_trigger_exists',
+    case when exists(
+      select 1 from pg_trigger
+      where tgname='enqueue_guest_approval_whatsapp_job' and not tgisinternal
+    ) then 'PASS' else 'FAIL' end
 )
 select * from checks order by check_name;
