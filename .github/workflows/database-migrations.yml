@@ -75,6 +75,35 @@ jobs:
           set -o pipefail
           npx supabase migration list --local 2>&1 | tee supabase-migrations.log
 
+      - name: Run SQL integrity tests
+        shell: bash
+        run: |
+          set -u
+          : > supabase-tests.log
+          test_failed=0
+
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a supabase-tests.log
+
+            if ! output="$(docker exec -i supabase_db_hc20anos \
+              psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off \
+              < "${test_file}" 2>&1)"; then
+              printf '%s\n' "${output}" | tee -a supabase-tests.log
+              echo "SQL execution failed: ${test_file}" | tee -a supabase-tests.log
+              test_failed=1
+              continue
+            fi
+
+            printf '%s\n' "${output}" | tee -a supabase-tests.log
+
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "${output}"; then
+              echo "Test reported FAIL: ${test_file}" | tee -a supabase-tests.log
+              test_failed=1
+            fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+
+          exit "${test_failed}"
+
       - name: Stop local Supabase stack
         if: always()
         run: npx supabase stop --no-backup
@@ -88,5 +117,6 @@ jobs:
             supabase-start.log
             supabase-reset.log
             supabase-migrations.log
+            supabase-tests.log
           if-no-files-found: warn
           retention-days: 7
