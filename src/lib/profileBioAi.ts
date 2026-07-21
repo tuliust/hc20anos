@@ -9,6 +9,9 @@ export interface GenerateProfileBioInput {
   nickname?: string;
   city?: string;
   profession?: string;
+  relationshipStatus?: "single" | "dating" | "married";
+  hasChildren?: boolean;
+  childrenCount?: number;
   answers: ProfileBioQuestionAnswer[];
 }
 
