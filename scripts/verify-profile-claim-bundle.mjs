@@ -44,6 +44,7 @@ const forbiddenMarkers = [
   "A integração com IA será ativada depois. Por enquanto, o modal prepara uma prévia editável a partir das respostas.",
   "Mini bio em 5 perguntas",
   "Apresente seu perfil com apenas 5 perguntas",
+  "Refazer mini bio com 5 perguntas",
   "Gerar prévia",
   "OPENAI_API_KEY",
   "api.openai.com",
