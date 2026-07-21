@@ -4,16 +4,22 @@ type ProfileBioQuestionAnswer = {
   options: string[];
 };
 
+type RelationshipStatus = "single" | "dating" | "married";
+
 type ProfileBioRequest = {
   name: string;
   nickname?: string;
   city?: string;
   profession?: string;
+  relationshipStatus?: RelationshipStatus;
+  hasChildren?: boolean;
+  childrenCount?: number;
   answers: ProfileBioQuestionAnswer[];
 };
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 8;
+const ALLOWED_RELATIONSHIP_STATUSES = new Set<RelationshipStatus>(["single", "dating", "married"]);
 
 function firstHeader(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -32,6 +38,18 @@ function parseBody(body: unknown): unknown {
   } catch {
     return null;
   }
+}
+
+function sanitizeRelationshipStatus(value: unknown): RelationshipStatus | undefined {
+  return typeof value === "string" && ALLOWED_RELATIONSHIP_STATUSES.has(value as RelationshipStatus)
+    ? value as RelationshipStatus
+    : undefined;
+}
+
+function sanitizeChildrenCount(value: unknown, hasChildren?: boolean) {
+  if (hasChildren !== true) return undefined;
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 && count <= 20 ? count : undefined;
 }
 
 function sanitizeRequest(body: unknown): ProfileBioRequest | null {
@@ -55,11 +73,16 @@ function sanitizeRequest(body: unknown): ProfileBioRequest | null {
     };
   }).filter(answer => answer.id && answer.question);
 
+  const hasChildren = typeof parsed.hasChildren === "boolean" ? parsed.hasChildren : undefined;
+
   return {
     name,
     nickname: normalizeText(parsed.nickname, 120) || undefined,
     city: normalizeText(parsed.city, 120) || undefined,
     profession: normalizeText(parsed.profession, 160) || undefined,
+    relationshipStatus: sanitizeRelationshipStatus(parsed.relationshipStatus),
+    hasChildren,
+    childrenCount: sanitizeChildrenCount(parsed.childrenCount, hasChildren),
     answers,
   };
 }
@@ -126,6 +149,22 @@ function parseGeneratedBio(payload: any) {
   }
 }
 
+function relationshipStatusLabel(value?: RelationshipStatus) {
+  if (value === "single") return "solteiro(a)";
+  if (value === "dating") return "namorando";
+  if (value === "married") return "casado(a)";
+  return null;
+}
+
+function childrenLabel(hasChildren?: boolean, childrenCount?: number) {
+  if (hasChildren === false) return "não tem filhos";
+  if (hasChildren === true && typeof childrenCount === "number") {
+    return childrenCount === 1 ? "tem 1 filho" : `tem ${childrenCount} filhos`;
+  }
+  if (hasChildren === true) return "tem filhos";
+  return null;
+}
+
 const PROFILE_BIO_INSTRUCTIONS = `Você escreve perfis curtos para o site privado de um reencontro escolar de 20 anos.
 
 Regras obrigatórias:
@@ -137,6 +176,7 @@ Regras obrigatórias:
 - não inclua dados de contato, data de nascimento ou qualquer informação sensível;
 - não use hashtags, emojis ou listas;
 - evite clichês excessivos e preserve a individualidade das respostas;
+- relacionamento e filhos podem ser mencionados naturalmente, mas somente quando tiverem sido informados;
 - quando uma pergunta não tiver resposta, simplesmente ignore esse tema.`;
 
 export default async function handler(request: any, response: any) {
@@ -173,6 +213,8 @@ export default async function handler(request: any, response: any) {
     nickname: input.nickname ?? null,
     city: input.city ?? null,
     profession: input.profession ?? null,
+    relationship_status: relationshipStatusLabel(input.relationshipStatus),
+    children: childrenLabel(input.hasChildren, input.childrenCount),
     questionnaire: input.answers.map(answer => ({
       question: answer.question,
       selected_options: answer.options,
