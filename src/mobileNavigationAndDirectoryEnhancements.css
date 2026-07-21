@@ -31,7 +31,7 @@
     height: 2rem !important;
   }
 
-  /* Filtro de turmas: cinco opções compactas em uma única linha. */
+  /* Regras por atributos quando o aprimoramento do DOM estiver ativo. */
   [data-mobile-class-filter-row="true"] {
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
@@ -68,7 +68,6 @@
     background: transparent !important;
   }
 
-  /* Filtros de presença: duas colunas e duas linhas. */
   [data-mobile-attendance-filter-row="true"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -87,8 +86,63 @@
     text-align: left !important;
   }
 
-  /* Reserva duas linhas para os nomes nos cards do diretório. */
   [data-mobile-alumni-name="true"] {
+    display: -webkit-box !important;
+    min-height: 2.5em !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    text-overflow: ellipsis !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+  }
+
+  /* Fallback direto sobre a estrutura React real da página /ex-alunos. */
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0.25rem !important;
+    width: 100% !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 > button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.65rem !important;
+    padding: 0.5rem 0.1rem !important;
+    font-size: clamp(0.5rem, 2.35vw, 0.64rem) !important;
+    line-height: 1 !important;
+    letter-spacing: 0.01em !important;
+    white-space: nowrap !important;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 > button:first-child {
+    font-size: 0 !important;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 > button:first-child::after {
+    content: "Todas";
+    font-size: clamp(0.5rem, 2.35vw, 0.64rem);
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) > div.grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) > div.grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-2 > button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 5.25rem !important;
+    padding: 0.85rem !important;
+  }
+
+  main section:has(input[placeholder="Buscar por nome..."]) + section [role="button"] p.truncate.font-semibold {
     display: -webkit-box !important;
     min-height: 2.5em !important;
     overflow: hidden !important;
@@ -120,7 +174,9 @@
 }
 
 @media (max-width: 359px) {
-  [data-mobile-class-filter] {
+  [data-mobile-class-filter],
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 > button,
+  main section:has(input[placeholder="Buscar por nome..."]) > div.flex.gap-2.overflow-x-auto.pb-1 > button:first-child::after {
     font-size: 0.47rem !important;
     letter-spacing: 0 !important;
   }
