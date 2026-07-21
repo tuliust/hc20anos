@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && node scripts/verify-profile-claim-bundle.mjs",
+    "build": "node scripts/inspect-profile-claim-source.mjs && vite build && node scripts/verify-profile-claim-bundle.mjs",
     "dev": "vite",
     "audit:cms-strict": "node scripts/audit-strict-cms.mjs",
     "audit:cms-production": "node scripts/audit-home-cms-production.mjs --production",
