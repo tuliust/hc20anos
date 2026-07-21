@@ -1,0 +1,135 @@
+name: Database migration safety
+
+on:
+  pull_request:
+    paths:
+      - "supabase/config.toml"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "supabase/manual/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/database-migrations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit migration filenames and destructive SQL
+        run: npm run audit:migrations
+
+      - name: Validate remote history repair script in planning mode
+        shell: pwsh
+        run: ./scripts/repair-supabase-migration-history.ps1
+
+      - name: Build application
+        run: npm run build
+
+  migration-replay:
+    needs: static-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase stack
+        run: |
+          set -o pipefail
+          npx supabase start 2>&1 | tee supabase-start.log
+
+      - name: Replay all migrations from an empty local database
+        run: |
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee supabase-reset.log
+
+      - name: Show local migration history
+        run: |
+          set -o pipefail
+          npx supabase migration list --local 2>&1 | tee supabase-migrations.log
+
+      - name: Install local authenticated test context
+        run: |
+          set -o pipefail
+          docker exec -i supabase_db_hc20anos \
+            psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off \
+            < supabase/tests/fixtures/local_test_context.sql \
+            2>&1 | tee supabase-fixture.log
+
+      - name: Run SQL integrity tests
+        shell: bash
+        run: |
+          set -u
+          : > supabase-tests.log
+          test_failed=0
+
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a supabase-tests.log
+
+            if ! output="$(docker exec -i supabase_db_hc20anos \
+              psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off \
+              < "${test_file}" 2>&1)"; then
+              printf '%s\n' "${output}" | tee -a supabase-tests.log
+              echo "SQL execution failed: ${test_file}" | tee -a supabase-tests.log
+              test_failed=1
+              continue
+            fi
+
+            printf '%s\n' "${output}" | tee -a supabase-tests.log
+
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "${output}"; then
+              echo "Test reported FAIL: ${test_file}" | tee -a supabase-tests.log
+              test_failed=1
+            fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+
+          exit "${test_failed}"
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
+
+      - name: Upload replay diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-replay-logs
+          path: |
+            supabase-start.log
+            supabase-reset.log
+            supabase-migrations.log
+            supabase-fixture.log
+            supabase-tests.log
+          if-no-files-found: warn
+          retention-days: 7

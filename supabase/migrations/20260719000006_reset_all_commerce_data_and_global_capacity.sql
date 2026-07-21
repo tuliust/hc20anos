@@ -1,37 +1,52 @@
 -- ================================================================
--- Corrective global commerce reset and capacity normalization
--- HC 20 Anos
+-- Global commerce capacity normalization without deleting transactions
 -- ================================================================
--- The previous reset targeted a fixed event UUID that is not the UUID used by
--- the live event records. This corrective migration clears every transactional
--- commerce record while preserving events, people, content, photos, admins,
--- products, lots and configured prices.
+-- Historical versions of this migration cleared every commerce table. That
+-- operation is no longer allowed in the automatic migration path. The guarded
+-- maintenance script lives at supabase/manual/reset-commerce-data.sql.
 
 begin;
 
--- Delete dependent transactional records in explicit dependency order.
-delete from public.ticket_transfers;
-delete from public.refund_requests;
-delete from public.notification_jobs;
-delete from public.participant_extras;
-delete from public.payment_preferences;
-delete from public.payment_events;
-delete from public.tickets;
-delete from public.order_participants;
-delete from public.orders;
-delete from public.guest_approval_requests;
+-- Remove the event-specific triggers before normalizing all catalog rows.
+drop trigger if exists ticket_types_enforce_hc20_capacity on public.ticket_types;
+drop trigger if exists ticket_lots_enforce_hc20_capacity on public.ticket_lots;
 
--- Normalize all products and lots, including legacy/demo catalog entries.
+-- Do not silently truncate real sales. A catalog with more than 500 sold units
+-- must be handled through an explicit business migration.
+do $$
+begin
+  if exists (
+    select 1
+    from public.ticket_types
+    where coalesce(sold_quantity, 0) > 500
+  ) then
+    raise exception 'COMMERCE_SOLD_QUANTITY_ABOVE_GLOBAL_CAPACITY';
+  end if;
+end
+$$;
+
 update public.ticket_types
-set available_quantity = 500,
-    sold_quantity = 0,
-    updated_at = now();
+set available_quantity = least(
+      500,
+      greatest(
+        coalesce(available_quantity, 500),
+        greatest(coalesce(sold_quantity, 0), 0)
+      )
+    ),
+    sold_quantity = greatest(coalesce(sold_quantity, 0), 0),
+    updated_at = now()
+where available_quantity is null
+   or available_quantity < 0
+   or available_quantity > 500
+   or sold_quantity is null
+   or sold_quantity < 0
+   or sold_quantity > available_quantity;
 
 update public.ticket_lots
-set capacity = 500,
-    updated_at = now();
+set capacity = least(500, greatest(coalesce(capacity, 500), 0)),
+    updated_at = now()
+where capacity is null or capacity < 0 or capacity > 500;
 
--- Replace the event-specific guard with a global maximum of 500.
 create or replace function public.enforce_hc20_commerce_capacity()
 returns trigger
 language plpgsql
@@ -55,23 +70,20 @@ begin
 end;
 $$;
 
--- Triggers may already exist from migration 00005; recreate deterministically.
-drop trigger if exists ticket_types_enforce_hc20_capacity on public.ticket_types;
 create trigger ticket_types_enforce_hc20_capacity
 before insert or update of event_id, available_quantity, sold_quantity
 on public.ticket_types
 for each row execute function public.enforce_hc20_commerce_capacity();
 
-drop trigger if exists ticket_lots_enforce_hc20_capacity on public.ticket_lots;
 create trigger ticket_lots_enforce_hc20_capacity
 before insert or update of event_id, capacity
 on public.ticket_lots
 for each row execute function public.enforce_hc20_commerce_capacity();
 
--- Recalculate once after deletion to keep the dashboard source synchronized.
+-- Recalculate counters from approved tickets without deleting orders or tickets.
 select public.refresh_ticket_type_sold_quantity(null);
 
 comment on function public.enforce_hc20_commerce_capacity() is
-  'Enforces a global maximum capacity of 500 for commerce products and lots.';
+  'Enforces a global maximum capacity of 500 without deleting commerce data.';
 
 commit;

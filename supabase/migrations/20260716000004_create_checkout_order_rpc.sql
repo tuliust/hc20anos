@@ -2,6 +2,49 @@
 -- Transactional checkout order creation
 -- HC 20 Anos — server-side pricing, participants and 30-minute hold
 -- ================================================================
+-- This migration also owns the schema and helper dependencies required by
+-- create_checkout_order. They previously lived in files with invalid migration
+-- timestamps and were therefore ignored by the Supabase CLI.
+-- ================================================================
+
+-- Idempotency and stable participant keys ------------------------------------
+
+alter table if exists public.orders
+  add column if not exists checkout_idempotency_key text;
+
+create unique index if not exists orders_buyer_checkout_idempotency_unique
+  on public.orders (buyer_user_id, checkout_idempotency_key)
+  where buyer_user_id is not null and checkout_idempotency_key is not null;
+
+alter table if exists public.order_participants
+  add column if not exists client_key text;
+
+create unique index if not exists order_participants_order_client_key_unique
+  on public.order_participants (order_id, client_key)
+  where client_key is not null;
+
+-- Age helper bound to the event date -----------------------------------------
+
+create or replace function public.age_on_event_date(
+  p_birth_date date,
+  p_event_id uuid
+)
+returns integer
+language sql
+stable
+strict
+security definer
+set search_path = public
+as $$
+  select public.age_on_date(p_birth_date, e.event_date)
+  from public.events e
+  where e.id = p_event_id;
+$$;
+
+revoke all on function public.age_on_event_date(date, uuid) from public;
+grant execute on function public.age_on_event_date(date, uuid) to service_role;
+
+-- Checkout RPC ---------------------------------------------------------------
 
 create or replace function public.create_checkout_order(
   p_buyer_user_id uuid,

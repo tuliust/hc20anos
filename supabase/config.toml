@@ -1,0 +1,3 @@
+# Configuração local mínima para replay e testes das migrations.
+# As demais opções usam os padrões da versão da CLI fixada no projeto.
+project_id = "hc20anos"
