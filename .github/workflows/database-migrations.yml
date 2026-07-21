@@ -41,3 +41,33 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+  migration-replay:
+    needs: static-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase stack
+        run: npx supabase start
+
+      - name: Replay all migrations from an empty local database
+        run: npx supabase db reset --local
+
+      - name: Show local migration history
+        run: npx supabase migration list --local
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
