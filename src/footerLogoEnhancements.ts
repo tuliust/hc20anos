@@ -18,7 +18,7 @@ function findHeaderLogo(): HTMLImageElement | null {
 
   const semanticLogo = images.find(image => {
     const label = `${image.alt} ${image.getAttribute("aria-label") ?? ""}`.toLocaleLowerCase("pt-BR");
-    return label.includes("logo") || label.includes("hc") || label.includes("pré hc") || label.includes("pre hc");
+    return label.includes("logo") || label.includes("pré hc") || label.includes("pre hc");
   });
 
   if (semanticLogo) return semanticLogo;
@@ -40,12 +40,12 @@ function findFooterBrandColumn(footer: HTMLElement): HTMLElement | null {
   if (title) {
     let current: HTMLElement | null = title.parentElement;
     while (current && current !== footer) {
-      const hasImage = Boolean(current.querySelector("img"));
       const hasDescription = Array.from(current.querySelectorAll<HTMLElement>("p"))
         .some(element => normalizeText(element.textContent).includes("reencontro"));
-      if (hasImage || hasDescription) return current;
+      if (hasDescription) return current;
       current = current.parentElement;
     }
+    if (title.parentElement) return title.parentElement;
   }
 
   const grid = Array.from(footer.querySelectorAll<HTMLElement>("div"))
@@ -58,6 +58,17 @@ function findFooterBrandColumn(footer: HTMLElement): HTMLElement | null {
   return footer.firstElementChild instanceof HTMLElement ? footer.firstElementChild : null;
 }
 
+function hideUnmanagedFooterImages(footer: HTMLElement) {
+  Array.from(footer.querySelectorAll<HTMLImageElement>("img"))
+    .filter(image => !image.hasAttribute(FOOTER_LOGO_ATTRIBUTE))
+    .forEach(image => {
+      image.setAttribute(FOOTER_REPLACED_IMAGE_ATTRIBUTE, "true");
+      image.hidden = true;
+      image.setAttribute("aria-hidden", "true");
+      image.style.setProperty("display", "none", "important");
+    });
+}
+
 function applyFooterLogo() {
   const footer = document.querySelector<HTMLElement>("footer");
   const headerLogo = findHeaderLogo();
@@ -67,23 +78,24 @@ function applyFooterLogo() {
   const brandTitle = findFooterBrandTitle(footer);
   brandTitle?.setAttribute(FOOTER_TITLE_ATTRIBUTE, "true");
 
-  const originalImages = Array.from(brandColumn.querySelectorAll<HTMLImageElement>("img"))
-    .filter(image => !image.hasAttribute(FOOTER_LOGO_ATTRIBUTE));
-  originalImages.forEach(image => {
-    image.setAttribute(FOOTER_REPLACED_IMAGE_ATTRIBUTE, "true");
-    image.hidden = true;
-    image.style.setProperty("display", "none", "important");
-  });
+  hideUnmanagedFooterImages(footer);
 
-  let footerLogo = brandColumn.querySelector<HTMLImageElement>(`img[${FOOTER_LOGO_ATTRIBUTE}]`);
+  let footerLogo = footer.querySelector<HTMLImageElement>(`img[${FOOTER_LOGO_ATTRIBUTE}]`);
   if (!footerLogo) {
     footerLogo = document.createElement("img");
     footerLogo.setAttribute(FOOTER_LOGO_ATTRIBUTE, "true");
     footerLogo.className = "footer-header-logo";
     footerLogo.loading = "lazy";
     footerLogo.decoding = "async";
+  }
+
+  if (footerLogo.parentElement !== brandColumn) {
     brandColumn.insertBefore(footerLogo, brandColumn.firstChild);
   }
+
+  footerLogo.hidden = false;
+  footerLogo.removeAttribute("aria-hidden");
+  footerLogo.style.removeProperty("display");
 
   const source = headerLogo.currentSrc || headerLogo.src;
   if (footerLogo.src !== source) footerLogo.src = source;
@@ -117,6 +129,8 @@ export function installFooterLogoEnhancements() {
       attributeFilter: ["src", "srcset"],
     });
     window.addEventListener("popstate", scheduleApply);
+    window.addEventListener("pushstate", scheduleApply);
+    window.addEventListener("pageshow", scheduleApply);
     scheduleApply();
   };
 
