@@ -33,6 +33,7 @@ function assertMarkers(code) {
     "A integração com IA será ativada depois. Por enquanto, o modal prepara uma prévia editável a partir das respostas.",
     "Mini bio em 5 perguntas",
     "Apresente seu perfil com apenas 5 perguntas",
+    "Refazer mini bio com 5 perguntas",
     "Gerar prévia",
   ];
 
@@ -71,7 +72,7 @@ function transformApp(source) {
     [`>Mini bio</p>`, `>Meu perfil</p>`, "título da seção"],
     [
       `{profileDraft.bio.trim() ? "Refazer mini bio com 5 perguntas" : "Apresente seu perfil com apenas 5 perguntas"}`,
-      `{profileDraft.bio.trim() ? "Refazer respostas" : "Responda 5 perguntas"}`,
+      `Responda 5 perguntas`,
       "texto do botão",
     ],
     [
