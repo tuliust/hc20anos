@@ -3,6 +3,7 @@ name: Database migration safety
 on:
   pull_request:
     paths:
+      - "supabase/config.toml"
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "supabase/manual/**"
@@ -60,14 +61,32 @@ jobs:
         run: npm ci
 
       - name: Start local Supabase stack
-        run: npx supabase start
+        run: |
+          set -o pipefail
+          npx supabase start 2>&1 | tee supabase-start.log
 
       - name: Replay all migrations from an empty local database
-        run: npx supabase db reset --local
+        run: |
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee supabase-reset.log
 
       - name: Show local migration history
-        run: npx supabase migration list --local
+        run: |
+          set -o pipefail
+          npx supabase migration list --local 2>&1 | tee supabase-migrations.log
 
       - name: Stop local Supabase stack
         if: always()
         run: npx supabase stop --no-backup
+
+      - name: Upload replay diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-replay-logs
+          path: |
+            supabase-start.log
+            supabase-reset.log
+            supabase-migrations.log
+          if-no-files-found: warn
+          retention-days: 7
