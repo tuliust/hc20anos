@@ -45,15 +45,49 @@ A consulta `supabase/manual/audit_migration_state.sql` confirmou como presentes:
 | ticket_transfers | 0 |
 | guest_approval_requests | 0 |
 
-## Classificação inicial
+## Classificação final
 
-- `20260716000001` a `20260716000017`: estado funcional presente; validar testes por família antes do repair.
-- `20260716000100` a `20260716000103`: estado presente e consistente.
-- `20260719000001` a `20260719000004`: estado presente; validar funções e permissões.
-- `20260719000005` e `20260719000006`: estado final presente, mas o SQL histórico era destrutivo; não executar.
-- `20260719000007` a `20260719000018`: objetos finais presentes; validar testes existentes.
+- `20260716000001` a `20260716000017`: estado funcional presente e replay validado.
+- `20260716000100` a `20260716000103`: estado presente, consistente e replay validado.
+- `20260719000001` a `20260719000004`: estado presente e testes aprovados.
+- `20260719000005` e `20260719000006`: estado final presente; versões históricas classificadas como superadas e não executáveis em produção.
+- `20260719000007` a `20260719000018`: objetos finais presentes e testes aprovados.
 - `20260721000031` e `20260721000032`: aplicadas, registradas e testadas.
 
-## Decisão
+## Gates concluídos
 
-Os resets históricos não serão executados. A branch substitui o conteúdo automático por normalização não destrutiva e move a limpeza para um script manual protegido. O histórico remoto só será reparado depois do replay local e da execução dos testes SQL.
+O workflow `Database migration safety` concluiu com sucesso:
+
+- auditoria estática das 85 migrations;
+- build da aplicação;
+- inicialização do Supabase local em runner Linux;
+- replay integral das migrations em banco vazio;
+- listagem do histórico local;
+- instalação de fixture autenticada exclusiva de teste;
+- execução de todos os testes SQL.
+
+## Decisão de reparo
+
+As 39 versões ausentes serão registradas como aplicadas no histórico remoto, sem executar novamente o SQL:
+
+- `20260716000001` a `20260716000017`;
+- `20260716000100` a `20260716000103`;
+- `20260719000001` a `20260719000018`.
+
+O procedimento está automatizado em:
+
+```text
+scripts/repair-supabase-migration-history.ps1
+```
+
+O script:
+
+1. valida o project ref vinculado;
+2. exige branch e frase de confirmação explícitas;
+3. salva a listagem anterior;
+4. executa `migration repair --status applied` versão por versão e por família;
+5. interrompe no primeiro erro;
+6. salva a listagem posterior;
+7. executa apenas `db push --dry-run` como verificação final.
+
+Nenhuma migration SQL, reset ou exclusão de dados é executada por esse procedimento. Os resets históricos permanecem fora do fluxo automático; a limpeza comercial só existe no script manual protegido.
