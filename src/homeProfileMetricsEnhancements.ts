@@ -59,6 +59,13 @@ function parseCounts(value: unknown): CountItem[] {
     .filter(item => item.label && Number.isFinite(item.count));
 }
 
+function isRegisteredPerson(person: Record<string, unknown>) {
+  const status = normalize(person.profile_status);
+  return status === "claimed"
+    || status === "confirmed"
+    || Boolean(person.claimed_by_user_id);
+}
+
 async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
   const now = Date.now();
   if (!force && cachedMetrics && now - cachedAt < CACHE_TTL_MS) return cachedMetrics;
@@ -68,10 +75,10 @@ async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
     const [peopleResult, statsResult] = await Promise.all([
       (supabase as any)
         .from("people")
-        .select("gender,is_visible"),
+        .select("gender,is_visible,profile_status,claimed_by_user_id"),
       (supabase as any)
         .from("public_curiosity_profile_stats")
-        .select("total_people,total_with_children,relationship_status_counts")
+        .select("total_registered,total_with_children,relationship_status_counts")
         .eq("event_id", DEFAULT_EVENT_ID)
         .maybeSingle(),
     ]);
@@ -79,25 +86,28 @@ async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
     if (peopleResult.error) throw peopleResult.error;
     if (statsResult.error) throw statsResult.error;
 
-    const visiblePeople = (Array.isArray(peopleResult.data) ? peopleResult.data : [])
-      .filter((person: Record<string, unknown>) => person.is_visible !== false);
+    const registeredPeople = (Array.isArray(peopleResult.data) ? peopleResult.data : [])
+      .filter((person: Record<string, unknown>) => person.is_visible !== false)
+      .filter(isRegisteredPerson);
     const stats = statsResult.data && typeof statsResult.data === "object"
       ? statsResult.data as Record<string, unknown>
       : {};
 
-    const peopleTotalFromView = Number(stats.total_people);
-    const totalPeople = Number.isFinite(peopleTotalFromView)
-      ? peopleTotalFromView
-      : visiblePeople.length;
-    const womenCount = visiblePeople.filter((person: Record<string, unknown>) => person.gender === "female").length;
+    const registeredTotalFromView = Number(stats.total_registered);
+    const registeredTotal = Number.isFinite(registeredTotalFromView)
+      ? registeredTotalFromView
+      : registeredPeople.length;
+    const womenCount = registeredPeople
+      .filter((person: Record<string, unknown>) => person.gender === "female")
+      .length;
     const marriedCount = parseCounts(stats.relationship_status_counts)
       .find(item => normalize(item.label).startsWith("casad"))?.count ?? 0;
     const childrenCount = Number(stats.total_with_children ?? 0);
 
     const metrics: HomeProfileMetrics = {
-      women: percentOf(womenCount, totalPeople),
-      married: percentOf(marriedCount, totalPeople),
-      children: percentOf(Number.isFinite(childrenCount) ? childrenCount : 0, totalPeople),
+      women: percentOf(womenCount, registeredTotal),
+      married: percentOf(marriedCount, registeredTotal),
+      children: percentOf(Number.isFinite(childrenCount) ? childrenCount : 0, registeredTotal),
     };
 
     cachedMetrics = metrics;
@@ -123,7 +133,7 @@ function applyMetrics(root: HTMLElement, metrics: HomeProfileMetrics) {
     if (valueElement.textContent !== nextValue) valueElement.textContent = nextValue;
   });
 
-  root.setAttribute("data-home-profile-metrics-source", "people");
+  root.setAttribute("data-home-profile-metrics-source", "registered-profiles");
 }
 
 async function refreshMetrics(force = false) {
@@ -134,7 +144,7 @@ async function refreshMetrics(force = false) {
   try {
     applyMetrics(root, await loadMetrics(force));
   } catch (error) {
-    console.warn("[Home/Perfil] Não foi possível atualizar as métricas da tabela people.", error);
+    console.warn("[Home/Perfil] Não foi possível atualizar as métricas dos perfis cadastrados.", error);
   }
 }
 
