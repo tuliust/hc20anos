@@ -2,7 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
+import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
+import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { GuestApprovalPage } from './app/GuestApprovalPage';
 import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
@@ -14,6 +16,7 @@ import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminOrdersRouteRemoval } from './adminOrdersRouteRemoval';
 import { installAdminParticipantMaintenance } from './adminParticipantMaintenance';
 import { installAdminReadResilience } from './adminReadResilience';
+import { installAdminReportsEnhancements } from './adminReportsEnhancements';
 import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
 import { installCheckoutExtrasEnhancements } from './checkoutExtrasEnhancements';
@@ -39,6 +42,8 @@ import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
+import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
+import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
@@ -72,6 +77,8 @@ const isOperationsRoute = operationsRoutes.has(normalizedPath);
 const isGuestApprovalRoute = guestApprovalRoutes.has(normalizedPath);
 const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute || isGuestApprovalRoute;
 
+installSiteAnalyticsTracker();
+
 if (!isStandaloneRoute) {
   installAdminReadResilience();
   installAdminTicketLotsRouteSync();
@@ -83,6 +90,7 @@ if (!isStandaloneRoute) {
   installHomeLandingEnhancements();
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
+  installAdminReportsEnhancements();
   installAdminOrdersRouteRemoval();
   installAdminParticipantMaintenance();
   installMemorySyncEnhancements();
@@ -108,6 +116,7 @@ if (!isStandaloneRoute) {
   installCuriositiesSummaryEnhancements();
   installCuriositiesPollMobileEnhancements();
   installTicketsPageEnhancements();
+  installTicketsCatalogLayoutEnhancements();
 }
 
 const rootElement = document.getElementById('root');
@@ -118,7 +127,9 @@ createRoot(rootElement).render(
     {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
       <App />
       <AdminCmsPanelsMount />
+      <AdminOverviewDashboardMount />
       <AdminTicketLotsMount />
+      <AdminTicketProductCopyMount />
       <HomeHeroUserStateMount />
       <PublicCmsStrictGuard />
       <PublicTicketsCatalogMount />
