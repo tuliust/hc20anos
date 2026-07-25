@@ -48,7 +48,7 @@ main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [cl
 }
 
 main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#f0ebe0]"] {
-  color: #0d1a0f !important;
+  color: #ffffff !important;
 }
 
 main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="border-[#2d6a4f]"] {
