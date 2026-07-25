@@ -108,6 +108,12 @@ function configureCards() {
   const grid = cards[0].parentElement;
   if (grid) grid.setAttribute("data-tickets-page-grid", "true");
 
+  if (document.querySelector("[data-public-ticket-catalog-container]")) {
+    if (grid) hide(grid);
+    else cards.forEach(hide);
+    return;
+  }
+
   cards.forEach(card => {
     const name = ticketName(card);
     if (!ALLOWED_TICKET_NAMES.has(name)) {
