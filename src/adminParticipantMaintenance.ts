@@ -4,11 +4,14 @@ const PARTICIPANTS_ROUTE = "/admin/participants";
 
 let observer: MutationObserver | null = null;
 let scheduled = false;
+let importGridResizeObserver: ResizeObserver | null = null;
+const observedImportGrids = new WeakSet<HTMLElement>();
 
 function normalize(value: string | null | undefined): string {
   return (value ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
 }
@@ -36,6 +39,137 @@ function findEditModal(): HTMLElement | null {
   }
 
   return null;
+}
+
+function findImportModal(): HTMLElement | null {
+  const title = Array.from(
+    document.querySelectorAll<HTMLElement>("h1,h2,h3,h4,p,span"),
+  ).find(node => normalize(node.textContent) === "cadastrar pessoas");
+
+  if (!title) return null;
+
+  let current: HTMLElement | null = title;
+  while (current && current !== document.body) {
+    const text = normalize(current.textContent);
+    const buttons = Array.from(current.querySelectorAll<HTMLButtonElement>("button"));
+    const hasAddRow = buttons.some(button => normalize(button.textContent) === "adicionar linha");
+    const hasCancel = buttons.some(button => normalize(button.textContent) === "cancelar");
+    if (hasAddRow && hasCancel && text.includes("cadastro manual")) return current;
+    current = current.parentElement;
+  }
+
+  return null;
+}
+
+function directGridChild(node: HTMLElement | null, grid: HTMLElement): HTMLElement | null {
+  let current = node;
+  while (current?.parentElement && current.parentElement !== grid) current = current.parentElement;
+  return current?.parentElement === grid ? current : null;
+}
+
+function findFieldContainer(grid: HTMLElement, labelText: string): HTMLElement | null {
+  const target = normalize(labelText);
+  const label = Array.from(grid.querySelectorAll<HTMLLabelElement>("label"))
+    .find(candidate => normalize(candidate.textContent).startsWith(target));
+  return directGridChild(label, grid);
+}
+
+function findManualRowGrid(label: HTMLLabelElement, modal: HTMLElement): HTMLElement | null {
+  let current: HTMLElement | null = label.parentElement;
+  while (current && current !== modal) {
+    if (
+      current.classList.contains("grid")
+      && Array.from(current.querySelectorAll<HTMLLabelElement>("label"))
+        .some(candidate => normalize(candidate.textContent).startsWith("whatsapp"))
+    ) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function setGridColumn(element: HTMLElement | null, value: string): void {
+  if (!element) return;
+  element.style.gridColumn = value;
+  element.style.minWidth = "0";
+}
+
+function applyManualGridLayout(grid: HTMLElement): void {
+  const width = grid.getBoundingClientRect().width;
+  const fullName = findFieldContainer(grid, "Nome completo");
+  const displayName = findFieldContainer(grid, "Nome de exibição");
+  const gender = findFieldContainer(grid, "Gênero");
+  const birthYear = findFieldContainer(grid, "Ano");
+  const classGroup = findFieldContainer(grid, "Turma");
+  const whatsapp = findFieldContainer(grid, "WhatsApp");
+  const email = findFieldContainer(grid, "E-mail");
+  const removeButton = Array.from(grid.querySelectorAll<HTMLButtonElement>("button"))
+    .find(button => normalize(button.textContent).includes("remover"));
+  const remove = directGridChild(removeButton, grid);
+
+  grid.dataset.hcParticipantManualGrid = "true";
+  grid.style.alignItems = "end";
+
+  if (width >= 760) {
+    grid.style.gridTemplateColumns = "repeat(12, minmax(0, 1fr))";
+    setGridColumn(fullName, "1 / span 7");
+    setGridColumn(displayName, "8 / span 5");
+    setGridColumn(gender, "1 / span 5");
+    setGridColumn(birthYear, "6 / span 3");
+    setGridColumn(classGroup, "9 / span 4");
+    setGridColumn(whatsapp, "1 / span 5");
+    setGridColumn(email, "6 / span 7");
+    setGridColumn(remove, "1 / -1");
+    return;
+  }
+
+  if (width >= 460) {
+    grid.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
+    setGridColumn(fullName, "1 / -1");
+    setGridColumn(displayName, "1 / -1");
+    setGridColumn(gender, "1 / -1");
+    setGridColumn(birthYear, "1 / 2");
+    setGridColumn(classGroup, "2 / 3");
+    setGridColumn(whatsapp, "1 / -1");
+    setGridColumn(email, "1 / -1");
+    setGridColumn(remove, "1 / -1");
+    return;
+  }
+
+  grid.style.gridTemplateColumns = "minmax(0, 1fr)";
+  [fullName, displayName, gender, birthYear, classGroup, whatsapp, email, remove]
+    .forEach(element => setGridColumn(element, "1 / -1"));
+}
+
+function enhanceManualRegistrationLayout(): void {
+  if (!isParticipantsRoute()) return;
+
+  const modal = findImportModal();
+  if (!modal) return;
+
+  const grids = new Set<HTMLElement>();
+  Array.from(modal.querySelectorAll<HTMLLabelElement>("label"))
+    .filter(label => normalize(label.textContent).startsWith("nome completo"))
+    .forEach(label => {
+      const grid = findManualRowGrid(label, modal);
+      if (grid) grids.add(grid);
+    });
+
+  grids.forEach(grid => {
+    applyManualGridLayout(grid);
+    if (observedImportGrids.has(grid) || typeof ResizeObserver === "undefined") return;
+
+    importGridResizeObserver ??= new ResizeObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.target instanceof HTMLElement && entry.target.isConnected) {
+          applyManualGridLayout(entry.target);
+        }
+      });
+    });
+    importGridResizeObserver.observe(grid);
+    observedImportGrids.add(grid);
+  });
 }
 
 function fieldValue(root: HTMLElement, labelText: string): string {
@@ -179,9 +313,10 @@ function scheduleEnhancement(): void {
   window.setTimeout(() => {
     scheduled = false;
     try {
+      enhanceManualRegistrationLayout();
       enhanceParticipantModal();
     } catch (error) {
-      console.error("Falha ao instalar ações de manutenção do participante", error);
+      console.error("Falha ao instalar melhorias administrativas de participantes", error);
     }
   }, 0);
 }
@@ -193,6 +328,7 @@ export function installAdminParticipantMaintenance(): void {
   observer = new MutationObserver(scheduleEnhancement);
   observer.observe(document.body, { childList: true, subtree: true });
 
+  window.addEventListener("resize", scheduleEnhancement);
   window.addEventListener("popstate", scheduleEnhancement);
   window.addEventListener("pushstate", scheduleEnhancement as EventListener);
   scheduleEnhancement();
