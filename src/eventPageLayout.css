@@ -9,3 +9,80 @@ main > div > section[class*="min-h-[72vh]"] > .max-w-7xl > .max-w-4xl {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
+
+/* /evento — Informações gerais
+   A seção imediatamente posterior à hero recebe a paleta clara. */
+main > div > section[class*="min-h-[72vh]"] + section {
+  background: #ffffff !important;
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:first-child > p:first-child {
+  color: #8a6a0a !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section h2 {
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:first-child > div {
+  color: #35513f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child {
+  background: #f3f5f2 !important;
+  border-color: rgba(45, 106, 79, 0.24) !important;
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child > p:first-child {
+  color: #8a6a0a !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child svg {
+  color: #2d6a4f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#7a9a7a]"] {
+  color: #587060 !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#f0ebe0]"] {
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="border-[#2d6a4f]"] {
+  border-color: rgba(45, 106, 79, 0.2) !important;
+}
+
+/* /evento — Local
+   A seção seguinte recebe o amarelo institucional e contraste em verde escuro. */
+main > div > section[class*="min-h-[72vh]"] + section + section {
+  background: #c9a84c !important;
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section > div > div:first-child > p:first-child {
+  color: #234632 !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section h2 {
+  color: #0d1a0f !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section > div > div:first-child > p:not(:first-child) {
+  color: #294634 !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section button {
+  background: #0d1a0f !important;
+  color: #f0ebe0 !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section button:hover {
+  background: #214c36 !important;
+}
+
+main > div > section[class*="min-h-[72vh]"] + section + section > div > div:last-child {
+  border-color: rgba(13, 26, 15, 0.42) !important;
+}
