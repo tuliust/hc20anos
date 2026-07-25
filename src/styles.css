@@ -246,3 +246,55 @@ input[type="number"]::-webkit-inner-spin-button {
   appearance: none;
   margin: 0;
 }
+
+/* Home: seção Sobre em plano claro, preservando verde e amarelo como acentos. */
+[data-home-section="about"] {
+  background: #e5e7e4 !important;
+  color: #0d1a0f;
+}
+
+[data-home-section="about"] [class~="text-[#f0ebe0]"]:not(button) {
+  color: #0d1a0f !important;
+}
+
+[data-home-section="about"] [class~="text-[#8ab89a]"] {
+  color: #35513f !important;
+}
+
+[data-home-section="about"] [class~="text-[#7a9a7a]"] {
+  color: #536158 !important;
+}
+
+[data-home-section="about"] [class~="text-[#3a5a3a]"] {
+  color: #65736a !important;
+}
+
+[data-home-section="about"] [class~="text-[#c9a84c]"] {
+  color: #8a6d13 !important;
+}
+
+[data-home-section="about"] [class~="bg-[#141f14]"] {
+  background: #f6f5f0 !important;
+}
+
+[data-home-section="about"] [class~="bg-[#0d1a0f]"],
+[data-home-section="about"] [class~="bg-[#0a120a]"],
+[data-home-section="about"] [class~="bg-[#091109]"],
+[data-home-section="about"] [class~="bg-[#1a2e1a]"] {
+  background: #ffffff !important;
+}
+
+[data-home-section="about"] [class*="border-[#2d6a4f]"] {
+  border-color: rgba(45, 106, 79, 0.24) !important;
+}
+
+[data-home-section="about"] article,
+[data-home-section="about"] [data-home-about-stats] [data-class-group] {
+  box-shadow: 0 1px 0 rgba(13, 26, 15, 0.04);
+}
+
+/* Elementos sobrepostos ao mapa continuam escuros para garantir legibilidade. */
+[data-home-section="about"] [class~="bg-[#0d1a0f]/90"][class~="text-[#c9a84c]"],
+[data-home-section="about"] [class~="bg-[#0d1a0f]/90"] [class~="text-[#c9a84c]"] {
+  color: #f0d783 !important;
+}
