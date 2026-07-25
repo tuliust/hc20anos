@@ -84,6 +84,22 @@ function findAttendanceButton(): HTMLButtonElement | null {
   return hero.querySelectorAll<HTMLButtonElement>("button")[1] ?? null;
 }
 
+function applyHeroAlignment(): void {
+  if (currentPath() !== HOME_PATH) return;
+
+  const hero = document.querySelector<HTMLElement>(HERO_SELECTOR);
+  if (!hero) return;
+
+  const homeRoot = hero.closest<HTMLElement>("[data-home-loaded]");
+  const main = hero.closest<HTMLElement>("main");
+
+  hero.style.setProperty("margin-top", "0", "important");
+  homeRoot?.style.setProperty("margin-top", "0", "important");
+  homeRoot?.style.setProperty("padding-top", "0", "important");
+  main?.style.setProperty("margin-top", "0", "important");
+  main?.style.setProperty("padding-top", "0", "important");
+}
+
 function findTicketsSection(): HTMLElement | null {
   const sections = Array.from(document.querySelectorAll<HTMLElement>("section.home-section"));
 
@@ -169,6 +185,7 @@ function applyAttendanceAppearance(): void {
 
 function enhanceHome(): void {
   scheduled = false;
+  applyHeroAlignment();
   applyTicketsAppearance();
   applyAttendanceAppearance();
 }
