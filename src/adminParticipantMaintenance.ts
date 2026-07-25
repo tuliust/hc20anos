@@ -1,6 +1,8 @@
 import { supabase } from "./lib/supabase";
+import { importPeopleAdmin, type AdminImportPersonInput } from "./lib/services";
 
 const PARTICIPANTS_ROUTE = "/admin/participants";
+const HOME_TICKETS_STYLE_ID = "hc-home-tickets-refinements-style";
 
 let observer: MutationObserver | null = null;
 let scheduled = false;
@@ -20,6 +22,75 @@ function isParticipantsRoute(): boolean {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const tab = new URLSearchParams(window.location.search).get("tab");
   return path === PARTICIPANTS_ROUTE && (tab === null || tab === "participants");
+}
+
+function injectHomeTicketsStyles(): void {
+  if (document.getElementById(HOME_TICKETS_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = HOME_TICKETS_STYLE_ID;
+  style.textContent = `
+    [data-home-ticket-amenities] [data-home-ticket-amenity] {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    [data-home-ticket-amenities] [data-home-ticket-amenity-icon] {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    [data-home-ticket-amenities] h3 {
+      color: #0d1a0f !important;
+      text-align: center;
+    }
+
+    [data-home-ticket-amenities] p {
+      color: #050805 !important;
+      text-align: center;
+    }
+
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > div:first-child > div:first-child {
+      display: flex;
+      flex-direction: column;
+    }
+
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > div:first-child > div:first-child > p:first-child {
+      order: 1;
+      margin-bottom: 0 !important;
+    }
+
+    [data-public-ticket-catalog-home="true"] [data-ticket-card-subtitle] {
+      order: 2;
+      margin-top: 1.35rem !important;
+      margin-bottom: 0 !important;
+    }
+
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] h2 {
+      order: 3;
+      margin-top: 0.8rem !important;
+      margin-bottom: 0 !important;
+    }
+
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > div:nth-child(2) {
+      margin-top: 1rem !important;
+      margin-bottom: 1rem !important;
+    }
+
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > p {
+      margin-bottom: 1.75rem !important;
+    }
+
+    @media (max-width: 767px) {
+      [data-home-ticket-amenities] [data-home-ticket-amenity] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 function findEditModal(): HTMLElement | null {
@@ -95,12 +166,31 @@ function setGridColumn(element: HTMLElement | null, value: string): void {
   element.style.minWidth = "0";
 }
 
+function fieldValue(root: HTMLElement, labelText: string): string {
+  const target = normalize(labelText);
+  const label = Array.from(root.querySelectorAll<HTMLLabelElement>("label"))
+    .find(candidate => normalize(candidate.textContent).startsWith(target));
+  if (!label) return "";
+
+  const container = directGridChild(label, root) ?? label.parentElement;
+  const control = container?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+    "input,select,textarea",
+  );
+  return control?.value?.trim() ?? "";
+}
+
+function hideBirthYearField(grid: HTMLElement): void {
+  const birthYear = findFieldContainer(grid, "Ano");
+  if (!birthYear) return;
+  birthYear.style.display = "none";
+  birthYear.setAttribute("aria-hidden", "true");
+}
+
 function applyManualGridLayout(grid: HTMLElement): void {
   const width = grid.getBoundingClientRect().width;
   const fullName = findFieldContainer(grid, "Nome completo");
   const displayName = findFieldContainer(grid, "Nome de exibição");
   const gender = findFieldContainer(grid, "Gênero");
-  const birthYear = findFieldContainer(grid, "Ano");
   const classGroup = findFieldContainer(grid, "Turma");
   const whatsapp = findFieldContainer(grid, "WhatsApp");
   const email = findFieldContainer(grid, "E-mail");
@@ -108,6 +198,7 @@ function applyManualGridLayout(grid: HTMLElement): void {
     .find(button => normalize(button.textContent).includes("remover"));
   const remove = directGridChild(removeButton, grid);
 
+  hideBirthYearField(grid);
   grid.dataset.hcParticipantManualGrid = "true";
   grid.style.alignItems = "end";
 
@@ -115,9 +206,8 @@ function applyManualGridLayout(grid: HTMLElement): void {
     grid.style.gridTemplateColumns = "repeat(12, minmax(0, 1fr))";
     setGridColumn(fullName, "1 / span 7");
     setGridColumn(displayName, "8 / span 5");
-    setGridColumn(gender, "1 / span 5");
-    setGridColumn(birthYear, "6 / span 3");
-    setGridColumn(classGroup, "9 / span 4");
+    setGridColumn(gender, "1 / span 6");
+    setGridColumn(classGroup, "7 / span 6");
     setGridColumn(whatsapp, "1 / span 5");
     setGridColumn(email, "6 / span 7");
     setGridColumn(remove, "1 / -1");
@@ -128,8 +218,7 @@ function applyManualGridLayout(grid: HTMLElement): void {
     grid.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
     setGridColumn(fullName, "1 / -1");
     setGridColumn(displayName, "1 / -1");
-    setGridColumn(gender, "1 / -1");
-    setGridColumn(birthYear, "1 / 2");
+    setGridColumn(gender, "1 / 2");
     setGridColumn(classGroup, "2 / 3");
     setGridColumn(whatsapp, "1 / -1");
     setGridColumn(email, "1 / -1");
@@ -138,8 +227,83 @@ function applyManualGridLayout(grid: HTMLElement): void {
   }
 
   grid.style.gridTemplateColumns = "minmax(0, 1fr)";
-  [fullName, displayName, gender, birthYear, classGroup, whatsapp, email, remove]
+  [fullName, displayName, gender, classGroup, whatsapp, email, remove]
     .forEach(element => setGridColumn(element, "1 / -1"));
+}
+
+function removeInternalImportScroll(modal: HTMLElement): void {
+  Array.from(modal.querySelectorAll<HTMLElement>("div")).forEach(element => {
+    const hasManualGrid = Boolean(element.querySelector("[data-hc-participant-manual-grid]"));
+    const hasScrollClass = String(element.className).includes("overflow-y-auto")
+      || String(element.className).includes("max-h-[560px]");
+    if (!hasManualGrid || !hasScrollClass) return;
+
+    element.style.maxHeight = "none";
+    element.style.overflowY = "visible";
+    element.style.paddingRight = "0";
+  });
+}
+
+function avatarUrlForGrid(grid: HTMLElement): string {
+  const row = grid.parentElement;
+  const image = row?.querySelector<HTMLImageElement>("img");
+  const src = image?.currentSrc || image?.src || "";
+  return /^https?:\/\//i.test(src) ? src : "";
+}
+
+function collectManualRows(modal: HTMLElement): AdminImportPersonInput[] {
+  const grids = Array.from(modal.querySelectorAll<HTMLElement>("[data-hc-participant-manual-grid]"));
+  return grids.map(grid => ({
+    full_name: fieldValue(grid, "Nome completo"),
+    display_name: fieldValue(grid, "Nome de exibição"),
+    gender: (fieldValue(grid, "Gênero") || null) as AdminImportPersonInput["gender"],
+    birth_year: null,
+    class_group: fieldValue(grid, "Turma").toUpperCase(),
+    avatar_url: avatarUrlForGrid(grid),
+    contact_whatsapp: fieldValue(grid, "WhatsApp"),
+    contact_email: fieldValue(grid, "E-mail"),
+  })).filter(row => row.full_name.trim() || row.class_group?.trim());
+}
+
+function installOptionalBirthYearSave(modal: HTMLElement): void {
+  const saveButton = Array.from(modal.querySelectorAll<HTMLButtonElement>("button"))
+    .find(button => {
+      const label = normalize(button.textContent);
+      return label.startsWith("cadastrar") && label.includes("pessoas");
+    });
+  if (!saveButton || saveButton.dataset.hcOptionalBirthYearSave === "true") return;
+  saveButton.dataset.hcOptionalBirthYearSave = "true";
+
+  saveButton.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const rows = collectManualRows(modal);
+    if (!rows.length || rows.some(row => !row.full_name.trim() || !row.class_group?.trim())) {
+      window.alert("Inclua nome completo e turma para cada participante.");
+      return;
+    }
+
+    const originalText = saveButton.textContent ?? "Cadastrar pessoas";
+    saveButton.disabled = true;
+    saveButton.textContent = "Cadastrando...";
+
+    void supabase.auth.getSession()
+      .then(async ({ data }) => {
+        const adminId = data.session?.user?.id;
+        if (!adminId) throw new Error("Sessão administrativa não encontrada.");
+        await importPeopleAdmin(rows, adminId);
+        window.location.reload();
+      })
+      .catch(error => {
+        window.alert(error instanceof Error ? error.message : "Não foi possível cadastrar os participantes.");
+        if (document.contains(saveButton)) {
+          saveButton.disabled = false;
+          saveButton.textContent = originalText;
+        }
+      });
+  }, true);
 }
 
 function enhanceManualRegistrationLayout(): void {
@@ -170,20 +334,9 @@ function enhanceManualRegistrationLayout(): void {
     importGridResizeObserver.observe(grid);
     observedImportGrids.add(grid);
   });
-}
 
-function fieldValue(root: HTMLElement, labelText: string): string {
-  const normalizedLabel = normalize(labelText);
-  const labels = Array.from(root.querySelectorAll<HTMLLabelElement>("label"));
-  const label = labels.find(candidate => normalize(candidate.textContent) === normalizedLabel);
-  if (!label) return "";
-
-  const container = label.parentElement;
-  const control = container?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-    "input,select,textarea",
-  );
-
-  return control?.value?.trim() ?? "";
+  removeInternalImportScroll(modal);
+  installOptionalBirthYearSave(modal);
 }
 
 async function resolvePersonId(modal: HTMLElement): Promise<string> {
@@ -203,7 +356,6 @@ async function resolvePersonId(modal: HTMLElement): Promise<string> {
   if (error) throw error;
 
   const rows = (data ?? []) as { id: string; full_name: string; class_group: string | null }[];
-
   if (rows.length !== 1) {
     throw new Error(
       rows.length === 0
@@ -232,10 +384,7 @@ function createActionButton(
     button.disabled = true;
     void action()
       .catch(error => {
-        const message = error instanceof Error
-          ? error.message
-          : "Não foi possível concluir a ação.";
-        window.alert(message);
+        window.alert(error instanceof Error ? error.message : "Não foi possível concluir a ação.");
       })
       .finally(() => {
         if (document.contains(button)) button.disabled = false;
@@ -253,7 +402,6 @@ function enhanceParticipantModal(): void {
 
   const saveButton = Array.from(modal.querySelectorAll<HTMLButtonElement>("button"))
     .find(button => normalize(button.textContent).includes("salvar alteracoes"));
-
   if (!saveButton?.parentElement) return;
 
   const actions = document.createElement("div");
@@ -271,9 +419,7 @@ function enhanceParticipantModal(): void {
       if (!confirmed) return;
 
       const personId = await resolvePersonId(modal);
-      const { error } = await (supabase as any).rpc("admin_clear_person_profile", {
-        p_person_id: personId,
-      });
+      const { error } = await (supabase as any).rpc("admin_clear_person_profile", { p_person_id: personId });
       if (error) throw error;
 
       window.alert("Dados limpos. Nome e turma foram preservados.");
@@ -292,9 +438,7 @@ function enhanceParticipantModal(): void {
       if (!confirmed) return;
 
       const personId = await resolvePersonId(modal);
-      const { error } = await (supabase as any).rpc("admin_delete_person_profile", {
-        p_person_id: personId,
-      });
+      const { error } = await (supabase as any).rpc("admin_delete_person_profile", { p_person_id: personId });
       if (error) throw error;
 
       window.alert("Participante removido da base.");
@@ -313,6 +457,7 @@ function scheduleEnhancement(): void {
   window.setTimeout(() => {
     scheduled = false;
     try {
+      injectHomeTicketsStyles();
       enhanceManualRegistrationLayout();
       enhanceParticipantModal();
     } catch (error) {
@@ -324,6 +469,7 @@ function scheduleEnhancement(): void {
 export function installAdminParticipantMaintenance(): void {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
+  injectHomeTicketsStyles();
   observer?.disconnect();
   observer = new MutationObserver(scheduleEnhancement);
   observer.observe(document.body, { childList: true, subtree: true });
