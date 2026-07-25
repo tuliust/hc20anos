@@ -1,9 +1,16 @@
 const LINK_ID = "hc-guest-approval-link";
+const ALLOWED_PATHS = new Set(["/minha-area", "/ingressos", "/comprar-ingresso"]);
 
 function installLink() {
-  if (document.getElementById(LINK_ID)) return;
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
-  if (!["/minha-area", "/ingressos", "/comprar-ingresso"].includes(path)) return;
+  const existing = document.getElementById(LINK_ID);
+
+  if (!ALLOWED_PATHS.has(path)) {
+    existing?.remove();
+    return;
+  }
+
+  if (existing) return;
 
   const candidates = Array.from(document.querySelectorAll<HTMLElement>("main, [role='main'], section"));
   const host = candidates.find(element => /minha área|ingresso|comprar/i.test(element.textContent ?? "")) ?? document.querySelector("main");
@@ -22,4 +29,5 @@ export function installGuestApprovalNavigation() {
   const observer = new MutationObserver(installLink);
   observer.observe(document.documentElement, { childList: true, subtree: true });
   window.addEventListener("popstate", installLink);
+  window.addEventListener("pushstate", installLink);
 }
