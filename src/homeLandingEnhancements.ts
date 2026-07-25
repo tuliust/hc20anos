@@ -55,6 +55,11 @@ function injectAttendanceStyle(): void {
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = `
+    ${HERO_SELECTOR} {
+      margin-top: 0 !important;
+      padding-top: 4rem !important;
+    }
+
     ${HERO_SELECTOR} button[data-hc-attendance-confirmed="true"] {
       font-size: 0 !important;
       opacity: 0.78 !important;
