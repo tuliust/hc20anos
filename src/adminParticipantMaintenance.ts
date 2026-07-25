@@ -96,9 +96,16 @@ function createActionButton(
     event.stopPropagation();
 
     button.disabled = true;
-    void action().finally(() => {
-      if (document.contains(button)) button.disabled = false;
-    });
+    void action()
+      .catch(error => {
+        const message = error instanceof Error
+          ? error.message
+          : "Não foi possível concluir a ação.";
+        window.alert(message);
+      })
+      .finally(() => {
+        if (document.contains(button)) button.disabled = false;
+      });
   });
 
   return button;
