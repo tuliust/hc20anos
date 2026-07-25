@@ -1,5 +1,12 @@
+const HOME_CLASS_CARD_ATTRIBUTE = "data-home-class-card-enhanced";
+const CLASS_FILTER_APPLIED_ATTRIBUTE = "data-ex-alumni-class-filter-applied";
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+}
+
+function currentPath() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
 }
 
 function findExAlumniPageRoot(): HTMLElement | null {
@@ -75,13 +82,75 @@ function enhanceExAlumniEyebrow(pageRoot: HTMLElement) {
   }
 }
 
+function requestedClassGroup() {
+  const group = new URLSearchParams(window.location.search).get("turma")?.trim().toUpperCase() ?? "";
+  return /^[ABCD]$/.test(group) ? group : null;
+}
+
+function applyRequestedClassFilter(pageRoot: HTMLElement) {
+  const group = requestedClassGroup();
+  if (!group) {
+    pageRoot.removeAttribute(CLASS_FILTER_APPLIED_ATTRIBUTE);
+    return;
+  }
+
+  const button = Array.from(pageRoot.querySelectorAll<HTMLButtonElement>("button"))
+    .find(item => normalizeText(item.textContent) === `turma ${group.toLocaleLowerCase("pt-BR")}`);
+  if (!button) return;
+
+  const isActive = button.className.includes("bg-[#c9a84c]")
+    || button.getAttribute("aria-pressed") === "true";
+  if (!isActive) button.click();
+  pageRoot.setAttribute(CLASS_FILTER_APPLIED_ATTRIBUTE, group);
+}
+
+function openClassDirectory(group: string) {
+  const url = new URL("/ex-alunos", window.location.origin);
+  url.searchParams.set("turma", group);
+  window.location.assign(`${url.pathname}${url.search}`);
+}
+
+function enhanceHomeClassCards() {
+  if (currentPath() !== "/") return;
+
+  document.querySelectorAll<HTMLElement>("[data-home-about-stats] [data-class-group]").forEach(card => {
+    const group = card.getAttribute("data-class-group")?.trim().toUpperCase() ?? "";
+    if (!/^[ABCD]$/.test(group) || card.hasAttribute(HOME_CLASS_CARD_ATTRIBUTE)) return;
+
+    card.setAttribute(HOME_CLASS_CARD_ATTRIBUTE, "true");
+    card.setAttribute("role", "link");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Ver ex-alunos da Turma ${group}`);
+    card.style.cursor = "pointer";
+    card.style.transition = "transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease";
+
+    card.addEventListener("mouseenter", () => {
+      card.style.transform = "translateY(-2px)";
+      card.style.boxShadow = "0 8px 22px rgba(13, 26, 15, 0.10)";
+    });
+    card.addEventListener("mouseleave", () => {
+      card.style.transform = "";
+      card.style.boxShadow = "";
+    });
+    card.addEventListener("click", () => openClassDirectory(group));
+    card.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openClassDirectory(group);
+    });
+  });
+}
+
 function enhanceExAlumniPage() {
+  enhanceHomeClassCards();
+
   const pageRoot = findExAlumniPageRoot();
   if (!pageRoot) return;
 
   enhanceExAlumniClaimButtons(pageRoot);
   enhanceExAlumniAllFilter(pageRoot);
   enhanceExAlumniEyebrow(pageRoot);
+  applyRequestedClassFilter(pageRoot);
 }
 
 export function installExAlumniEnhancements() {
@@ -90,6 +159,8 @@ export function installExAlumniEnhancements() {
   const observer = new MutationObserver(enhanceExAlumniPage);
   const start = () => {
     observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("popstate", enhanceExAlumniPage);
+    window.addEventListener("pushstate", enhanceExAlumniPage as EventListener);
     enhanceExAlumniPage();
   };
 
