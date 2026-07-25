@@ -11,6 +11,7 @@ import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
 import { installAdminReadResilience } from './adminReadResilience';
+import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
 import { installCheckoutExtrasEnhancements } from './checkoutExtrasEnhancements';
 import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhancements';
@@ -64,6 +65,7 @@ const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute || isGuestAppr
 
 if (!isStandaloneRoute) {
   installAdminReadResilience();
+  installAdminTicketLotsRouteSync();
   installNeutralCmsDefaults();
   installMobileEnhancements();
   installMobileHeroRefinements();
