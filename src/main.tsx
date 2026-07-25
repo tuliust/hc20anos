@@ -5,6 +5,7 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { GuestApprovalPage } from './app/GuestApprovalPage';
+import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
 import { OperationsPage } from './app/OperationsPage';
 import { OperationsReportingPanel } from './app/OperationsReportingPanel';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
@@ -105,6 +106,7 @@ createRoot(rootElement).render(
       <App />
       <AdminCmsPanelsMount />
       <AdminTicketLotsMount />
+      <HomeHeroUserStateMount />
       <PublicCmsStrictGuard />
       <PublicTicketsCatalogMount />
     </>}
