@@ -107,21 +107,21 @@ export function HomeFaqSection({
   }
 
   return (
-    <section className="home-section home-faq-section" data-home-faq>
+    <section className="home-section home-faq-section bg-[#e5e7e4] text-[#0d1a0f]" data-home-faq>
       <div className="mx-auto max-w-6xl px-4">
-        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-[#c9a84c]">{eyebrow}</p>
-        <h2 className="mb-8 font-['Playfair_Display'] text-4xl font-bold text-[#f0ebe0] md:text-5xl">{title}</h2>
+        <p className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#515d55]">{eyebrow}</p>
+        <h2 className="mb-8 font-['Playfair_Display'] text-4xl font-bold text-[#0d1a0f] md:text-5xl">{title}</h2>
 
         <label className="relative mb-7 block">
           <span className="sr-only">{searchPlaceholder}</span>
-          <Search aria-hidden="true" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+          <Search aria-hidden="true" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5c6a61]" />
           <input
             type="search"
             aria-label={searchPlaceholder || title}
             value={search}
             onChange={event => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full border border-[#2d6a4f]/35 bg-[#141f14] py-4 pl-12 pr-4 text-[#f0ebe0] outline-none transition placeholder:text-[#7a9a7a] focus-visible:border-[#c9a84c] focus-visible:ring-2 focus-visible:ring-[#c9a84c]/35"
+            className="w-full border border-[#65736a]/35 bg-[#f6f5f0] py-4 pl-12 pr-4 text-[#0d1a0f] outline-none transition placeholder:text-[#65736a] focus-visible:border-[#2d6a4f] focus-visible:ring-2 focus-visible:ring-[#2d6a4f]/25"
           />
         </label>
 
@@ -136,7 +136,7 @@ export function HomeFaqSection({
                 aria-pressed={active}
                 disabled={!hasItems}
                 onClick={() => selectCategory(category.id)}
-                className={`min-w-0 flex items-center gap-2 border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8]"}`}
+                className={`min-w-0 flex items-center gap-2 border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d6a4f] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#65736a]/35 bg-[#f6f5f0] text-[#34443a] hover:border-[#2d6a4f]/55"}`}
               >
                 <span className="shrink-0"><CategoryIcon category={category as FaqCategoryWithIcon} size={18} /></span>
                 <span className="min-w-0 text-[10px] font-mono font-bold uppercase leading-snug tracking-wide break-words">{category.label}</span>
@@ -157,7 +157,7 @@ export function HomeFaqSection({
                   aria-pressed={active}
                   disabled={!hasItems}
                   onClick={() => selectCategory(category.id)}
-                  className={`flex aspect-square min-h-[112px] flex-col items-center justify-center gap-3 border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#2d6a4f]/35 bg-[#141f14] text-[#a8b9a8] hover:border-[#c9a84c]/70 hover:text-[#f0ebe0]"}`}
+                  className={`flex aspect-square min-h-[112px] flex-col items-center justify-center gap-3 border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d6a4f] disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-[#c9a84c] bg-[#c9a84c] text-[#0d1a0f]" : "border-[#65736a]/35 bg-[#f6f5f0] text-[#34443a] hover:border-[#2d6a4f]/60 hover:bg-[#eef0ec]"}`}
                 >
                   <CategoryIcon category={category as FaqCategoryWithIcon} />
                   <span className="text-[10px] font-mono font-bold uppercase leading-snug tracking-wide">{category.label}</span>
@@ -169,25 +169,25 @@ export function HomeFaqSection({
           <div className="min-w-0">
             {!isSearching && selectedCategory && (
               <div className="mb-4">
-                <div className="flex items-center gap-3 text-[#c9a84c] lg:hidden">
+                <div className="flex items-center gap-3 text-[#2d6a4f] lg:hidden">
                   <CategoryIcon category={selectedCategory as FaqCategoryWithIcon} size={24} />
-                  <h3 className="font-['Playfair_Display'] text-2xl font-bold text-[#f0ebe0]">{selectedCategory.label}</h3>
+                  <h3 className="font-['Playfair_Display'] text-2xl font-bold text-[#0d1a0f]">{selectedCategory.label}</h3>
                 </div>
                 {selectedCategory.description && (
-                  <p className="mt-2 text-sm leading-relaxed text-[#7a9a7a]">{selectedCategory.description}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#536158]">{selectedCategory.description}</p>
                 )}
               </div>
             )}
 
             {isSearching && (
-              <p className="mb-4 text-sm text-[#a8b9a8]" role="status">
-                Resultados para <strong className="text-[#f0ebe0]">“{search.trim()}”</strong>
+              <p className="mb-4 text-sm text-[#536158]" role="status">
+                Resultados para <strong className="text-[#0d1a0f]">“{search.trim()}”</strong>
               </p>
             )}
 
             {groups.length === 0 ? (
-              <div className="border border-[#2d6a4f]/25 bg-[#141f14] p-8 text-center" role="status">
-                <p className="text-sm text-[#a8b9a8]">{emptyLabel}</p>
+              <div className="border border-[#65736a]/30 bg-[#f6f5f0] p-8 text-center" role="status">
+                <p className="text-sm text-[#536158]">{emptyLabel}</p>
               </div>
             ) : (
               <div className="space-y-8">
@@ -195,8 +195,8 @@ export function HomeFaqSection({
                   <div key={group.category.id}>
                     {(isSearching || groups.length > 1) && group.category.label && (
                       <div className="mb-3 flex items-center gap-3">
-                        <span className="text-[#c9a84c]"><CategoryIcon category={group.category as FaqCategoryWithIcon} size={22} /></span>
-                        <h3 className="font-['Playfair_Display'] text-xl font-bold text-[#f0ebe0]">{group.category.label}</h3>
+                        <span className="text-[#2d6a4f]"><CategoryIcon category={group.category as FaqCategoryWithIcon} size={22} /></span>
+                        <h3 className="font-['Playfair_Display'] text-xl font-bold text-[#0d1a0f]">{group.category.label}</h3>
                       </div>
                     )}
                     <div className="flex flex-col gap-2">
@@ -206,21 +206,21 @@ export function HomeFaqSection({
                         const panelId = `faq-answer-${safeId}`;
                         const buttonId = `faq-question-${safeId}`;
                         return (
-                          <div key={item.id} className="border border-[#2d6a4f]/25 bg-[#141f14]">
+                          <div key={item.id} className="border border-[#65736a]/30 bg-[#f6f5f0] shadow-[0_1px_0_rgba(13,26,15,0.03)]">
                             <button
                               type="button"
                               id={buttonId}
                               aria-expanded={isOpen}
                               aria-controls={panelId}
                               onClick={() => toggleItem(item.id)}
-                              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left outline-none transition hover:bg-[#182718] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c9a84c] md:px-6 md:py-5"
+                              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left outline-none transition hover:bg-[#ecefe9] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2d6a4f] md:px-6 md:py-5"
                             >
-                              <span className="text-sm font-semibold text-[#f0ebe0]">{item.question}</span>
-                              <ChevronDown aria-hidden="true" size={17} className={`shrink-0 text-[#c9a84c] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                              <span className="text-sm font-semibold text-[#17251a]">{item.question}</span>
+                              <ChevronDown aria-hidden="true" size={17} className={`shrink-0 text-[#7f681f] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                             </button>
                             {isOpen && (
-                              <div id={panelId} aria-labelledby={buttonId} className="border-t border-[#2d6a4f]/20 px-5 pb-5 md:px-6" role="region">
-                                <p className="whitespace-pre-line pt-4 text-sm leading-relaxed text-[#a8b9a8]">{item.answer}</p>
+                              <div id={panelId} aria-labelledby={buttonId} className="border-t border-[#65736a]/20 px-5 pb-5 md:px-6" role="region">
+                                <p className="whitespace-pre-line pt-4 text-sm leading-relaxed text-[#4d5b52]">{item.answer}</p>
                               </div>
                             )}
                           </div>
