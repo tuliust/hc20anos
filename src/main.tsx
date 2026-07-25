@@ -11,6 +11,8 @@ import { OperationsReportingPanel } from './app/OperationsReportingPanel';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
+import { installAdminOrdersDisplayEnhancements } from './adminOrdersDisplayEnhancements';
+import { installAdminParticipantMaintenance } from './adminParticipantMaintenance';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
@@ -75,6 +77,8 @@ if (!isStandaloneRoute) {
   installHomeMobileDomRefinements();
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
+  installAdminOrdersDisplayEnhancements();
+  installAdminParticipantMaintenance();
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
   installCheckoutSelectionEnhancements();
