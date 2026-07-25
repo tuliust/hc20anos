@@ -26,6 +26,7 @@ import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
 import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
+import { installHomeLandingEnhancements } from './homeLandingEnhancements';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
@@ -75,6 +76,7 @@ if (!isStandaloneRoute) {
   installMobileHeroRefinements();
   installMobileNavigationAndDirectoryEnhancements();
   installHomeMobileDomRefinements();
+  installHomeLandingEnhancements();
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
   installAdminOrdersRouteRemoval();
