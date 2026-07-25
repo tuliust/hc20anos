@@ -80,7 +80,7 @@ begin
     status, decided_at, decided_by_user_id
   ) values (
     v_event_id, v_user_id, 'Convidado Aprovado Teste', v_guest_email,
-    '5599999999999', 'Amigo da turma', v_sponsor_person_id, null,
+    '5599999999999', 'Amigo da turma', v_sponsor_person_id, v_user_id,
     'approved', now(), v_user_id
   ) returning id into v_approval_id;
 
