@@ -76,27 +76,21 @@ function ensureYearOptions(modal: HTMLElement) {
   if (!select) return;
 
   const expectedYears = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, index) => String(START_YEAR + index));
-  const existingYears = Array.from(select.options).map(option => option.value);
-  const desiredYears = Array.from(new Set([...expectedYears, ...existingYears]))
-    .filter(value => /^\d{4}$/.test(value))
-    .sort((a, b) => Number(a) - Number(b));
+  const existingYears = new Set(Array.from(select.options).map(option => option.value));
 
-  if (existingYears.join(",") === desiredYears.join(",") && select.hasAttribute(YEARS_FIXED_ATTRIBUTE)) return;
+  expectedYears.forEach(value => {
+    if (existingYears.has(value)) return;
 
-  const currentValue = select.value;
-  const labelsByValue = new Map(Array.from(select.options).map(option => [option.value, option.textContent || option.value]));
-  const fragment = document.createDocumentFragment();
-
-  desiredYears.forEach(value => {
     const option = document.createElement("option");
     option.value = value;
-    option.textContent = labelsByValue.get(value) ?? value;
-    fragment.appendChild(option);
+    option.textContent = value;
+    const before = Array.from(select.options).find(item => Number(item.value) > Number(value)) ?? null;
+    select.insertBefore(option, before);
+    existingYears.add(value);
   });
 
-  select.replaceChildren(fragment);
-  if (desiredYears.includes(currentValue)) select.value = currentValue;
-  select.setAttribute(YEARS_FIXED_ATTRIBUTE, "true");
+  const complete = expectedYears.every(value => existingYears.has(value));
+  if (complete) select.setAttribute(YEARS_FIXED_ATTRIBUTE, "true");
 }
 
 function fixConsentControl(modal: HTMLElement) {
