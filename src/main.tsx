@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
+import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { GuestApprovalPage } from './app/GuestApprovalPage';
 import { OperationsPage } from './app/OperationsPage';
@@ -99,6 +100,7 @@ createRoot(rootElement).render(
     {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
       <App />
       <AdminCmsPanelsMount />
+      <AdminTicketLotsMount />
       <PublicCmsStrictGuard />
       <PublicTicketsCatalogMount />
     </>}
