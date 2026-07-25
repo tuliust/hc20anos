@@ -46,8 +46,15 @@ function restoreRows(): void {
       delete row.dataset.hcOrderFiltered;
     });
 
-  document.querySelectorAll<HTMLElement>("[data-hc-orders-summary]")
+  document.querySelectorAll<HTMLElement>("[data-hc-orders-summary],[data-hc-orders-empty-confirmed]")
     .forEach(node => node.remove());
+
+  document.querySelectorAll<HTMLTableElement>("table")
+    .forEach(table => {
+      if (table.parentElement?.style.display === "none") {
+        table.parentElement.style.display = "";
+      }
+    });
 }
 
 function enhanceOrdersPage(): void {
@@ -89,27 +96,32 @@ function enhanceOrdersPage(): void {
     section.insertBefore(summary, tableWrapper);
   }
 
-  summary.replaceChildren();
+  const signature = `${approvedCount}:${pendingCount}:${showPendingOrders ? "all" : "approved"}`;
 
-  const text = document.createElement("div");
-  text.innerHTML = `
-    <p class="text-[#f0ebe0] text-sm font-semibold">Vendas confirmadas: ${approvedCount}</p>
-    <p class="text-[#7a9a7a] text-xs mt-1">${pendingCount} pedido(s) pendente(s) ou tentativa(s) de checkout não são contabilizados como venda.</p>
-  `;
+  if (summary.dataset.hcOrdersSignature !== signature) {
+    summary.dataset.hcOrdersSignature = signature;
+    summary.replaceChildren();
 
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.className = "border border-[#2d6a4f]/40 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[#74c69d] hover:bg-[#2d6a4f]/10 transition-colors";
-  toggle.textContent = showPendingOrders
-    ? "Ocultar pendentes"
-    : `Exibir pendentes (${pendingCount})`;
-  toggle.disabled = pendingCount === 0;
-  toggle.addEventListener("click", () => {
-    showPendingOrders = !showPendingOrders;
-    enhanceOrdersPage();
-  });
+    const text = document.createElement("div");
+    text.innerHTML = `
+      <p class="text-[#f0ebe0] text-sm font-semibold">Vendas confirmadas: ${approvedCount}</p>
+      <p class="text-[#7a9a7a] text-xs mt-1">${pendingCount} pedido(s) pendente(s) ou tentativa(s) de checkout não são contabilizados como venda.</p>
+    `;
 
-  summary.append(text, toggle);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "border border-[#2d6a4f]/40 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[#74c69d] hover:bg-[#2d6a4f]/10 transition-colors disabled:opacity-40";
+    toggle.textContent = showPendingOrders
+      ? "Ocultar pendentes"
+      : `Exibir pendentes (${pendingCount})`;
+    toggle.disabled = pendingCount === 0;
+    toggle.addEventListener("click", () => {
+      showPendingOrders = !showPendingOrders;
+      enhanceOrdersPage();
+    });
+
+    summary.append(text, toggle);
+  }
 
   let empty = section.querySelector<HTMLElement>("[data-hc-orders-empty-confirmed]");
 
