@@ -24,6 +24,7 @@ import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
 import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
+import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
@@ -71,6 +72,7 @@ if (!isStandaloneRoute) {
   installMobileHeroRefinements();
   installMobileNavigationAndDirectoryEnhancements();
   installHomeMobileDomRefinements();
+  installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
