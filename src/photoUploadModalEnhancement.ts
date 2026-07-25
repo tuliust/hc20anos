@@ -2,8 +2,10 @@ import { getPeople, MOCK_PEOPLE } from "./lib/services";
 
 const CONSENT_FIXED_ATTRIBUTE = "data-photo-consent-fixed";
 const YEARS_FIXED_ATTRIBUTE = "data-photo-years-fixed";
+const SUCCESS_FIXED_ATTRIBUTE = "data-photo-success-fixed";
 const START_YEAR = 2000;
 const END_YEAR = 2007;
+const UPLOAD_EVENT = "hc-photo-uploaded";
 
 let peopleHydration: Promise<void> | null = null;
 let scheduled = false;
@@ -115,6 +117,35 @@ function fixConsentControl(modal: HTMLElement) {
   if (privacyButton) privacyButton.type = "button";
 }
 
+function enhanceSuccessState(modal: HTMLElement) {
+  const successTitle = Array.from(modal.querySelectorAll<HTMLElement>("h1, h2, h3, p"))
+    .find(element => normalizeText(element.textContent) === "foto enviada!");
+  if (!successTitle) return;
+
+  const successMessage = Array.from(modal.querySelectorAll<HTMLParagraphElement>("p"))
+    .find(element => normalizeText(element.textContent).startsWith("sua foto foi enviada para moderação"));
+  if (successMessage) {
+    successMessage.textContent = "Sucesso! Sua foto já está na página";
+    successMessage.classList.remove("mb-6");
+    successMessage.classList.add("mb-2");
+  }
+
+  const statusLabel = Array.from(modal.querySelectorAll<HTMLParagraphElement>("p"))
+    .find(element => normalizeText(element.textContent) === "status");
+  const statusContainer = statusLabel?.parentElement;
+  if (statusContainer) statusContainer.style.setProperty("display", "none", "important");
+
+  Array.from(modal.querySelectorAll<HTMLButtonElement>("button"))
+    .filter(button => normalizeText(button.textContent) === "fechar")
+    .forEach(button => button.style.setProperty("display", "none", "important"));
+
+  if (!modal.hasAttribute(SUCCESS_FIXED_ATTRIBUTE)) {
+    modal.setAttribute(SUCCESS_FIXED_ATTRIBUTE, "true");
+    window.dispatchEvent(new CustomEvent(UPLOAD_EVENT));
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent(UPLOAD_EVENT)), 500);
+  }
+}
+
 function enhancePhotoUploadModal() {
   const submitButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
     .filter(button => {
@@ -139,6 +170,7 @@ function enhancePhotoUploadModal() {
 
   ensureYearOptions(modal);
   fixConsentControl(modal);
+  enhanceSuccessState(modal);
   void hydrateRealPeople();
 }
 
