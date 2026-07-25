@@ -44,6 +44,7 @@ import { installCuriositiesPollMobileEnhancements } from './curiositiesPollMobil
 import { installTicketsPageEnhancements } from './ticketsPageEnhancements';
 
 import './styles.css';
+import './homeEventInfoDark.css';
 import './mobile.css';
 import './mobile-a11y.css';
 import './mobileHeroRefinements.css';
