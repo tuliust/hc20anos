@@ -19,8 +19,6 @@ import { installAdminReadResilience } from './adminReadResilience';
 import { installAdminReportsEnhancements } from './adminReportsEnhancements';
 import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
-import { installCheckoutExtrasEnhancements } from './checkoutExtrasEnhancements';
-import { installCheckoutSelectionEnhancements } from './checkoutSelectionEnhancements';
 import { installClaimProfileVisualEnhancements } from './claimProfileVisualEnhancements';
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
@@ -66,7 +64,6 @@ import './curiositiesPollMobileEnhancements.css';
 import './mobileNavigationAndDirectoryEnhancements.css';
 import './postEventPageRefinements.css';
 import './footerLogoEnhancements.css';
-import './checkoutExtrasEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
@@ -95,8 +92,6 @@ if (!isStandaloneRoute) {
   installAdminParticipantMaintenance();
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
-  installCheckoutSelectionEnhancements();
-  installCheckoutExtrasEnhancements();
   installClaimProfileVisualEnhancements();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
