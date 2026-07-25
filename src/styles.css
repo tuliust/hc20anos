@@ -48,7 +48,7 @@ canvas {
 
 /* A FAQ usa um plano próprio, distinto da área de ex-alunos e do rodapé. */
 .home-faq-section {
-  background: #122218;
+  background: #e5e7e4;
   padding-top: clamp(2.5rem, 4vw, 4rem);
 }
 
