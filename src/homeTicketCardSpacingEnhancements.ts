@@ -164,8 +164,8 @@ function injectStyles(): void {
       line-height: 1.1;
     }
 
-    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > button {
-      margin-top: 1rem !important;
+    [data-public-ticket-catalog="true"] article[data-ticket-product-code] > button {
+      margin-top: 1.75rem !important;
     }
   `;
 
