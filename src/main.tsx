@@ -35,6 +35,7 @@ import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnha
 import { installHomeLandingEnhancements } from './homeLandingEnhancements';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
+import { installHomeTicketCardSpacingEnhancements } from './homeTicketCardSpacingEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
@@ -117,6 +118,7 @@ if (!isStandaloneRoute) {
   installCuriositiesPollMobileEnhancements();
   installTicketsPageEnhancements();
   installTicketsCatalogLayoutEnhancements();
+  installHomeTicketCardSpacingEnhancements();
 }
 
 const rootElement = document.getElementById('root');
