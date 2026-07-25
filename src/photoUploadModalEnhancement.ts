@@ -1,19 +1,35 @@
+import { getPeople, MOCK_PEOPLE } from "./lib/services";
+
+const CONSENT_FIXED_ATTRIBUTE = "data-photo-consent-fixed";
+const YEARS_FIXED_ATTRIBUTE = "data-photo-years-fixed";
+const START_YEAR = 2000;
+const END_YEAR = 2007;
+
+let peopleHydration: Promise<void> | null = null;
+let scheduled = false;
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
 }
 
-function findPhotoUploadModal(button: HTMLButtonElement): HTMLElement | null {
-  let current: HTMLElement | null = button.parentElement;
+function findPhotoUploadModal(button?: HTMLButtonElement): HTMLElement | null {
+  if (button) {
+    let current: HTMLElement | null = button.parentElement;
 
-  while (current && current !== document.body) {
-    const hasUploadInput = Boolean(current.querySelector('input[type="file"]'));
-    const hasExpectedTitle = normalizeText(current.textContent).includes("enviar foto antiga");
+    while (current && current !== document.body) {
+      const hasUploadInput = Boolean(current.querySelector('input[type="file"]'));
+      const hasExpectedTitle = normalizeText(current.textContent).includes("enviar foto antiga");
 
-    if (hasUploadInput && hasExpectedTitle) return current;
-    current = current.parentElement;
+      if (hasUploadInput && hasExpectedTitle) return current;
+      current = current.parentElement;
+    }
   }
 
-  return null;
+  const title = Array.from(document.querySelectorAll<HTMLElement>("h1, h2, h3, p"))
+    .find(element => normalizeText(element.textContent) === "enviar foto antiga");
+  return title?.closest<HTMLElement>("[data-modal-root]")
+    ?? title?.closest<HTMLElement>(".fixed")
+    ?? null;
 }
 
 function replaceButtonText(button: HTMLButtonElement) {
@@ -30,6 +46,81 @@ function replaceButtonText(button: HTMLButtonElement) {
   }
 }
 
+function hydrateRealPeople() {
+  if (peopleHydration) return peopleHydration;
+
+  peopleHydration = getPeople()
+    .then(people => {
+      const visiblePeople = people
+        .filter(person => person.is_visible !== false)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR"));
+
+      if (visiblePeople.length > 0) {
+        // O modal legado consulta este array diretamente. Mantemos a mesma referência
+        // e substituímos o conteúdo pelos registros reais do Supabase.
+        MOCK_PEOPLE.splice(0, MOCK_PEOPLE.length, ...visiblePeople);
+      }
+    })
+    .catch(error => {
+      peopleHydration = null;
+      console.warn("[Foto] Não foi possível carregar a base real para marcações.", error);
+    });
+
+  return peopleHydration;
+}
+
+function ensureYearOptions(modal: HTMLElement) {
+  const yearLabel = Array.from(modal.querySelectorAll<HTMLElement>("p, label"))
+    .find(element => normalizeText(element.textContent) === "ano aproximado");
+  const select = yearLabel?.parentElement?.querySelector<HTMLSelectElement>("select");
+  if (!select) return;
+
+  const expectedYears = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, index) => String(START_YEAR + index));
+  const existingYears = Array.from(select.options).map(option => option.value);
+  const desiredYears = Array.from(new Set([...expectedYears, ...existingYears]))
+    .filter(value => /^\d{4}$/.test(value))
+    .sort((a, b) => Number(a) - Number(b));
+
+  if (existingYears.join(",") === desiredYears.join(",") && select.hasAttribute(YEARS_FIXED_ATTRIBUTE)) return;
+
+  const currentValue = select.value;
+  const labelsByValue = new Map(Array.from(select.options).map(option => [option.value, option.textContent || option.value]));
+  const fragment = document.createDocumentFragment();
+
+  desiredYears.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = labelsByValue.get(value) ?? value;
+    fragment.appendChild(option);
+  });
+
+  select.replaceChildren(fragment);
+  if (desiredYears.includes(currentValue)) select.value = currentValue;
+  select.setAttribute(YEARS_FIXED_ATTRIBUTE, "true");
+}
+
+function fixConsentControl(modal: HTMLElement) {
+  const consentText = Array.from(modal.querySelectorAll<HTMLParagraphElement>("p"))
+    .find(element => normalizeText(element.textContent).startsWith(
+      "confirmo que tenho o direito de compartilhar esta imagem",
+    ));
+  const consentLabel = consentText?.closest<HTMLLabelElement>("label");
+  if (!consentLabel || consentLabel.hasAttribute(CONSENT_FIXED_ATTRIBUTE)) return;
+
+  // O botão da Política de Privacidade era o primeiro controle rotulável dentro do
+  // <label>. Por isso, o clique no quadrado do aceite podia acionar esse botão.
+  // Cancelamos apenas o comportamento padrão do label, preservando o onClick do React.
+  consentLabel.addEventListener("click", event => {
+    const target = event.target;
+    if (target instanceof Element && target.closest("button")) return;
+    event.preventDefault();
+  });
+  consentLabel.setAttribute(CONSENT_FIXED_ATTRIBUTE, "true");
+
+  const privacyButton = consentText?.querySelector<HTMLButtonElement>("button");
+  if (privacyButton) privacyButton.type = "button";
+}
+
 function enhancePhotoUploadModal() {
   const submitButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
     .filter(button => {
@@ -37,23 +128,25 @@ function enhancePhotoUploadModal() {
       return label === "enviar para moderação" || button.hasAttribute("data-photo-upload-label-adjusted");
     });
 
+  const modal = findPhotoUploadModal(submitButtons[0]);
+  if (!modal) return;
+
   submitButtons.forEach(button => {
-    const modal = findPhotoUploadModal(button);
-    if (!modal) return;
-
-    replaceButtonText(button);
-
-    const moderationNote = Array.from(modal.querySelectorAll<HTMLParagraphElement>("p"))
-      .find(element => normalizeText(element.textContent).startsWith(
-        "todas as fotos passam por moderação antes de aparecerem no mural",
-      ));
-
-    const noteContainer = moderationNote?.parentElement;
-    if (noteContainer) noteContainer.style.setProperty("display", "none", "important");
+    if (modal.contains(button)) replaceButtonText(button);
   });
-}
 
-let scheduled = false;
+  const moderationNote = Array.from(modal.querySelectorAll<HTMLParagraphElement>("p"))
+    .find(element => normalizeText(element.textContent).startsWith(
+      "todas as fotos passam por moderação antes de aparecerem no mural",
+    ));
+
+  const noteContainer = moderationNote?.parentElement;
+  if (noteContainer) noteContainer.style.setProperty("display", "none", "important");
+
+  ensureYearOptions(modal);
+  fixConsentControl(modal);
+  void hydrateRealPeople();
+}
 
 function scheduleEnhancement() {
   if (scheduled) return;
@@ -68,6 +161,8 @@ function scheduleEnhancement() {
 export function installPhotoUploadModalEnhancement() {
   if (typeof window === "undefined" || typeof MutationObserver === "undefined") return;
 
+  void hydrateRealPeople();
+
   const observer = new MutationObserver(scheduleEnhancement);
   const start = () => {
     observer.observe(document.body, {
@@ -76,6 +171,7 @@ export function installPhotoUploadModalEnhancement() {
       characterData: true,
     });
     document.addEventListener("click", scheduleEnhancement, true);
+    window.addEventListener("focus", () => void hydrateRealPeople());
     scheduleEnhancement();
   };
 
