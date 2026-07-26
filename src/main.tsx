@@ -32,6 +32,7 @@ import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
 import { installHistoryPersonFilterEnhancement } from './historyPersonFilterEnhancement';
 import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnhancement';
 import { installHomeLandingEnhancements } from './homeLandingEnhancements';
+import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
 import { installHomeTicketCardSpacingEnhancements } from './homeTicketCardSpacingEnhancements';
@@ -87,6 +88,7 @@ if (!isStandaloneRoute) {
   installMobileNavigationAndDirectoryEnhancements();
   installHomeMobileDomRefinements();
   installHomeLandingEnhancements();
+  installHomeMemoryFormattingEnhancement();
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
   installAdminReportsEnhancements();
