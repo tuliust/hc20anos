@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 8f230052a2ab712ea87b3e07f207641a835d91cc
+last_verified_commit: 8e281938692570941f6862a412d25de091e80aa6
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,9 +17,9 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 21 |
-| Declarações de import ou augmentação | 21 |
-| Símbolos importados distintos | 49 |
+| Arquivos consumidores | 20 |
+| Declarações de import ou augmentação | 20 |
+| Símbolos importados distintos | 48 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
 
@@ -33,7 +33,6 @@ source_files:
 | enhancement | 2 |
 | home | 2 |
 | augmentação de módulo | 1 |
-| cliente Supabase | 1 |
 | outro runtime | 1 |
 
 ## Arquivos consumidores
@@ -60,13 +59,12 @@ source_files:
 | `src/lib/faqPresentation.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
 | `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType`, `type` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `type`, `UpsertProfile` |
-| `src/lib/supabase.ts` | cliente Supabase | import type | `./database.types` | `Database`, `type` |
 
 ## Símbolos por alcance
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `type` | 20 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
+| `type` | 19 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
 | `DbFaqCategory` | 12 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
 | `DbFaqItem` | 10 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
 | `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
@@ -101,7 +99,6 @@ source_files:
 | `SchoolQuestionnaireOptionStatRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketWithDetails` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `Database` | 1 | `src/lib/supabase.ts` |
 | `DbEventPageContent` | 1 | `src/lib/services.ts` |
 | `DbHomePageContent` | 1 | `src/lib/services.ts` |
 | `DbPhotoLike` | 1 | `src/lib/services.ts` |
