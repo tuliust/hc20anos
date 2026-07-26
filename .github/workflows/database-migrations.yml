@@ -1,3 +1,4 @@
+# Diagnostic validation trigger. Remove before closing this PR.
 name: Database migration safety
 
 on:
