@@ -2,17 +2,20 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 897b45631650faf30c7a01ceeb1b35fe18f3d6f1
+last_verified_commit: 3ab8f8bc73479b9c3fba2a1895cfe643642d8e7f
 source_files:
   - README.md
   - docs/
+  - scripts/generate-static-contracts.mjs
+  - .github/workflows/documentation.yml
+  - .github/workflows/static-contracts.yml
 ---
 
 # Documentação canônica — HC 20 Anos
 
 Este é o portal de referência técnica, funcional e operacional do projeto **HC 20 Anos**.
 
-Documentos `canonical` descrevem regras humanas vigentes conferidas contra o repositório. Inventários e runbooks `draft` são referências atuais, mas ainda aguardam automação ou evidência operacional. Registros `historical` e `deprecated` não prevalecem sobre as fontes definidas em [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md).
+Documentos `canonical` descrevem regras humanas vigentes conferidas contra o repositório. Arquivos `generated` são produzidos automaticamente. Inventários e runbooks `draft` são referências atuais, mas ainda aguardam automação completa ou evidência operacional. Registros `historical` e `deprecated` não prevalecem sobre as fontes definidas em [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md).
 
 ## Comece por aqui
 
@@ -22,11 +25,11 @@ Documentos `canonical` descrevem regras humanas vigentes conferidas contra o rep
 4. [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md) — precedência entre banco, código, CMS e documentos.
 5. [`00-visao-geral/glossario.md`](./00-visao-geral/glossario.md) — vocabulário funcional e técnico.
 6. [`10-dominios/README.md`](./10-dominios/README.md) — índice das regras de negócio.
-7. [`30-contratos/README.md`](./30-contratos/README.md) — inventários atuais e geração automática planejada.
+7. [`30-contratos/README.md`](./30-contratos/README.md) — contratos, inventários e geração automática.
 8. [`40-runbooks/README.md`](./40-runbooks/README.md) — procedimentos operacionais.
 9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — classificação e manutenção.
 10. [`50-governanca/processo-de-atualizacao.md`](./50-governanca/processo-de-atualizacao.md) — fluxo de atualização e validação.
-11. [`archive/README.md`](./archive/README.md) — registros históricos.
+11. [`archive/README.md`](./archive/README.md) — classificação consolidada dos registros históricos.
 
 ## Domínios documentados
 
@@ -45,17 +48,49 @@ Documentos `canonical` descrevem regras humanas vigentes conferidas contra o rep
 | Autenticação e roles | [`10-dominios/autenticacao-autorizacao-e-roles.md`](./10-dominios/autenticacao-autorizacao-e-roles.md) | `canonical` |
 | Mini bio por IA | [`10-dominios/mini-bio-por-ia.md`](./10-dominios/mini-bio-por-ia.md) | `canonical` |
 
-## Inventários técnicos atuais
+## Contratos técnicos
+
+### Inventários humanos
 
 | Contrato | Documento | Estado |
 |---|---|---|
 | Rotas | [`30-contratos/rotas.md`](./30-contratos/rotas.md) | `draft`; aguarda extração pós-transform |
-| APIs e Functions | [`30-contratos/apis-e-functions.md`](./30-contratos/apis-e-functions.md) | `draft`; aguarda gerador |
-| Variáveis | [`30-contratos/variaveis-de-ambiente.md`](./30-contratos/variaveis-de-ambiente.md) | `draft`; aguarda análise estática automatizada |
-| Erros | [`30-contratos/codigos-de-erro.md`](./30-contratos/codigos-de-erro.md) | `draft`; faltam RPCs SQL |
+| APIs e Functions | [`30-contratos/apis-e-functions.md`](./30-contratos/apis-e-functions.md) | `draft`; será substituído por saídas geradas |
+| Variáveis | [`30-contratos/variaveis-de-ambiente.md`](./30-contratos/variaveis-de-ambiente.md) | `draft`; será substituído por saída gerada |
+| Erros | [`30-contratos/codigos-de-erro.md`](./30-contratos/codigos-de-erro.md) | `draft`; será complementado por SQL e providers |
 | Permissões | [`30-contratos/permissoes.md`](./30-contratos/permissoes.md) | `draft`; aguarda RLS e grants gerados |
 
-Ainda precisam ser gerados automaticamente: schema final, RPCs, RLS, grants, tipos Supabase, rotas efetivas, APIs, Edge Functions, variáveis, erros e ERD.
+### Geração estática implementada
+
+O gerador [`scripts/generate-static-contracts.mjs`](../scripts/generate-static-contracts.mjs) produz:
+
+- `APIs.generated.md`;
+- `edge-functions.generated.md`;
+- `variaveis-de-ambiente.generated.md`;
+- `codigos-de-erro.generated.md`.
+
+Comandos:
+
+```bash
+npm run docs:generate-contracts
+npm run docs:check-contracts
+```
+
+O workflow `Static contract generation` executa o gerador, audita a saída e publica os arquivos como artefato, sem fazer commit automático em `main`. Consulte [`30-contratos/geracao-estatica.md`](./30-contratos/geracao-estatica.md).
+
+### Contratos ainda dependentes do banco
+
+Ainda precisam ser gerados após replay integral:
+
+- schema final;
+- enums, tabelas, colunas, constraints e índices;
+- views e triggers;
+- RPCs e assinaturas;
+- RLS, grants e revokes;
+- tipos TypeScript do Supabase;
+- ERD.
+
+Rotas efetivas também continuam pendentes porque devem considerar transforms, mounts e runtime compilado.
 
 ## Runbooks disponíveis
 
@@ -73,7 +108,7 @@ Ainda precisam ser gerados automaticamente: schema final, RPCs, RLS, grants, tip
 | [`40-runbooks/resposta-a-incidentes.md`](./40-runbooks/resposta-a-incidentes.md) | `draft` |
 | [`40-runbooks/rollback.md`](./40-runbooks/rollback.md) | `draft` |
 
-A documentação dos procedimentos está concluída. A pendência é executá-los, registrar evidências e promover individualmente os comprovados para `canonical`.
+A redação está concluída. Falta executar, registrar evidências e promover individualmente os procedimentos comprovados para `canonical`.
 
 ## Design
 
@@ -82,27 +117,24 @@ A documentação dos procedimentos está concluída. A pendência é executá-lo
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | `draft` | revisão visual do runtime, acessibilidade e breakpoints |
 | [`DESIGN_TOKENS.md`](./DESIGN_TOKENS.md) | `draft` | comparação com CSS, classes e componentes reais |
 
-## Reconciliação concluída
+## Reconciliação histórica
 
-| Documento anterior | Classificação | Substituição |
-|---|---|---|
-| `ROADMAP.md` | `historical` | Epic e documentação por domínio |
-| `PRODUCT_SCOPE.md` | `deprecated` | produto e domínios |
-| `SUPABASE_SCHEMA.md` | `deprecated` | futuro `banco.generated.md` |
-| `AUTH_AND_ROLES.md` | `deprecated` | autenticação e matriz de permissões |
-| `CHECKIN_FLOW.md` | `deprecated` | domínio de operação e runbook do evento |
-| `PHOTO_MODERATION.md` | `deprecated` | domínios de acervo e memórias |
-| `PHASE2_INTERACTIONS.md` | `historical` | preservado como incremento anterior |
-| `PAYMENTS_MERCADO_PAGO.md` | `deprecated` | checkout e pagamentos |
-| `DEPLOYMENT.md` | `deprecated` | runbooks de deploy, migrations e rollback |
-| `PRODUCTION_QA.md` | `deprecated` | validação de pagamentos e runbooks |
-| `mercado-pago/*` | `historical` | registros de auditoria e implementação |
+A classificação completa está em [`archive/README.md`](./archive/README.md). Entre os documentos reconciliados estão:
+
+- roadmap e escopo inicial;
+- snapshot antigo do Supabase;
+- guias anteriores de autenticação, check-in e moderação;
+- documentação legada do Mercado Pago;
+- deployment e QA anteriores;
+- auditoria e reparo histórico das migrations;
+- execução manual antiga do checkout.
 
 ## Governança implementada
 
 - `npm run audit:docs`;
 - validação de front matter, links, arquivos-fonte e substituições;
 - workflow `Documentation safety` em PRs e pushes para `main`;
+- workflow `Static contract generation`;
 - `CODEOWNERS` para documentação;
 - template de PR com impacto documental;
 - processo de atualização;
@@ -110,24 +142,18 @@ A documentação dos procedimentos está concluída. A pendência é executá-lo
 
 ## Pendências técnicas reais
 
-### Geração automática
+### Baseline estática
 
-- reproduzir banco com todas as migrations;
-- gerar schema, enums, constraints, índices, views e triggers;
-- gerar RPCs e segurança;
-- gerar RLS, grants e revokes;
-- regenerar tipos TypeScript do Supabase;
-- gerar ERD;
-- extrair rotas depois dos transforms;
-- extrair APIs, Functions, variáveis e erros;
-- validar divergência dos arquivos gerados no CI.
+- revisar o primeiro artefato gerado no GitHub Actions;
+- versionar os quatro arquivos `*.generated.md`;
+- ativar `npm run docs:check-contracts` como check bloqueante.
 
-### Governança restante
+### Banco e runtime
 
-- implementar geradores determinísticos;
-- exigir atualização dos contratos gerados no CI;
-- reconstruir ADRs de decisões anteriores apenas quando houver necessidade prática;
-- classificar relatórios auxiliares de migrations ainda sem front matter.
+- reproduzir o banco com todas as migrations;
+- gerar schema, RPCs, RLS, grants, tipos e ERD;
+- gerar rotas depois dos transforms;
+- integrar drift dos contratos ao CI.
 
 ### Operação
 
@@ -143,7 +169,7 @@ A documentação dos procedimentos está concluída. A pendência é executá-lo
 |---|---|
 | `canonical` | referência humana vigente e aprovada |
 | `generated` | derivado automaticamente; não editar manualmente |
-| `draft` | referência em elaboração, sem automação ou evidência completa |
+| `draft` | referência sem automação ou evidência completa |
 | `historical` | registro de fase anterior |
 | `deprecated` | substituído e preservado por rastreabilidade |
 
