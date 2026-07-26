@@ -78,14 +78,15 @@ function parseImports(content) {
     if (!source || !source.includes("database.types")) continue;
 
     const specifier = statement.match(/^import\s+([\s\S]*?)\s+from\s+["']/)?.[1]?.trim() ?? "";
-    const entries = namedEntries(specifier);
+    const wholeImportType = specifier.startsWith("type ");
+    const normalizedSpecifier = specifier.replace(/^type\s+/, "").trim();
+    const entries = namedEntries(normalizedSpecifier);
     const symbols = entries
       .map(item => item.replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim())
       .filter(Boolean);
-    const withoutNamed = specifier.replace(/\{[\s\S]*?\}/, "").trim();
+    const withoutNamed = normalizedSpecifier.replace(/\{[\s\S]*?\}/, "").trim();
     const defaultMatch = withoutNamed.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:,|$)/);
-    const namespaceMatch = specifier.match(/\*\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
-    const wholeImportType = specifier.startsWith("type ");
+    const namespaceMatch = normalizedSpecifier.match(/\*\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
     const namedOnlyType = entries.length > 0 && entries.every(item => item.startsWith("type "));
 
     imports.push({
@@ -93,9 +94,9 @@ function parseImports(content) {
       typeOnly: wholeImportType || namedOnlyType,
       symbols: unique([
         ...symbols,
-        ...(defaultMatch ? [defaultMatch[1].replace(/^type\s+/, "")] : []),
+        ...(defaultMatch ? [defaultMatch[1]] : []),
         ...(namespaceMatch ? [`* as ${namespaceMatch[1]}`] : []),
-      ]),
+      ]).filter(symbol => symbol !== "type"),
     });
   }
 
@@ -241,7 +242,7 @@ async function generateReport() {
     "",
     "## Interpretação para a migração",
     "",
-    "- `src/lib/supabase.ts` deve ser tratado separadamente porque define o cliente e a tipagem estrutural do acesso ao banco.",
+    "- `src/lib/supabase.ts` já foi migrado para a baseline gerada e não aparece entre os consumidores do arquivo manual.",
     "- arquivos em `src/lib/` tendem a combinar queries, adaptadores e tipos de domínio; exigem revisão antes de trocar aliases.",
     "- componentes e páginas devem migrar depois dos services, evitando acoplamento direto ao formato bruto de tabelas.",
     "- módulos de FAQ formam um grupo funcional próprio e podem ser migrados em conjunto.",
@@ -250,15 +251,14 @@ async function generateReport() {
     "",
     "## Ordem recomendada",
     "",
-    "1. cliente Supabase;",
-    "2. services e bibliotecas sem UI;",
-    "3. FAQ;",
-    "4. perfis e conteúdo público;",
-    "5. fotos, memórias e enquetes;",
-    "6. checkout, pedidos e catálogo;",
-    "7. componentes administrativos;",
-    "8. enhancements e augmentações;",
-    "9. limpeza do arquivo manual.",
+    "1. services e bibliotecas sem UI;",
+    "2. FAQ;",
+    "3. perfis e conteúdo público;",
+    "4. fotos, memórias e enquetes;",
+    "5. checkout, pedidos e catálogo;",
+    "6. componentes administrativos;",
+    "7. enhancements e augmentações;",
+    "8. limpeza do arquivo manual.",
     "",
     "## Limitações",
     "",
