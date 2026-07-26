@@ -25,12 +25,14 @@ Se o CSS não for importado, a página carrega desformatada.
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
   - `VITE_DEV_MODE=false`
-- Variável server-side obrigatória para gerar o perfil com IA:
-  - `OPENAI_API_KEY`
+- A geração do perfil com IA aceita uma das configurações server-side abaixo, nesta ordem:
+  1. `OPENAI_API_KEY` para chamada direta à OpenAI;
+  2. `AI_GATEWAY_API_KEY` para chamada pelo Vercel AI Gateway;
+  3. `VERCEL_OIDC_TOKEN`, fornecido automaticamente em deployments Vercel compatíveis com AI Gateway.
 - Variável server-side opcional:
-  - `OPENAI_PROFILE_MODEL` — padrão: `gpt-5-mini`
+  - `OPENAI_PROFILE_MODEL` — padrão: `gpt-5-mini`; pelo AI Gateway o prefixo `openai/` é acrescentado automaticamente quando necessário.
 
-`OPENAI_API_KEY` nunca deve usar o prefixo `VITE_`, pois a chave precisa permanecer restrita às funções server-side da Vercel.
+Credenciais server-side nunca devem usar o prefixo `VITE_`, pois precisam permanecer restritas às funções da Vercel.
 
 ## Nunca versionar
 
