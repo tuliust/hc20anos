@@ -1,5 +1,5 @@
 -- ================================================================
--- Consolidated checkout database validation
+-- Consolidated checkout database validation for the three-ticket model.
 -- Run in Supabase SQL Editor using "Run without RLS".
 -- Creates and removes its own test records.
 -- ================================================================
@@ -15,6 +15,10 @@ truncate table _checkout_e2e_results;
 do $$
 declare
   v_user_id uuid;
+  v_person_id uuid;
+  v_profile_id uuid;
+  v_created_person boolean := false;
+  v_created_profile boolean := false;
   v_key text := gen_random_uuid()::text;
   v_order record;
   v_same_order record;
@@ -36,9 +40,31 @@ begin
     raise exception 'Test requires at least one auth.users row';
   end if;
 
+  select pr.id, pr.person_id
+    into v_profile_id, v_person_id
+  from public.profiles pr
+  where pr.user_id = v_user_id
+  limit 1;
+
+  if v_person_id is null then
+    insert into public.people (
+      full_name, class_year, class_group, profile_status,
+      claimed_by_user_id, claimed_at, is_visible
+    ) values (
+      'Ex-aluno Teste E2E', 2006, 'A', 'claimed',
+      v_user_id, now(), false
+    ) returning id into v_person_id;
+    v_created_person := true;
+
+    insert into public.profiles (person_id, user_id, display_name)
+    values (v_person_id, v_user_id, 'Ex-aluno Teste E2E')
+    returning id into v_profile_id;
+    v_created_profile := true;
+  end if;
+
   begin
-    -- Six participants: alumni, spouse and four children. One drinks package
-    -- and two barbecue packages are assigned to distinct participants.
+    -- Six participants: alumni, spouse and four children, all included
+    -- in the single configured Família price.
     select * into v_order
     from public.create_checkout_order(
       v_user_id,
@@ -48,16 +74,13 @@ begin
       'family_full',
       jsonb_build_array(
         jsonb_build_object('client_key','alumni','participant_type','alumni','full_name','Ex-aluno E2E'),
-        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E'),
+        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
         jsonb_build_object('client_key','child-1','participant_type','child','full_name','Filho 1','birth_date','2016-10-24'),
         jsonb_build_object('client_key','child-2','participant_type','child','full_name','Filho 2','birth_date','2017-10-24'),
         jsonb_build_object('client_key','child-3','participant_type','child','full_name','Filho 3','birth_date','2018-10-24'),
         jsonb_build_object('client_key','child-4','participant_type','child','full_name','Filho 4','birth_date','2019-10-24')
       ),
-      jsonb_build_array(
-        jsonb_build_object('participant_key','alumni','extra_type','drinks','quantity',1),
-        jsonb_build_object('participant_key','spouse','extra_type','barbecue','quantity',2)
-      ),
+      '[]'::jsonb,
       'checkout-e2e-main-' || v_key
     );
 
@@ -76,11 +99,22 @@ begin
     from public.participant_extras pe where pe.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
-      'extras_total_matches_order', v_total_amount_cents::text,
-      ((select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id = v_order_id))::text,
-      case when v_total_amount_cents = (select o.subtotal_amount_cents + v_extra_total from public.orders o where o.id = v_order_id)
-        then 'PASS' else 'FAIL' end
+      'no_checkout_extras', '0', v_extra_total::text,
+      case when v_extra_total = 0 then 'PASS' else 'FAIL' end
     );
+
+    insert into _checkout_e2e_results
+    select
+      'single_family_price',
+      o.subtotal_amount_cents::text,
+      o.total_amount_cents::text,
+      case
+        when o.subtotal_amount_cents = o.total_amount_cents
+         and o.extras_amount_cents = 0 then 'PASS'
+        else 'FAIL'
+      end
+    from public.orders o
+    where o.id = v_order_id;
 
     -- Same buyer + same idempotency key must return the same order.
     select * into v_same_order
@@ -92,7 +126,7 @@ begin
       'family_full',
       jsonb_build_array(
         jsonb_build_object('client_key','alumni','participant_type','alumni','full_name','Ex-aluno E2E'),
-        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E'),
+        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
         jsonb_build_object('client_key','child-1','participant_type','child','full_name','Filho 1','birth_date','2016-10-24'),
         jsonb_build_object('client_key','child-2','participant_type','child','full_name','Filho 2','birth_date','2017-10-24'),
         jsonb_build_object('client_key','child-3','participant_type','child','full_name','Filho 3','birth_date','2018-10-24'),
@@ -170,7 +204,7 @@ begin
       case when v_notification_count = 6 then 'PASS' else 'FAIL' end
     );
 
-    -- Expiration of an unpaid reservation.
+    -- Expiration of an unpaid Individual reservation.
     select * into v_expiring_order
     from public.create_checkout_order(
       v_user_id,
@@ -206,10 +240,15 @@ begin
 
     delete from public.orders
     where id = any(array_remove(array[v_order_id, v_expiring_order_id]::uuid[], null));
+
+    if v_created_profile then delete from public.profiles where id = v_profile_id; end if;
+    if v_created_person then delete from public.people where id = v_person_id; end if;
   exception when others then
     v_error := sqlerrm;
     delete from public.orders
     where id = any(array_remove(array[v_order_id, v_expiring_order_id]::uuid[], null));
+    if v_created_profile then delete from public.profiles where id = v_profile_id; end if;
+    if v_created_person then delete from public.people where id = v_person_id; end if;
     raise exception '%', v_error;
   end;
 end;
