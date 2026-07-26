@@ -2,10 +2,10 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified_commit: 54685a2c10a0034cc821906e2e0d73f0713d50a3
 source_files:
   - src/lib/checkout.ts
-  - src/app/BuyerOrdersSharedPage.tsx
+  - src/app/BuyerOrdersPage.tsx
   - build/buyerOrdersSharedRouteTransform.mjs
   - src/app/App.tsx
   - supabase/functions/checkout-create/index.ts
