@@ -13,6 +13,8 @@
     "audit:docs": "node scripts/audit-docs.mjs",
     "docs:generate-contracts": "node scripts/generate-static-contracts.mjs",
     "docs:check-contracts": "node scripts/generate-static-contracts.mjs --check",
+    "docs:generate-db-contracts": "node scripts/generate-database-contracts.mjs",
+    "docs:check-db-contracts": "node scripts/generate-database-contracts.mjs --check",
     "verify:profile-claim-bundle": "node scripts/verify-profile-claim-bundle.mjs",
     "verify:profile-bio-ai": "node scripts/verify-profile-bio-api.mjs",
     "admin:apply-mercado-pago-ui": "node scripts/apply-admin-mercado-pago-ui-windows.mjs",
