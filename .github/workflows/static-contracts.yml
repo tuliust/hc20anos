@@ -11,7 +11,8 @@ on:
       - "build/**"
       - "scripts/generate-static-contracts.mjs"
       - "scripts/audit-docs.mjs"
-      - "docs/30-contratos/**"
+      - "docs/30-contratos/README.md"
+      - "docs/30-contratos/geracao-estatica.md"
       - "package.json"
       - ".github/workflows/static-contracts.yml"
   pull_request:
@@ -22,13 +23,14 @@ on:
       - "build/**"
       - "scripts/generate-static-contracts.mjs"
       - "scripts/audit-docs.mjs"
-      - "docs/30-contratos/**"
+      - "docs/30-contratos/README.md"
+      - "docs/30-contratos/geracao-estatica.md"
       - "package.json"
       - ".github/workflows/static-contracts.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: static-contracts-${{ github.ref }}
@@ -42,6 +44,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,8 +58,24 @@ jobs:
       - name: Audit generated documentation
         run: npm run audit:docs
 
-      - name: Show generated diff
-        run: git diff -- docs/30-contratos/*.generated.md
+      - name: Require updated contracts in pull requests
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- docs/30-contratos/*.generated.md
+
+      - name: Publish generated contracts to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/30-contratos/*.generated.md; then
+            echo "Contratos estáticos já estão atualizados."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/30-contratos/*.generated.md
+          git commit -m "docs: atualizar contratos estáticos gerados"
+          git push
 
       - name: Upload generated contracts
         uses: actions/upload-artifact@v4
