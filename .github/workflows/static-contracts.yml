@@ -10,7 +10,10 @@ on:
       - "supabase/functions/**"
       - "src/**"
       - "build/**"
+      - "vite.config.ts"
+      - "vercel.json"
       - "scripts/generate-static-contracts.mjs"
+      - "scripts/generate-routes-contract.mjs"
       - "scripts/audit-docs.mjs"
       - "docs/30-contratos/README.md"
       - "docs/30-contratos/geracao-estatica.md"
@@ -22,7 +25,10 @@ on:
       - "supabase/functions/**"
       - "src/**"
       - "build/**"
+      - "vite.config.ts"
+      - "vercel.json"
       - "scripts/generate-static-contracts.mjs"
+      - "scripts/generate-routes-contract.mjs"
       - "scripts/audit-docs.mjs"
       - "docs/30-contratos/README.md"
       - "docs/30-contratos/geracao-estatica.md"
@@ -56,6 +62,9 @@ jobs:
       - name: Generate static contracts
         run: npm run docs:generate-contracts
 
+      - name: Generate route contract
+        run: npm run docs:generate-routes
+
       - name: Audit generated documentation
         run: npm run audit:docs
 
@@ -63,11 +72,18 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- docs/30-contratos/*.generated.md)"
+          files=(
+            docs/30-contratos/APIs.generated.md
+            docs/30-contratos/edge-functions.generated.md
+            docs/30-contratos/variaveis-de-ambiente.generated.md
+            docs/30-contratos/codigos-de-erro.generated.md
+            docs/30-contratos/rotas.generated.md
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${files[@]}")"
           if [ -n "$changes" ]; then
-            echo "Contratos estáticos desatualizados ou ausentes:"
+            echo "Contratos estáticos ou de rotas desatualizados:"
             echo "$changes"
-            git diff -- docs/30-contratos/*.generated.md || true
+            git diff -- "${files[@]}" || true
             exit 1
           fi
 
@@ -75,17 +91,24 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- docs/30-contratos/*.generated.md)"
+          files=(
+            docs/30-contratos/APIs.generated.md
+            docs/30-contratos/edge-functions.generated.md
+            docs/30-contratos/variaveis-de-ambiente.generated.md
+            docs/30-contratos/codigos-de-erro.generated.md
+            docs/30-contratos/rotas.generated.md
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${files[@]}")"
           if [ -z "$changes" ]; then
-            echo "Contratos estáticos já estão atualizados."
+            echo "Contratos estáticos e de rotas já estão atualizados."
             exit 0
           fi
 
           echo "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/30-contratos/*.generated.md
-          git commit -m "docs: atualizar contratos estáticos gerados"
+          git add "${files[@]}"
+          git commit -m "docs: atualizar contratos estáticos e de rotas"
           git push
 
       - name: Upload generated contracts
@@ -97,5 +120,6 @@ jobs:
             docs/30-contratos/edge-functions.generated.md
             docs/30-contratos/variaveis-de-ambiente.generated.md
             docs/30-contratos/codigos-de-erro.generated.md
+            docs/30-contratos/rotas.generated.md
           if-no-files-found: error
           retention-days: 14
