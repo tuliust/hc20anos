@@ -44,13 +44,19 @@ jobs:
           node-version: 22
 
       - name: Generate compatibility report
-        run: npm run docs:generate-type-compatibility
+        id: generate_report
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run docs:generate-type-compatibility 2>&1 | tee type-compatibility.log
 
       - name: Audit generated documentation
+        if: steps.generate_report.outcome == 'success'
         run: npm run audit:docs
 
       - name: Require updated report in pull requests
-        if: github.event_name == 'pull_request'
+        if: steps.generate_report.outcome == 'success' && github.event_name == 'pull_request'
         shell: bash
         run: |
           file="docs/30-contratos/compatibilidade-de-tipos.generated.md"
@@ -63,7 +69,7 @@ jobs:
           fi
 
       - name: Publish report to main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: steps.generate_report.outcome == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           file="docs/30-contratos/compatibilidade-de-tipos.generated.md"
@@ -80,10 +86,17 @@ jobs:
           git commit -m "docs: atualizar compatibilidade dos tipos Supabase"
           git push
 
-      - name: Upload compatibility report
+      - name: Upload compatibility report and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: type-compatibility-${{ github.sha }}
-          path: docs/30-contratos/compatibilidade-de-tipos.generated.md
-          if-no-files-found: error
+          path: |
+            docs/30-contratos/compatibilidade-de-tipos.generated.md
+            type-compatibility.log
+          if-no-files-found: warn
           retention-days: 14
+
+      - name: Enforce generation result
+        if: steps.generate_report.outcome == 'failure'
+        run: exit 1
