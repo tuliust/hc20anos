@@ -17,7 +17,10 @@ function textareaBelowText(page: import("@playwright/test").Page, text: string) 
 test.describe("reivindicação de perfil", () => {
   test("retoma automaticamente a reivindicação após a confirmação do e-mail e o login", async ({ page }) => {
     const api = await installAuthenticatedProfileClaimFixtures(page, {
-      pendingClaim: pendingProfileClaimFixture(),
+      pendingClaim: {
+        ...pendingProfileClaimFixture(),
+        createdAt: new Date().toISOString(),
+      },
     });
 
     await page.goto("/reivindicar-perfil");
