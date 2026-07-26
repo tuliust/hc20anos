@@ -27,6 +27,10 @@ begin
     raise exception 'FAIL: legacy issued tickets are not preserved in the buyer read model';
   end if;
 
+  if position('pp_visible.order_id = o.id' in v_definition) = 0 then
+    raise exception 'FAIL: pending buyer orders are not filtered by an order-bound payment preference';
+  end if;
+
   if not has_function_privilege('authenticated', 'public.get_my_commerce_orders()', 'EXECUTE') then
     raise exception 'FAIL: authenticated users cannot execute get_my_commerce_orders()';
   end if;
