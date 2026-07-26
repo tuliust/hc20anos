@@ -4,7 +4,7 @@ owner: tuliust
 last_verified: 2026-07-26
 last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
 period: operação do primeiro fluxo comercial modular
-superseded_by:
+planned_replacement:
   - docs/40-runbooks/deploy-edge-functions.md
   - docs/40-runbooks/validacao-de-pagamentos.md
 ---
