@@ -1,0 +1,32 @@
+[data-profile-modal-bio] {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(45, 106, 79, 0.28);
+  background: #091109;
+  padding: 0.875rem;
+}
+
+[data-profile-modal-bio-label] {
+  margin: 0 0 0.5rem;
+  color: #c9a84c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+[data-profile-modal-bio-text] {
+  margin: 0;
+  color: #d9d6cc;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+@media (min-width: 640px) {
+  [data-profile-modal-layout] {
+    grid-template-columns: 190px minmax(0, 1fr) !important;
+  }
+}
