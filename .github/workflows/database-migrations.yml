@@ -1,13 +1,33 @@
 name: Database migration safety
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/config.toml"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "supabase/manual/**"
+      - "scripts/generate-database-contracts.mjs"
+      - "scripts/validate-supabase-migrations.mjs"
+      - "scripts/repair-supabase-migration-history.ps1"
+      - "build/profileClaimIdentityTransform.mjs"
+      - "src/lib/profileClaimIdentity.ts"
+      - "tests/e2e/profile-claim-*.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/database-migrations.yml"
   pull_request:
     paths:
       - "supabase/config.toml"
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "supabase/manual/**"
-      - "scripts/**"
+      - "scripts/generate-database-contracts.mjs"
+      - "scripts/validate-supabase-migrations.mjs"
+      - "scripts/repair-supabase-migration-history.ps1"
       - "build/profileClaimIdentityTransform.mjs"
       - "src/lib/profileClaimIdentity.ts"
       - "tests/e2e/profile-claim-*.ts"
@@ -18,7 +38,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: database-migrations-${{ github.ref }}
@@ -88,10 +108,12 @@ jobs:
   migration-replay:
     needs: static-audit
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -134,7 +156,6 @@ jobs:
 
           while IFS= read -r test_file; do
             echo "===== ${test_file} =====" | tee -a supabase-tests.log
-
             if ! output="$(docker exec -i supabase_db_hc20anos \
               psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off \
               < "${test_file}" 2>&1)"; then
@@ -154,20 +175,75 @@ jobs:
 
           exit "${test_failed}"
 
+      - name: Generate database contracts
+        run: npm run docs:generate-db-contracts
+
+      - name: Audit generated database documentation
+        run: npm run audit:docs
+
+      - name: Require updated database contracts in pull requests
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          changes="$(git status --porcelain --untracked-files=all -- \
+            docs/30-contratos/banco.generated.md \
+            docs/30-contratos/RPCs.generated.md \
+            docs/30-contratos/RLS.generated.md \
+            docs/30-contratos/erd.generated.mmd \
+            docs/30-contratos/database.types.generated.ts)"
+          if [ -n "$changes" ]; then
+            echo "Contratos do banco desatualizados ou ausentes:"
+            echo "$changes"
+            git diff -- docs/30-contratos || true
+            exit 1
+          fi
+
+      - name: Publish database contracts to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          changes="$(git status --porcelain --untracked-files=all -- \
+            docs/30-contratos/banco.generated.md \
+            docs/30-contratos/RPCs.generated.md \
+            docs/30-contratos/RLS.generated.md \
+            docs/30-contratos/erd.generated.mmd \
+            docs/30-contratos/database.types.generated.ts)"
+          if [ -z "$changes" ]; then
+            echo "Contratos do banco já estão atualizados."
+            exit 0
+          fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/30-contratos/banco.generated.md \
+            docs/30-contratos/RPCs.generated.md \
+            docs/30-contratos/RLS.generated.md \
+            docs/30-contratos/erd.generated.mmd \
+            docs/30-contratos/database.types.generated.ts
+          git commit -m "docs: atualizar contratos gerados do banco"
+          git push
+
       - name: Stop local Supabase stack
         if: always()
         run: npx supabase stop --no-backup
 
-      - name: Upload replay diagnostics
+      - name: Upload replay diagnostics and database contracts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-replay-logs
+          name: supabase-replay-and-contracts
           path: |
             supabase-start.log
             supabase-reset.log
             supabase-migrations.log
             supabase-fixture.log
             supabase-tests.log
+            docs/30-contratos/banco.generated.md
+            docs/30-contratos/RPCs.generated.md
+            docs/30-contratos/RLS.generated.md
+            docs/30-contratos/erd.generated.mmd
+            docs/30-contratos/database.types.generated.ts
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
