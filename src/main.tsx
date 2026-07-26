@@ -20,6 +20,7 @@ import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
 import { installClaimProfileVisualEnhancements } from './claimProfileVisualEnhancements';
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
+import { installContentSyncEnhancements } from './contentSyncEnhancements';
 import { installEditProfileAiButtonEnhancement } from './editProfileAiButtonEnhancement';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installEditProfileQuestionnaireBioEnhancement } from './editProfileQuestionnaireBioEnhancement';
@@ -109,6 +110,7 @@ if (!isStandaloneRoute) {
   installEditProfileQuestionnaireBioEnhancement();
   installEditProfileAiButtonEnhancement();
   installExAlumniEnhancements();
+  installContentSyncEnhancements();
   installFooterLogoEnhancements();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
