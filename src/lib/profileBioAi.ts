@@ -23,11 +23,17 @@ interface ProfileBioApiResponse {
 function profileBioErrorMessage(code?: string) {
   switch (code) {
     case "openai_not_configured":
-      return "A geração com IA ainda não está disponível. Tente novamente mais tarde.";
+      return "A geração com IA não está configurada no servidor. Configure OPENAI_API_KEY ou o AI Gateway da Vercel e tente novamente.";
     case "rate_limit_exceeded":
       return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
     case "invalid_request":
       return "Não foi possível interpretar as respostas. Revise as opções e tente novamente.";
+    case "openai_request_failed":
+      return "O serviço de IA recusou a solicitação. Verifique a credencial e o modelo configurados.";
+    case "invalid_openai_response":
+      return "A IA não retornou uma descrição válida. Tente gerar novamente.";
+    case "openai_service_unavailable":
+      return "O serviço de IA está temporariamente indisponível. Tente novamente em alguns minutos.";
     default:
       return "Não foi possível gerar seu perfil com IA. Tente novamente.";
   }
