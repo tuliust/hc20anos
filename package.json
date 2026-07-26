@@ -10,6 +10,7 @@
     "audit:cms-production": "node scripts/audit-home-cms-production.mjs --production",
     "audit:bundle": "node scripts/audit-bundle-size.mjs",
     "audit:migrations": "node scripts/validate-supabase-migrations.mjs",
+    "audit:docs": "node scripts/audit-docs.mjs",
     "verify:profile-claim-bundle": "node scripts/verify-profile-claim-bundle.mjs",
     "verify:profile-bio-ai": "node scripts/verify-profile-bio-api.mjs",
     "admin:apply-mercado-pago-ui": "node scripts/apply-admin-mercado-pago-ui-windows.mjs",
