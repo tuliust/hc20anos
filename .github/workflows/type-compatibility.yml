@@ -7,14 +7,14 @@ on:
     paths:
       - "src/lib/database.types.ts"
       - "docs/30-contratos/database.types.generated.ts"
-      - "scripts/generate-type-compatibility-report.mjs"
+      - "scripts/audit-database-types.mjs"
       - "package.json"
       - ".github/workflows/type-compatibility.yml"
   pull_request:
     paths:
       - "src/lib/database.types.ts"
       - "docs/30-contratos/database.types.generated.ts"
-      - "scripts/generate-type-compatibility-report.mjs"
+      - "scripts/audit-database-types.mjs"
       - "package.json"
       - ".github/workflows/type-compatibility.yml"
   workflow_dispatch:
