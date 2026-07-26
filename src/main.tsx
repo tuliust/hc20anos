@@ -45,6 +45,7 @@ import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
+import { installProfileAndMemoryUiFollowups } from './profileAndMemoryUiFollowups';
 import { installProfileModalBioEnhancement } from './profileModalBioEnhancement';
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
 import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
@@ -114,6 +115,7 @@ if (!isStandaloneRoute) {
   installExAlumniEnhancements();
   installContentSyncEnhancements();
   installProfileModalBioEnhancement();
+  installProfileAndMemoryUiFollowups();
   installFooterLogoEnhancements();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
