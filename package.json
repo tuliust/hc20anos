@@ -15,6 +15,8 @@
     "docs:check-contracts": "node scripts/generate-static-contracts.mjs --check",
     "docs:generate-db-contracts": "node scripts/generate-database-contracts.mjs",
     "docs:check-db-contracts": "node scripts/generate-database-contracts.mjs --check",
+    "docs:generate-routes": "node scripts/generate-routes-contract.mjs",
+    "docs:check-routes": "node scripts/generate-routes-contract.mjs --check",
     "verify:profile-claim-bundle": "node scripts/verify-profile-claim-bundle.mjs",
     "verify:profile-bio-ai": "node scripts/verify-profile-bio-api.mjs",
     "admin:apply-mercado-pago-ui": "node scripts/apply-admin-mercado-pago-ui-windows.mjs",
