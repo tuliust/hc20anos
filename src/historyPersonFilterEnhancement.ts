@@ -114,6 +114,47 @@ function findDropdown(trigger: HTMLButtonElement | null) {
     : null;
 }
 
+function isDropdownOpen(dropdown: HTMLElement | null) {
+  if (!dropdown || dropdown.hidden || dropdown.getAttribute("aria-hidden") === "true") return false;
+  const style = window.getComputedStyle(dropdown);
+  if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
+  return dropdown.getClientRects().length > 0;
+}
+
+function getOpenDropdownContext() {
+  if (!isHistoryRoute()) return null;
+  const root = findRoot();
+  if (!root) return null;
+  const section = findPersonSection(root);
+  if (!section) return null;
+  const trigger = findTrigger(section);
+  const dropdown = findDropdown(trigger);
+  if (!trigger || !isDropdownOpen(dropdown)) return null;
+  return { trigger, dropdown: dropdown as HTMLElement, wrapper: trigger.parentElement };
+}
+
+function closeDropdownFromOutside(event: PointerEvent) {
+  const context = getOpenDropdownContext();
+  if (!context) return;
+
+  const target = event.target;
+  if (target instanceof Node && context.wrapper?.contains(target)) return;
+
+  context.trigger.click();
+  scheduleEnhancement();
+}
+
+function closeDropdownWithEscape(event: KeyboardEvent) {
+  if (event.key !== "Escape") return;
+  const context = getOpenDropdownContext();
+  if (!context) return;
+
+  event.preventDefault();
+  context.trigger.click();
+  context.trigger.focus({ preventScroll: true });
+  scheduleEnhancement();
+}
+
 function setTriggerLabel(trigger: HTMLButtonElement, count: number) {
   const label = trigger.querySelector<HTMLElement>("span");
   if (!label) return;
@@ -280,6 +321,8 @@ export function installHistoryPersonFilterEnhancement() {
   const observer = new MutationObserver(scheduleEnhancement);
   const start = () => {
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    document.addEventListener("pointerdown", closeDropdownFromOutside, true);
+    document.addEventListener("keydown", closeDropdownWithEscape, true);
     document.addEventListener("click", scheduleEnhancement, true);
     window.addEventListener("popstate", scheduleEnhancement);
     window.addEventListener("pushstate", scheduleEnhancement as EventListener);
