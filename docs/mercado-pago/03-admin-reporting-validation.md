@@ -6,6 +6,7 @@ last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
 period: validação do incremento de reporting Mercado Pago
 superseded_by:
   - docs/10-dominios/checkout-e-pagamentos.md
+planned_replacement:
   - docs/40-runbooks/validacao-de-pagamentos.md
 ---
 
