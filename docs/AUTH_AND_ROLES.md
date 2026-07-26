@@ -1,21 +1,20 @@
-# Autenticação e Roles
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: fe8faad93f8c0f39aefdc7ff11458f1c92ec7b53
+superseded_by:
+  - docs/10-dominios/autenticacao-autorizacao-e-roles.md
+  - docs/30-contratos/permissoes.md
+---
 
-## Autenticação
+# Autenticação e roles — referência substituída
 
-O projeto usa Supabase Auth. O front-end usa apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+Este documento resumido foi substituído por:
 
-## Roles administrativas
+- [`10-dominios/autenticacao-autorizacao-e-roles.md`](./10-dominios/autenticacao-autorizacao-e-roles.md), que descreve sessão, RLS, RPCs, service role e autorização das Functions;
+- [`30-contratos/permissoes.md`](./30-contratos/permissoes.md), que contém a matriz inicial de atores e operações.
 
-Tabela: `admin_users`.
+A referência antiga não cobria as verificações específicas de checkout, webhook, worker, reembolso, rotas protegidas e RPCs `security definer`.
 
-- `superadmin`: controle total.
-- `admin`: gestão de evento, lotes, enquetes, moderação e relatórios.
-- `moderator`: moderação de fotos, tags, comentários, memórias e perfis.
-- `checkin_staff`: acesso a check-in.
-- `viewer`: leitura administrativa limitada.
-
-## Cuidados
-
-- RLS deve proteger tabelas sensíveis.
-- Service role key nunca deve ir para Vite/front-end.
-- Senha do banco só deve ser usada localmente em CLI segura.
+Para uma decisão de segurança, prevalecem as migrations, policies, grants, Functions e contratos gerados do banco.
