@@ -151,10 +151,11 @@ function frontMatter(title, sources, metadata) {
 async function loadSources() {
   const files = [];
   for (const root of SCAN_ROOTS) files.push(...await walk(path.join(ROOT, root)));
-  return Promise.all(uniqueSorted(files.map(normalize)).map(async relative => ({
-    absolute: path.join(ROOT, relative),
-    relative,
-    content: await readFile(path.join(ROOT, relative), "utf8"),
+  const unique = [...new Set(files.map(file => path.resolve(file)))].sort((a, b) => a.localeCompare(b));
+  return Promise.all(unique.map(async absolute => ({
+    absolute,
+    relative: normalize(path.relative(ROOT, absolute)),
+    content: await readFile(absolute, "utf8"),
   })));
 }
 
