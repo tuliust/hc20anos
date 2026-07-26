@@ -2,7 +2,7 @@
 status: draft
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 1c7e86b4a3b1bcf19353b2364276aa2f6ef97ea3
+last_verified_commit: b8b6f242ef8ab1622ec185f9a74ee2dfb7378a94
 source_files:
   - package.json
   - vercel.json
@@ -11,88 +11,113 @@ source_files:
   - supabase/migrations/
   - supabase/tests/
   - .github/workflows/
+  - docs/40-runbooks/
 ---
 
 # Runbooks operacionais
 
 ## Estado
 
-A primeira camada de procedimentos foi criada e reconciliada com o código atual. Os arquivos permanecem `draft` porque ainda não foram executados integralmente em ambiente controlado.
+Os procedimentos necessários foram criados e reconciliados com o código atual. Permanecem `draft` porque ainda não foram executados integralmente em ambiente controlado com evidências e ensaio de rollback.
 
-Não trate o status `draft` como ausência de valor operacional: os comandos, componentes e limites foram conferidos contra o repositório. O status indica que falta comprovar a sequência completa, registrar evidências e validar rollback.
+`draft` não significa que um documento histórico ou depreciado possa substituí-los.
 
 ## Runbooks disponíveis
 
 | Runbook | Estado | Escopo |
 |---|---|---|
-| [`desenvolvimento-local.md`](./desenvolvimento-local.md) | `draft` | dependências, variáveis públicas, build, testes e Supabase local; |
-| [`deploy-vercel.md`](./deploy-vercel.md) | `draft` | frontend, Vercel Functions, variáveis, smoke test e rollback; |
-| [`deploy-edge-functions.md`](./deploy-edge-functions.md) | `draft` | checkout, webhook, notificações e reembolsos; |
-| [`migrations.md`](./migrations.md) | `draft` | auditoria, replay, testes SQL, aplicação remota e correção; |
-| [`validacao-de-pagamentos.md`](./validacao-de-pagamentos.md) | `draft` | checkout, Mercado Pago, webhook, tickets e notificações; |
-| [`rollback.md`](./rollback.md) | `draft` | contenção e recuperação por componente. |
-
-## Runbooks ainda planejados
-
-| Arquivo | Escopo |
-|---|---|
-| `investigacao-de-webhook.md` | assinatura, `payment_events`, consulta ao provedor, falhas temporárias e reprocessamento; |
-| `notificacoes.md` | fila, worker, tentativas, providers e diagnóstico; |
-| `reembolsos.md` | elegibilidade, aprovação, processamento, inventário e ingressos; |
-| `operacao-no-dia-do-evento.md` | check-in, QR Code, vouchers, contingência e permissões; |
-| `resposta-a-incidentes.md` | severidade, contenção, comunicação, recuperação e pós-incidente. |
+| [`desenvolvimento-local.md`](./desenvolvimento-local.md) | `draft` | dependências, variáveis públicas, build, testes e Supabase local |
+| [`deploy-vercel.md`](./deploy-vercel.md) | `draft` | frontend, Vercel Functions, variáveis, smoke test e rollback |
+| [`deploy-edge-functions.md`](./deploy-edge-functions.md) | `draft` | checkout, webhook, notificações e reembolsos |
+| [`migrations.md`](./migrations.md) | `draft` | auditoria, replay, testes SQL, aplicação remota e correção |
+| [`validacao-de-pagamentos.md`](./validacao-de-pagamentos.md) | `draft` | checkout, Mercado Pago, webhook, tickets e notificações |
+| [`investigacao-de-webhook.md`](./investigacao-de-webhook.md) | `draft` | assinatura, `payment_events`, provedor e reprocessamento |
+| [`notificacoes.md`](./notificacoes.md) | `draft` | fila, worker, e-mail, WhatsApp e tentativas |
+| [`reembolsos.md`](./reembolsos.md) | `draft` | elegibilidade, decisão, provedor, inventário e ingressos |
+| [`operacao-no-dia-do-evento.md`](./operacao-no-dia-do-evento.md) | `draft` | check-in, QR, vouchers, conectividade e contingência |
+| [`resposta-a-incidentes.md`](./resposta-a-incidentes.md) | `draft` | severidade, contenção, recuperação e pós-incidente |
+| [`rollback.md`](./rollback.md) | `draft` | contenção e recuperação por componente |
 
 ## Documentos substituídos
 
-- [`../DEPLOYMENT.md`](../DEPLOYMENT.md) está `deprecated` e aponta para os runbooks de desenvolvimento, deploy, migrations e rollback.
-- [`../PRODUCTION_QA.md`](../PRODUCTION_QA.md) está `deprecated` e aponta para a validação atual de pagamentos e deploy.
-- [`../mercado-pago/README.md`](../mercado-pago/README.md) organiza registros históricos da implementação financeira.
+- [`../DEPLOYMENT.md`](../DEPLOYMENT.md) está `deprecated`.
+- [`../PRODUCTION_QA.md`](../PRODUCTION_QA.md) está `deprecated`.
+- [`../CHECKIN_FLOW.md`](../CHECKIN_FLOW.md) está `deprecated`.
+- [`../mercado-pago/README.md`](../mercado-pago/README.md) organiza registros históricos financeiros.
 
-## Estrutura obrigatória de cada runbook
+## Estrutura obrigatória
+
+Cada runbook deve conter:
 
 1. objetivo;
 2. quando executar;
-3. responsável e permissões mínimas;
+3. responsável e permissões;
 4. pré-condições;
 5. ambientes afetados;
-6. comandos exatos ou limitação explicitamente declarada;
-7. resultado esperado após etapas críticas;
-8. evidências registráveis;
-9. dados e secrets que não podem ser copiados;
+6. comandos ou limitações explícitas;
+7. resultados esperados;
+8. evidências permitidas;
+9. dados e secrets proibidos;
 10. critérios de interrupção;
 11. rollback;
 12. validação final;
-13. estado de execução do próprio runbook.
+13. estado de execução.
 
 ## Regras de segurança
 
-- nunca executar migration isolada para representar o estado atual;
-- nunca editar ou excluir migration já aplicada;
-- nunca registrar valores de secrets em issues, commits ou documentos;
-- nunca confirmar pagamento apenas pelo retorno do navegador;
-- nunca testar reembolso real sem autorização explícita e pedido identificado;
-- nunca usar service role no frontend;
-- preservar eventos financeiros, pedidos, jobs e logs de auditoria durante incidentes;
-- tratar commit direto em `main` como potencial deployment de produção.
+- Nunca executar migration isolada para representar o banco atual.
+- Nunca editar ou excluir migration aplicada.
+- Nunca registrar secrets em issues, commits ou documentos.
+- Nunca confirmar pagamento apenas pelo retorno do navegador.
+- Nunca testar reembolso real sem autorização e pedido identificado.
+- Nunca usar service role no frontend.
+- Preservar eventos financeiros, pedidos, jobs e logs durante incidentes.
+- Tratar commit direto em `main` como potencial deployment de produção.
+- Não reprocessar webhook, mensagem ou reembolso sem conferir idempotência e efeitos anteriores.
 
-## Critério para status `canonical`
+## Critério para `canonical`
 
-Um runbook só pode mudar de `draft` para `canonical` quando:
+Um runbook só pode ser promovido quando:
 
 - foi executado integralmente em ambiente controlado;
 - comandos correspondem aos scripts atuais;
-- functions, rotas e variáveis foram verificadas;
+- Functions, rotas e variáveis foram verificadas;
 - critérios de interrupção foram observados;
 - rollback foi revisado ou ensaiado;
 - não contém credenciais ou dados pessoais;
-- possui responsável, data e evidências de validação;
-- está ligado a testes ou checks automatizados quando possível.
+- possui responsável, data e evidências;
+- está ligado a testes ou checks quando possível.
 
-## Próxima prioridade
+## Plano de validação
 
-1. criar investigação de webhook;
-2. criar operação de notificações;
-3. criar reembolsos;
-4. criar operação no dia do evento;
-5. validar os seis runbooks atuais em ambiente controlado;
-6. promover individualmente para `canonical` apenas os procedimentos comprovados.
+### Prioridade 1 — antes de vendas reais
+
+- deploy Vercel;
+- deploy de Edge Functions;
+- migrations;
+- validação de pagamentos;
+- investigação de webhook;
+- reembolsos.
+
+### Prioridade 2 — antes do evento
+
+- operação no dia do evento;
+- notificações;
+- resposta a incidentes;
+- rollback;
+- desenvolvimento local para suporte técnico.
+
+### Evidências esperadas
+
+- data e ambiente;
+- executor e revisor;
+- comandos utilizados;
+- resultado por etapa;
+- logs sem secrets;
+- screenshots sem dados pessoais;
+- incidentes encontrados;
+- ajustes incorporados.
+
+## Pendência restante
+
+A documentação dos runbooks está completa. A pendência é operacional: executar, revisar e promover individualmente os procedimentos comprovados.
