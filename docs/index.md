@@ -2,13 +2,15 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 3ab8f8bc73479b9c3fba2a1895cfe643642d8e7f
+last_verified_commit: 9cb75a3c6df703ee8c5c500265589330b31a33ac
 source_files:
   - README.md
   - docs/
   - scripts/generate-static-contracts.mjs
+  - scripts/generate-database-contracts.mjs
   - .github/workflows/documentation.yml
   - .github/workflows/static-contracts.yml
+  - .github/workflows/database-migrations.yml
 ---
 
 # Documentação canônica — HC 20 Anos
@@ -69,28 +71,33 @@ O gerador [`scripts/generate-static-contracts.mjs`](../scripts/generate-static-c
 - `variaveis-de-ambiente.generated.md`;
 - `codigos-de-erro.generated.md`.
 
-Comandos:
-
 ```bash
 npm run docs:generate-contracts
 npm run docs:check-contracts
 ```
 
-O workflow `Static contract generation` executa o gerador, audita a saída e publica os arquivos como artefato, sem fazer commit automático em `main`. Consulte [`30-contratos/geracao-estatica.md`](./30-contratos/geracao-estatica.md).
+O workflow `Static contract generation` gera, audita, verifica drift em pull requests e publica a baseline em `main` quando executado por push. Consulte [`30-contratos/geracao-estatica.md`](./30-contratos/geracao-estatica.md).
 
-### Contratos ainda dependentes do banco
+### Geração do banco implementada
 
-Ainda precisam ser gerados após replay integral:
+O gerador [`scripts/generate-database-contracts.mjs`](../scripts/generate-database-contracts.mjs) produz, após replay integral:
 
-- schema final;
-- enums, tabelas, colunas, constraints e índices;
-- views e triggers;
-- RPCs e assinaturas;
-- RLS, grants e revokes;
-- tipos TypeScript do Supabase;
-- ERD.
+- `banco.generated.md`;
+- `RPCs.generated.md`;
+- `RLS.generated.md`;
+- `database.types.generated.ts`;
+- `erd.generated.mmd`.
 
-Rotas efetivas também continuam pendentes porque devem considerar transforms, mounts e runtime compilado.
+```bash
+npm run docs:generate-db-contracts
+npm run docs:check-db-contracts
+```
+
+O workflow `Database migration safety` agora roda também em pushes para `main`, executa replay e testes SQL antes da geração, verifica drift em pull requests e publica os contratos somente após aprovação. Consulte [`30-contratos/geracao-do-banco.md`](./30-contratos/geracao-do-banco.md).
+
+### Rotas efetivas
+
+`rotas.generated.md` continua pendente porque deve considerar transforms, mounts, aliases e runtime compilado. Uma busca simples por strings não é suficiente para promover esse contrato a `generated`.
 
 ## Runbooks disponíveis
 
@@ -135,6 +142,7 @@ A classificação completa está em [`archive/README.md`](./archive/README.md). 
 - validação de front matter, links, arquivos-fonte e substituições;
 - workflow `Documentation safety` em PRs e pushes para `main`;
 - workflow `Static contract generation`;
+- workflow `Database migration safety` em PRs, pushes para `main` e execução manual;
 - `CODEOWNERS` para documentação;
 - template de PR com impacto documental;
 - processo de atualização;
@@ -142,18 +150,19 @@ A classificação completa está em [`archive/README.md`](./archive/README.md). 
 
 ## Pendências técnicas reais
 
-### Baseline estática
+### Baselines geradas
 
-- revisar o primeiro artefato gerado no GitHub Actions;
-- versionar os quatro arquivos `*.generated.md`;
-- ativar `npm run docs:check-contracts` como check bloqueante.
+- confirmar a primeira execução dos workflows em `main`;
+- revisar os contratos estáticos publicados;
+- revisar schema, RPCs, RLS, tipos e ERD publicados;
+- confirmar os comandos de check sem drift;
+- substituir inventários manuais somente depois da revisão.
 
-### Banco e runtime
+### Runtime
 
-- reproduzir o banco com todas as migrations;
-- gerar schema, RPCs, RLS, grants, tipos e ERD;
-- gerar rotas depois dos transforms;
-- integrar drift dos contratos ao CI.
+- gerar `rotas.generated.md` depois dos transforms;
+- validar contratos de respostas e payloads além da análise estática;
+- decidir quando substituir `src/lib/database.types.ts` pelo tipo gerado revisado.
 
 ### Operação
 
