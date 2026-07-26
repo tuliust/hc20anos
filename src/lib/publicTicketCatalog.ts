@@ -84,7 +84,7 @@ function withActiveCatalogMetadata(ticket: DbTicketType): DbTicketType {
   };
 }
 
-export function isCheckoutExtra(): boolean {
+export function isCheckoutExtra(_ticket: DbTicketType): boolean {
   return false;
 }
 
@@ -92,7 +92,7 @@ export function isFamilyTicket(ticket: DbTicketType): boolean {
   return productCode(ticket) === "family_full";
 }
 
-export function canShowAdditionalChild(): boolean {
+export function canShowAdditionalChild(_ticket: DbTicketType): boolean {
   return false;
 }
 
