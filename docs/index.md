@@ -22,12 +22,14 @@ A documentação canônica descreve o estado vigente do produto, da arquitetura 
 4. [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md) — autoridade de código, banco, CMS e documentação.
 5. [`00-visao-geral/glossario.md`](./00-visao-geral/glossario.md) — termos usados no domínio e no código.
 6. [`10-dominios/checkout-e-pagamentos.md`](./10-dominios/checkout-e-pagamentos.md) — checkout, Mercado Pago, webhook e estado financeiro.
-7. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — regras para manter a documentação válida.
-8. [`archive/README.md`](./archive/README.md) — classificação e preservação de registros históricos.
+7. [`30-contratos/README.md`](./30-contratos/README.md) — plano para referências geradas a partir do código e do banco.
+8. [`40-runbooks/README.md`](./40-runbooks/README.md) — critérios e backlog de procedimentos operacionais.
+9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — regras para manter a documentação válida.
+10. [`archive/README.md`](./archive/README.md) — classificação e preservação de registros históricos.
 
 ## Estado da documentação
 
-A fundação canônica está sendo implantada incrementalmente. Os documentos de visão geral e a referência de checkout passam a orientar novas mudanças. Os contratos gerados, demais domínios e runbooks ainda serão acrescentados.
+A fundação canônica está sendo implantada incrementalmente. Os documentos de visão geral e a referência de checkout passam a orientar novas mudanças. As seções de contratos e runbooks já possuem critérios definidos, mas seus artefatos continuam em `draft` até serem gerados ou executados e validados.
 
 ### Reconciliação concluída nesta etapa
 
