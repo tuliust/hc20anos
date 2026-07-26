@@ -34,16 +34,25 @@ function lines(content) {
   return content.replaceAll("\r\n", "\n").split("\n");
 }
 
+function publicRange(contentLines) {
+  const start = contentLines.findIndex(line => line === "  public: {");
+  if (start < 0) throw new Error("Schema Database.public não encontrado");
+  const end = contentLines.findIndex((line, index) => index > start && line === "  }");
+  if (end < 0) throw new Error("Fim do schema Database.public não encontrado");
+  return { start, end };
+}
+
 function sectionRange(contentLines, section) {
-  const start = contentLines.findIndex(line => line === `    ${section}: {`);
+  const publicSection = publicRange(contentLines);
+  const start = contentLines.findIndex((line, index) => (
+    index > publicSection.start
+    && index < publicSection.end
+    && line === `    ${section}: {`
+  ));
   if (start < 0) throw new Error(`Seção public.${section} não encontrada`);
-  let end = contentLines.length;
-  for (let index = start + 1; index < contentLines.length; index += 1) {
+  let end = publicSection.end;
+  for (let index = start + 1; index < publicSection.end; index += 1) {
     if (/^    (Tables|Views|Functions|Enums|CompositeTypes): \{$/.test(contentLines[index])) {
-      end = index;
-      break;
-    }
-    if (contentLines[index] === "  }") {
       end = index;
       break;
     }
