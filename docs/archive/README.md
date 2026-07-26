@@ -2,9 +2,10 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 8f12c87e53fce58639f722f8da25dfe5d120935d
+last_verified_commit: 8db03f110022b4482d0350c0cdf01ad10c8b1969
 source_files:
   - docs/
+  - supabase/manual/README_EXECUCAO_CHECKOUT.md
 ---
 
 # Arquivo documental
@@ -50,6 +51,7 @@ Referências atuais ainda não comprovadas integralmente por automação, execu�
 | `docs/mercado-pago/02-backend-checkout-create.md` | `historical` | Contrato intermediário já superado. | `docs/10-dominios/checkout-e-pagamentos.md`. |
 | `docs/mercado-pago/03-admin-reporting-validation.md` | `historical` | Checklist de uma entrega específica. | `docs/40-runbooks/validacao-de-pagamentos.md`. |
 | `docs/mercado-pago/04-operacao-e-deploy.md` | `historical` | Procedimento anterior preservado para rastreabilidade. | Runbooks de deploy e pagamentos. |
+| `supabase/manual/README_EXECUCAO_CHECKOUT.md` | `deprecated` | Instruía execução individual de migrations antigas no SQL Editor. | Runbooks de migrations, Edge Functions e validação de pagamentos. |
 
 ## Documentos atuais ainda em `draft`
 
@@ -57,7 +59,7 @@ Não são históricos, mas aguardam validação adicional:
 
 - `docs/DESIGN_SYSTEM.md` — validação visual, responsiva e de acessibilidade;
 - `docs/DESIGN_TOKENS.md` — comparação com CSS, classes e componentes reais;
-- `docs/30-contratos/*.md` — substituição por contratos gerados automaticamente;
+- inventários humanos em `docs/30-contratos/` — substituição por contratos gerados;
 - `docs/40-runbooks/*.md` — execução integral, evidências e validação de rollback.
 
 ## Regras de movimentação física
@@ -84,7 +86,8 @@ Um documento histórico só pode ser removido quando:
 
 A próxima revisão deste índice deve ocorrer depois de:
 
-1. geração do schema e contratos do banco;
-2. validação dos runbooks críticos;
-3. decisão sobre movimentação física dos arquivos históricos;
-4. validação do design system e dos tokens.
+1. versionamento da baseline dos contratos estáticos;
+2. geração do schema e contratos do banco;
+3. validação dos runbooks críticos;
+4. decisão sobre movimentação física dos arquivos históricos;
+5. validação do design system e dos tokens.
