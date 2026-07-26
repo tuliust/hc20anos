@@ -3,6 +3,9 @@ status: canonical
 owner: tuliust
 last_verified: 2026-07-26
 last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
+source_files:
+  - README.md
+  - docs/
 ---
 
 # Documentação canônica — HC 20 Anos
@@ -18,18 +21,34 @@ A documentação canônica descreve o estado vigente do produto, da arquitetura 
 3. [`00-visao-geral/mapa-do-repositorio.md`](./00-visao-geral/mapa-do-repositorio.md) — responsabilidade de cada diretório.
 4. [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md) — autoridade de código, banco, CMS e documentação.
 5. [`00-visao-geral/glossario.md`](./00-visao-geral/glossario.md) — termos usados no domínio e no código.
-6. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — regras para manter a documentação válida.
+6. [`10-dominios/checkout-e-pagamentos.md`](./10-dominios/checkout-e-pagamentos.md) — checkout, Mercado Pago, webhook e estado financeiro.
+7. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — regras para manter a documentação válida.
+8. [`archive/README.md`](./archive/README.md) — classificação e preservação de registros históricos.
 
 ## Estado da documentação
 
-A fundação canônica está em implantação incremental. Nesta etapa, os documentos acima passam a orientar novas mudanças, mas os documentos técnicos existentes ainda precisam ser revisados e classificados.
+A fundação canônica está sendo implantada incrementalmente. Os documentos de visão geral e a referência de checkout passam a orientar novas mudanças. Os contratos gerados, demais domínios e runbooks ainda serão acrescentados.
 
-### Documentos existentes que exigem reconciliação
+### Reconciliação concluída nesta etapa
 
-- `ROADMAP.md`: mistura planejamento histórico e funcionalidades já implementadas.
-- `SUPABASE_SCHEMA.md`: descreve apenas parte das migrations existentes.
-- `PAYMENTS_MERCADO_PAGO.md` e `docs/mercado-pago/*`: contêm registros de diferentes fases da integração.
-- `DEPLOYMENT.md` e `PRODUCTION_QA.md`: possuem conteúdo operacional útil, mas ainda não estão integrados ao modelo de runbooks canônicos.
+| Documento anterior | Classificação | Resultado |
+|---|---|---|
+| `ROADMAP.md` | `historical` | Mantido como planejamento inicial; não representa backlog ou implementação atual. |
+| `SUPABASE_SCHEMA.md` | `deprecated` | Declarado snapshot parcial; banco vigente depende do replay completo das migrations. |
+| `PAYMENTS_MERCADO_PAGO.md` | `deprecated` | Fluxo agregado antigo substituído pela referência canônica de checkout. |
+| `mercado-pago/01-auditoria-e-plano.md` | `historical` | Preservado como auditoria anterior à implementação. |
+| `mercado-pago/02-backend-checkout-create.md` | `historical` | Preservado como contrato intermediário. |
+| `mercado-pago/03-admin-reporting-validation.md` | `historical` | Preservado como checklist de uma entrega específica. |
+| `mercado-pago/04-operacao-e-deploy.md` | `historical` | Preservado como procedimento ainda não revalidado. |
+
+### Documentos que ainda exigem reconciliação
+
+- `DEPLOYMENT.md`: possui conteúdo operacional útil, mas ainda precisa ser separado entre Vercel, Supabase, migrations e rollback.
+- `PRODUCTION_QA.md`: precisa ser reconciliado com os testes automatizados e transformado em matriz reproduzível.
+- `AUTH_AND_ROLES.md`: precisa ser comparado com roles, policies e grants finais.
+- `CHECKIN_FLOW.md`: precisa ser comparado com RPCs, página de operação e regras atuais.
+- `PRODUCT_SCOPE.md`: precisa ser integrado aos documentos de domínio sem duplicar a visão geral.
+- Demais documentos de fases anteriores precisam receber metadados de vigência.
 
 Até essa reconciliação ser concluída, use o código e as fontes de verdade declaradas neste portal para resolver divergências.
 
