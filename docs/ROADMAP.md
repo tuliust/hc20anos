@@ -6,7 +6,7 @@ last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
 period: fase inicial do projeto
 superseded_by:
   - docs/00-visao-geral/produto.md
-  - https://github.com/tuliust/hc20anos/issues/41
+  - docs/index.md
 ---
 
 # Roadmap — registro histórico da fase inicial
