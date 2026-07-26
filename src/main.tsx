@@ -47,6 +47,7 @@ import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigat
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
+import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
@@ -124,6 +125,7 @@ if (!isStandaloneRoute) {
   installCuriositiesPollMobileEnhancements();
   installTicketsPageEnhancements();
   installTicketsCatalogLayoutEnhancements();
+  installTicketProductModelEnhancement();
   installHomeTicketCardSpacingEnhancements();
 }
 
