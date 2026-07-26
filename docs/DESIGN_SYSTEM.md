@@ -1,4 +1,16 @@
+---
+status: draft
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: 4f87125631c15d3f24187f1fabc5381e27610997
+source_files:
+  - src/styles.css
+  - src/app/App.tsx
+---
+
 # Design System — Evento Ex-Alunos HC
+
+> Referência visual ainda não validada integralmente contra todas as páginas, mounts e enhancements. Deve permanecer `draft` até revisão visual do runtime compilado.
 
 ## Princípios
 
@@ -24,9 +36,9 @@
 
 ## Tipografia
 
-- Títulos: `Playfair Display`, fallback `Georgia`, peso alto, caixas editoriais.
-- Interface/texto: system UI, legível em mobile.
-- Metadados/códigos: monoespaçada via `font-mono`.
+- Títulos: `Playfair Display`, fallback `Georgia`, peso alto e tratamento editorial.
+- Interface e texto: system UI legível em mobile.
+- Metadados e códigos: monoespaçada via `font-mono`.
 
 ## Componentes
 
@@ -38,68 +50,94 @@
 
 ### Cards
 
-- Base: `bg-[#141f14]`, borda `border-[#2d6a4f]/30`, padding 24–32px.
-- Cards de ingresso: preço em destaque, status visível, CTA à direita no desktop e empilhado no mobile.
+- Base escura, borda verde translúcida e padding de 24–32px.
+- Cards de ingresso: preço em destaque, status visível, CTA lateral no desktop e empilhado no mobile.
 - Cards de foto: proporção 4:3, imagem `object-cover`, legenda e ano.
-- Cards de perfil: iniciais/foto, nome, apelido e status.
+- Cards de perfil: iniciais ou foto, nome, apelido e status.
 
 ### Badges
 
-- Status de pagamento: `approved`, `pending`, `in_process`, `rejected`, `cancelled`, `refunded`, `expired`, `charged_back`.
-- Status de ingresso/check-in: `checked_in`, `valid`, `used`, `invalid`.
-- Status de moderação: `pending`, `approved`, `rejected`, `hidden`, `removed`, `featured`.
+- Pagamento: `approved`, `pending`, `in_process`, `rejected`, `cancelled`, `refunded`, `expired`, `charged_back`.
+- Ingresso/check-in: válido, utilizado, inválido e estados financeiros relacionados.
+- Moderação: `pending`, `approved`, `rejected`, `hidden`, `removed`, `featured`.
+
+Os códigos reais devem vir dos contratos do domínio, não do design system.
 
 ### Inputs e formulários
 
-- Inputs escuros, borda verde translúcida, foco verde.
-- Labels monoespaçadas em caixa alta.
-- Formulários curtos, blocos empilhados no mobile.
+- Inputs escuros, borda verde translúcida e foco visível.
+- Labels legíveis e consistentes.
+- Formulários curtos, agrupados e empilhados no mobile.
+- Erros associados ao campo e resumo quando necessário.
 
 ### Upload de imagem
 
 - Área retangular com borda tracejada.
-- Mostrar consentimento antes do envio.
-- Estado pendente pós-upload.
+- Consentimento apresentado antes do envio.
 - Preview quando possível.
+- Estados de upload, processamento, pendência e falha explícitos.
 
 ### QR Code e check-in
 
-- QR real gerado por código textual do ingresso.
-- Código textual sempre visível como fallback.
-- Check-in deve aceitar câmera, QR/código, nome, e-mail e telefone.
-- Estados obrigatórios: válido, já utilizado, pagamento pendente, não encontrado e não autorizado.
+- Código textual sempre disponível como fallback.
+- Check-in compatível com câmera e entrada manual permitida pela operação.
+- Estados obrigatórios: válido, já utilizado, pagamento pendente, não encontrado, cancelado, reembolsado e não autorizado.
 
 ### Navegação mobile
 
 - Header compacto.
 - Menu simplificado.
-- CTA principal `Comprar ingresso` sempre fácil de acessar.
-- Cards empilhados e botões full-width.
+- CTA principal fácil de acessar.
+- Cards empilhados e botões full-width quando apropriado.
 
-### Tabelas e admin
+### Tabelas e administração
 
-- Tabelas com overflow horizontal em mobile.
-- Ações por linha devem ficar agrupadas e com botões pequenos.
-- Dashboard administrativo deve privilegiar cards de KPI.
+- Overflow horizontal em mobile.
+- Ações agrupadas por linha.
+- KPIs priorizados em cards.
+- Dados sensíveis minimizados.
+- Ações financeiras ou destrutivas exigem confirmação.
 
-## QA mobile obrigatório
+## Acessibilidade
+
+- Contraste verificável entre texto e fundo.
+- Foco visível em controles.
+- Alvos de toque de pelo menos 44px.
+- Labels e nomes acessíveis.
+- Não comunicar estado somente por cor.
+- Modais com foco controlado e fechamento por teclado.
+- QR Code acompanhado de alternativa textual.
+- Imagens com texto alternativo adequado ao contexto.
+
+## QA visual obrigatório
 
 Validar manualmente:
 
-- 320px
-- 375px
-- 390px
-- 430px
-- 768px
-- 1024px
-- 1440px
+- 320px;
+- 375px;
+- 390px;
+- 430px;
+- 768px;
+- 1024px;
+- 1440px.
 
 Checklist:
 
-- Header sem quebra visual.
-- CTA visível e tocável.
-- Cards empilhados corretamente.
-- Formulários sem campos esmagados.
-- Tabelas com rolagem horizontal.
-- Modais e áreas de upload sem overflow.
-- QR e câmera legíveis em mobile.
+- header sem quebra;
+- CTA visível e tocável;
+- cards empilhados corretamente;
+- formulários sem campos comprimidos;
+- tabelas com rolagem horizontal;
+- modais e uploads sem overflow;
+- QR e câmera legíveis;
+- foco e navegação por teclado;
+- estados de erro, vazio e loading.
+
+## Critério para `canonical`
+
+- tokens comparados com CSS e componentes reais;
+- páginas públicas e administrativas revisadas;
+- mounts e enhancements incluídos na inspeção;
+- testes visuais executados;
+- contraste e navegação por teclado verificados;
+- divergências entre token e uso direto registradas e corrigidas.
