@@ -1,3 +1,4 @@
+# Diagnostic-only trigger. This branch will not be merged.
 name: Supabase type compatibility
 
 on:
