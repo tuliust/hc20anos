@@ -16,6 +16,7 @@ Leituras iniciais:
 - [Fontes de verdade](./docs/00-visao-geral/fontes-de-verdade.md)
 - [Domínios funcionais](./docs/10-dominios/README.md)
 - [Contratos e inventários](./docs/30-contratos/README.md)
+- [Geração estática de contratos](./docs/30-contratos/geracao-estatica.md)
 - [Runbooks operacionais](./docs/40-runbooks/README.md)
 - [Política de documentação](./docs/50-governanca/politica-de-documentacao.md)
 - [Processo de atualização](./docs/50-governanca/processo-de-atualizacao.md)
@@ -74,7 +75,7 @@ npm run build
 
 O build inclui verificações específicas da reivindicação de perfil e da geração de mini bio.
 
-## Testes e auditorias
+## Testes, auditorias e contratos
 
 ```bash
 npm run test:faq
@@ -83,11 +84,15 @@ npm run audit:docs
 npm run audit:migrations
 npm run audit:cms-strict
 npm run audit:bundle
+npm run docs:generate-contracts
+npm run docs:check-contracts
 ```
 
-`audit:docs` valida metadados, links locais, arquivos-fonte e referências de substituição nas áreas canônicas.
+- `audit:docs` valida metadados, links locais, arquivos-fonte e referências de substituição nas áreas canônicas.
+- `docs:generate-contracts` extrai APIs, Edge Functions, variáveis e códigos de erro detectáveis estaticamente.
+- `docs:check-contracts` falha quando os arquivos gerados versionados estiverem diferentes do código atual.
 
-O workflow de migrations reaplica todas as migrations em uma stack Supabase local e executa os testes SQL de `supabase/tests/`. O workflow `Documentation safety` executa a auditoria documental em PRs e em pushes diretos para `main`.
+O workflow de migrations reaplica todas as migrations em uma stack Supabase local e executa os testes SQL de `supabase/tests/`. O workflow `Documentation safety` executa a auditoria documental em PRs e pushes diretos para `main`. O workflow `Static contract generation` gera e audita os contratos estáticos e publica as saídas como artefato para revisão.
 
 ## Estrutura resumida
 
@@ -95,12 +100,12 @@ O workflow de migrations reaplica todas as migrations em uma stack Supabase loca
 src/                 frontend e módulos de runtime
 api/                 Vercel Functions
 build/               transforms aplicados pelo Vite
-scripts/             auditorias e ferramentas auxiliares
+scripts/             auditorias, verificações e geradores
 supabase/migrations/ evolução do banco
 supabase/functions/  Edge Functions
 supabase/tests/       contratos e testes SQL
 tests/                testes unitários e E2E
-docs/                 documentação canônica, operacional e histórica
+docs/                 documentação canônica, gerada, operacional e histórica
 ```
 
 Consulte o [mapa do repositório](./docs/00-visao-geral/mapa-do-repositorio.md) antes de alterar fluxos que possam envolver enhancements ou transforms de build.
