@@ -19,6 +19,8 @@
     "docs:check-routes": "node scripts/generate-routes-contract.mjs --check",
     "docs:generate-type-compatibility": "node scripts/audit-database-types.mjs",
     "docs:check-type-compatibility": "node scripts/audit-database-types.mjs --check",
+    "docs:generate-type-consumers": "node scripts/generate-database-type-consumers.mjs",
+    "docs:check-type-consumers": "node scripts/generate-database-type-consumers.mjs --check",
     "verify:profile-claim-bundle": "node scripts/verify-profile-claim-bundle.mjs",
     "verify:profile-bio-ai": "node scripts/verify-profile-bio-api.mjs",
     "admin:apply-mercado-pago-ui": "node scripts/apply-admin-mercado-pago-ui-windows.mjs",
@@ -93,7 +95,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@tailwindcss/vite": "4.1.12",
+    "@tailwindcss/vite": "4.7.0",
     "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "4.7.0",
     "supabase": "^2.109.1",
