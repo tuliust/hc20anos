@@ -2,12 +2,13 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 85560128df6aa6de8f46aa4a2150d339cef2a5e6
+last_verified_commit: 23666f0bebd43acc0ee4b2ffabbe210bc6e3056b
 source_files:
   - src/
   - api/
   - build/
   - scripts/generate-static-contracts.mjs
+  - scripts/generate-routes-contract.mjs
   - scripts/generate-database-contracts.mjs
   - supabase/functions/
   - supabase/migrations/
@@ -21,118 +22,148 @@ source_files:
 
 ## Estado
 
-A seção possui quatro níveis de maturidade:
+As categorias técnicas planejadas possuem baselines versionadas com `status: generated`:
 
-1. inventários humanos em `draft`, usados para interpretação imediata;
-2. geração estática implementada para APIs, Edge Functions, variáveis e códigos de erro;
-3. geração do Postgres implementada para schema, RPCs, RLS, tipos e ERD;
-4. baselines `generated` ainda condicionadas à execução bem-sucedida dos workflows.
+- rotas efetivas;
+- Vercel Functions;
+- Supabase Edge Functions;
+- variáveis de ambiente;
+- códigos de erro literais;
+- schema do banco;
+- RPCs e funções públicas;
+- RLS, policies e grants;
+- tipos TypeScript do Supabase;
+- ERD.
 
-O índice é `canonical`, mas cada artefato mantém seu próprio status e autoridade.
+Os arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais continuam úteis para explicar intenção, semântica, responsabilidades e limitações que não podem ser inferidas automaticamente.
 
-## Inventários humanos atuais
+## Baselines geradas
 
-| Documento | Conteúdo | Limitação |
-|---|---|---|
-| [`rotas.md`](./rotas.md) | rotas públicas, autenticadas, administrativas e aliases | extraído manualmente; precisa observar bundle após transforms |
-| [`apis-e-functions.md`](./apis-e-functions.md) | Vercel Functions, Edge Functions e RPCs relacionadas | assinaturas e respostas ainda não são geradas integralmente |
-| [`variaveis-de-ambiente.md`](./variaveis-de-ambiente.md) | variáveis por runtime e sensibilidade | obrigatoriedade inferida do código |
-| [`codigos-de-erro.md`](./codigos-de-erro.md) | códigos do frontend, Functions e fluxos financeiros | faltam erros SQL e mensagens dinâmicas |
-| [`permissoes.md`](./permissoes.md) | atores, roles e matriz funcional | precisa ser confrontado com RLS, grants e `security definer` finais |
+### Runtime e Functions
 
-## Geração estática
+| Contrato | Arquivo | Fonte principal | Comando |
+|---|---|---|---|
+| Rotas efetivas | [`rotas.generated.md`](./rotas.generated.md) | `App.tsx` transformado, `main.tsx` e Vercel | `npm run docs:generate-routes` |
+| Vercel Functions | [`APIs.generated.md`](./APIs.generated.md) | `api/` | `npm run docs:generate-contracts` |
+| Edge Functions | [`edge-functions.generated.md`](./edge-functions.generated.md) | `supabase/functions/` | `npm run docs:generate-contracts` |
+| Variáveis | [`variaveis-de-ambiente.generated.md`](./variaveis-de-ambiente.generated.md) | análise estática do repositório | `npm run docs:generate-contracts` |
+| Erros literais | [`codigos-de-erro.generated.md`](./codigos-de-erro.generated.md) | JavaScript e TypeScript | `npm run docs:generate-contracts` |
 
-O gerador está em `scripts/generate-static-contracts.mjs`.
+Procedimentos:
 
-```bash
-npm run docs:generate-contracts
-npm run docs:check-contracts
-```
+- [`geracao-estatica.md`](./geracao-estatica.md);
+- [`geracao-de-rotas.md`](./geracao-de-rotas.md).
 
-Procedimento: [`geracao-estatica.md`](./geracao-estatica.md).
+### Banco reproduzido
 
-### Saídas estáticas
-
-| Arquivo | Fonte | Situação |
-|---|---|---|
-| `APIs.generated.md` | `api/` | gerador e publicação automática implementados; baseline depende da execução do workflow |
-| `edge-functions.generated.md` | `supabase/functions/` | gerador e publicação automática implementados; baseline depende da execução do workflow |
-| `variaveis-de-ambiente.generated.md` | análise estática | gerador e publicação automática implementados; baseline depende da execução do workflow |
-| `codigos-de-erro.generated.md` | literais em JavaScript e TypeScript | gerador e publicação automática implementados; baseline depende da execução do workflow |
-
-O workflow `.github/workflows/static-contracts.yml`:
-
-- gera e audita os quatro contratos;
-- detecta arquivos novos e modificados com `git status --porcelain`;
-- exige baseline atualizada em pull requests;
-- publica os arquivos em `main` quando executado por push;
-- envia a saída como artefato por 14 dias.
-
-## Geração do banco
-
-O gerador está em `scripts/generate-database-contracts.mjs`.
-
-```bash
-npm run docs:generate-db-contracts
-npm run docs:check-db-contracts
-```
+| Contrato | Arquivo | Conteúdo | Comando |
+|---|---|---|---|
+| Schema final | [`banco.generated.md`](./banco.generated.md) | enums, tabelas, colunas, constraints, índices, views e triggers | `npm run docs:generate-db-contracts` |
+| RPCs | [`RPCs.generated.md`](./RPCs.generated.md) | argumentos, retorno, volatilidade, `security definer` e ACL | `npm run docs:generate-db-contracts` |
+| Segurança | [`RLS.generated.md`](./RLS.generated.md) | estado de RLS, policies e grants | `npm run docs:generate-db-contracts` |
+| Tipos | [`database.types.generated.ts`](./database.types.generated.ts) | tipos TypeScript gerados pela Supabase CLI | `npm run docs:generate-db-contracts` |
+| ERD | [`erd.generated.mmd`](./erd.generated.mmd) | entidades, colunas e chaves estrangeiras | `npm run docs:generate-db-contracts` |
 
 Procedimento: [`geracao-do-banco.md`](./geracao-do-banco.md).
 
-### Saídas do banco
+## Evidência de geração
 
-| Arquivo | Fonte | Conteúdo |
+### Contratos estáticos e rotas
+
+A baseline vigente foi publicada pelo GitHub Actions no commit:
+
+```text
+9c6eba3bd05a16511bd8160b3e0d621c34f9918e
+```
+
+Antes da publicação, o workflow:
+
+1. gerou os contratos estáticos;
+2. aplicou o transform real de pedidos;
+3. gerou o contrato de rotas;
+4. executou a auditoria documental;
+5. detectou arquivos novos e modificados;
+6. publicou apenas a lista explícita de contratos.
+
+### Banco
+
+A baseline vigente foi publicada pelo GitHub Actions no commit:
+
+```text
+2e90f45cb57c001ba5510d9918345b763578b265
+```
+
+Antes da publicação, o workflow:
+
+1. auditou as migrations;
+2. executou o build;
+3. iniciou uma stack Supabase local;
+4. reaplicou todas as migrations em banco vazio;
+5. instalou a fixture autenticada de teste;
+6. executou todos os testes SQL;
+7. consultou os catálogos do Postgres local;
+8. gerou schema, RPCs, RLS, tipos e ERD;
+9. executou a auditoria documental.
+
+Nenhum gerador consulta o banco de produção.
+
+## Verificação de drift
+
+### Runtime e Functions
+
+```bash
+npm run docs:check-contracts
+npm run docs:check-routes
+```
+
+O workflow `Static contract generation` falha em pull requests quando as saídas esperadas diferem da baseline versionada.
+
+### Banco
+
+```bash
+npm run docs:check-db-contracts
+```
+
+O workflow `Database migration safety` gera os contratos somente depois do replay e dos testes. Em pull requests, qualquer diferença não versionada falha o check.
+
+## Inventários humanos complementares
+
+| Documento | Estado | Uso permitido |
 |---|---|---|
-| `banco.generated.md` | Postgres local após replay | enums, tabelas, colunas, constraints, índices, views e triggers |
-| `RPCs.generated.md` | `pg_proc` e catálogos relacionados | argumentos, retorno, volatilidade, `security definer` e ACL |
-| `RLS.generated.md` | `pg_class`, `pg_policies` e `information_schema` | estado de RLS, policies e grants de tabelas e rotinas |
-| `database.types.generated.ts` | Supabase CLI contra banco local | tipos TypeScript reproduzíveis |
-| `erd.generated.mmd` | chaves estrangeiras e colunas | diagrama Mermaid de entidades |
+| [`rotas.md`](./rotas.md) | `deprecated` | redirect documental para a baseline gerada |
+| [`apis-e-functions.md`](./apis-e-functions.md) | `draft` | responsabilidades, exemplos de payload e integrações |
+| [`variaveis-de-ambiente.md`](./variaveis-de-ambiente.md) | `draft` | obrigatoriedade, sensibilidade e configuração operacional |
+| [`codigos-de-erro.md`](./codigos-de-erro.md) | `draft` | semântica de interface e fluxos que não são literais |
+| [`permissoes.md`](./permissoes.md) | `draft` | matriz funcional de atores e papéis |
 
-O workflow `.github/workflows/database-migrations.yml` executa a geração somente depois de:
+Esses documentos não podem contradizer as baselines geradas. Quando houver divergência estrutural, prevalece o arquivo `generated` produzido pelo código ou banco reproduzido.
 
-1. auditoria estática das migrations;
-2. build da aplicação;
-3. inicialização do Supabase local;
-4. replay integral em banco vazio;
-5. instalação da fixture de teste;
-6. aprovação dos testes SQL.
+## Limites dos contratos
 
-Em pull requests, o workflow falha quando os contratos estão desatualizados. Em pushes para `main`, publica a baseline e também envia contratos e logs como artefato.
-
-## Rotas efetivas
-
-`rotas.generated.md` continua pendente. A extração deve considerar:
-
-- `App.tsx`;
-- composição em `src/main.tsx`;
-- mounts independentes;
-- enhancements;
-- transforms registrados no Vite;
-- aliases e History API;
-- resultado compilado.
-
-Uma busca simples por strings no código não é suficiente para promover esse contrato a `generated`.
+- análise estática não compreende integralmente autenticação encapsulada;
+- códigos de erro dinâmicos ou retornados por providers podem não aparecer;
+- o contrato de rotas não executa navegação E2E de cada caminho;
+- o ERD mostra relações estruturais, não regras condicionais internas às RPCs;
+- grants representam o estado final e não a sequência histórica de `GRANT` e `REVOKE`;
+- tipos gerados ainda precisam de revisão de compatibilidade antes de substituir o arquivo usado pela aplicação;
+- a existência de rota, tabela ou função não comprova autorização funcional adequada.
 
 ## Regras
 
-- Arquivos `generated` não devem ser editados manualmente.
-- Cada saída deve registrar comando, commit e data da fonte.
-- A geração não pode depender do banco de produção.
-- Secrets e valores reais nunca devem aparecer.
-- Dados pessoais e financeiros reais não entram nos artefatos.
-- A mesma entrada deve produzir a mesma saída.
-- Inventários humanos continuam `draft` até serem substituídos.
-- Contratos estáticos não substituem introspecção de banco ou testes de integração.
-- Contratos do banco só têm autoridade quando replay e testes SQL estão aprovados.
+- não editar arquivos `generated` manualmente;
+- corrigir a fonte ou o gerador e regenerar;
+- nunca incluir secrets, tokens ou dados pessoais reais;
+- manter comandos e workflows reproduzíveis;
+- revisar diffs gerados como mudança de contrato;
+- atualizar documentação de domínio quando uma alteração estrutural mudar regra de negócio;
+- registrar ADR quando a mudança alterar arquitetura, autoridade ou estratégia de compatibilidade.
 
 ## Pendências restantes
 
-1. confirmar a primeira execução dos workflows em `main`;
-2. revisar as baselines publicadas;
-3. confirmar `docs:check-contracts` e `docs:check-db-contracts` sem drift;
-4. gerar `rotas.generated.md` a partir do runtime compilado;
-5. substituir os tipos usados pela aplicação somente após revisão de compatibilidade;
-6. promover inventários humanos substituídos para `deprecated`.
+1. comparar `database.types.generated.ts` com `src/lib/database.types.ts` e definir migração segura;
+2. aprofundar contratos de payload e resposta que não podem ser inferidos estaticamente;
+3. revisar alertas de segurança revelados por RLS, grants ou funções `security definer`;
+4. depreciar outros inventários manuais somente quando o conteúdo explicativo tiver substituto;
+5. manter os checks de drift obrigatórios em futuras mudanças estruturais.
 
-A geração do banco substituirá definitivamente o snapshot incompleto em `docs/SUPABASE_SCHEMA.md` quando a primeira baseline for publicada e validada.
+O snapshot manual `docs/SUPABASE_SCHEMA.md` permanece depreciado e não deve voltar a ser usado como representação do banco vigente.
