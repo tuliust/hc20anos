@@ -2,7 +2,7 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: e9189b78654223f8087da88f0eb56cf356a3c83b
+last_verified_commit: 897b45631650faf30c7a01ceeb1b35fe18f3d6f1
 source_files:
   - README.md
   - docs/
@@ -24,8 +24,9 @@ Documentos `canonical` descrevem regras humanas vigentes conferidas contra o rep
 6. [`10-dominios/README.md`](./10-dominios/README.md) — índice das regras de negócio.
 7. [`30-contratos/README.md`](./30-contratos/README.md) — inventários atuais e geração automática planejada.
 8. [`40-runbooks/README.md`](./40-runbooks/README.md) — procedimentos operacionais.
-9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — manutenção e classificação.
-10. [`archive/README.md`](./archive/README.md) — registros históricos.
+9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — classificação e manutenção.
+10. [`50-governanca/processo-de-atualizacao.md`](./50-governanca/processo-de-atualizacao.md) — fluxo de atualização e validação.
+11. [`archive/README.md`](./archive/README.md) — registros históricos.
 
 ## Domínios documentados
 
@@ -52,7 +53,7 @@ Documentos `canonical` descrevem regras humanas vigentes conferidas contra o rep
 | APIs e Functions | [`30-contratos/apis-e-functions.md`](./30-contratos/apis-e-functions.md) | `draft`; aguarda gerador |
 | Variáveis | [`30-contratos/variaveis-de-ambiente.md`](./30-contratos/variaveis-de-ambiente.md) | `draft`; aguarda análise estática automatizada |
 | Erros | [`30-contratos/codigos-de-erro.md`](./30-contratos/codigos-de-erro.md) | `draft`; faltam RPCs SQL |
-| Permissões | [`30-contratos/permissoes.md`](./30-contratos/permissoes.md) | `draft`; aguarda RLS/grants gerados |
+| Permissões | [`30-contratos/permissoes.md`](./30-contratos/permissoes.md) | `draft`; aguarda RLS e grants gerados |
 
 Ainda precisam ser gerados automaticamente: schema final, RPCs, RLS, grants, tipos Supabase, rotas efetivas, APIs, Edge Functions, variáveis, erros e ERD.
 
@@ -74,12 +75,19 @@ Ainda precisam ser gerados automaticamente: schema final, RPCs, RLS, grants, tip
 
 A documentação dos procedimentos está concluída. A pendência é executá-los, registrar evidências e promover individualmente os comprovados para `canonical`.
 
+## Design
+
+| Documento | Estado | Condição para promoção |
+|---|---|---|
+| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | `draft` | revisão visual do runtime, acessibilidade e breakpoints |
+| [`DESIGN_TOKENS.md`](./DESIGN_TOKENS.md) | `draft` | comparação com CSS, classes e componentes reais |
+
 ## Reconciliação concluída
 
 | Documento anterior | Classificação | Substituição |
 |---|---|---|
 | `ROADMAP.md` | `historical` | Epic e documentação por domínio |
-| `PRODUCT_SCOPE.md` | `deprecated` | `00-visao-geral/produto.md` e domínios |
+| `PRODUCT_SCOPE.md` | `deprecated` | produto e domínios |
 | `SUPABASE_SCHEMA.md` | `deprecated` | futuro `banco.generated.md` |
 | `AUTH_AND_ROLES.md` | `deprecated` | autenticação e matriz de permissões |
 | `CHECKIN_FLOW.md` | `deprecated` | domínio de operação e runbook do evento |
@@ -90,7 +98,15 @@ A documentação dos procedimentos está concluída. A pendência é executá-lo
 | `PRODUCTION_QA.md` | `deprecated` | validação de pagamentos e runbooks |
 | `mercado-pago/*` | `historical` | registros de auditoria e implementação |
 
-Documentos de design ainda devem ser classificados conforme sejam tokens vigentes, especificação atual ou registro histórico.
+## Governança implementada
+
+- `npm run audit:docs`;
+- validação de front matter, links, arquivos-fonte e substituições;
+- workflow `Documentation safety` em PRs e pushes para `main`;
+- `CODEOWNERS` para documentação;
+- template de PR com impacto documental;
+- processo de atualização;
+- template e índice de ADRs.
 
 ## Pendências técnicas reais
 
@@ -104,23 +120,22 @@ Documentos de design ainda devem ser classificados conforme sejam tokens vigente
 - gerar ERD;
 - extrair rotas depois dos transforms;
 - extrair APIs, Functions, variáveis e erros;
-- validar divergência no CI.
+- validar divergência dos arquivos gerados no CI.
 
-### Governança
+### Governança restante
 
-- criar `npm run audit:docs`;
-- validar links e front matter;
-- adicionar auditoria ao GitHub Actions;
-- criar `CODEOWNERS`;
-- adicionar checklist de impacto documental;
-- exigir ADR para mudanças arquiteturais relevantes.
+- implementar geradores determinísticos;
+- exigir atualização dos contratos gerados no CI;
+- reconstruir ADRs de decisões anteriores apenas quando houver necessidade prática;
+- classificar relatórios auxiliares de migrations ainda sem front matter.
 
 ### Operação
 
 - executar todos os runbooks em ambiente controlado;
 - ensaiar rollback e incidente;
 - simular operação presencial;
-- promover apenas procedimentos comprovados.
+- validar visual e acessibilidade;
+- promover apenas documentos comprovados.
 
 ## Convenção de status
 
