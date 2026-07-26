@@ -201,8 +201,17 @@ export default async function handler(request: any, response: any) {
   }
 
   const runtimeEnv = (globalThis as any).process?.env ?? {};
-  const apiKey = String(runtimeEnv.OPENAI_API_KEY ?? "").trim();
-  const model = String(runtimeEnv.OPENAI_PROFILE_MODEL ?? "gpt-5-mini").trim();
+  const openAiApiKey = String(runtimeEnv.OPENAI_API_KEY ?? "").trim();
+  const gatewayApiKey = String(runtimeEnv.AI_GATEWAY_API_KEY ?? runtimeEnv.VERCEL_OIDC_TOKEN ?? "").trim();
+  const useGateway = !openAiApiKey && Boolean(gatewayApiKey);
+  const apiKey = openAiApiKey || gatewayApiKey;
+  const configuredModel = String(runtimeEnv.OPENAI_PROFILE_MODEL ?? "gpt-5-mini").trim();
+  const model = useGateway && !configuredModel.includes("/")
+    ? `openai/${configuredModel}`
+    : configuredModel;
+  const responsesUrl = useGateway
+    ? "https://ai-gateway.vercel.sh/v1/responses"
+    : "https://api.openai.com/v1/responses";
 
   if (!apiKey) {
     return response.status(503).json({ error: "openai_not_configured" });
@@ -222,7 +231,7 @@ export default async function handler(request: any, response: any) {
   };
 
   try {
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
+    const upstream = await fetch(responsesUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -266,7 +275,8 @@ export default async function handler(request: any, response: any) {
     const payload = await upstream.json().catch(() => ({}));
 
     if (!upstream.ok) {
-      console.error("[api/generate-profile-bio] OpenAI request failed", {
+      console.error("[api/generate-profile-bio] AI request failed", {
+        provider: useGateway ? "vercel-ai-gateway" : "openai",
         status: upstream.status,
         requestId: upstream.headers.get("x-request-id"),
       });
@@ -275,7 +285,8 @@ export default async function handler(request: any, response: any) {
 
     const bio = parseGeneratedBio(payload);
     if (!bio) {
-      console.error("[api/generate-profile-bio] OpenAI response did not contain a valid bio", {
+      console.error("[api/generate-profile-bio] AI response did not contain a valid bio", {
+        provider: useGateway ? "vercel-ai-gateway" : "openai",
         requestId: upstream.headers.get("x-request-id"),
         status: payload?.status,
       });
@@ -284,7 +295,7 @@ export default async function handler(request: any, response: any) {
 
     return response.status(200).json({ bio });
   } catch (error) {
-    console.error("[api/generate-profile-bio] OpenAI service unavailable", error);
+    console.error("[api/generate-profile-bio] AI service unavailable", error);
     return response.status(502).json({ error: "openai_service_unavailable" });
   }
 }
