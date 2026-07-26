@@ -53,45 +53,52 @@ function unique(values) {
 
 function category(relativePath) {
   if (relativePath === "src/lib/supabase.ts") return "cliente Supabase";
+  if (relativePath.endsWith(".d.ts")) return "augmentação de módulo";
   if (relativePath.startsWith("src/app/admin/")) return "admin";
   if (relativePath.startsWith("src/app/home/")) return "home";
   if (relativePath.startsWith("src/app/")) return "componente/página";
   if (relativePath.startsWith("src/lib/")) return "serviço/biblioteca";
   if (/Enhancement\.(ts|tsx)$/.test(relativePath)) return "enhancement";
-  if (relativePath.endsWith(".d.ts")) return "augmentação de módulo";
   return "outro runtime";
 }
 
-function parseNamedSpecifiers(specifier) {
+function namedEntries(specifier) {
   const block = specifier.match(/\{([\s\S]*?)\}/)?.[1];
   if (!block) return [];
-  return block
-    .split(",")
-    .map(item => item.trim())
-    .filter(Boolean)
-    .map(item => item.replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim())
-    .filter(Boolean);
+  return block.split(",").map(item => item.trim()).filter(Boolean);
 }
 
 function parseImports(content) {
   const imports = [];
-  const pattern = /import\s+(type\s+)?([\s\S]*?)\s+from\s+["']([^"']*database\.types)["'];?/g;
-  let match;
-  while ((match = pattern.exec(content)) !== null) {
-    const specifier = match[2].trim();
-    const named = parseNamedSpecifiers(specifier);
-    const defaultMatch = specifier.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:,|$)/);
+  const statements = content.match(/(?:^|\n)\s*import\s+[\s\S]*?;(?=\s*(?:\n|$))/g) ?? [];
+
+  for (const rawStatement of statements) {
+    const statement = rawStatement.trim();
+    const source = statement.match(/\sfrom\s+["']([^"']+)["']/)?.[1];
+    if (!source || !source.includes("database.types")) continue;
+
+    const specifier = statement.match(/^import\s+([\s\S]*?)\s+from\s+["']/)?.[1]?.trim() ?? "";
+    const entries = namedEntries(specifier);
+    const symbols = entries
+      .map(item => item.replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim())
+      .filter(Boolean);
+    const withoutNamed = specifier.replace(/\{[\s\S]*?\}/, "").trim();
+    const defaultMatch = withoutNamed.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:,|$)/);
     const namespaceMatch = specifier.match(/\*\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
+    const wholeImportType = specifier.startsWith("type ");
+    const namedOnlyType = entries.length > 0 && entries.every(item => item.startsWith("type "));
+
     imports.push({
-      module: match[3],
-      typeOnly: Boolean(match[1]) || specifier.startsWith("type "),
+      module: source,
+      typeOnly: wholeImportType || namedOnlyType,
       symbols: unique([
-        ...named,
-        ...(defaultMatch ? [defaultMatch[1]] : []),
+        ...symbols,
+        ...(defaultMatch ? [defaultMatch[1].replace(/^type\s+/, "")] : []),
         ...(namespaceMatch ? [`* as ${namespaceMatch[1]}`] : []),
       ]),
     });
   }
+
   return imports;
 }
 
@@ -255,7 +262,7 @@ async function generateReport() {
     "",
     "## Limitações",
     "",
-    "- o inventário cobre imports estáticos e `declare module`;",
+    "- o inventário cobre imports estáticos terminados por ponto e vírgula e `declare module`;",
     "- usos indiretos por reexportação podem exigir análise adicional;",
     "- um import sem `type` pode ser removido do JavaScript pelo compilador, mas é classificado conservadoramente;",
     "- o relatório não prova que todos os símbolos importados são efetivamente usados;",
