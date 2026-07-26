@@ -1,0 +1,88 @@
+name: Supabase type compatibility
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/lib/database.types.ts"
+      - "docs/30-contratos/database.types.generated.ts"
+      - "scripts/generate-type-compatibility-report.mjs"
+      - "package.json"
+      - ".github/workflows/type-compatibility.yml"
+  pull_request:
+    paths:
+      - "src/lib/database.types.ts"
+      - "docs/30-contratos/database.types.generated.ts"
+      - "scripts/generate-type-compatibility-report.mjs"
+      - "package.json"
+      - ".github/workflows/type-compatibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: type-compatibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate compatibility report
+        run: npm run docs:generate-type-compatibility
+
+      - name: Audit generated documentation
+        run: npm run audit:docs
+
+      - name: Require updated report in pull requests
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          file="docs/30-contratos/compatibilidade-de-tipos.generated.md"
+          changes="$(git status --porcelain --untracked-files=all -- "$file")"
+          if [ -n "$changes" ]; then
+            echo "Relatório de compatibilidade desatualizado ou ausente:"
+            echo "$changes"
+            git diff -- "$file" || true
+            exit 1
+          fi
+
+      - name: Publish report to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          file="docs/30-contratos/compatibilidade-de-tipos.generated.md"
+          changes="$(git status --porcelain --untracked-files=all -- "$file")"
+          if [ -z "$changes" ]; then
+            echo "Relatório de compatibilidade já está atualizado."
+            exit 0
+          fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$file"
+          git commit -m "docs: atualizar compatibilidade dos tipos Supabase"
+          git push
+
+      - name: Upload compatibility report
+        uses: actions/upload-artifact@v4
+        with:
+          name: type-compatibility-${{ github.sha }}
+          path: docs/30-contratos/compatibilidade-de-tipos.generated.md
+          if-no-files-found: error
+          retention-days: 14
