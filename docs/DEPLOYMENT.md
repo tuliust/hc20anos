@@ -1,43 +1,41 @@
-# Deployment
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: 45c8e164c9ed503817f203bd1bbbabe006bace2e
+superseded_by:
+  - docs/40-runbooks/desenvolvimento-local.md
+  - docs/40-runbooks/deploy-vercel.md
+  - docs/40-runbooks/deploy-edge-functions.md
+  - docs/40-runbooks/migrations.md
+  - docs/40-runbooks/rollback.md
+---
 
-## Build local
+# Deployment — referência depreciada
 
-```bash
-npm run build
-```
+Este documento foi substituído por runbooks separados e não deve mais ser usado como procedimento operacional completo.
 
-O aviso de chunk acima de 500 kB é conhecido e não bloqueia deploy.
+## Referências vigentes
 
-## Vite + Tailwind
+- [`40-runbooks/desenvolvimento-local.md`](./40-runbooks/desenvolvimento-local.md)
+- [`40-runbooks/deploy-vercel.md`](./40-runbooks/deploy-vercel.md)
+- [`40-runbooks/deploy-edge-functions.md`](./40-runbooks/deploy-edge-functions.md)
+- [`40-runbooks/migrations.md`](./40-runbooks/migrations.md)
+- [`40-runbooks/rollback.md`](./40-runbooks/rollback.md)
 
-Arquivos obrigatórios:
+## Conteúdo histórico preservado
 
-- `vite.config.ts` com `@vitejs/plugin-react`, `@tailwindcss/vite` e as transformações de build registradas.
-- `src/styles.css` com `@import "tailwindcss";`.
-- `src/main.tsx` importando `./styles.css`.
+A versão anterior registrava corretamente alguns elementos ainda existentes:
 
-Se o CSS não for importado, a página carrega desformatada.
+- build por `npm run build`;
+- Vite, Tailwind e transforms registrados em `vite.config.ts`;
+- deploy do frontend a partir de `main`;
+- variáveis públicas `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_DEV_MODE`;
+- alternativas server-side para geração de mini bio por IA;
+- proibição de versionar `.env*`, `dist/`, `node_modules/` e `supabase/.temp/`.
 
-## Vercel
+Esses pontos foram redistribuídos e contextualizados nos runbooks atuais, com pré-condições, validação, critérios de interrupção e rollback.
 
-- Deploy a partir da branch `main`.
-- Variáveis públicas necessárias:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-  - `VITE_DEV_MODE=false`
-- A geração do perfil com IA aceita uma das configurações server-side abaixo, nesta ordem:
-  1. `OPENAI_API_KEY` para chamada direta à OpenAI;
-  2. `AI_GATEWAY_API_KEY` para chamada pelo Vercel AI Gateway;
-  3. `VERCEL_OIDC_TOKEN`, fornecido automaticamente em deployments Vercel compatíveis com AI Gateway.
-- Variável server-side opcional:
-  - `OPENAI_PROFILE_MODEL` — padrão: `gpt-5-mini`; pelo AI Gateway o prefixo `openai/` é acrescentado automaticamente quando necessário.
+## Limite de autoridade
 
-Credenciais server-side nunca devem usar o prefixo `VITE_`, pois precisam permanecer restritas às funções da Vercel.
-
-## Nunca versionar
-
-- `.env`
-- `.env.local`
-- `dist/`
-- `node_modules/`
-- `supabase/.temp/`
+Em divergência, prevalecem o código, scripts, configuração, workflow e os runbooks apontados acima. Este arquivo permanece somente para preservar rastreabilidade de referências antigas.
