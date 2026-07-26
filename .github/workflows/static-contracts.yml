@@ -1,0 +1,70 @@
+name: Static contract generation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "supabase/functions/**"
+      - "src/**"
+      - "build/**"
+      - "scripts/generate-static-contracts.mjs"
+      - "scripts/audit-docs.mjs"
+      - "docs/30-contratos/**"
+      - "package.json"
+      - ".github/workflows/static-contracts.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - "supabase/functions/**"
+      - "src/**"
+      - "build/**"
+      - "scripts/generate-static-contracts.mjs"
+      - "scripts/audit-docs.mjs"
+      - "docs/30-contratos/**"
+      - "package.json"
+      - ".github/workflows/static-contracts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-static-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate static contracts
+        run: npm run docs:generate-contracts
+
+      - name: Audit generated documentation
+        run: npm run audit:docs
+
+      - name: Show generated diff
+        run: git diff -- docs/30-contratos/*.generated.md
+
+      - name: Upload generated contracts
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-contracts-${{ github.sha }}
+          path: |
+            docs/30-contratos/APIs.generated.md
+            docs/30-contratos/edge-functions.generated.md
+            docs/30-contratos/variaveis-de-ambiente.generated.md
+            docs/30-contratos/codigos-de-erro.generated.md
+          if-no-files-found: error
+          retention-days: 14
