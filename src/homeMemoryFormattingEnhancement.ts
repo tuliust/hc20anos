@@ -3,7 +3,6 @@ const HOME_PATH = "/";
 const CAROUSEL_SELECTOR = '[data-home-section="about"] [data-home-memory-carousel]';
 const FORMATTED_ATTRIBUTE = "data-home-memory-formatted";
 const BODY_ATTRIBUTE = "data-home-memory-text";
-const QUOTES_NORMALIZED_ATTRIBUTE = "data-home-memory-quotes-normalized";
 
 let observer: MutationObserver | null = null;
 let scheduled = false;
@@ -115,8 +114,6 @@ function findMemoryBody(carousel: HTMLElement) {
 }
 
 function normalizeOuterQuotes(element: HTMLElement) {
-  if (element.getAttribute(QUOTES_NORMALIZED_ATTRIBUTE) === "true") return;
-
   const text = String(element.textContent ?? "").trim();
   const matchingQuotes = (
     (text.startsWith("“") && text.endsWith("”"))
@@ -127,8 +124,6 @@ function normalizeOuterQuotes(element: HTMLElement) {
   if (matchingQuotes && text.length > 2) {
     element.textContent = text.slice(1, -1).trim();
   }
-
-  element.setAttribute(QUOTES_NORMALIZED_ATTRIBUTE, "true");
 }
 
 function applyFormatting() {
