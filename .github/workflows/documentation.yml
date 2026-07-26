@@ -1,0 +1,50 @@
+name: Documentation safety
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/audit-docs.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/documentation.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/audit-docs.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/documentation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-documentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit documentation metadata and links
+        run: npm run audit:docs
