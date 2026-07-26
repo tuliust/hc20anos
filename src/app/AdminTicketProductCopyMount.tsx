@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 const CATALOG_UPDATED_EVENT = "hc-ticket-catalog-updated";
 
-type ProductGroup = "alumni" | "family" | "guest";
+type ProductGroup = "individual" | "family" | "guest";
 
 type AdminProduct = {
   id: string;
@@ -20,9 +20,9 @@ type AdminLotsPayload = {
 };
 
 const GROUPS: Array<{ id: ProductGroup; label: string; fallback: string }> = [
-  { id: "alumni", label: "Ingresso Ex-Aluno", fallback: "Ingresso individual para ex-aluno da Turma 2006." },
-  { id: "family", label: "Ingresso Família", fallback: "Ingresso para o ex-aluno e seus familiares." },
-  { id: "guest", label: "Ingresso Convidado", fallback: "Ingresso para convidado externo aprovado por um ex-aluno." },
+  { id: "individual", label: "Individual", fallback: "Exclusivo para ex-aluno pré-cadastrado e vinculado à conta." },
+  { id: "family", label: "Família", fallback: "Inclui o ex-aluno pré-cadastrado, um cônjuge e seus filhos." },
+  { id: "guest", label: "Convidado", fallback: "Ingresso individual para participante adulto que não é ex-aluno." },
 ];
 
 function normalizedPath() {
@@ -37,14 +37,14 @@ function isLotsRoute() {
 
 function groupForProduct(code: string | null | undefined, name: string): ProductGroup | null {
   const explicit = String(code ?? "").trim();
-  if (explicit === "simple") return "alumni";
-  if (explicit === "family_full" || explicit === "family_single_parent") return "family";
+  if (explicit === "simple") return "individual";
+  if (explicit === "family_full") return "family";
   if (explicit === "external_guest") return "guest";
 
   const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
   if (normalized.includes("convidado")) return "guest";
   if (normalized.includes("familia") || normalized.includes("casal")) return "family";
-  if (normalized.includes("ex-aluno") || normalized.includes("ex aluno") || normalized.includes("individual")) return "alumni";
+  if (normalized.includes("individual") || normalized.includes("ex-aluno") || normalized.includes("ex aluno")) return "individual";
   return null;
 }
 
@@ -54,7 +54,7 @@ function findLotsPanel() {
 
 function ProductCopyPanel() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [subtitles, setSubtitles] = useState<Record<ProductGroup, string>>({ alumni: "", family: "", guest: "" });
+  const [subtitles, setSubtitles] = useState<Record<ProductGroup, string>>({ individual: "", family: "", guest: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -73,7 +73,7 @@ function ProductCopyPanel() {
         : [];
       setProducts(nextProducts);
 
-      const next = { alumni: "", family: "", guest: "" } as Record<ProductGroup, string>;
+      const next = { individual: "", family: "", guest: "" } as Record<ProductGroup, string>;
       GROUPS.forEach(group => {
         const matching = nextProducts.filter(product => groupForProduct(product.product_code, product.name) === group.id);
         next[group.id] = matching.map(product => product.description?.trim() ?? "").find(Boolean) || group.fallback;
@@ -119,7 +119,7 @@ function ProductCopyPanel() {
         <div>
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#c9a84c]">Textos dos cards</p>
           <h2 className="mt-2 font-['Playfair_Display'] text-2xl font-bold text-[#f0ebe0]">Subtítulos dos ingressos</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7a9a7a]">Os textos abaixo aparecem logo abaixo do nome dos três cards públicos na Home e em /ingressos.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7a9a7a]">Os textos abaixo aparecem nos três cards públicos: Individual, Família e Convidado.</p>
         </div>
         <button type="button" onClick={() => void save()} disabled={loading || saving} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c9a84c] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#0d1a0f] disabled:opacity-40">
           {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}{saving ? "Salvando..." : "Salvar subtítulos"}
