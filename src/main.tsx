@@ -5,7 +5,6 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
-import { BuyerOrdersPage } from './app/BuyerOrdersPage';
 import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
 import { OperationsPage } from './app/OperationsPage';
 import { OperationsReportingPanel } from './app/OperationsReportingPanel';
@@ -76,12 +75,10 @@ import './profileModalBioEnhancement.css';
 import './footerLogoEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
-const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
 const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
 const legacyGuestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
-const isBuyerOrdersRoute = buyerOrdersRoutes.has(normalizedPath);
 const isOperationsRoute = operationsRoutes.has(normalizedPath);
-const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute;
+const isStandaloneRoute = isOperationsRoute;
 
 if (legacyGuestApprovalRoutes.has(normalizedPath)) {
   window.location.replace('/ingressos');
@@ -141,7 +138,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : <>
+    {isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : <>
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />

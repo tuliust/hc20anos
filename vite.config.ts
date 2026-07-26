@@ -3,6 +3,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { sourceLineEndingNormalizationTransform } from './build/sourceLineEndingNormalizationTransform.mjs'
+import { buyerOrdersSharedRouteTransform } from './build/buyerOrdersSharedRouteTransform.mjs'
 import { profileClaimIdentityTransform } from './build/profileClaimIdentityTransform.mjs'
 import { profileClaimProfileAiTransform } from './build/profileClaimProfileAiTransform.mjs'
 import { photoUploadYearInputTransform } from './build/photoUploadYearInputTransform.mjs'
@@ -23,6 +24,7 @@ export default defineConfig({
   plugins: [
     figmaAssetResolver(),
     sourceLineEndingNormalizationTransform(),
+    buyerOrdersSharedRouteTransform(),
     profileClaimIdentityTransform(),
     profileClaimProfileAiTransform(),
     photoUploadYearInputTransform(),
