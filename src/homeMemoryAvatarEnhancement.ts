@@ -5,6 +5,8 @@ const EVENT_ID = "00000000-0000-0000-0000-000000000001";
 const CAROUSEL_SELECTOR = '[data-home-section="about"] [data-home-memory-carousel]';
 const AVATAR_ATTRIBUTE = "data-home-memory-avatar";
 const SLOT_ATTRIBUTE = "data-home-memory-avatar-slot";
+const SLOT_HANDLER_ATTRIBUTE = "data-home-memory-avatar-handler";
+const PERSON_NAME_ATTRIBUTE = "data-home-memory-person-name";
 
 type MemoryRow = {
   person_id: string | null;
@@ -20,6 +22,7 @@ type ProfileCardRow = {
 };
 
 type MemoryAvatar = {
+  personId: string;
   authorName: string;
   avatarUrl: string;
 };
@@ -40,6 +43,12 @@ function normalizeText(value: string | null | undefined) {
     .replace(/\s+/g, " ")
     .trim()
     .toLocaleLowerCase("pt-BR");
+}
+
+function openPersonProfile(personName: string) {
+  const url = new URL("/ex-alunos", window.location.origin);
+  url.searchParams.set("pessoa", personName);
+  window.location.assign(`${url.pathname}${url.search}`);
 }
 
 async function loadMemoryAvatarLookup() {
@@ -79,6 +88,7 @@ async function loadMemoryAvatarLookup() {
       const memoryKey = normalizeText(memory.memory_text);
       if (!memoryKey) return;
       lookup.set(memoryKey, {
+        personId: card.person_id,
         authorName: card.display_name || card.full_name || memory.author_name || "Ex-aluno",
         avatarUrl: card.avatar_url,
       });
@@ -123,9 +133,33 @@ function findAvatarSlot(carousel: HTMLElement) {
   return slot;
 }
 
+function ensureSlotInteraction(slot: HTMLElement) {
+  if (slot.hasAttribute(SLOT_HANDLER_ATTRIBUTE)) return;
+  slot.setAttribute(SLOT_HANDLER_ATTRIBUTE, "true");
+
+  const activate = (event: Event) => {
+    const personName = slot.getAttribute(PERSON_NAME_ATTRIBUTE)?.trim();
+    if (!personName) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPersonProfile(personName);
+  };
+
+  slot.addEventListener("click", activate);
+  slot.addEventListener("keydown", event => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    activate(event);
+  });
+}
+
 function clearAvatar(slot: HTMLElement) {
   slot.querySelector<HTMLElement>(`[${AVATAR_ATTRIBUTE}]`)?.remove();
   slot.querySelectorAll<HTMLElement>("svg").forEach(icon => icon.style.removeProperty("display"));
+  slot.removeAttribute(PERSON_NAME_ATTRIBUTE);
+  slot.removeAttribute("role");
+  slot.removeAttribute("tabindex");
+  slot.removeAttribute("aria-label");
+  slot.style.removeProperty("cursor");
 }
 
 function renderAvatar(slot: HTMLElement, memory: MemoryAvatar) {
@@ -145,7 +179,15 @@ function renderAvatar(slot: HTMLElement, memory: MemoryAvatar) {
 
   if (image.src !== memory.avatarUrl) image.src = memory.avatarUrl;
   image.alt = `Foto de ${memory.authorName}`;
+  image.dataset.personId = memory.personId;
   slot.querySelectorAll<HTMLElement>("svg").forEach(icon => icon.style.setProperty("display", "none", "important"));
+
+  ensureSlotInteraction(slot);
+  slot.setAttribute(PERSON_NAME_ATTRIBUTE, memory.authorName);
+  slot.setAttribute("role", "link");
+  slot.setAttribute("tabindex", "0");
+  slot.setAttribute("aria-label", `Abrir perfil de ${memory.authorName}`);
+  slot.style.cursor = "pointer";
 }
 
 async function applyAvatar() {
