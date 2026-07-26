@@ -57,7 +57,12 @@ jobs:
         run: npm run docs:generate-contracts
 
       - name: Audit generated documentation
-        run: npm run audit:docs
+        id: audit_docs
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run audit:docs 2>&1 | tee audit-docs.log
 
       - name: Require updated contracts in pull requests
         if: github.event_name == 'pull_request'
@@ -88,7 +93,8 @@ jobs:
           git commit -m "docs: atualizar contratos estáticos gerados"
           git push
 
-      - name: Upload generated contracts
+      - name: Upload generated contracts and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: static-contracts-${{ github.sha }}
@@ -97,5 +103,10 @@ jobs:
             docs/30-contratos/edge-functions.generated.md
             docs/30-contratos/variaveis-de-ambiente.generated.md
             docs/30-contratos/codigos-de-erro.generated.md
+            audit-docs.log
           if-no-files-found: error
           retention-days: 14
+
+      - name: Enforce documentation audit result
+        if: steps.audit_docs.outcome == 'failure'
+        run: exit 1
