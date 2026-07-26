@@ -60,17 +60,27 @@ jobs:
 
       - name: Require updated contracts in pull requests
         if: github.event_name == 'pull_request'
-        run: git diff --exit-code -- docs/30-contratos/*.generated.md
+        shell: bash
+        run: |
+          changes="$(git status --porcelain --untracked-files=all -- docs/30-contratos/*.generated.md)"
+          if [ -n "$changes" ]; then
+            echo "Contratos estáticos desatualizados ou ausentes:"
+            echo "$changes"
+            git diff -- docs/30-contratos/*.generated.md || true
+            exit 1
+          fi
 
       - name: Publish generated contracts to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
-          if git diff --quiet -- docs/30-contratos/*.generated.md; then
+          changes="$(git status --porcelain --untracked-files=all -- docs/30-contratos/*.generated.md)"
+          if [ -z "$changes" ]; then
             echo "Contratos estáticos já estão atualizados."
             exit 0
           fi
 
+          echo "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/30-contratos/*.generated.md
