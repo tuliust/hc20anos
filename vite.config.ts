@@ -2,6 +2,7 @@ import { defineConfig, splitVendorChunkPlugin } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { sourceLineEndingNormalizationTransform } from './build/sourceLineEndingNormalizationTransform.mjs'
 import { profileClaimIdentityTransform } from './build/profileClaimIdentityTransform.mjs'
 import { profileClaimProfileAiTransform } from './build/profileClaimProfileAiTransform.mjs'
 import { photoUploadYearInputTransform } from './build/photoUploadYearInputTransform.mjs'
@@ -21,6 +22,7 @@ function figmaAssetResolver() {
 export default defineConfig({
   plugins: [
     figmaAssetResolver(),
+    sourceLineEndingNormalizationTransform(),
     profileClaimIdentityTransform(),
     profileClaimProfileAiTransform(),
     photoUploadYearInputTransform(),
