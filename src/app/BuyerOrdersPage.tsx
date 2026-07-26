@@ -1,28 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Download,
-  LogOut,
   Mail,
-  Menu,
-  Pencil,
   RefreshCw,
   ShoppingBag,
   Ticket,
-  Users,
-  X,
   XCircle,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import {
-  getHomePageContent,
-  getMyProfile,
-  HOME_PAGE_CONTENT_DEFAULTS,
-  type HomePageContent,
-} from "../lib/services";
 import { getTicketQrDataUrl } from "../lib/ticket-experience";
 import {
   AcceptTransfersPanel,
@@ -31,6 +19,8 @@ import {
   TicketTransferAction,
 } from "./BuyerCommerceActions";
 import "./BuyerOrdersPage.css";
+
+type BuyerOrdersDestination = "alumni-area" | "tickets";
 
 type TicketData = {
   id: string;
@@ -96,25 +86,7 @@ type BuyerOrder = {
   participants: Participant[];
 };
 
-type PreferenceRow = {
-  order_id: string;
-  status: string;
-};
-
-type HeaderContent = HomePageContent & {
-  header_logo_alt?: string | null;
-  header_fallback_badge_main?: string | null;
-  header_fallback_badge_year?: string | null;
-  nav_home_label?: string | null;
-  nav_event_label?: string | null;
-  nav_ex_alumni_label?: string | null;
-  nav_photos_label?: string | null;
-  nav_polls_label?: string | null;
-  nav_archive_label?: string | null;
-};
-
-const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
-const MEANINGFUL_WITHOUT_PREFERENCE = new Set([
+const MEANINGFUL_WITHOUT_PAYMENT_ATTEMPT = new Set([
   "approved",
   "in_process",
   "rejected",
@@ -123,14 +95,6 @@ const MEANINGFUL_WITHOUT_PREFERENCE = new Set([
 ]);
 const ACTIVE_ORDER_STATUSES = new Set(["approved", "pending", "in_process"]);
 const RETRYABLE_ORDER_STATUSES = new Set(["pending", "rejected", "expired"]);
-
-const money = (cents: number, currency = "BRL") =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format((cents || 0) / 100);
-
-const dateTime = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
-    : "—";
 
 const paymentLabels: Record<string, string> = {
   pending: "Pagamento pendente",
@@ -159,6 +123,14 @@ const participantLabels: Record<string, string> = {
   external_guest: "Convidado(a)",
 };
 
+const money = (cents: number, currency = "BRL") =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format((cents || 0) / 100);
+
+const dateTime = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
+    : "—";
+
 function statusClass(status: string) {
   if (["approved", "active", "used"].includes(status)) return "is-success";
   if (["pending", "in_process"].includes(status)) return "is-pending";
@@ -169,23 +141,9 @@ function ticketPayload(ticket: TicketData) {
   return ticket.qr_token || ticket.qr_code;
 }
 
-function initials(value: string) {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0]?.toUpperCase())
-    .join("") || "HC";
-}
-
-function shortAccountName(value: string) {
-  return value.split(/\s+/).filter(Boolean).slice(0, 2).join(" ") || "Minha conta";
-}
-
-function isMeaningfulOrder(order: BuyerOrder, preferenceOrderIds: Set<string>) {
+function isMeaningfulOrder(order: BuyerOrder) {
   if (order.has_payment_attempt === true) return true;
-  if (preferenceOrderIds.has(order.id)) return true;
-  if (MEANINGFUL_WITHOUT_PREFERENCE.has(order.payment_status)) return true;
+  if (MEANINGFUL_WITHOUT_PAYMENT_ATTEMPT.has(order.payment_status)) return true;
   return order.participants.some(participant => Boolean(participant.ticket));
 }
 
@@ -198,125 +156,6 @@ function paymentMethodLabel(value: string | null) {
     account_money: "Saldo Mercado Pago",
   };
   return labels[value] ?? value.replaceAll("_", " ");
-}
-
-function BuyerSiteHeader({
-  content,
-  accountName,
-  accountAvatar,
-}: {
-  content: HeaderContent;
-  accountName: string;
-  accountAvatar: string | null;
-}) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement | null>(null);
-  const shortName = shortAccountName(accountName);
-
-  const navItems = [
-    [content.nav_home_label || "Home", "/"],
-    [content.nav_event_label || "Evento", "/evento"],
-    [content.nav_ex_alumni_label || "Ex-alunos", "/ex-alunos"],
-    [content.nav_photos_label || "Nossa história", "/nossa-historia"],
-    [content.nav_polls_label || "Curiosidades", "/curiosidades"],
-    [content.nav_archive_label || "Pós-festa", "/pos-festa"],
-  ] as const;
-
-  useEffect(() => {
-    function closeOnOutsideClick(event: MouseEvent) {
-      if (profileRef.current && event.target instanceof Node && !profileRef.current.contains(event.target)) {
-        setProfileOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, []);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    window.location.assign("/");
-  }
-
-  return (
-    <>
-      <header data-public-header className="buyer-site-header">
-        <div className="buyer-site-header-inner">
-          <a className="buyer-brand" href="/" aria-label={`Início — ${content.header_logo_alt || "HC 20 Anos"}`}>
-            {content.header_logo_url ? (
-              <img src={content.header_logo_url} alt={content.header_logo_alt || "HC 20 Anos"} />
-            ) : (
-              <span className="buyer-brand-fallback">
-                <small>{content.header_fallback_badge_year || "20"}</small>
-                <strong>{content.header_fallback_badge_main || "HC"}</strong>
-              </span>
-            )}
-          </a>
-
-          <nav className="buyer-primary-nav" aria-label="Navegação principal">
-            {navItems.map(([label, href]) => (
-              <a key={href} href={href}>{label}</a>
-            ))}
-          </nav>
-
-          <div className="buyer-header-actions">
-            <div className="buyer-profile-menu" ref={profileRef}>
-              <button
-                type="button"
-                className="buyer-account"
-                aria-expanded={profileOpen}
-                aria-label="Abrir menu da conta"
-                onClick={() => setProfileOpen(open => !open)}
-              >
-                {accountAvatar ? (
-                  <img src={accountAvatar} alt={shortName} />
-                ) : (
-                  <span className="buyer-account-initials">{initials(shortName)}</span>
-                )}
-                <strong>{shortName}</strong>
-                <ChevronDown size={15} aria-hidden="true" />
-              </button>
-
-              {profileOpen && (
-                <div className="buyer-profile-dropdown">
-                  <div className="buyer-profile-summary">
-                    {accountAvatar ? (
-                      <img src={accountAvatar} alt="" />
-                    ) : (
-                      <span className="buyer-account-initials">{initials(shortName)}</span>
-                    )}
-                    <strong>{shortName}</strong>
-                  </div>
-                  <a href="/minha-area"><Users size={15} />Minha área</a>
-                  <a href="/editar-perfil"><Pencil size={15} />Editar perfil</a>
-                  <button type="button" onClick={() => void logout()}><LogOut size={15} />Sair</button>
-                </div>
-              )}
-            </div>
-
-            <button
-              className="buyer-mobile-menu-button"
-              type="button"
-              onClick={() => setMobileOpen(open => !open)}
-              aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
-            >
-              {mobileOpen ? <X size={23} /> : <Menu size={23} />}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {mobileOpen && (
-        <div className="buyer-mobile-menu">
-          <nav aria-label="Navegação móvel">
-            {navItems.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
-          </nav>
-          <a href="/minha-area">Minha área</a>
-          <button type="button" onClick={() => void logout()}>Sair da conta</button>
-        </div>
-      )}
-    </>
-  );
 }
 
 function TicketQrImage({ ticket, name, size = 180 }: { ticket: TicketData; name: string; size?: number }) {
@@ -381,18 +220,18 @@ function OrderCard({
     <article className={`buyer-order ${compact ? "is-compact" : ""}`}>
       <div className="buyer-order-top">
         <div className="buyer-order-title">
-          <span>{order.ticket_type.product_code === "external_guest" ? "Ingresso" : "Pedido"}</span>
+          <p>{order.ticket_type.product_code === "external_guest" ? "Ingresso" : "Pedido"}</p>
           <h2>{order.ticket_type.name}</h2>
           <small>#{order.id.slice(0, 8).toUpperCase()} · {dateTime(order.created_at)}</small>
         </div>
         <OrderStatus status={order.payment_status} />
       </div>
 
-      <div className="buyer-order-meta">
-        <div><span>Lote</span><strong>{order.lot?.name ?? "Lote vigente"}</strong></div>
-        <div><span>Total</span><strong>{money(order.total_amount_cents, order.currency_id)}</strong></div>
-        <div><span>Pagamento</span><strong>{paymentMethodLabel(order.payment_method)}</strong></div>
-      </div>
+      <dl className="buyer-order-meta">
+        <div><dt>Lote</dt><dd>{order.lot?.name ?? "Lote vigente"}</dd></div>
+        <div><dt>Total</dt><dd>{money(order.total_amount_cents, order.currency_id)}</dd></div>
+        <div><dt>Pagamento</dt><dd>{paymentMethodLabel(order.payment_method)}</dd></div>
+      </dl>
 
       {isApproved && (
         <div className="buyer-ticket-actions buyer-order-actions">
@@ -406,13 +245,13 @@ function OrderCard({
 
       {!isApproved && !compact && (
         <div className="buyer-payment-state">
-          <Clock3 size={21} />
+          <Clock3 size={22} />
           <div>
             <strong>{paymentLabels[order.payment_status] ?? order.payment_status}</strong>
             <p>
               {isProcessing
-                ? "O pagamento foi enviado e está sendo analisado. A página será atualizada após a confirmação."
-                : "A compra foi iniciada no Mercado Pago, mas o pagamento ainda não foi concluído."}
+                ? "O pagamento foi enviado e está sendo analisado. Esta página será atualizada após a confirmação."
+                : "A compra foi aberta no Mercado Pago, mas o pagamento ainda não foi concluído."}
             </p>
             {order.expires_at && <small>Reserva válida até {dateTime(order.expires_at)}</small>}
             {canRetry && (
@@ -431,14 +270,15 @@ function OrderCard({
       )}
 
       {isApproved && !compact && (
-        <>
+        <section className="buyer-order-tickets">
           <div className="buyer-participants-title">
             <Ticket size={18} />
             <h3>Ingressos deste pedido</h3>
           </div>
+
           <div className="buyer-participants">
             {order.participants.map(participant => (
-              <div className="buyer-participant" key={participant.id}>
+              <article className="buyer-participant" key={participant.id}>
                 <div className="buyer-participant-info">
                   <strong>{participant.full_name}</strong>
                   <span>{participantLabels[participant.participant_type] ?? participant.participant_type.replaceAll("_", " ")}</span>
@@ -447,7 +287,7 @@ function OrderCard({
                 {!participant.ticket ? (
                   <div className="buyer-ticket-waiting">O ingresso está sendo emitido.</div>
                 ) : (
-                  <div className={`buyer-ticket-card ${statusClass(participant.ticket.status)}`}>
+                  <div className="buyer-ticket-card">
                     <div className="buyer-qr-wrap">
                       <TicketQrImage ticket={participant.ticket} name={participant.full_name} />
                       {participant.ticket.status !== "active" && (
@@ -485,64 +325,40 @@ function OrderCard({
                     </div>
                   </div>
                 )}
-              </div>
+              </article>
             ))}
           </div>
-        </>
+        </section>
       )}
     </article>
   );
 }
 
-export function BuyerOrdersPage() {
+export function BuyerOrdersPage({ navigate }: { navigate: (page: BuyerOrdersDestination) => void }) {
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resending, setResending] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [accountName, setAccountName] = useState("Minha área");
-  const [accountAvatar, setAccountAvatar] = useState<string | null>(null);
-  const [headerContent, setHeaderContent] = useState<HeaderContent>(HOME_PAGE_CONTENT_DEFAULTS as HeaderContent);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     const { data: sessionData } = await supabase.auth.getSession();
-    const session = sessionData.session;
-    if (!session) {
+    if (!sessionData.session) {
       window.location.assign(`/entrar?next=${encodeURIComponent("/meus-pedidos")}`);
       return;
     }
 
-    const [ordersResult, profile, content] = await Promise.all([
-      supabase.rpc("get_my_commerce_orders"),
-      getMyProfile(session.user.id).catch(() => null),
-      getHomePageContent(DEFAULT_EVENT_ID).catch(() => HOME_PAGE_CONTENT_DEFAULTS),
-    ]);
-
-    if (ordersResult.error) {
-      setError(ordersResult.error.message);
+    const { data, error: ordersError } = await supabase.rpc("get_my_commerce_orders");
+    if (ordersError) {
+      setError(ordersError.message);
       setOrders([]);
     } else {
-      const rawOrders = Array.isArray(ordersResult.data) ? ordersResult.data as BuyerOrder[] : [];
-      let preferenceOrderIds = new Set<string>();
-
-      if (rawOrders.length > 0) {
-        const { data: preferences } = await supabase
-          .from("payment_preferences")
-          .select("order_id,status")
-          .in("order_id", rawOrders.map(order => order.id));
-        preferenceOrderIds = new Set(((preferences ?? []) as PreferenceRow[]).map(preference => preference.order_id));
-      }
-
-      setOrders(rawOrders.filter(order => isMeaningfulOrder(order, preferenceOrderIds)));
+      const rawOrders = Array.isArray(data) ? data as BuyerOrder[] : [];
+      setOrders(rawOrders.filter(isMeaningfulOrder));
     }
-
-    const fallbackName = String(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Minha área");
-    setAccountName(profile?.display_name || profile?.people?.display_name || profile?.people?.full_name || fallbackName);
-    setAccountAvatar(profile?.current_photo_url || profile?.people?.avatar_url || null);
-    setHeaderContent(content as HeaderContent);
     setLoading(false);
   }, []);
 
@@ -569,7 +385,7 @@ export function BuyerOrdersPage() {
     setNotice(
       resendError
         ? `Não foi possível reenviar: ${resendError.message}`
-        : "Reenvio solicitado. O ingresso será enviado por e-mail e, quando configurado, por WhatsApp.",
+        : "Reenvio solicitado. O ingresso será enviado pelos canais configurados.",
     );
   }
 
@@ -579,34 +395,40 @@ export function BuyerOrdersPage() {
   };
 
   return (
-    <div className="buyer-orders-shell">
-      <BuyerSiteHeader content={headerContent} accountName={accountName} accountAvatar={accountAvatar} />
-
-      <main className="buyer-orders-page">
+    <div className="buyer-orders-page">
+      <section className="buyer-orders-hero">
         <div className="buyer-orders-container">
-          <a href="/minha-area" className="buyer-back"><ArrowLeft size={17} />Minha área</a>
+          <button type="button" className="buyer-back" onClick={() => navigate("alumni-area")}>
+            <ArrowLeft size={17} />Minha área
+          </button>
 
-          <header className="buyer-orders-header">
+          <div className="buyer-orders-heading-row">
             <div>
               <p className="buyer-eyebrow">Área do ex-aluno</p>
               <h1>Meus pedidos e ingressos</h1>
-              <p>Consulte somente compras iniciadas no Mercado Pago e acesse os QR Codes já emitidos.</p>
+              <p>Consulte compras realmente iniciadas e acesse os QR Codes já emitidos.</p>
             </div>
             <button type="button" onClick={() => void load()} className="buyer-refresh" disabled={loading}>
               <RefreshCw size={17} />Atualizar
             </button>
-          </header>
+          </div>
+        </div>
+      </section>
 
-          <section className="buyer-orders-overview" aria-label="Resumo dos ingressos">
+      <section className="buyer-orders-content">
+        <div className="buyer-orders-container">
+          <div className="buyer-orders-overview">
             <div>
-              <Ticket size={22} />
+              <Ticket size={24} />
               <div>
                 <strong>{ticketsCount === 0 ? "Nenhum ingresso emitido" : `${ticketsCount} ${ticketsCount === 1 ? "ingresso emitido" : "ingressos emitidos"}`}</strong>
-                <span>Pedidos apenas são exibidos depois que o pagamento é realmente iniciado.</span>
+                <span>Reservas técnicas sem acesso ao Mercado Pago não aparecem nesta página.</span>
               </div>
             </div>
-            <a href="/ingressos"><ShoppingBag size={17} />{ticketsCount > 0 ? "Comprar outro ingresso" : "Comprar ingresso"}</a>
-          </section>
+            <button type="button" onClick={() => navigate("tickets")}>
+              <ShoppingBag size={17} />{ticketsCount > 0 ? "Comprar outro ingresso" : "Comprar ingresso"}
+            </button>
+          </div>
 
           <AcceptTransfersPanel onDone={actionDone} />
 
@@ -616,17 +438,20 @@ export function BuyerOrdersPage() {
 
           {!loading && !error && orders.length === 0 && (
             <div className="buyer-empty buyer-empty-orders">
-              <Ticket size={36} />
+              <Ticket size={38} />
               <h2>Nenhuma compra iniciada</h2>
-              <p>Reservas criadas antes da abertura do Mercado Pago não são consideradas transações e não aparecem nesta página.</p>
-              <a href="/ingressos">Comprar ingresso</a>
+              <p>Quando o Mercado Pago for aberto para uma compra, o pedido aparecerá aqui.</p>
+              <button type="button" onClick={() => navigate("tickets")}>Comprar ingresso</button>
             </div>
           )}
 
           {!loading && !error && activeOrders.length > 0 && (
             <section className="buyer-order-section">
               <div className="buyer-section-heading">
-                <p>Compras e ingressos</p>
+                <div>
+                  <p>Compras e ingressos</p>
+                  <h2>Pedidos em andamento</h2>
+                </div>
                 <span>{activeOrders.length} {activeOrders.length === 1 ? "pedido" : "pedidos"}</span>
               </div>
               <div className="buyer-order-list">
@@ -645,7 +470,7 @@ export function BuyerOrdersPage() {
 
           {!loading && !error && historyOrders.length > 0 && (
             <details className="buyer-history">
-              <summary>Histórico de pagamentos não concluídos ({historyOrders.length})</summary>
+              <summary>Histórico de pagamentos ({historyOrders.length})</summary>
               <div className="buyer-order-list">
                 {historyOrders.map(order => (
                   <OrderCard
@@ -661,7 +486,7 @@ export function BuyerOrdersPage() {
             </details>
           )}
         </div>
-      </main>
+      </section>
     </div>
   );
 }
