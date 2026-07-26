@@ -8,6 +8,7 @@ const REGENERATE_BUTTON_ATTRIBUTE = "data-edit-profile-regenerate-bio";
 const ACTIONS_ATTRIBUTE = "data-edit-profile-questionnaire-actions";
 const LEGACY_MEMORY_ATTRIBUTE = "data-edit-profile-legacy-memory-field";
 const BIO_FIELD_ATTRIBUTE = "data-edit-profile-bio-field";
+const BIO_POSITION_ATTRIBUTE = "data-edit-profile-bio-repositioned";
 
 type MyProfile = Awaited<ReturnType<typeof getMyProfile>>;
 
@@ -25,6 +26,36 @@ function normalize(value: string | null | undefined) {
     .replace(/\s+/g, " ")
     .trim()
     .toLocaleLowerCase("pt-BR");
+}
+
+function normalizeBioText(value: string | null | undefined) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && typeof (parsed as { bio?: unknown }).bio === "string") {
+      return (parsed as { bio: string }).bio.trim();
+    }
+  } catch {
+    // Mantém compatibilidade com valores antigos parcialmente serializados.
+  }
+
+  const legacyMatch = raw.match(/^\s*\{\s*["']bio["']\s*:\s*["']([\s\S]*)["']\s*\}\s*$/i);
+  if (!legacyMatch) return raw;
+
+  const encoded = legacyMatch[1];
+  try {
+    return JSON.parse(`"${encoded.replace(/"/g, '\\"')}"`).trim();
+  } catch {
+    return encoded
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .replace(/\\t/g, "\t")
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, "\\")
+      .trim();
+  }
 }
 
 function currentPath() {
@@ -91,17 +122,31 @@ function hideLegacyMemoryField(root: HTMLElement) {
   container.setAttribute("aria-hidden", "true");
 }
 
+function repositionBioField(root: HTMLElement) {
+  const section = root.querySelector<HTMLElement>(QUESTIONNAIRE_SELECTOR);
+  const container = findFieldContainer(root, "Mini bio");
+  if (!section || !container || section === container || section.contains(container)) return;
+
+  if (section.nextElementSibling !== container) {
+    section.insertAdjacentElement("afterend", container);
+  }
+  container.setAttribute(BIO_POSITION_ATTRIBUTE, "true");
+}
+
 function syncBioField(root: HTMLElement, profile: NonNullable<MyProfile>, force = false) {
   const container = findFieldContainer(root, "Mini bio");
   const textarea = container?.querySelector<HTMLTextAreaElement>("textarea");
   if (!container || !textarea) return;
 
   container.setAttribute(BIO_FIELD_ATTRIBUTE, "true");
-  const expectedMarker = `${profile.id}:${profile.bio ?? ""}`;
+  const profileBio = normalizeBioText(profile.bio);
+  const expectedMarker = `${profile.id}:${profileBio}`;
   if (!force && textarea.dataset.editProfileBioSync === expectedMarker) return;
 
-  const profileBio = profile.bio ?? "";
-  if (textarea.value !== profileBio) setControlledTextareaValue(textarea, profileBio);
+  const currentBio = normalizeBioText(textarea.value);
+  if (currentBio !== profileBio || textarea.value !== profileBio) {
+    setControlledTextareaValue(textarea, profileBio);
+  }
   textarea.dataset.editProfileBioSync = expectedMarker;
 }
 
@@ -185,8 +230,11 @@ async function regenerateProfileBio(section: HTMLElement, button: HTMLButtonElem
       answers: questionnaire,
     });
 
-    const updated = await saveMyPublicProfile(currentUserId, { bio: generatedBio });
-    profileSnapshot = { ...profile, ...updated };
+    const normalizedGeneratedBio = normalizeBioText(generatedBio);
+    if (!normalizedGeneratedBio) throw new Error("A descrição gerada veio vazia. Tente novamente.");
+
+    const updated = await saveMyPublicProfile(currentUserId, { bio: normalizedGeneratedBio });
+    profileSnapshot = { ...profile, ...updated, bio: normalizedGeneratedBio };
     syncBioField(root, profileSnapshot, true);
     questionnaireStatus(section, "Descrição do perfil gerada e salva com sucesso.", "success");
   } catch (error) {
@@ -247,6 +295,7 @@ function applyEnhancements() {
   root.dataset.editProfileQuestionnaireBioEnhanced = "true";
   hideLegacyMemoryField(root);
   ensureRegenerateButton(root);
+  repositionBioField(root);
   void applyAsyncEnhancements(root);
 }
 
