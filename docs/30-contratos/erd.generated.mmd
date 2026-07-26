@@ -1,0 +1,869 @@
+%% status: generated
+%% last_verified: 2026-07-26
+%% last_verified_commit: 161cdcd81218e8802a2440453ffe0df3362dc9b3
+%% generation_command: npm run docs:generate-db-contracts
+%% Não editar manualmente.
+erDiagram
+  public_admin_users {
+    uuid id
+    uuid user_id
+    admin_role role
+    timestamp_with_time_zone created_at
+    text display_name
+    text email
+    timestamp_with_time_zone updated_at
+  }
+  public_audit_logs {
+    uuid id
+    uuid user_id
+    text action
+    text entity_type
+    uuid entity_id
+    jsonb metadata_json
+    timestamp_with_time_zone created_at
+  }
+  public_checkin_events {
+    uuid id
+    uuid ticket_id
+    text action
+    uuid operator_user_id
+    text notes
+    jsonb metadata_json
+    timestamp_with_time_zone created_at
+  }
+  public_cms_assets {
+    uuid id
+    uuid event_id
+    text asset_key
+    text label
+    text file_url
+    text storage_path
+    text alt_text
+    text caption
+    text usage_context
+    integer sort_order
+    boolean is_active
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid updated_by_admin_id
+  }
+  public_content_moderation_settings {
+    uuid event_id
+    boolean auto_approve_photos
+    boolean auto_approve_comments
+    boolean auto_approve_memories
+    timestamp_with_time_zone updated_at
+  }
+  public_event_archive_settings {
+    uuid event_id
+    boolean archive_enabled
+    text post_event_text
+    text official_video_url
+    text official_video_title
+    ARRAY official_photo_ids
+    ARRAY highlight_photo_ids
+    jsonb highlights_links
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text page_eyebrow
+    text page_title
+    text message_label
+    text closed_title
+    text closed_text
+  }
+  public_event_page_content {
+    uuid event_id
+    text hero_eyebrow
+    text title
+    text subtitle
+    text description
+    text hero_image_url
+    jsonb gallery_json
+    text map_embed_url
+    text map_link_url
+    text venue_notes
+    jsonb attractions_json
+    jsonb schedule_json
+    text food_bar_text
+    text bathrooms_text
+    text security_text
+    jsonb extra_info_json
+    timestamp_with_time_zone updated_at
+    uuid updated_by_admin_id
+    text program_image_url
+    text program_image_alt
+    jsonb structure_cards_json
+    boolean show_gallery_preview
+    text local_section_eyebrow
+    text local_section_title
+    text program_section_eyebrow
+    text program_section_title
+    text structure_section_eyebrow
+    text structure_section_title
+    text structure_section_subtitle
+  }
+  public_events {
+    uuid id
+    text title
+    text slug
+    text description
+    date event_date
+    time_without_time_zone event_time
+    text location_name
+    text location_address
+    event_status event_status
+    sales_status sales_status
+    text contact_email
+    text contact_whatsapp
+    text general_rules
+    text companion_policy
+    text refund_policy
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text event_timezone
+  }
+  public_faq_categories {
+    uuid id
+    uuid event_id
+    text key
+    text label
+    text description
+    integer sort_order
+    boolean is_visible
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid created_by_admin_id
+    uuid updated_by_admin_id
+    timestamp_with_time_zone deleted_at
+    uuid deleted_by_admin_id
+    text icon_key
+  }
+  public_faq_items {
+    uuid id
+    uuid event_id
+    uuid category_id
+    text slug
+    text question
+    text answer
+    integer sort_order
+    boolean is_visible
+    boolean is_featured
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid created_by_admin_id
+    uuid updated_by_admin_id
+    timestamp_with_time_zone deleted_at
+    uuid deleted_by_admin_id
+    text category_key
+    text category_label
+  }
+  public_faq_items_backup_20260716 {
+    uuid id
+    uuid event_id
+    uuid category_id
+    text slug
+    text question
+    text answer
+    integer sort_order
+    boolean is_visible
+    boolean is_featured
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid created_by_admin_id
+    uuid updated_by_admin_id
+    timestamp_with_time_zone deleted_at
+    uuid deleted_by_admin_id
+    text category_key
+    text category_label
+  }
+  public_guest_approval_requests {
+    uuid id
+    uuid event_id
+    uuid guest_user_id
+    text guest_name
+    text guest_email
+    text guest_phone
+    text relationship_to_alumni
+    uuid sponsor_person_id
+    uuid sponsor_user_id
+    text status
+    timestamp_with_time_zone decided_at
+    uuid decided_by_user_id
+    text decision_notes
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    timestamp_with_time_zone expires_at
+    timestamp_with_time_zone cancelled_at
+  }
+  public_home_page_content {
+    uuid event_id
+    text hero_eyebrow
+    text hero_title
+    text hero_tagline
+    text hero_subtitle
+    text hero_event_line
+    text primary_cta_label
+    text secondary_cta_label
+    text about_eyebrow
+    text about_title
+    text about_body_1
+    text about_body_2
+    text info_eyebrow
+    text info_title
+    text tickets_eyebrow
+    text tickets_title
+    text confirmed_eyebrow
+    text confirmed_title
+    text photos_eyebrow
+    text photos_title
+    text timeline_eyebrow
+    text timeline_title
+    text faq_eyebrow
+    text faq_title
+    timestamp_with_time_zone updated_at
+    uuid updated_by_admin_id
+    text header_logo_url
+    text header_logo_alt
+    text header_fallback_badge_main
+    text header_fallback_badge_year
+    text header_fallback_title
+    text header_fallback_subtitle
+    text header_cta_label
+    text nav_home_label
+    text nav_who_going_label
+    text nav_the_class_label
+    text nav_photos_label
+    text nav_memories_label
+    text nav_polls_label
+    text nav_where_now_label
+    text nav_archive_label
+    text timeline_items_json
+    text faq_items_json
+    text footer_eyebrow
+    text footer_title
+    text footer_body
+    text footer_nav_title
+    text footer_contact_title
+    text footer_email
+    text footer_phone
+    text footer_location
+    text footer_copyright
+    text footer_terms_label
+    text footer_privacy_label
+    text footer_admin_label
+    text primary_cta_page
+    text secondary_cta_page
+    text home_sections_json
+    text countdown_days_label
+    text countdown_hours_label
+    text countdown_minutes_label
+    text countdown_seconds_label
+    text info_date_label
+    text info_time_label
+    text info_location_label
+    text info_doors_subtitle_template
+    text info_dinner_subtitle_template
+    text info_time_fallback_label
+    text tickets_preview_limit
+    text tickets_view_all_label
+    text tickets_active_lot_label
+    text tickets_buy_label
+    text tickets_sold_out_label
+    text tickets_empty_title
+    text tickets_empty_subtitle
+    text tickets_empty_cta_label
+    text tickets_remaining_label_template
+    text confirmed_preview_limit
+    text confirmed_view_all_label
+    text confirmed_privacy_note
+    text photos_preview_limit
+    text photos_view_all_label
+    text photos_empty_title
+    text photos_empty_subtitle
+    text photos_empty_cta_label
+    text footer_links_json
+    text nav_event_label
+    boolean header_cta_visible
+    boolean header_auth_visible
+    boolean nav_home_visible
+    boolean nav_event_visible
+    boolean nav_who_going_visible
+    boolean nav_the_class_visible
+    boolean nav_photos_visible
+    boolean nav_memories_visible
+    boolean nav_polls_visible
+    boolean nav_where_now_visible
+    boolean nav_archive_visible
+    text nav_ex_alumni_label
+    boolean nav_ex_alumni_visible
+    text favicon_url
+    text home_alumni_overview_json
+    text home_nostalgia_timeline_json
+    text home_profile_stats_json
+    text home_map_stats_json
+    uuid home_poll_id
+    text home_poll_fallback_json
+    text home_about_overview_json
+    text event_info_view_more_label
+    text faq_search_placeholder
+    text faq_empty_label
+    text faq_view_all_label
+    text faq_initial_mode
+  }
+  public_memories {
+    uuid id
+    uuid event_id
+    uuid user_id
+    uuid person_id
+    text author_name
+    text memory_text
+    boolean is_anonymous
+    text status
+    boolean is_featured
+    uuid approved_by_admin_id
+    timestamp_with_time_zone approved_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_notification_jobs {
+    uuid id
+    text event_type
+    uuid order_id
+    uuid ticket_id
+    text recipient_email
+    text idempotency_key
+    jsonb payload_json
+    text status
+    integer attempts
+    timestamp_with_time_zone next_attempt_at
+    text last_error
+    timestamp_with_time_zone processed_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text channel
+    text provider_message_id
+    jsonb provider_response_json
+    timestamp_with_time_zone dead_lettered_at
+  }
+  public_order_participants {
+    uuid id
+    uuid order_id
+    uuid user_id
+    uuid person_id
+    text participant_type
+    text full_name
+    text email
+    text phone
+    date birth_date
+    text relationship_to_alumni
+    uuid sponsor_person_id
+    uuid sponsor_user_id
+    uuid guest_approval_request_id
+    integer unit_price_cents
+    text status
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text client_key
+  }
+  public_orders {
+    uuid id
+    uuid event_id
+    text buyer_name
+    text buyer_email
+    text buyer_phone
+    uuid person_id
+    uuid ticket_type_id
+    integer quantity
+    integer total_amount_cents
+    text payment_provider
+    text payment_provider_order_id
+    text payment_provider_preference_id
+    payment_status payment_status
+    text payment_method
+    timestamp_with_time_zone paid_at
+    timestamp_with_time_zone expires_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid buyer_user_id
+    uuid public_token
+    uuid lot_id
+    integer subtotal_amount_cents
+    integer extras_amount_cents
+    text currency_id
+    text payment_status_detail
+    text payment_environment
+    text payment_provider_merchant_order_id
+    text payment_type
+    integer installments
+    text reservation_status
+    timestamp_with_time_zone reservation_released_at
+    timestamp_with_time_zone refunded_at
+    timestamp_with_time_zone cancelled_at
+    timestamp_with_time_zone approved_inventory_applied_at
+    text checkout_idempotency_key
+  }
+  public_participant_extras {
+    uuid id
+    uuid order_id
+    uuid order_participant_id
+    text extra_type
+    integer quantity
+    integer units_per_package
+    integer unit_price_cents
+    integer total_price_cents
+    timestamp_with_time_zone physical_vouchers_delivered_at
+    uuid physical_vouchers_delivered_by
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_payment_events {
+    uuid id
+    text provider
+    text event_type
+    text provider_event_id
+    uuid order_id
+    jsonb payload_json
+    timestamp_with_time_zone processed_at
+    timestamp_with_time_zone created_at
+    text payment_id
+    boolean signature_valid
+    timestamp_with_time_zone received_at
+    text processing_status
+    text processing_error
+    integer attempt_count
+  }
+  public_payment_preferences {
+    uuid id
+    uuid order_id
+    text provider
+    text provider_preference_id
+    text environment
+    text checkout_url
+    text status
+    timestamp_with_time_zone expires_at
+    uuid replaced_by_preference_id
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_people {
+    uuid id
+    text full_name
+    integer class_year
+    text class_group
+    text nickname_at_school
+    profile_status profile_status
+    uuid claimed_by_user_id
+    timestamp_with_time_zone claimed_at
+    boolean is_visible
+    text private_notes
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text avatar_url
+    integer birth_year
+    text verification_status
+    text contact_email
+    text contact_whatsapp
+    text display_name
+    text gender
+  }
+  public_photo_comments {
+    uuid id
+    uuid photo_id
+    uuid user_id
+    text author_name
+    text comment_text
+    text status
+    uuid approved_by_admin_id
+    timestamp_with_time_zone approved_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_photo_likes {
+    uuid id
+    uuid photo_id
+    uuid user_id
+    timestamp_with_time_zone created_at
+  }
+  public_photo_removal_requests {
+    uuid id
+    uuid photo_id
+    uuid requester_user_id
+    text requester_name
+    text requester_email
+    text reason
+    removal_request_status status
+    uuid reviewed_by_admin_id
+    timestamp_with_time_zone reviewed_at
+    text admin_notes
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_photo_tags {
+    uuid id
+    uuid photo_id
+    uuid person_id
+    text tagged_name_snapshot
+    tag_status status
+    uuid created_by_user_id
+    uuid approved_by_admin_id
+    timestamp_with_time_zone approved_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_photos {
+    uuid id
+    uuid event_id
+    text image_url
+    text thumbnail_url
+    text storage_path
+    text caption
+    integer year_approx
+    text location_text
+    uuid uploaded_by_user_id
+    text uploaded_by_name
+    boolean authorization_given
+    photo_status status
+    uuid approved_by_admin_id
+    timestamp_with_time_zone approved_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    boolean is_featured
+    uuid featured_by_admin_id
+    timestamp_with_time_zone featured_at
+  }
+  public_poll_options {
+    uuid id
+    uuid poll_id
+    text option_text
+    integer sort_order
+    timestamp_with_time_zone created_at
+  }
+  public_poll_votes {
+    uuid id
+    uuid poll_id
+    uuid option_id
+    uuid user_id
+    timestamp_with_time_zone created_at
+  }
+  public_polls {
+    uuid id
+    uuid event_id
+    text question
+    text description
+    text status
+    boolean allow_multiple_votes
+    uuid created_by_admin_id
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_profile_claim_answers {
+    uuid id
+    uuid claim_id
+    text question_key
+    text answer_text
+    integer score_value
+    boolean is_match
+    timestamp_with_time_zone created_at
+  }
+  public_profile_claim_disputes {
+    uuid id
+    uuid person_id
+    uuid current_claimant_user_id
+    uuid requester_user_id
+    text requester_name
+    text requester_email
+    text requester_phone
+    text reason
+    text evidence_text
+    dispute_status status
+    uuid reviewed_by_admin_id
+    timestamp_with_time_zone reviewed_at
+    text admin_notes
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_profile_claims {
+    uuid id
+    uuid person_id
+    uuid requester_user_id
+    text requester_name
+    text requester_email
+    text requester_phone
+    integer verification_score
+    claim_status status
+    uuid reviewed_by_admin_id
+    timestamp_with_time_zone reviewed_at
+    text rejection_reason
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_profile_identity_verifications {
+    uuid id
+    uuid person_id
+    uuid profile_id
+    uuid claimant_user_id
+    date declared_birth_date
+    text penultimate_surname_answer
+    text class_group_answer
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_profile_school_questionnaire_answers {
+    uuid id
+    uuid event_id
+    uuid profile_id
+    uuid person_id
+    text question_id
+    jsonb selected_options_json
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_profiles {
+    uuid id
+    uuid person_id
+    uuid user_id
+    text display_name
+    text current_photo_url
+    text current_city
+    text current_state
+    text current_country
+    text profession
+    text bio
+    text memory_text
+    text instagram_url
+    text linkedin_url
+    boolean show_current_photo
+    boolean show_city
+    boolean show_profession
+    boolean show_social_links
+    boolean allow_photo_tags
+    boolean show_confirmed_status
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text contact_email
+    text contact_whatsapp
+    text relationship_status
+    boolean has_children
+    integer children_count
+    boolean intends_to_attend
+  }
+  public_public_page_content {
+    uuid event_id
+    text page_slug
+    jsonb content_json
+    timestamp_with_time_zone updated_at
+    uuid updated_by_admin_id
+  }
+  public_rate_limit_buckets {
+    text bucket_key
+    text action
+    uuid actor_user_id
+    timestamp_with_time_zone window_started_at
+    integer request_count
+    timestamp_with_time_zone expires_at
+    timestamp_with_time_zone updated_at
+  }
+  public_refund_policy {
+    boolean id
+    boolean enabled
+    integer percentage_basis_points
+    integer fixed_fee_cents
+    integer maximum_fee_cents
+    text policy_label
+    text policy_notice
+    uuid updated_by_user_id
+    timestamp_with_time_zone updated_at
+  }
+  public_refund_requests {
+    uuid id
+    uuid order_id
+    uuid ticket_id
+    uuid requested_by_user_id
+    text reason
+    text status
+    integer gross_amount_cents
+    integer non_recoverable_fee_cents
+    integer refund_amount_cents
+    text mercado_pago_refund_id
+    timestamp_with_time_zone requested_at
+    timestamp_with_time_zone reviewed_at
+    uuid reviewed_by_admin_id
+    timestamp_with_time_zone processed_at
+    text notes
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text provider_payment_id
+    jsonb provider_response_json
+    timestamp_with_time_zone inventory_restored_at
+    text failure_reason
+    jsonb policy_snapshot_json
+  }
+  public_security_audit_log {
+    uuid id
+    uuid actor_user_id
+    text actor_role
+    text action
+    text entity_type
+    text entity_id
+    text request_key
+    jsonb metadata_json
+    timestamp_with_time_zone created_at
+  }
+  public_ticket_lot_prices {
+    uuid id
+    uuid lot_id
+    uuid ticket_type_id
+    integer price_cents
+    boolean is_active
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_ticket_lots {
+    uuid id
+    uuid event_id
+    text code
+    text name
+    integer sort_order
+    timestamp_with_time_zone starts_at
+    timestamp_with_time_zone ends_at
+    integer capacity
+    text status
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  public_ticket_transfers {
+    uuid id
+    uuid ticket_id
+    uuid from_user_id
+    uuid to_user_id
+    text to_email
+    text status
+    timestamp_with_time_zone requested_at
+    timestamp_with_time_zone accepted_at
+    timestamp_with_time_zone completed_at
+    timestamp_with_time_zone cancelled_at
+    timestamp_with_time_zone old_qr_invalidated_at
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text to_name
+    text to_phone
+    uuid accepted_by_user_id
+    uuid replacement_ticket_id
+    timestamp_with_time_zone expires_at
+    text admin_notes
+  }
+  public_ticket_types {
+    uuid id
+    uuid event_id
+    text name
+    text description
+    integer price_cents
+    integer available_quantity
+    integer sold_quantity
+    timestamp_with_time_zone sales_start_at
+    timestamp_with_time_zone sales_end_at
+    boolean allows_guest
+    ticket_status status
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    text product_code
+    text participant_type
+    text package_kind
+    integer included_people_count
+    jsonb metadata_json
+  }
+  public_tickets {
+    uuid id
+    uuid order_id
+    uuid ticket_type_id
+    uuid person_id
+    text attendee_name
+    text attendee_email
+    text attendee_phone
+    text guest_name
+    text qr_code
+    text qr_token_hash
+    boolean checked_in
+    timestamp_with_time_zone checked_in_at
+    uuid checked_in_by_admin_id
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    uuid order_participant_id
+    text status
+    text qr_token
+    uuid transferred_from_ticket_id
+    timestamp_with_time_zone cancelled_at
+    text cancellation_reason
+    timestamp_with_time_zone physical_vouchers_delivered_at
+    uuid physical_vouchers_delivered_by
+  }
+  public_tickets ||--o{ public_checkin_events : "ticket_id → id"
+  public_events ||--o{ public_cms_assets : "event_id → id"
+  public_admin_users ||--o{ public_cms_assets : "updated_by_admin_id → id"
+  public_events ||--o{ public_content_moderation_settings : "event_id → id"
+  public_events ||--o{ public_event_archive_settings : "event_id → id"
+  public_events ||--o{ public_event_page_content : "event_id → id"
+  public_admin_users ||--o{ public_event_page_content : "updated_by_admin_id → id"
+  public_admin_users ||--o{ public_faq_categories : "created_by_admin_id → id"
+  public_admin_users ||--o{ public_faq_categories : "deleted_by_admin_id → id"
+  public_events ||--o{ public_faq_categories : "event_id → id"
+  public_admin_users ||--o{ public_faq_categories : "updated_by_admin_id → id"
+  public_faq_categories ||--o{ public_faq_items : "category_id → id"
+  public_admin_users ||--o{ public_faq_items : "created_by_admin_id → id"
+  public_admin_users ||--o{ public_faq_items : "deleted_by_admin_id → id"
+  public_events ||--o{ public_faq_items : "event_id → id"
+  public_admin_users ||--o{ public_faq_items : "updated_by_admin_id → id"
+  public_events ||--o{ public_guest_approval_requests : "event_id → id"
+  public_people ||--o{ public_guest_approval_requests : "sponsor_person_id → id"
+  public_events ||--o{ public_home_page_content : "event_id → id"
+  public_events ||--o{ public_memories : "event_id → id"
+  public_people ||--o{ public_memories : "person_id → id"
+  public_orders ||--o{ public_notification_jobs : "order_id → id"
+  public_tickets ||--o{ public_notification_jobs : "ticket_id → id"
+  public_guest_approval_requests ||--o{ public_order_participants : "guest_approval_request_id → id"
+  public_orders ||--o{ public_order_participants : "order_id → id"
+  public_people ||--o{ public_order_participants : "person_id → id"
+  public_people ||--o{ public_order_participants : "sponsor_person_id → id"
+  public_events ||--o{ public_orders : "event_id → id"
+  public_ticket_lots ||--o{ public_orders : "lot_id → id"
+  public_people ||--o{ public_orders : "person_id → id"
+  public_ticket_types ||--o{ public_orders : "ticket_type_id → id"
+  public_orders ||--o{ public_participant_extras : "order_id → id"
+  public_order_participants ||--o{ public_participant_extras : "order_participant_id → id"
+  public_orders ||--o{ public_payment_events : "order_id → id"
+  public_orders ||--o{ public_payment_preferences : "order_id → id"
+  public_payment_preferences ||--o{ public_payment_preferences : "replaced_by_preference_id → id"
+  public_photos ||--o{ public_photo_comments : "photo_id → id"
+  public_photos ||--o{ public_photo_likes : "photo_id → id"
+  public_photos ||--o{ public_photo_removal_requests : "photo_id → id"
+  public_people ||--o{ public_photo_tags : "person_id → id"
+  public_photos ||--o{ public_photo_tags : "photo_id → id"
+  public_events ||--o{ public_photos : "event_id → id"
+  public_polls ||--o{ public_poll_options : "poll_id → id"
+  public_poll_options ||--o{ public_poll_votes : "option_id → id"
+  public_polls ||--o{ public_poll_votes : "poll_id → id"
+  public_events ||--o{ public_polls : "event_id → id"
+  public_profile_claims ||--o{ public_profile_claim_answers : "claim_id → id"
+  public_people ||--o{ public_profile_claim_disputes : "person_id → id"
+  public_people ||--o{ public_profile_claims : "person_id → id"
+  public_people ||--o{ public_profile_identity_verifications : "person_id → id"
+  public_profiles ||--o{ public_profile_identity_verifications : "profile_id → id"
+  public_people ||--o{ public_profile_school_questionnaire_answers : "person_id → id"
+  public_profiles ||--o{ public_profile_school_questionnaire_answers : "profile_id → id"
+  public_people ||--o{ public_profiles : "person_id → id"
+  public_events ||--o{ public_public_page_content : "event_id → id"
+  public_admin_users ||--o{ public_public_page_content : "updated_by_admin_id → id"
+  public_orders ||--o{ public_refund_requests : "order_id → id"
+  public_admin_users ||--o{ public_refund_requests : "reviewed_by_admin_id → id"
+  public_tickets ||--o{ public_refund_requests : "ticket_id → id"
+  public_ticket_lots ||--o{ public_ticket_lot_prices : "lot_id → id"
+  public_ticket_types ||--o{ public_ticket_lot_prices : "ticket_type_id → id"
+  public_events ||--o{ public_ticket_lots : "event_id → id"
+  public_tickets ||--o{ public_ticket_transfers : "replacement_ticket_id → id"
+  public_tickets ||--o{ public_ticket_transfers : "ticket_id → id"
+  public_events ||--o{ public_ticket_types : "event_id → id"
+  public_orders ||--o{ public_tickets : "order_id → id"
+  public_order_participants ||--o{ public_tickets : "order_participant_id → id"
+  public_people ||--o{ public_tickets : "person_id → id"
+  public_ticket_types ||--o{ public_tickets : "ticket_type_id → id"
+  public_tickets ||--o{ public_tickets : "transferred_from_ticket_id → id"
