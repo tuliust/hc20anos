@@ -6,7 +6,7 @@ O sistema reúne experiência pública, perfis de ex-alunos, conteúdo colaborat
 
 ## Documentação
 
-A referência principal do projeto está em [`docs/index.md`](./docs/index.md).
+A referência principal está em [`docs/index.md`](./docs/index.md).
 
 Leituras iniciais:
 
@@ -14,10 +14,13 @@ Leituras iniciais:
 - [Arquitetura](./docs/00-visao-geral/arquitetura.md)
 - [Mapa do repositório](./docs/00-visao-geral/mapa-do-repositorio.md)
 - [Fontes de verdade](./docs/00-visao-geral/fontes-de-verdade.md)
-- [Glossário](./docs/00-visao-geral/glossario.md)
+- [Domínios funcionais](./docs/10-dominios/README.md)
+- [Contratos e inventários](./docs/30-contratos/README.md)
+- [Runbooks operacionais](./docs/40-runbooks/README.md)
 - [Política de documentação](./docs/50-governanca/politica-de-documentacao.md)
+- [Processo de atualização](./docs/50-governanca/processo-de-atualizacao.md)
 
-Documentos antigos em `docs/` ainda estão sendo reconciliados. Em caso de divergência, siga a matriz de fontes de verdade.
+Documentos históricos ou depreciados permanecem no repositório por rastreabilidade, mas não prevalecem sobre as fontes de verdade.
 
 ## Stack
 
@@ -35,9 +38,9 @@ Documentos antigos em `docs/` ainda estão sendo reconciliados. Em caso de diver
 
 ### Pré-requisitos
 
-- Node.js compatível com as dependências do projeto; o CI utiliza Node.js 22.
+- Node.js 22, versão usada no CI
 - npm
-- Variáveis públicas do Supabase.
+- variáveis públicas do Supabase
 
 ### Instalação
 
@@ -69,19 +72,22 @@ npm run dev
 npm run build
 ```
 
-O build inclui verificações de bundle relacionadas à reivindicação de perfil e à geração de mini bio.
+O build inclui verificações específicas da reivindicação de perfil e da geração de mini bio.
 
 ## Testes e auditorias
 
 ```bash
 npm run test:faq
 npm run test:e2e
+npm run audit:docs
 npm run audit:migrations
 npm run audit:cms-strict
 npm run audit:bundle
 ```
 
-O workflow de segurança de migrations também reaplica todas as migrations em uma stack Supabase local e executa os testes SQL de `supabase/tests/`.
+`audit:docs` valida metadados, links locais, arquivos-fonte e referências de substituição nas áreas canônicas.
+
+O workflow de migrations reaplica todas as migrations em uma stack Supabase local e executa os testes SQL de `supabase/tests/`. O workflow `Documentation safety` executa a auditoria documental em PRs e em pushes diretos para `main`.
 
 ## Estrutura resumida
 
@@ -94,16 +100,26 @@ supabase/migrations/ evolução do banco
 supabase/functions/  Edge Functions
 supabase/tests/       contratos e testes SQL
 tests/                testes unitários e E2E
-docs/                 documentação canônica e histórica
+docs/                 documentação canônica, operacional e histórica
 ```
 
 Consulte o [mapa do repositório](./docs/00-visao-geral/mapa-do-repositorio.md) antes de alterar fluxos que possam envolver enhancements ou transforms de build.
 
-## Deploy
+## Deploy e operação
 
-O frontend e as funções `api/` são publicados na Vercel. Migrations, Edge Functions e secrets são administrados no Supabase.
+O frontend e `api/` são publicados na Vercel. Migrations, Edge Functions e secrets são administrados no Supabase.
 
-Procedimentos operacionais detalhados ainda serão consolidados nos runbooks canônicos. O material atual em `docs/DEPLOYMENT.md`, `docs/PRODUCTION_QA.md` e `docs/mercado-pago/` deve ser tratado como referência em revisão.
+Procedimentos atuais:
+
+- [deploy Vercel](./docs/40-runbooks/deploy-vercel.md)
+- [deploy de Edge Functions](./docs/40-runbooks/deploy-edge-functions.md)
+- [migrations](./docs/40-runbooks/migrations.md)
+- [validação de pagamentos](./docs/40-runbooks/validacao-de-pagamentos.md)
+- [operação no evento](./docs/40-runbooks/operacao-no-dia-do-evento.md)
+- [resposta a incidentes](./docs/40-runbooks/resposta-a-incidentes.md)
+- [rollback](./docs/40-runbooks/rollback.md)
+
+Os runbooks permanecem `draft` até execução integral e registro de evidências.
 
 ## Segurança
 
@@ -111,4 +127,5 @@ Procedimentos operacionais detalhados ainda serão consolidados nos runbooks can
 - RLS e grants são os controles efetivos de acesso ao banco.
 - O retorno do navegador não comprova pagamento.
 - Conteúdo público deve respeitar moderação e flags de privacidade.
+- Service role nunca deve ser incluída no frontend.
 - Arquivos `.env*`, tokens e credenciais privadas não devem ser versionados.
