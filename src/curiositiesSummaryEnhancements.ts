@@ -136,7 +136,9 @@ function findQuestionnaireButton() {
   return Array.from(section.querySelectorAll<HTMLButtonElement>("button"))
     .find(button => {
       const text = normalizeText(button.textContent);
-      return text.includes("responder questionario") || text.includes("ja respondeu as perguntas");
+      return text.includes("responder questionario")
+        || text.includes("ja respondeu as perguntas")
+        || text.includes("responda as perguntas");
     }) ?? null;
 }
 
@@ -164,9 +166,10 @@ function applyQuestionnaireCta() {
   const button = findQuestionnaireButton();
   if (!button) return;
 
-  replaceButtonLabel(button, "Já respondeu as perguntas?");
+  replaceButtonLabel(button, "Responda as perguntas");
 
-  const shouldShow = questionnaireCtaVisible !== false;
+  // Evita exibir o CTA durante a consulta e para perfis que já têm respostas.
+  const shouldShow = questionnaireCtaVisible === true;
   button.hidden = !shouldShow;
   button.style.display = shouldShow ? "" : "none";
   button.setAttribute("aria-hidden", shouldShow ? "false" : "true");
@@ -193,15 +196,18 @@ async function refreshQuestionnaireEligibility() {
       return;
     }
 
-    const { data: profile, error: profileError } = await (supabase as any)
+    const { data: profiles, error: profilesError } = await (supabase as any)
       .from("profiles")
       .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (profileError) throw profileError;
+      .eq("user_id", userId);
+    if (profilesError) throw profilesError;
     if (requestId !== questionnaireStatusRequest) return;
 
-    if (!profile?.id) {
+    const profileIds = Array.isArray(profiles)
+      ? profiles.map(profile => profile?.id).filter(Boolean)
+      : [];
+
+    if (profileIds.length === 0) {
       questionnaireCtaVisible = true;
       scheduleApply();
       return;
@@ -209,8 +215,8 @@ async function refreshQuestionnaireEligibility() {
 
     const { data: answers, error: answersError } = await (supabase as any)
       .from("profile_school_questionnaire_answers")
-      .select("question_id")
-      .eq("profile_id", profile.id)
+      .select("id")
+      .in("profile_id", profileIds)
       .limit(1);
     if (answersError) throw answersError;
     if (requestId !== questionnaireStatusRequest) return;
@@ -218,7 +224,8 @@ async function refreshQuestionnaireEligibility() {
     questionnaireCtaVisible = !Array.isArray(answers) || answers.length === 0;
   } catch (error) {
     console.warn("Não foi possível verificar as respostas do questionário.", error);
-    if (requestId === questionnaireStatusRequest) questionnaireCtaVisible = true;
+    // Em caso de falha para um usuário autenticado, não exibe um CTA potencialmente incorreto.
+    if (requestId === questionnaireStatusRequest) questionnaireCtaVisible = false;
   }
 
   scheduleApply();
