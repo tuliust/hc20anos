@@ -1,21 +1,18 @@
-# Fluxo de Check-in
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: c28130c966a114dbfbfb000fdea0c65a5af0b9fc
+superseded_by:
+  - docs/10-dominios/checkin-reembolsos-e-operacao.md
+  - docs/40-runbooks/operacao-no-dia-do-evento.md
+---
 
-## Modelo
+# Fluxo de check-in — referência substituída
 
-Não há tabela `checkins`. O check-in usa campos da tabela `tickets`:
+O resumo anterior foi substituído por:
 
-- `checked_in`
-- `checked_in_at`
-- `checked_in_by_admin_id`
+- [`10-dominios/checkin-reembolsos-e-operacao.md`](./10-dominios/checkin-reembolsos-e-operacao.md), com regras de elegibilidade, RPCs, vouchers e reembolsos;
+- [`40-runbooks/operacao-no-dia-do-evento.md`](./40-runbooks/operacao-no-dia-do-evento.md), com preparação, contingência e encerramento operacional.
 
-## Fluxo
-
-1. Equipe busca QR/código ou participante.
-2. Sistema valida ticket e status do pedido.
-3. Se aprovado e não utilizado, marca `checked_in=true`.
-4. Registra data/hora e admin responsável.
-5. Se já usado, exibe alerta de duplicidade.
-
-## Permissões
-
-- `superadmin`, `admin` e `checkin_staff` podem operar check-in.
+A referência antiga permanece apenas para rastreabilidade. O contrato efetivo de check-in é definido pelas migrations, RPCs e pela página de operações vigente.
