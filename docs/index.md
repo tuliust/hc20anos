@@ -2,7 +2,7 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 0a97147b33aa567c776ea34c14aaff3e789b7474
+last_verified_commit: e9189b78654223f8087da88f0eb56cf356a3c83b
 source_files:
   - README.md
   - docs/
@@ -10,89 +10,136 @@ source_files:
 
 # Documentação canônica — HC 20 Anos
 
-Este diretório é o portal de referência técnica, funcional e operacional do projeto **HC 20 Anos**.
+Este é o portal de referência técnica, funcional e operacional do projeto **HC 20 Anos**.
 
-A documentação canônica descreve o estado vigente do produto e da arquitetura. Runbooks em `draft` descrevem procedimentos conferidos contra o código, mas ainda aguardam execução integral em ambiente controlado. Documentos históricos, planos e auditorias não prevalecem sobre as fontes de verdade definidas em [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md).
+Documentos `canonical` descrevem regras humanas vigentes conferidas contra o repositório. Inventários e runbooks `draft` são referências atuais, mas ainda aguardam automação ou evidência operacional. Registros `historical` e `deprecated` não prevalecem sobre as fontes definidas em [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md).
 
 ## Comece por aqui
 
-1. [`00-visao-geral/produto.md`](./00-visao-geral/produto.md) — objetivo, públicos e capacidades do produto.
-2. [`00-visao-geral/arquitetura.md`](./00-visao-geral/arquitetura.md) — visão do sistema em runtime e suas integrações.
-3. [`00-visao-geral/mapa-do-repositorio.md`](./00-visao-geral/mapa-do-repositorio.md) — responsabilidade de cada diretório.
-4. [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md) — autoridade de código, banco, CMS e documentação.
-5. [`00-visao-geral/glossario.md`](./00-visao-geral/glossario.md) — termos usados no domínio e no código.
-6. [`10-dominios/checkout-e-pagamentos.md`](./10-dominios/checkout-e-pagamentos.md) — checkout, Mercado Pago, webhook e estado financeiro.
-7. [`30-contratos/README.md`](./30-contratos/README.md) — plano para referências geradas a partir do código e do banco.
-8. [`40-runbooks/README.md`](./40-runbooks/README.md) — índice e critérios dos procedimentos operacionais.
-9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — regras para manter a documentação válida.
-10. [`archive/README.md`](./archive/README.md) — classificação e preservação de registros históricos.
+1. [`00-visao-geral/produto.md`](./00-visao-geral/produto.md) — objetivo, públicos e capacidades.
+2. [`00-visao-geral/arquitetura.md`](./00-visao-geral/arquitetura.md) — runtime, integrações e fontes técnicas.
+3. [`00-visao-geral/mapa-do-repositorio.md`](./00-visao-geral/mapa-do-repositorio.md) — responsabilidade dos diretórios.
+4. [`00-visao-geral/fontes-de-verdade.md`](./00-visao-geral/fontes-de-verdade.md) — precedência entre banco, código, CMS e documentos.
+5. [`00-visao-geral/glossario.md`](./00-visao-geral/glossario.md) — vocabulário funcional e técnico.
+6. [`10-dominios/README.md`](./10-dominios/README.md) — índice das regras de negócio.
+7. [`30-contratos/README.md`](./30-contratos/README.md) — inventários atuais e geração automática planejada.
+8. [`40-runbooks/README.md`](./40-runbooks/README.md) — procedimentos operacionais.
+9. [`50-governanca/politica-de-documentacao.md`](./50-governanca/politica-de-documentacao.md) — manutenção e classificação.
+10. [`archive/README.md`](./archive/README.md) — registros históricos.
+
+## Domínios documentados
+
+| Domínio | Documento | Estado |
+|---|---|---|
+| Evento e CMS | [`10-dominios/evento-e-cms.md`](./10-dominios/evento-e-cms.md) | `canonical` |
+| Pessoas e privacidade | [`10-dominios/pessoas-perfis-e-privacidade.md`](./10-dominios/pessoas-perfis-e-privacidade.md) | `canonical` |
+| Reivindicação de identidade | [`10-dominios/reivindicacao-de-perfil.md`](./10-dominios/reivindicacao-de-perfil.md) | `canonical` |
+| Fotos e moderação | [`10-dominios/acervo-fotos-e-moderacao.md`](./10-dominios/acervo-fotos-e-moderacao.md) | `canonical` |
+| Memórias e enquetes | [`10-dominios/memorias-curiosidades-e-enquetes.md`](./10-dominios/memorias-curiosidades-e-enquetes.md) | `canonical` |
+| Catálogo de ingressos | [`10-dominios/catalogo-de-ingressos.md`](./10-dominios/catalogo-de-ingressos.md) | `canonical` |
+| Checkout e pagamentos | [`10-dominios/checkout-e-pagamentos.md`](./10-dominios/checkout-e-pagamentos.md) | `canonical` |
+| Pedidos e ingressos | [`10-dominios/pedidos-participantes-e-ingressos.md`](./10-dominios/pedidos-participantes-e-ingressos.md) | `canonical` |
+| Notificações | [`10-dominios/notificacoes-transacionais.md`](./10-dominios/notificacoes-transacionais.md) | `canonical` |
+| Check-in e reembolsos | [`10-dominios/checkin-reembolsos-e-operacao.md`](./10-dominios/checkin-reembolsos-e-operacao.md) | `canonical` |
+| Autenticação e roles | [`10-dominios/autenticacao-autorizacao-e-roles.md`](./10-dominios/autenticacao-autorizacao-e-roles.md) | `canonical` |
+| Mini bio por IA | [`10-dominios/mini-bio-por-ia.md`](./10-dominios/mini-bio-por-ia.md) | `canonical` |
+
+## Inventários técnicos atuais
+
+| Contrato | Documento | Estado |
+|---|---|---|
+| Rotas | [`30-contratos/rotas.md`](./30-contratos/rotas.md) | `draft`; aguarda extração pós-transform |
+| APIs e Functions | [`30-contratos/apis-e-functions.md`](./30-contratos/apis-e-functions.md) | `draft`; aguarda gerador |
+| Variáveis | [`30-contratos/variaveis-de-ambiente.md`](./30-contratos/variaveis-de-ambiente.md) | `draft`; aguarda análise estática automatizada |
+| Erros | [`30-contratos/codigos-de-erro.md`](./30-contratos/codigos-de-erro.md) | `draft`; faltam RPCs SQL |
+| Permissões | [`30-contratos/permissoes.md`](./30-contratos/permissoes.md) | `draft`; aguarda RLS/grants gerados |
+
+Ainda precisam ser gerados automaticamente: schema final, RPCs, RLS, grants, tipos Supabase, rotas efetivas, APIs, Edge Functions, variáveis, erros e ERD.
 
 ## Runbooks disponíveis
 
 | Procedimento | Estado |
 |---|---|
-| [`40-runbooks/desenvolvimento-local.md`](./40-runbooks/desenvolvimento-local.md) | `draft`; |
-| [`40-runbooks/deploy-vercel.md`](./40-runbooks/deploy-vercel.md) | `draft`; |
-| [`40-runbooks/deploy-edge-functions.md`](./40-runbooks/deploy-edge-functions.md) | `draft`; |
-| [`40-runbooks/migrations.md`](./40-runbooks/migrations.md) | `draft`; |
-| [`40-runbooks/validacao-de-pagamentos.md`](./40-runbooks/validacao-de-pagamentos.md) | `draft`; |
-| [`40-runbooks/rollback.md`](./40-runbooks/rollback.md) | `draft`. |
+| [`40-runbooks/desenvolvimento-local.md`](./40-runbooks/desenvolvimento-local.md) | `draft` |
+| [`40-runbooks/deploy-vercel.md`](./40-runbooks/deploy-vercel.md) | `draft` |
+| [`40-runbooks/deploy-edge-functions.md`](./40-runbooks/deploy-edge-functions.md) | `draft` |
+| [`40-runbooks/migrations.md`](./40-runbooks/migrations.md) | `draft` |
+| [`40-runbooks/validacao-de-pagamentos.md`](./40-runbooks/validacao-de-pagamentos.md) | `draft` |
+| [`40-runbooks/investigacao-de-webhook.md`](./40-runbooks/investigacao-de-webhook.md) | `draft` |
+| [`40-runbooks/notificacoes.md`](./40-runbooks/notificacoes.md) | `draft` |
+| [`40-runbooks/reembolsos.md`](./40-runbooks/reembolsos.md) | `draft` |
+| [`40-runbooks/operacao-no-dia-do-evento.md`](./40-runbooks/operacao-no-dia-do-evento.md) | `draft` |
+| [`40-runbooks/resposta-a-incidentes.md`](./40-runbooks/resposta-a-incidentes.md) | `draft` |
+| [`40-runbooks/rollback.md`](./40-runbooks/rollback.md) | `draft` |
 
-`draft` significa que o procedimento foi reconciliado com o repositório, mas ainda não recebeu evidência de execução completa. Não significa que um documento histórico ou depreciado possa substituí-lo.
+A documentação dos procedimentos está concluída. A pendência é executá-los, registrar evidências e promover individualmente os comprovados para `canonical`.
 
 ## Reconciliação concluída
 
-| Documento anterior | Classificação | Resultado |
+| Documento anterior | Classificação | Substituição |
 |---|---|---|
-| `ROADMAP.md` | `historical` | planejamento inicial; não representa backlog atual; |
-| `SUPABASE_SCHEMA.md` | `deprecated` | snapshot parcial; banco depende do replay integral; |
-| `PAYMENTS_MERCADO_PAGO.md` | `deprecated` | fluxo agregado antigo substituído pela referência de domínio; |
-| `DEPLOYMENT.md` | `deprecated` | substituído por runbooks separados; |
-| `PRODUCTION_QA.md` | `deprecated` | substituído pela matriz atual de validação; |
-| `mercado-pago/01-auditoria-e-plano.md` | `historical` | auditoria anterior à implementação; |
-| `mercado-pago/02-backend-checkout-create.md` | `historical` | contrato intermediário; |
-| `mercado-pago/03-admin-reporting-validation.md` | `historical` | checklist de uma entrega específica; |
-| `mercado-pago/04-operacao-e-deploy.md` | `historical` | procedimento anterior ainda preservado. |
+| `ROADMAP.md` | `historical` | Epic e documentação por domínio |
+| `PRODUCT_SCOPE.md` | `deprecated` | `00-visao-geral/produto.md` e domínios |
+| `SUPABASE_SCHEMA.md` | `deprecated` | futuro `banco.generated.md` |
+| `AUTH_AND_ROLES.md` | `deprecated` | autenticação e matriz de permissões |
+| `CHECKIN_FLOW.md` | `deprecated` | domínio de operação e runbook do evento |
+| `PHOTO_MODERATION.md` | `deprecated` | domínios de acervo e memórias |
+| `PHASE2_INTERACTIONS.md` | `historical` | preservado como incremento anterior |
+| `PAYMENTS_MERCADO_PAGO.md` | `deprecated` | checkout e pagamentos |
+| `DEPLOYMENT.md` | `deprecated` | runbooks de deploy, migrations e rollback |
+| `PRODUCTION_QA.md` | `deprecated` | validação de pagamentos e runbooks |
+| `mercado-pago/*` | `historical` | registros de auditoria e implementação |
 
-## Documentos que ainda exigem reconciliação
+Documentos de design ainda devem ser classificados conforme sejam tokens vigentes, especificação atual ou registro histórico.
 
-- `AUTH_AND_ROLES.md`: comparar com roles, policies e grants finais;
-- `CHECKIN_FLOW.md`: comparar com RPCs, página de operação e regras atuais;
-- `PRODUCT_SCOPE.md`: integrar aos documentos de domínio sem duplicar a visão geral;
-- documentos de fotos, design e interações: classificar por vigência;
-- demais documentos de fases anteriores: adicionar metadados e apontar substitutos.
+## Pendências técnicas reais
 
-## Contratos que ainda precisam ser gerados
+### Geração automática
 
-- rotas efetivas após transforms;
-- Vercel Functions e Edge Functions;
-- schema final após replay;
-- tabelas, views, enums, RPCs, triggers, policies e grants;
-- matriz de variáveis de ambiente;
-- códigos de erro;
-- tipos TypeScript do Supabase;
-- diagrama de entidades.
+- reproduzir banco com todas as migrations;
+- gerar schema, enums, constraints, índices, views e triggers;
+- gerar RPCs e segurança;
+- gerar RLS, grants e revokes;
+- regenerar tipos TypeScript do Supabase;
+- gerar ERD;
+- extrair rotas depois dos transforms;
+- extrair APIs, Functions, variáveis e erros;
+- validar divergência no CI.
+
+### Governança
+
+- criar `npm run audit:docs`;
+- validar links e front matter;
+- adicionar auditoria ao GitHub Actions;
+- criar `CODEOWNERS`;
+- adicionar checklist de impacto documental;
+- exigir ADR para mudanças arquiteturais relevantes.
+
+### Operação
+
+- executar todos os runbooks em ambiente controlado;
+- ensaiar rollback e incidente;
+- simular operação presencial;
+- promover apenas procedimentos comprovados.
 
 ## Convenção de status
 
 | Status | Significado |
 |---|---|
-| `canonical` | referência humana vigente e aprovada; |
-| `generated` | derivado automaticamente; não editar manualmente; |
-| `draft` | em elaboração ou ainda sem execução integral; |
-| `historical` | registro de uma fase anterior; |
-| `deprecated` | substituído, preservado por rastreabilidade. |
+| `canonical` | referência humana vigente e aprovada |
+| `generated` | derivado automaticamente; não editar manualmente |
+| `draft` | referência em elaboração, sem automação ou evidência completa |
+| `historical` | registro de fase anterior |
+| `deprecated` | substituído e preservado por rastreabilidade |
 
 ## Regra de precedência
 
-Quando houver divergência:
-
-1. comportamento validado no estado final das migrations, código compilado e testes;
+1. estado final das migrations, código compilado e testes;
 2. contratos gerados automaticamente;
 3. documentação `canonical`;
-4. runbooks vigentes e executados;
-5. runbooks `draft`, com limitações declaradas;
+4. runbooks executados e validados;
+5. inventários e runbooks `draft`;
 6. ADRs;
-7. planos, auditorias e documentos históricos.
+7. planos, auditorias e registros históricos.
 
-A documentação humana não deve tentar substituir contratos verificáveis. Deve explicar contexto, intenção, limites, operação e critérios de segurança.
+A documentação humana explica contexto, intenção, limites e operação. Ela não substitui contratos verificáveis.
