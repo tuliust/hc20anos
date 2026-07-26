@@ -5,6 +5,7 @@ const CONTENT_ATTRIBUTE = "data-curiosities-poll-content";
 const LABEL_ATTRIBUTE = "data-curiosities-poll-label";
 const BADGE_ATTRIBUTE = "data-curiosities-poll-badge";
 const QUESTION_ATTRIBUTE = "data-curiosities-poll-question";
+const VISIBILITY_ATTRIBUTE = "data-curiosities-poll-visibility";
 
 let scheduled = false;
 
@@ -25,7 +26,16 @@ function isCuriositiesPage() {
   return CURIOSITIES_PATHS.has(normalizePath(window.location.pathname));
 }
 
+function restorePollCard(card: HTMLElement) {
+  card.hidden = false;
+  card.style.removeProperty("display");
+  card.removeAttribute("aria-hidden");
+  card.removeAttribute(VISIBILITY_ATTRIBUTE);
+}
+
 function clearMarkers() {
+  document.querySelectorAll<HTMLElement>(`[${VISIBILITY_ATTRIBUTE}]`).forEach(restorePollCard);
+
   [
     CARD_ATTRIBUTE,
     HEADER_ATTRIBUTE,
@@ -87,6 +97,18 @@ function applyPollMarkers() {
     label.setAttribute(LABEL_ATTRIBUTE, "true");
     match.badge.setAttribute(BADGE_ATTRIBUTE, "true");
     match.question.setAttribute(QUESTION_ATTRIBUTE, "true");
+
+    const isOpen = normalizeText(match.badge.textContent) === "aberto";
+    if (isOpen) {
+      restorePollCard(card);
+      card.setAttribute(VISIBILITY_ATTRIBUTE, "open");
+      return;
+    }
+
+    card.hidden = true;
+    card.style.setProperty("display", "none", "important");
+    card.setAttribute("aria-hidden", "true");
+    card.setAttribute(VISIBILITY_ATTRIBUTE, "inactive");
   });
 }
 
