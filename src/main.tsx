@@ -27,6 +27,7 @@ import { installFooterLogoEnhancements } from './footerLogoEnhancements';
 import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
+import { installHistoryEmptyStateEnhancement } from './historyEmptyStateEnhancement';
 import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
 import { installHistoryPersonFilterEnhancement } from './historyPersonFilterEnhancement';
 import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnhancement';
@@ -101,6 +102,7 @@ if (!isStandaloneRoute) {
   installGuestApprovalNavigation();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
+  installHistoryEmptyStateEnhancement();
   installHistoryHeaderEnhancements();
   installHistoryPersonFilterEnhancement();
   installHistoryPhotoRefreshEnhancement();
