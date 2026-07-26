@@ -1,8 +1,23 @@
+---
+status: historical
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
+period: auditoria anterior à implementação comercial atual
+superseded_by:
+  - docs/10-dominios/checkout-e-pagamentos.md
+---
+
 # Checkout Pro — auditoria inicial e plano de execução
 
-Issue de acompanhamento: #6
+> [!WARNING]
+> Registro histórico da auditoria que orientou a implementação. Riscos, pendências e regras descritos aqui podem ter sido resolvidos, alterados ou removidos por migrations posteriores. Não usar como contrato vigente.
+>
+> Consulte [`../10-dominios/checkout-e-pagamentos.md`](../10-dominios/checkout-e-pagamentos.md) e as fontes verificáveis indicadas nesse documento.
 
-## Escopo
+Issue de acompanhamento original: #6
+
+## Escopo registrado
 
 Concluir a integração de venda de ingressos do evento HC 20 Anos com Mercado Pago Checkout Pro, Supabase, ingressos individuais, aprovação de convidados, lotes, extras, transferências, reembolsos e check-in.
 
@@ -10,79 +25,56 @@ Concluir a integração de venda de ingressos do evento HC 20 Anos com Mercado P
 
 ### Frontend
 
-O fluxo de checkout está concentrado em `src/app/App.tsx`.
+O fluxo de checkout estava concentrado em `src/app/App.tsx`.
 
-O frontend atualmente:
+O frontend então:
 
-- seleciona o tipo de ingresso;
-- coleta comprador e quantidade;
-- calcula quantidade e valor para apresentação;
-- cria um pedido através da camada de serviços;
-- solicita uma preferência de pagamento;
-- redireciona para a URL retornada;
-- lê parâmetros de retorno e consulta o pedido.
+- selecionava o tipo de ingresso;
+- coletava comprador e quantidade;
+- calculava quantidade e valor para apresentação;
+- criava um pedido através da camada de serviços;
+- solicitava uma preferência de pagamento;
+- redirecionava para a URL retornada;
+- lia parâmetros de retorno e consultava o pedido.
 
-Riscos identificados:
+Riscos identificados na época:
 
-1. Parte do modelo atual trata acompanhantes apenas como quantidade, sem registros individuais completos.
-2. O frontend ainda mantém cálculo de preço para apresentação; o backend deve ser a única autoridade financeira.
-3. O redirecionamento prioriza `init_point` antes de `sandbox_init_point`, sem uma seleção explícita de ambiente.
-4. O checkout atual não representa os pacotes familiares, convidados aprovados, extras por participante e limite de seis pessoas.
+1. Parte do modelo tratava acompanhantes apenas como quantidade, sem registros individuais completos.
+2. O frontend mantinha cálculo de preço para apresentação; o backend deveria ser a única autoridade financeira.
+3. O redirecionamento priorizava `init_point` antes de `sandbox_init_point`, sem seleção explícita de ambiente.
+4. O checkout não representava adequadamente pacotes, convidados, extras e limites.
 
 ### Camada de serviços
 
-`src/lib/services.ts` já expõe operações equivalentes a:
+`src/lib/services.ts` expunha operações equivalentes a:
 
 - `createCheckoutOrder`;
 - `createPaymentPreference`;
 - `getCheckoutOrder`.
 
-As chamadas usam rotas da Edge Function. O contrato deve evoluir para:
+O contrato pretendido era evoluir para:
 
 - criação autenticada de pedido com participantes;
 - cálculo integral no backend;
-- retorno de uma única propriedade `checkout_url`;
-- consulta segura por token público, sem depender apenas do UUID interno.
+- uma propriedade única `checkout_url`;
+- consulta segura por token público.
 
 ### Backend / Edge Function
 
-A Edge Function atual usa Hono e service role do Supabase. Ela já possui:
+A Edge Function agregada usava Hono e service role. A auditoria registrou capacidades e riscos anteriores, incluindo autenticação insuficiente, modelo simples de pedido, ausência de reserva transacional completa, validação incompleta do webhook, concorrência de idempotência, notificações no caminho crítico e tratamento incompleto de reembolso e chargeback.
 
-- criação de pedido;
-- criação de preferência via API REST do Mercado Pago;
-- `back_urls` e `notification_url`;
-- validação HMAC do webhook;
-- consulta direta do pagamento no Mercado Pago;
-- atualização de pedido;
-- geração de ingressos após aprovação;
-- incremento de quantidade vendida;
-- envio de e-mail e integração opcional de WhatsApp.
+Essas observações motivaram a separação atual entre `checkout-create`, `payment-webhook`, `notification-worker`, `refund-processor` e RPCs transacionais.
 
-Riscos identificados:
+## Modelo de dados esperado na auditoria
 
-1. A criação de pedido não exige autenticação de forma suficiente para a nova regra de negócio.
-2. O payload ainda representa apenas um `ticket_type_id`, quantidade e comprador.
-3. Não existe reserva transacional completa por 30 minutos.
-4. A preferência não usa uma variável explícita `MERCADO_PAGO_ENV`.
-5. O webhook não valida integralmente valor, moeda, preferência, ambiente e recebedor.
-6. O webhook pode regredir estados e apagar `paid_at` em eventos posteriores.
-7. A idempotência depende parcialmente de consulta prévia, sujeita a corrida.
-8. Falhas internas são respondidas com HTTP 200, impedindo retentativas úteis.
-9. A criação de ingressos, incremento de vendas e notificações não está encapsulada em transação idempotente.
-10. Reembolso, chargeback e cancelamento não invalidam integralmente ingressos e check-in.
-11. E-mail é enviado durante o processamento crítico do webhook.
-12. Código de WhatsApp deve ser removido ou mantido inativo; o canal não fará parte desta entrega.
-
-### Modelo de dados esperado
-
-A implementação deverá adaptar estruturas existentes e adicionar apenas o que estiver ausente. O modelo funcional exige suporte para:
+A auditoria propôs suporte para:
 
 - pedidos;
 - participantes por pedido;
 - lotes e preços por produto;
 - preferências de pagamento;
 - eventos de pagamento;
-- solicitações de aprovação de convidados;
+- aprovações de convidados;
 - ingressos individuais;
 - extras por participante;
 - fila de notificações;
@@ -91,7 +83,9 @@ A implementação deverá adaptar estruturas existentes e adicionar apenas o que
 - auditoria;
 - check-in e entrega de fichas.
 
-## Regras consolidadas
+A presença de um item nessa lista não significa que ele permaneça no modelo comercial atual.
+
+## Regras registradas na época
 
 ### Evento
 
@@ -109,95 +103,55 @@ A implementação deverá adaptar estruturas existentes e adicionar apenas o que
 - Reserva por 30 minutos.
 - Pix expirado exige nova preferência.
 
-### Lotes
+### Lotes planejados
 
 - Inicial: até 31/07/2026.
 - 1º lote: a partir de 01/08/2026.
 - 2º lote: a partir de 15/08/2026.
 - 3º lote: a partir de 01/09/2026.
-- Sem limite de capacidade por lote neste momento.
 - Preços armazenados no banco e administráveis.
 
-### Participantes
+Datas, preços e disponibilidade devem ser consultados no catálogo vigente do banco.
+
+### Participantes planejados
 
 - Máximo de seis pessoas por pedido.
 - Um registro, ingresso e QR Code por pessoa.
-- Tipos: ex-aluno, cônjuge, filho e convidado externo.
-- Convidado externo cria conta simplificada e depende de aprovação do ex-aluno.
-- Máximo de seis convidados externos aprovados por ex-aluno.
+- Tipos avaliados: ex-aluno, cônjuge, filho e convidado externo.
 
-### Extras
+Regras de aprovação de convidado e composição foram alteradas posteriormente e não devem ser inferidas deste arquivo.
 
-- Bebidas: cada unidade representa 10 latas.
-- Churrasco: cada unidade representa 10 churrasquinhos.
-- Quantidade ilimitada.
-- Extras vinculados a participantes.
+### Extras planejados
+
+- Bebidas e churrasco vinculados a participantes.
 - Fichas físicas entregues no check-in.
-- Entrega registrada uma única vez.
 
-### Reembolso
+Extras não fazem parte do catálogo comercial vigente e permanecem apenas como estruturas de compatibilidade em partes do código e do banco.
+
+### Reembolso planejado
 
 - Desistência em até sete dias corridos da compra.
-- Limite absoluto: 17/10/2026.
-- Desconto apenas de taxas comprovadamente não recuperáveis.
-- Ingresso usado não pode ser reembolsado.
-- Cancelamento do evento gera reembolso integral.
+- Limite absoluto registrado: 17/10/2026.
+- Ingresso usado não poderia ser reembolsado.
+- Cancelamento do evento geraria reembolso integral.
 
-### Transferência
+A política operacional vigente deve ser validada nas migrations, no painel e no runbook de reembolsos quando concluído.
+
+### Transferência planejada
 
 - Até 24 horas antes do evento.
 - Individual.
-- Novo titular autenticado ou com cadastro simplificado.
 - QR Code anterior invalidado.
-- Extras acompanham o ingresso.
-- Ingresso-base de ex-aluno não pode ser transferido a convidado externo.
+- Extras acompanhariam o ingresso.
 
-## Plano de implementação
+## Plano de implementação registrado
 
-### Etapa 1 — auditoria e documentação
+1. Auditoria e documentação.
+2. Modelo transacional.
+3. Pedidos, preços e reservas.
+4. Mercado Pago.
+5. Experiência do usuário.
+6. Ingressos e operação.
+7. Administração e qualidade.
 
-- Registrar linha de base.
-- Mapear migrations e estruturas existentes.
-- Confirmar contratos atuais.
-- Criar checklist operacional.
-
-### Etapa 2 — modelo transacional
-
-- Criar migrations incrementais.
-- Adicionar participantes, lotes, preços, preferências, aprovações, extras, notificações, reembolsos e transferências.
-- Adicionar constraints, índices, RLS e funções transacionais.
-
-### Etapa 3 — pedidos, preços e reservas
-
-- Criar cálculo de preço exclusivamente no backend.
-- Validar composição dos pacotes.
-- Criar reserva de 30 minutos.
-- Implementar expiração idempotente.
-
-### Etapa 4 — Mercado Pago
-
-- Introduzir `MERCADO_PAGO_ENV`.
-- Retornar apenas `checkout_url`.
-- Fortalecer preferência, webhook, máquina de estados e reconciliação.
-
-### Etapa 5 — experiência do usuário
-
-- Refatorar checkout.
-- Implementar conta simplificada e aprovação de convidado.
-- Conectar `/minha-area`.
-
-### Etapa 6 — ingressos e operação
-
-- Gerar QR Codes seguros.
-- Criar fila de e-mails.
-- Implementar transferências, reembolsos, check-in e fichas.
-
-### Etapa 7 — administração e qualidade
-
-- Conectar painéis e relatórios.
-- Adicionar testes unitários, integração e E2E.
-- Atualizar documentação e checklist de produção.
-
-## Primeiro incremento de código
-
-O primeiro incremento após esta auditoria deverá ser uma migration autocontida que estabeleça o modelo complementar e as funções transacionais sem quebrar tabelas existentes. Antes de escrevê-la, é obrigatório abrir e comparar todas as migrations relacionadas a pedidos, ingressos e pagamentos.
+Este plano é evidência do processo de construção, não backlog atual.
