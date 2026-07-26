@@ -1,12 +1,27 @@
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+superseded_by:
+  - docs/40-runbooks/migrations.md
+source_files:
+  - scripts/validate-supabase-migrations.mjs
+  - scripts/repair-supabase-migration-history.ps1
+  - supabase/manual/audit_migration_state.sql
+  - supabase/migrations/
+---
+
 # Runbook de reconciliação das migrations do Supabase
 
-## Objetivo
+> **Documento substituído.** Este texto registra o procedimento usado durante a reconciliação inicial do histórico remoto. Para operações atuais, use [`40-runbooks/migrations.md`](./40-runbooks/migrations.md). Não execute comandos deste documento sem confrontá-los com o runbook vigente e com o estado atual do banco.
 
-Restabelecer uma sequência de migrations que possa ser reproduzida em um banco vazio e reconciliar o histórico remoto sem executar operações destrutivas ou marcar versões como aplicadas sem evidência.
+## Objetivo histórico
 
-## Situação conhecida
+Restabelecer uma sequência de migrations que pudesse ser reproduzida em um banco vazio e reconciliar o histórico remoto sem executar operações destrutivas ou marcar versões como aplicadas sem evidência.
 
-O histórico remoto está alinhado até `20260715000039`. As migrations posteriores de comércio, FAQ e operações existem no repositório, mas parte delas não está registrada no Supabase remoto.
+## Situação registrada na época
+
+O histórico remoto estava alinhado até `20260715000039`. As migrations posteriores de comércio, FAQ e operações existiam no repositório, mas parte delas não estava registrada no Supabase remoto.
 
 Também foram identificados:
 
@@ -14,19 +29,19 @@ Também foram identificados:
 - timestamp duplicado;
 - dependências do checkout em arquivos ignorados pelo CLI;
 - migration de FAQ dependente de uma tabela de backup não garantida;
-- migrations de reset que excluem dados transacionais;
-- seed comercial incompatível com o limite atual de 500 unidades.
+- migrations de reset que excluíam dados transacionais;
+- seed comercial incompatível com o limite de 500 unidades adotado naquele momento.
 
-## Regras obrigatórias
+## Regras obrigatórias registradas
 
 1. Não executar `supabase db push` enquanto o `--dry-run` listar migrations históricas não reconciliadas.
 2. Não usar `migration repair --status applied` sem verificar os objetos e invariantes correspondentes.
 3. Não executar migrations de reset em produção.
-4. Registrar as contagens de pedidos, ingressos, pagamentos, participantes e notificações antes e depois de cada etapa.
+4. Registrar contagens transacionais antes e depois de cada etapa.
 5. Tratar cada família de migrations separadamente.
 6. Fazer backup lógico antes de qualquer alteração de histórico ou schema remoto.
 
-## Ferramentas adicionadas
+## Ferramentas usadas
 
 ### Auditoria local
 
@@ -34,17 +49,9 @@ Também foram identificados:
 npm run audit:migrations
 ```
 
-O comando verifica:
+O comando verifica nomes, timestamps duplicados, SQL destrutivo não autorizado e dependências conhecidas.
 
-- padrão `<14 dígitos>_<nome_em_snake_case>.sql`;
-- timestamps duplicados;
-- SQL destrutivo não autorizado;
-- UUID fixo do evento de demonstração;
-- referência a tabela de backup sem criação rastreada.
-
-Enquanto houver erros conhecidos, o comando deve terminar com código diferente de zero. Isso é esperado durante a fase de correção.
-
-Para saída estruturada:
+Saída estruturada:
 
 ```powershell
 node scripts/validate-supabase-migrations.mjs --json
@@ -52,90 +59,57 @@ node scripts/validate-supabase-migrations.mjs --json
 
 ### Auditoria remota
 
-Executar no SQL Editor do Supabase:
+Consulta somente leitura:
 
 ```text
 supabase/manual/audit_migration_state.sql
 ```
 
-A consulta é somente leitura e retorna:
+A consulta foi usada para inspecionar histórico, objetos, contagens, capacidade, FAQ, RLS e extensões.
 
-- histórico remoto;
-- matriz de objetos por versão;
-- eventos e datas configuradas;
-- contagens transacionais;
-- capacidade dos produtos e lotes;
-- integridade do FAQ;
-- políticas RLS;
-- extensões e disponibilidade do catálogo do `pg_cron`.
+## Classificação usada na reconciliação
 
-## Classificação das migrations
+| Classificação | Critério | Ação histórica |
+|---|---|---|
+| Integralmente presente | Objetos e invariantes existentes | Registrar como aplicada |
+| Parcialmente presente | Parte do schema existente | Criar correção aditiva |
+| Ausente e segura | SQL aditivo e não destrutivo | Aplicar controladamente |
+| Superada | Estado final estabelecido por versão posterior | Registrar sem executar |
+| Destrutiva | Risco de excluir ou alterar dados | Retirar do fluxo automático |
+| Ambígua | Evidência insuficiente | Interromper e investigar |
 
-Cada versão deve receber uma das classificações abaixo:
-
-| Classificação | Critério | Ação |
-| --- | --- | --- |
-| Integralmente presente | Todos os objetos e invariantes existem | Registrar como aplicada |
-| Parcialmente presente | Parte do schema existe | Criar migration corretiva e testar |
-| Ausente e segura | SQL é aditivo e não destrutivo | Aplicar de forma controlada |
-| Superada | Estado final já foi estabelecido por versões posteriores | Registrar como aplicada sem executar |
-| Destrutiva | Pode excluir ou alterar dados de negócio | Retirar do fluxo automático |
-| Ambígua | Não há evidência suficiente | Interromper e investigar |
-
-## Ordem de reconciliação
+## Ordem histórica de reconciliação
 
 1. Fundação comercial.
 2. Funções comerciais e RLS.
 3. Dependências e RPC do checkout.
-4. FAQ estruturado e consolidação.
+4. FAQ estruturado.
 5. Relatórios administrativos.
 6. Capacidade e resets superados.
 7. Automação comercial.
-8. Convidados externos e notificações.
+8. Convidados e notificações.
 9. Transferências e reembolsos.
-10. Check-in, relatórios e auditoria de segurança.
+10. Check-in e auditoria.
 11. Reivindicação de perfil.
 
-## Procedimento por família
+## Procedimento histórico por família
 
-### 1. Registrar estado inicial
+### Registrar estado inicial
 
 ```powershell
 npx supabase migration list --linked
 npm run audit:migrations
 ```
 
-Executar a auditoria remota e salvar os resultados.
+### Comparar objetos
 
-### 2. Comparar objetos
+Verificar tabelas, colunas, índices, constraints, funções, triggers, RLS, grants, cron jobs e invariantes.
 
-Verificar:
+### Criar correção aditiva
 
-- tabelas e colunas;
-- índices e constraints;
-- funções e assinaturas;
-- triggers;
-- políticas RLS;
-- grants;
-- cron jobs;
-- invariantes de dados.
+Quando o estado fosse parcial, a orientação era criar migration nova e idempotente, preservando dados e abortando quando não houvesse reconciliação segura.
 
-### 3. Criar correção aditiva
-
-Quando o estado for parcial, criar uma migration nova e idempotente. Não modificar o banco remoto diretamente para esconder divergências.
-
-A migration corretiva deve:
-
-- criar somente objetos ausentes;
-- substituir funções pela versão final;
-- reconstruir grants e políticas;
-- preservar dados;
-- validar o estado ao final;
-- abortar quando não houver forma segura de reconciliar.
-
-### 4. Testar
-
-Executar:
+### Testar
 
 ```powershell
 npx supabase db reset
@@ -144,41 +118,35 @@ npm run test:faq
 npm run test:e2e
 ```
 
-Executar também os testes SQL relacionados à família.
+Além dos testes SQL relacionados.
 
-### 5. Reparar o histórico
+### Reparar o histórico
 
-Somente depois da confirmação:
+Somente após confirmação dos objetos:
 
 ```powershell
 npx supabase migration repair <VERSAO> --status applied --linked
 ```
 
-Repetir de forma granular. Evitar reparar várias famílias em um único comando.
+### Confirmar preservação
 
-### 6. Confirmar preservação de dados
-
-Comparar as contagens transacionais antes e depois. Qualquer redução não planejada interrompe o processo.
+Comparar contagens antes e depois e interromper diante de redução não planejada.
 
 ## Migrations destrutivas
 
-As migrations de reset comercial não devem permanecer executáveis automaticamente. A lógica de limpeza deverá ser transferida para `supabase/manual/reset_commerce_data.sql` com:
+As migrations de reset comercial não deveriam permanecer no fluxo automático. Limpezas deveriam ser transferidas para scripts manuais protegidos, com confirmação, filtro por evento, contagens e bloqueio para pedidos aprovados.
 
-- confirmação explícita;
-- filtro obrigatório por evento;
-- contagens antes da exclusão;
-- bloqueio quando houver pedidos aprovados;
-- registro da operação em auditoria.
+## Critérios históricos para liberar `db push`
 
-## Critérios para liberar `db push`
+- nenhum arquivo ignorado pelo CLI;
+- ausência de timestamps duplicados;
+- replay local completo;
+- auditor sem erros;
+- migrations destrutivas fora do fluxo automático;
+- histórico remoto reconciliado;
+- `db push --dry-run` contendo apenas mudanças novas;
+- testes SQL e funcionais aprovados.
 
-O uso normal de `npx supabase db push` só será retomado quando:
+## Referência vigente
 
-- nenhum arquivo for ignorado pelo CLI;
-- não houver timestamps duplicados;
-- o replay local concluir do zero;
-- o auditor local não retornar erros;
-- as migrations destrutivas estiverem fora do fluxo automático;
-- `migration list --linked` estiver reconciliado;
-- `db push --dry-run` listar apenas migrations novas e intencionais;
-- os testes SQL e funcionais estiverem aprovados.
+Consulte [`40-runbooks/migrations.md`](./40-runbooks/migrations.md) antes de qualquer operação atual.
