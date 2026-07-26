@@ -27,7 +27,7 @@ export interface CheckoutCreateInput {
   buyer_name: string;
   buyer_email: string;
   buyer_phone?: string | null;
-  product_code: "simple" | "family_full" | "family_single_parent" | "external_guest";
+  product_code: "simple" | "family_full" | "external_guest";
   participants: CheckoutParticipantInput[];
   extras?: CheckoutExtraInput[];
 }
@@ -66,19 +66,20 @@ function checkoutErrorMessage(code?: string) {
   const messages: Record<string, string> = {
     authentication_required: "Sua sessão expirou. Entre novamente para continuar.",
     no_active_lot: "Não há lote de ingressos disponível neste momento.",
-    invalid_primary_product: "O ingresso principal não está disponível no lote vigente.",
+    invalid_primary_product: "O ingresso selecionado não está disponível no lote vigente.",
     unsupported_primary_product: "A categoria selecionada não pode ser comprada neste checkout.",
-    simple_package_invalid_composition: "O ingresso Ex-Aluno não aceita esta composição de participantes.",
-    family_full_invalid_composition: "A Família completa exige um ex-aluno, um cônjuge e pelo menos um filho.",
-    family_single_parent_invalid_composition: "A Família sem cônjuge exige um ex-aluno e pelo menos um filho.",
-    external_guest_package_invalid_composition: "O ingresso de convidado deve conter somente o convidado aprovado.",
+    alumni_registration_required: "Os ingressos Individual e Família são exclusivos para ex-aluno pré-cadastrado e vinculado à conta.",
+    exactly_one_alumni_required: "Os ingressos Individual e Família são exclusivos para ex-aluno pré-cadastrado e vinculado à conta.",
+    simple_package_invalid_composition: "O ingresso Individual deve conter somente o ex-aluno pré-cadastrado.",
+    family_full_invalid_composition: "O ingresso Família exige um ex-aluno pré-cadastrado, um cônjuge e pelo menos um filho.",
+    external_guest_package_invalid_composition: "O ingresso Convidado deve conter somente um participante adulto.",
     child_birth_date_required: "Informe a data de nascimento de cada filho.",
-    child_birth_date_invalid: "A data de nascimento informada para o filho é inválida.",
-    external_guest_data_required: "O convidado precisa ter nome, e-mail, telefone e ex-aluno responsável.",
-    external_guest_not_approved: "Este convidado ainda não possui aprovação válida do ex-aluno responsável.",
-    additional_child_price_missing: "O valor do filho adicional não está ativo no lote vigente.",
-    external_guest_price_missing: "O valor do convidado não está ativo no lote vigente.",
-    extra_price_missing: "O preço do item adicional ainda não está configurado.",
+    child_birth_date_invalid: "A data de nascimento informada é inválida ou não atende à regra etária do ingresso.",
+    external_guest_data_required: "Informe nome, e-mail, WhatsApp e data de nascimento do convidado.",
+    external_guest_birth_date_invalid: "A data de nascimento do convidado é inválida.",
+    external_guest_must_be_adult: "O ingresso Convidado é exclusivo para participantes com 18 anos ou mais na data do evento.",
+    extras_not_supported: "Itens adicionais não fazem parte do modelo atual de ingressos.",
+    invalid_extra: "Itens adicionais não fazem parte do modelo atual de ingressos.",
     participant_limit_exceeded: "O pedido pode ter no máximo seis participantes.",
     mercado_pago_not_configured: "O pagamento pelo Mercado Pago ainda não está configurado.",
     mercado_pago_preference_failed: "O Mercado Pago não conseguiu preparar o pagamento.",

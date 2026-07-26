@@ -5,11 +5,7 @@ export const DEFAULT_TICKET_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 export type TicketCatalogProductCode =
   | "simple"
   | "family_full"
-  | "family_single_parent"
-  | "additional_child"
-  | "external_guest"
-  | "extra_drinks"
-  | "extra_barbecue";
+  | "external_guest";
 
 export interface CurrentTicketCatalogItem {
   lot_id: string;
@@ -35,11 +31,7 @@ export interface CurrentTicketCatalogItem {
 const PRODUCT_CODES = new Set<TicketCatalogProductCode>([
   "simple",
   "family_full",
-  "family_single_parent",
-  "additional_child",
   "external_guest",
-  "extra_drinks",
-  "extra_barbecue",
 ]);
 
 function normalizeRow(value: unknown): CurrentTicketCatalogItem | null {

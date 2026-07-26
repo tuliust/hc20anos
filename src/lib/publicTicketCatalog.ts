@@ -3,13 +3,12 @@ import type { DbTicketType } from "./database.types";
 export const PUBLIC_TICKET_PRODUCT_CODES = [
   "simple",
   "family_full",
-  "family_single_parent",
   "external_guest",
 ] as const;
 
 export type PublicTicketProductCode = typeof PUBLIC_TICKET_PRODUCT_CODES[number];
 
-type PublicTicketGroup = "alumni" | "family" | "guest";
+type PublicTicketGroup = "individual" | "family" | "guest";
 
 export interface PublicTicketCardModel {
   ticketType: DbTicketType;
@@ -49,28 +48,9 @@ function normalize(value: string | null | undefined): string {
 
 function inferProductCodeFromName(ticket: DbTicketType): PublicTicketProductCode | "" {
   const name = normalize(ticket.name);
-
   if (name.includes("convidado")) return "external_guest";
-
-  if (
-    name.includes("familia sem conjuge")
-    || name.includes("sem conjuge")
-    || name.includes("monoparental")
-  ) {
-    return "family_single_parent";
-  }
-
   if (name.includes("familia") || name.includes("casal")) return "family_full";
-
-  if (
-    name.includes("ex-aluno")
-    || name.includes("ex aluno")
-    || name.includes("individual")
-    || name.includes("aluno")
-  ) {
-    return "simple";
-  }
-
+  if (name.includes("individual") || name.includes("ex-aluno") || name.includes("ex aluno")) return "simple";
   return "";
 }
 
@@ -79,7 +59,6 @@ function productCode(ticket: DbTicketType): string {
   if (PUBLIC_TICKET_PRODUCT_CODES.includes(explicitCode as PublicTicketProductCode)) {
     return explicitCode;
   }
-
   return inferProductCodeFromName(ticket);
 }
 
@@ -105,31 +84,31 @@ function withActiveCatalogMetadata(ticket: DbTicketType): DbTicketType {
   };
 }
 
-export function isCheckoutExtra(ticket: DbTicketType): boolean {
-  return ["extra_drinks", "extra_barbecue", "additional_child"].includes(productCode(ticket));
+export function isCheckoutExtra(_ticket: DbTicketType): boolean {
+  return false;
 }
 
 export function isFamilyTicket(ticket: DbTicketType): boolean {
-  return ["family_full", "family_single_parent"].includes(productCode(ticket));
+  return productCode(ticket) === "family_full";
 }
 
-export function canShowAdditionalChild(ticket: DbTicketType): boolean {
-  return isFamilyTicket(ticket);
+export function canShowAdditionalChild(_ticket: DbTicketType): boolean {
+  return false;
 }
 
 export function toPublicTicketCard(ticket: DbTicketType): PublicTicketCardModel | null {
   const code = productCode(ticket);
 
   if (code === "simple") {
-    return { ticketType: ticket, displayName: "Ingresso Ex-Aluno", group: "alumni", sortOrder: 10 };
+    return { ticketType: ticket, displayName: "Individual", group: "individual", sortOrder: 10 };
   }
 
-  if (code === "family_full" || code === "family_single_parent") {
-    return { ticketType: ticket, displayName: "Ingresso Família", group: "family", sortOrder: 20 };
+  if (code === "family_full") {
+    return { ticketType: ticket, displayName: "Família", group: "family", sortOrder: 20 };
   }
 
   if (code === "external_guest") {
-    return { ticketType: ticket, displayName: "Ingresso Convidado", group: "guest", sortOrder: 30 };
+    return { ticketType: ticket, displayName: "Convidado", group: "guest", sortOrder: 30 };
   }
 
   return null;
@@ -140,21 +119,7 @@ function groupPublicCards(candidates: PublicTicketCardModel[]): PublicTicketCard
 
   for (const model of candidates) {
     const current = byGroup.get(model.group);
-    if (!current) {
-      byGroup.set(model.group, model);
-      continue;
-    }
-
-    const modelIsOpen = model.ticketType.status === "open";
-    const currentIsOpen = current.ticketType.status === "open";
-
-    if (modelIsOpen && !currentIsOpen) {
-      byGroup.set(model.group, model);
-      continue;
-    }
-
-    // O card Família representa a categoria e usa a composição disponível de menor preço.
-    if (model.group === "family" && modelIsOpen === currentIsOpen && model.ticketType.price_cents < current.ticketType.price_cents) {
+    if (!current || (model.ticketType.status === "open" && current.ticketType.status !== "open")) {
       byGroup.set(model.group, model);
     }
   }
@@ -172,9 +137,6 @@ export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTick
     .filter((model): model is PublicTicketCardModel => Boolean(model));
 
   const openCandidates = mappedCandidates.filter((model) => model.ticketType.status === "open");
-
-  // Prioriza vendas abertas. Se o backend não retornar nenhum status aberto,
-  // mantém as três categorias visíveis em vez de deixar a página vazia.
   return groupPublicCards(openCandidates.length > 0 ? openCandidates : mappedCandidates);
 }
 

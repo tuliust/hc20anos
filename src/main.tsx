@@ -6,7 +6,6 @@ import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
 import { BuyerOrdersPage } from './app/BuyerOrdersPage';
-import { GuestApprovalPage } from './app/GuestApprovalPage';
 import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
 import { OperationsPage } from './app/OperationsPage';
 import { OperationsReportingPanel } from './app/OperationsReportingPanel';
@@ -26,7 +25,6 @@ import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installEditProfileQuestionnaireBioEnhancement } from './editProfileQuestionnaireBioEnhancement';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
 import { installFooterLogoEnhancements } from './footerLogoEnhancements';
-import { installGuestApprovalNavigation } from './guestApprovalNavigation';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
 import { installHistoryEmptyStateEnhancement } from './historyEmptyStateEnhancement';
@@ -47,6 +45,7 @@ import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigat
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
+import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
@@ -75,11 +74,14 @@ import './footerLogoEnhancements.css';
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const buyerOrdersRoutes = new Set(['/meus-pedidos', '/meus-ingressos']);
 const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
-const guestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
+const legacyGuestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
 const isBuyerOrdersRoute = buyerOrdersRoutes.has(normalizedPath);
 const isOperationsRoute = operationsRoutes.has(normalizedPath);
-const isGuestApprovalRoute = guestApprovalRoutes.has(normalizedPath);
-const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute || isGuestApprovalRoute;
+const isStandaloneRoute = isBuyerOrdersRoute || isOperationsRoute;
+
+if (legacyGuestApprovalRoutes.has(normalizedPath)) {
+  window.location.replace('/ingressos');
+}
 
 installSiteAnalyticsTracker();
 
@@ -108,7 +110,6 @@ if (!isStandaloneRoute) {
   installEditProfileAiButtonEnhancement();
   installExAlumniEnhancements();
   installFooterLogoEnhancements();
-  installGuestApprovalNavigation();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
   installHistoryEmptyStateEnhancement();
@@ -124,6 +125,7 @@ if (!isStandaloneRoute) {
   installCuriositiesPollMobileEnhancements();
   installTicketsPageEnhancements();
   installTicketsCatalogLayoutEnhancements();
+  installTicketProductModelEnhancement();
   installHomeTicketCardSpacingEnhancements();
 }
 
@@ -132,7 +134,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : isGuestApprovalRoute ? <GuestApprovalPage /> : <>
+    {isBuyerOrdersRoute ? <BuyerOrdersPage /> : isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : <>
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />
