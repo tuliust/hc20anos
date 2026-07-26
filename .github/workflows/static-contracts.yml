@@ -1,3 +1,4 @@
+# Diagnostic validation trigger. Remove before closing this PR.
 name: Static contract generation
 
 on:
