@@ -2,10 +2,11 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 30086a3eedee87bfe332d5a5e50824e707796c3a
+last_verified_commit: e2c64aee03e1abf6ae0e3ac38604e7b831acaccc
 source_files:
   - docs/50-governanca/template-ADR.md
   - docs/50-governanca/processo-de-atualizacao.md
+  - docs/50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md
 ---
 
 # Registros de decisões arquiteturais
@@ -59,4 +60,16 @@ Criar ADR para decisões que:
 
 ## Índice
 
-Nenhum ADR específico foi formalizado nesta etapa. Decisões arquiteturais anteriores continuam descritas no código, migrations, PRs e documentos históricos até serem reconstruídas quando necessário.
+| ADR | Estado | Decisão |
+|---|---|---|
+| [`ADR-001`](./ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md) | aceito | separar o contrato bruto gerado do Supabase dos tipos de domínio e apresentação; migrar consumidores em etapas. |
+
+## Próximos ADRs potenciais
+
+Criar novos registros somente quando a implementação exigir decisão arquitetural explícita, como:
+
+- substituir o cliente Supabase não tipado pelo contrato gerado;
+- alterar estratégia de roteamento e remover transforms;
+- mudar a autoridade do CMS público;
+- reorganizar fronteiras entre Vercel Functions e Edge Functions;
+- alterar o modelo financeiro ou de emissão.
