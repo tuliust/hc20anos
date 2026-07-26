@@ -1,39 +1,18 @@
-# Escopo do Produto
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: 2a374667f3c353c1e16d5d80a36f0ec96d18b3e1
+superseded_by:
+  - docs/00-visao-geral/produto.md
+  - docs/10-dominios/
+---
 
-## Objetivo
+# Escopo do produto — referência substituída
 
-Criar uma experiência digital segura, nostálgica e operacionalmente eficiente para o reencontro da Turma 2006 do Colégio Henrique Castriciano.
+Este resumo inicial foi substituído por:
 
-## Público
+- [`00-visao-geral/produto.md`](./00-visao-geral/produto.md), que apresenta objetivo, públicos, capacidades e limites vigentes;
+- documentos em [`10-dominios/`](./10-dominios/), que detalham as regras de cada fluxo.
 
-- Ex-alunos da turma 2006.
-- Acompanhantes.
-- Organização do evento.
-- Equipe de check-in/moderação.
-
-## Escopo funcional
-
-- Landing page.
-- Compra/checkout visual.
-- Área do ex-aluno.
-- Meu ingresso.
-- Mural de fotos.
-- Memórias.
-- Enquetes.
-- Mapa/lista de localização autorizada.
-- Convite compartilhável.
-- Acervo digital.
-- Admin.
-- Check-in.
-
-## Regras de privacidade
-
-- Não exibir cidade sem `show_city=true`.
-- Não exibir fotos sem aprovação.
-- Respeitar anonimato em memórias.
-- Permitir remoção de imagem.
-- Restringir dados de pedidos e ingressos ao titular/admin.
-
-## Limites
-
-- Imagem do convite ainda não é baixada como arquivo.
+O arquivo é mantido somente para rastreabilidade. Não deve ser usado para decidir backlog, comportamento técnico ou política de privacidade.
