@@ -1,67 +1,48 @@
-# QA Operacional — Produção
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: b825583ee87b5f6405f28b78a2377d4ba5f02feb
+superseded_by:
+  - docs/40-runbooks/validacao-de-pagamentos.md
+  - docs/40-runbooks/deploy-vercel.md
+  - docs/40-runbooks/deploy-edge-functions.md
+---
 
-Este checklist fecha os pontos que dependem de ambiente real, navegador e dados de produção.
+# QA operacional de produção — referência depreciada
 
-## Mercado Pago / Webhook / E-mail
+Este checklist foi substituído por runbooks alinhados ao checkout e à arquitetura atuais.
 
-### Pré-requisitos
+## Referências vigentes
 
-- `MERCADO_PAGO_ACCESS_TOKEN` configurado apenas no ambiente seguro da Function.
-- `SUPABASE_SERVICE_ROLE_KEY` configurado apenas no ambiente seguro da Function.
-- `RESEND_API_KEY` configurado se e-mail transacional estiver ativo.
-- URL pública do webhook cadastrada no painel Mercado Pago.
-- Assinatura/origem do webhook validada no servidor.
+- [`40-runbooks/validacao-de-pagamentos.md`](./40-runbooks/validacao-de-pagamentos.md)
+- [`40-runbooks/deploy-vercel.md`](./40-runbooks/deploy-vercel.md)
+- [`40-runbooks/deploy-edge-functions.md`](./40-runbooks/deploy-edge-functions.md)
+- [`40-runbooks/rollback.md`](./40-runbooks/rollback.md)
 
-### Cenários mínimos
+## Motivo da substituição
 
-| Cenário | Resultado esperado |
-|---|---|
-| Pagamento aprovado | `orders.payment_status=approved`, `paid_at` preenchido e `tickets` criados/liberados |
-| Pagamento pendente | pedido visível como pendente, sem liberação de check-in |
-| Pagamento recusado | estado recusado no retorno e sem ticket aprovado |
-| Pagamento cancelado/expirado | estado final refletido no pedido |
-| Webhook duplicado | não duplicar tickets |
-| E-mail ativo | confirmação enviada ao comprador |
-| E-mail sem env | fluxo não quebra; apenas registra/ignora envio |
+A versão anterior ainda descrevia:
 
-## Checkout orientado ao ingresso selecionado
+- seleção por `ticket_type_id`;
+- retorno por `?checkout=...&order=...`;
+- botão direcionado genericamente a `my-ticket`;
+- um fluxo anterior ao proxy `/api/checkout-create` e ao uso de `public_token`.
 
-- Ao clicar em um card de ingresso, o `ticket_type_id`, nome, preço e `allows_guest` devem acompanhar o usuário até o checkout.
-- O resumo do pedido deve refletir o ingresso selecionado.
-- O endpoint de preferência deve receber o pedido correto.
-- O retorno `?checkout=...&order=...` deve carregar o pedido real.
+O checkout vigente usa `product_code`, participantes estruturados, autenticação, chave de idempotência, proxy Vercel, Edge Function dedicada e consulta pública por token.
 
-## Confirmação
+## Conteúdo ainda relevante
 
-- Exibir dados reais do pedido e ingresso quando `order` estiver disponível.
-- Se ainda não houver ticket criado, exibir estado de processamento/aguardando webhook.
-- Botão principal deve levar para `my-ticket`.
+Os seguintes princípios foram incorporados aos runbooks atuais:
 
-## QR e Check-in
+- testar pagamento aprovado, pendente, recusado, expirado e duplicado;
+- não duplicar tickets em webhook repetido;
+- verificar envio ou falha controlada de e-mail;
+- validar QR Code e fallback textual;
+- testar check-in válido, já utilizado, pendente e não encontrado;
+- testar responsividade e operação em navegador móvel;
+- mascarar dados pessoais em evidências.
 
-- Testar QR em Chrome Android.
-- Testar fallback por código textual em navegador sem `BarcodeDetector`.
-- Testar ingresso aprovado, já utilizado, pendente e não encontrado.
-- Confirmar que `checked_in`, `checked_in_at` e `checked_in_by_admin_id` são gravados.
+## Limite de autoridade
 
-## Mobile-first
-
-Testar manualmente:
-
-- 320px
-- 375px
-- 390px
-- 430px
-- 768px
-- 1024px
-- 1440px
-
-Critérios:
-
-- Header sem quebra.
-- CTA principal visível.
-- Cards empilhados.
-- Tabelas com overflow horizontal.
-- Formulários legíveis.
-- QR e câmera operáveis.
-- Upload sem overflow.
+Este arquivo permanece somente como rastreabilidade. Não use seus nomes de campos, rotas ou parâmetros como contrato vigente.
