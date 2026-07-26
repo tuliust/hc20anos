@@ -1,17 +1,18 @@
-# Moderação de Fotos e Memórias
+---
+status: deprecated
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: fe3c9a12bd1e1d15f15ef85af8a546b2a2b69928
+superseded_by:
+  - docs/10-dominios/acervo-fotos-e-moderacao.md
+  - docs/10-dominios/memorias-curiosidades-e-enquetes.md
+---
 
-## Fluxos
+# Moderação de fotos e memórias — referência substituída
 
-- Upload de foto com consentimento.
-- Status inicial `pending`.
-- Aprovação/rejeição por moderador/admin.
-- Tags moderadas separadamente.
-- Comentários moderados antes de aparecerem publicamente.
-- Memórias moderadas e opcionalmente destacadas.
-- Solicitações de remoção por LGPD.
+O resumo anterior foi substituído por:
 
-## Status
+- [`10-dominios/acervo-fotos-e-moderacao.md`](./10-dominios/acervo-fotos-e-moderacao.md), com upload, consentimento, Storage, tags, comentários e solicitações de remoção;
+- [`10-dominios/memorias-curiosidades-e-enquetes.md`](./10-dominios/memorias-curiosidades-e-enquetes.md), com anonimato, moderação e regras de votação.
 
-Fotos: `pending`, `approved`, `rejected`, `removed`.
-Comentários/memórias: `pending`, `approved`, `rejected`, `hidden`.
-Remoções: `pending`, `approved`, `rejected`, `hidden_preventively`.
+Os estados e transições efetivos devem ser confirmados pelo schema gerado após replay das migrations.
