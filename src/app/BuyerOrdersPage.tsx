@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, Clock3, Download, Mail, RefreshCw, Ticket, Users, XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { getMyProfile } from "../lib/services";
 import { getTicketQrDataUrl } from "../lib/ticket-experience";
 import { AcceptTransfersPanel, OrderRefundAction, RetryPaymentAction, TicketTransferAction } from "./BuyerCommerceActions";
 import "./BuyerOrdersPage.css";
@@ -9,12 +10,22 @@ type TicketData = { id:string; attendee_name:string; attendee_email:string; qr_c
 type Participant = { id:string; participant_type:string; full_name:string; email:string|null; phone:string|null; relationship_to_alumni:string|null; status:string; unit_price_cents:number; extras:Array<{id:string;extra_type:string;quantity:number;units_per_package:number;total_price_cents:number;physical_vouchers_delivered_at:string|null}>; ticket:TicketData|null };
 type BuyerOrder = { id:string; public_token:string; created_at:string; buyer_name:string; buyer_email:string; quantity:number; subtotal_amount_cents:number; extras_amount_cents:number; total_amount_cents:number; currency_id:string; payment_status:string; payment_status_detail:string|null; payment_method:string|null; paid_at:string|null; expires_at:string|null; reservation_status:string; ticket_type:{id:string;name:string;description:string|null;product_code:string|null;package_kind:string|null}; lot:{id:string;code:string;name:string}|null; participants:Participant[] };
 
+const NAV_ITEMS = [
+  ["Home", "/"],
+  ["Evento", "/evento"],
+  ["Ex-alunos", "/ex-alunos"],
+  ["Nossa história", "/nossa-historia"],
+  ["Curiosidades", "/curiosidades"],
+  ["Pós-festa", "/pos-festa"],
+] as const;
+
 const money=(cents:number,currency="BRL")=>new Intl.NumberFormat("pt-BR",{style:"currency",currency}).format((cents||0)/100);
 const dateTime=(value:string|null)=>value?new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date(value)):"—";
 const paymentLabels:Record<string,string>={pending:"Pagamento pendente",in_process:"Pagamento em análise",approved:"Pagamento aprovado",rejected:"Pagamento rejeitado",expired:"Pagamento expirado",cancelled:"Pedido cancelado",refunded:"Pagamento reembolsado",charged_back:"Pagamento contestado"};
 const ticketLabels:Record<string,string>={active:"Válido",used:"Utilizado",transferred:"Transferido",cancelled:"Cancelado",refunded:"Reembolsado",chargeback:"Contestado"};
 function statusClass(status:string){if(["approved","active","used"].includes(status))return"is-success";if(["pending","in_process"].includes(status))return"is-pending";return"is-danger"}
 function ticketPayload(ticket:TicketData){return ticket.qr_token||ticket.qr_code}
+function initials(value:string){return value.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||"HC"}
 
 function TicketQrImage({ticket,name,size=180}:{ticket:TicketData;name:string;size?:number}){
   const[src,setSrc]=useState<string|null>(null);const[error,setError]=useState(false);
@@ -31,21 +42,61 @@ async function downloadTicket(order:BuyerOrder,participant:Participant){
 }
 
 export function BuyerOrdersPage(){
- const[orders,setOrders]=useState<BuyerOrder[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState<string|null>(null);const[resending,setResending]=useState<string|null>(null);const[notice,setNotice]=useState<string|null>(null);
- const load=useCallback(async()=>{setLoading(true);setError(null);const{data:sessionData}=await supabase.auth.getSession();if(!sessionData.session){window.location.assign(`/entrar?next=${encodeURIComponent("/meus-pedidos")}`);return}const{data,error:rpcError}=await supabase.rpc("get_my_commerce_orders");if(rpcError)setError(rpcError.message);else setOrders(Array.isArray(data)?data as BuyerOrder[]:[]);setLoading(false)},[]);
- useEffect(()=>{void load()},[load]);const ticketsCount=useMemo(()=>orders.reduce((sum,order)=>sum+order.participants.filter(p=>p.ticket).length,0),[orders]);
- async function resend(ticketId:string){setResending(ticketId);setNotice(null);const{error:resendError}=await supabase.rpc("request_ticket_resend",{p_ticket_id:ticketId});setResending(null);setNotice(resendError?`Não foi possível reenviar: ${resendError.message}`:"Reenvio solicitado. O ingresso será enviado por e-mail e, quando configurado, por WhatsApp.")}
- const actionDone=(message:string)=>{setNotice(message);void load()};
- return <main className="buyer-orders-page">
-  <header className="buyer-orders-header"><button onClick={()=>window.location.assign("/minha-area")} className="buyer-back"><ArrowLeft size={18}/> Minha área</button><div><p className="buyer-eyebrow">Área do comprador</p><h1>Meus pedidos e ingressos</h1><p>Acompanhe pagamentos, participantes, transferências e QR Codes individuais.</p><AcceptTransfersPanel onDone={actionDone}/></div><button onClick={()=>void load()} className="buyer-refresh" disabled={loading}><RefreshCw size={18}/> Atualizar</button></header>
-  {notice&&<div className="buyer-notice" role="status">{notice}</div>}{loading&&<div className="buyer-empty"><RefreshCw className="spin"/> Carregando pedidos...</div>}{error&&<div className="buyer-error"><XCircle/> {error}</div>}
-  {!loading&&!error&&<><section className="buyer-summary"><div><strong>{orders.length}</strong><span>pedidos</span></div><div><strong>{ticketsCount}</strong><span>ingressos</span></div><div><strong>{orders.filter(o=>["pending","in_process"].includes(o.payment_status)).length}</strong><span>pagamentos pendentes</span></div></section>
-  {orders.length===0?<div className="buyer-empty"><Ticket size={34}/><h2>Nenhum pedido encontrado</h2><p>Pedidos feitos com este e-mail ou conta aparecerão aqui.</p><button onClick={()=>window.location.assign("/ingressos")}>Comprar ingresso</button></div>:<section className="buyer-order-list">{orders.map(order=><article className="buyer-order" key={order.id}>
-   <div className="buyer-order-top"><div><span>Pedido</span><strong>#{order.id.slice(0,8).toUpperCase()}</strong><small>{dateTime(order.created_at)}</small></div><div className={`buyer-status ${statusClass(order.payment_status)}`}>{order.payment_status==="approved"?<CheckCircle2 size={18}/>:<Clock3 size={18}/>} {paymentLabels[order.payment_status]??order.payment_status}</div></div>
-   <div className="buyer-order-meta"><div><span>Produto</span><strong>{order.ticket_type.name}</strong></div><div><span>Lote</span><strong>{order.lot?.name??"—"}</strong></div><div><span>Total</span><strong>{money(order.total_amount_cents,order.currency_id)}</strong></div><div><span>Pagamento</span><strong>{order.payment_method??"Aguardando"}</strong></div></div>
-   {order.payment_status==="approved"&&<div className="buyer-ticket-actions"><OrderRefundAction orderId={order.id} disabled={order.participants.some(p=>p.ticket?.checked_in)} onDone={actionDone}/></div>}
-   {["pending","in_process","rejected","expired"].includes(order.payment_status)&&<div className="buyer-payment-pending"><Clock3 size={20}/><div><strong>{paymentLabels[order.payment_status]}</strong><p>Retome o pagamento quando ainda houver uma preferência ativa ou inicie uma nova compra.</p>{order.expires_at&&<small>Reserva válida até {dateTime(order.expires_at)}</small>}<div className="buyer-ticket-actions"><RetryPaymentAction orderId={order.id} onDone={actionDone}/></div></div></div>}
-   <div className="buyer-participants-title"><Users size={19}/><h2>Participantes</h2></div><div className="buyer-participants">{order.participants.map(participant=><div className="buyer-participant" key={participant.id}><div className="buyer-participant-info"><strong>{participant.full_name}</strong><span>{participant.participant_type.replaceAll("_"," ")}</span>{participant.extras.length>0&&<small>{participant.extras.map(extra=>`${extra.quantity}× ${extra.extra_type==="drinks"?"bebidas":"churrasco"}`).join(" · ")}</small>}</div>
-   {!participant.ticket?<div className="buyer-ticket-waiting">Ingresso será emitido após aprovação do pagamento.</div>:<div className={`buyer-ticket-card ${statusClass(participant.ticket.status)}`}><div className="buyer-qr-wrap"><TicketQrImage ticket={participant.ticket} name={participant.full_name}/>{participant.ticket.status!=="active"&&<div className="buyer-qr-blocked">{ticketLabels[participant.ticket.status]??participant.ticket.status}</div>}</div><div className="buyer-ticket-details"><div className={`buyer-status ${statusClass(participant.ticket.status)}`}>{ticketLabels[participant.ticket.status]??participant.ticket.status}</div><p>Código <strong>{participant.ticket.qr_code}</strong></p>{participant.ticket.transferred_from_ticket_id&&<p className="buyer-transfer-note">Este ingresso substitui um QR Code anterior, que foi invalidado.</p>}{participant.ticket.cancelled_at&&<p>Cancelado em {dateTime(participant.ticket.cancelled_at)}</p>}{participant.ticket.checked_in&&<p>Check-in realizado em {dateTime(participant.ticket.checked_in_at)}</p>}<div className="buyer-ticket-actions"><button onClick={()=>void downloadTicket(order,participant)}><Download size={17}/> Baixar</button><button onClick={()=>void resend(participant.ticket!.id)} disabled={participant.ticket.status!=="active"||resending===participant.ticket.id}><Mail size={17}/> {resending===participant.ticket.id?"Solicitando...":"Reenviar"}</button><TicketTransferAction ticketId={participant.ticket.id} disabled={participant.ticket.status!=="active"||participant.ticket.checked_in} onDone={actionDone}/></div></div></div>}</div>)}</div>
-  </article>)}</section>}</>}</main>;
+  const[orders,setOrders]=useState<BuyerOrder[]>([]);
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState<string|null>(null);
+  const[resending,setResending]=useState<string|null>(null);
+  const[notice,setNotice]=useState<string|null>(null);
+  const[accountName,setAccountName]=useState("Minha área");
+  const[accountAvatar,setAccountAvatar]=useState<string|null>(null);
+
+  const load=useCallback(async()=>{
+    setLoading(true);setError(null);
+    const{data:sessionData}=await supabase.auth.getSession();
+    const session=sessionData.session;
+    if(!session){window.location.assign(`/entrar?next=${encodeURIComponent("/meus-pedidos")}`);return}
+
+    const[ordersResult,profile]=await Promise.all([
+      supabase.rpc("get_my_commerce_orders"),
+      getMyProfile(session.user.id).catch(()=>null),
+    ]);
+
+    if(ordersResult.error)setError(ordersResult.error.message);
+    else setOrders(Array.isArray(ordersResult.data)?ordersResult.data as BuyerOrder[]:[]);
+
+    const fallbackName=String(session.user.user_metadata?.full_name||session.user.email?.split("@")[0]||"Minha área");
+    setAccountName(profile?.display_name||profile?.people?.display_name||profile?.people?.full_name||fallbackName);
+    setAccountAvatar(profile?.current_photo_url||profile?.people?.avatar_url||null);
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{void load()},[load]);
+  const ticketsCount=useMemo(()=>orders.reduce((sum,order)=>sum+order.participants.filter(p=>p.ticket).length,0),[orders]);
+  async function resend(ticketId:string){setResending(ticketId);setNotice(null);const{error:resendError}=await supabase.rpc("request_ticket_resend",{p_ticket_id:ticketId});setResending(null);setNotice(resendError?`Não foi possível reenviar: ${resendError.message}`:"Reenvio solicitado. O ingresso será enviado por e-mail e, quando configurado, por WhatsApp.")}
+  const actionDone=(message:string)=>{setNotice(message);void load()};
+
+  return <div className="buyer-orders-shell">
+    <header className="buyer-site-header">
+      <a className="buyer-brand" href="/" aria-label="HC 20 Anos — Home"><span>20</span><strong>HC</strong></a>
+      <nav aria-label="Navegação principal">{NAV_ITEMS.map(([label,href])=><a key={href} href={href}>{label}</a>)}</nav>
+      <a className="buyer-account" href="/minha-area">
+        {accountAvatar?<img src={accountAvatar} alt=""/>:<span className="buyer-account-initials">{initials(accountName)}</span>}
+        <strong>{accountName}</strong>
+      </a>
+    </header>
+
+    <main className="buyer-orders-page">
+      <header className="buyer-orders-header"><button onClick={()=>window.location.assign("/minha-area")} className="buyer-back"><ArrowLeft size={18}/> Minha área</button><div><p className="buyer-eyebrow">Área do comprador</p><h1>Meus pedidos e ingressos</h1><p>Acompanhe pagamentos, participantes, transferências e QR Codes individuais.</p><AcceptTransfersPanel onDone={actionDone}/></div><button onClick={()=>void load()} className="buyer-refresh" disabled={loading}><RefreshCw size={18}/> Atualizar</button></header>
+      {notice&&<div className="buyer-notice" role="status">{notice}</div>}{loading&&<div className="buyer-empty"><RefreshCw className="spin"/> Carregando pedidos...</div>}{error&&<div className="buyer-error"><XCircle/> {error}</div>}
+      {!loading&&!error&&<><section className="buyer-summary"><div><strong>{orders.length}</strong><span>pedidos</span></div><div><strong>{ticketsCount}</strong><span>ingressos</span></div><div><strong>{orders.filter(o=>["pending","in_process"].includes(o.payment_status)).length}</strong><span>pagamentos pendentes</span></div></section>
+      {orders.length===0?<div className="buyer-empty"><Ticket size={34}/><h2>Nenhum pedido encontrado</h2><p>Pedidos feitos com este e-mail ou conta aparecerão aqui.</p><button onClick={()=>window.location.assign("/ingressos")}>Comprar ingresso</button></div>:<section className="buyer-order-list">{orders.map(order=><article className="buyer-order" key={order.id}>
+        <div className="buyer-order-top"><div><span>Pedido</span><strong>#{order.id.slice(0,8).toUpperCase()}</strong><small>{dateTime(order.created_at)}</small></div><div className={`buyer-status ${statusClass(order.payment_status)}`}>{order.payment_status==="approved"?<CheckCircle2 size={18}/>:<Clock3 size={18}/>} {paymentLabels[order.payment_status]??order.payment_status}</div></div>
+        <div className="buyer-order-meta"><div><span>Produto</span><strong>{order.ticket_type.name}</strong></div><div><span>Lote</span><strong>{order.lot?.name??"—"}</strong></div><div><span>Total</span><strong>{money(order.total_amount_cents,order.currency_id)}</strong></div><div><span>Pagamento</span><strong>{order.payment_method??"Aguardando"}</strong></div></div>
+        {order.payment_status==="approved"&&<div className="buyer-ticket-actions buyer-order-actions"><OrderRefundAction orderId={order.id} disabled={order.participants.some(p=>p.ticket?.checked_in)} onDone={actionDone}/></div>}
+        {["pending","in_process","rejected","expired"].includes(order.payment_status)&&<div className="buyer-payment-pending"><Clock3 size={20}/><div><strong>{paymentLabels[order.payment_status]}</strong><p>Retome o pagamento quando ainda houver uma preferência ativa ou inicie uma nova compra.</p>{order.expires_at&&<small>Reserva válida até {dateTime(order.expires_at)}</small>}<div className="buyer-ticket-actions"><RetryPaymentAction orderId={order.id} onDone={actionDone}/></div></div></div>}
+        <div className="buyer-participants-title"><Users size={19}/><h2>Participantes</h2></div><div className="buyer-participants">{order.participants.map(participant=><div className="buyer-participant" key={participant.id}><div className="buyer-participant-info"><strong>{participant.full_name}</strong><span>{participant.participant_type.replaceAll("_"," ")}</span>{participant.extras.length>0&&<small>{participant.extras.map(extra=>`${extra.quantity}× ${extra.extra_type==="drinks"?"bebidas":"churrasco"}`).join(" · ")}</small>}</div>
+        {!participant.ticket?<div className="buyer-ticket-waiting">Ingresso será emitido após aprovação do pagamento.</div>:<div className={`buyer-ticket-card ${statusClass(participant.ticket.status)}`}><div className="buyer-qr-wrap"><TicketQrImage ticket={participant.ticket} name={participant.full_name}/>{participant.ticket.status!=="active"&&<div className="buyer-qr-blocked">{ticketLabels[participant.ticket.status]??participant.ticket.status}</div>}</div><div className="buyer-ticket-details"><div className={`buyer-status ${statusClass(participant.ticket.status)}`}>{ticketLabels[participant.ticket.status]??participant.ticket.status}</div><p>Código <strong>{participant.ticket.qr_code}</strong></p>{participant.ticket.transferred_from_ticket_id&&<p className="buyer-transfer-note">Este ingresso substitui um QR Code anterior, que foi invalidado.</p>}{participant.ticket.cancelled_at&&<p>Cancelado em {dateTime(participant.ticket.cancelled_at)}</p>}{participant.ticket.checked_in&&<p>Check-in realizado em {dateTime(participant.ticket.checked_in_at)}</p>}<div className="buyer-ticket-actions"><button onClick={()=>void downloadTicket(order,participant)}><Download size={17}/> Baixar</button><button onClick={()=>void resend(participant.ticket!.id)} disabled={participant.ticket.status!=="active"||resending===participant.ticket.id}><Mail size={17}/> {resending===participant.ticket.id?"Solicitando...":"Reenviar"}</button><TicketTransferAction ticketId={participant.ticket.id} disabled={participant.ticket.status!=="active"||participant.ticket.checked_in} onDone={actionDone}/></div></div></div>}</div>)}</div>
+      </article>)}</section>}</>}
+    </main>
+  </div>;
 }

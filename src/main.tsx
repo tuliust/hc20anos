@@ -21,6 +21,7 @@ import { installAdminTicketLotsRouteSync } from './adminTicketLotsRouteSync';
 import { installAlumniAreaEnhancements } from './alumniAreaEnhancements';
 import { installClaimProfileVisualEnhancements } from './claimProfileVisualEnhancements';
 import { installClassmatesDirectoryNavigation } from './classmatesDirectoryNavigation';
+import { installEditProfileAiButtonEnhancement } from './editProfileAiButtonEnhancement';
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installEditProfileQuestionnaireBioEnhancement } from './editProfileQuestionnaireBioEnhancement';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
@@ -33,6 +34,7 @@ import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
 import { installHistoryPersonFilterEnhancement } from './historyPersonFilterEnhancement';
 import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnhancement';
 import { installHomeLandingEnhancements } from './homeLandingEnhancements';
+import { installHomeMemoryAvatarEnhancement } from './homeMemoryAvatarEnhancement';
 import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
@@ -91,6 +93,7 @@ if (!isStandaloneRoute) {
   installHomeMobileDomRefinements();
   installHomeLandingEnhancements();
   installHomeMemoryFormattingEnhancement();
+  installHomeMemoryAvatarEnhancement();
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
   installAdminReportsEnhancements();
@@ -102,6 +105,7 @@ if (!isStandaloneRoute) {
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installEditProfileQuestionnaireBioEnhancement();
+  installEditProfileAiButtonEnhancement();
   installExAlumniEnhancements();
   installFooterLogoEnhancements();
   installGuestApprovalNavigation();
@@ -134,7 +138,7 @@ createRoot(rootElement).render(
       <AdminOverviewDashboardMount />
       <AdminTicketLotsMount />
       <AdminTicketProductCopyMount />
-      <HomeHeroUserStateMount />
+      {normalizedPath === '/' && <HomeHeroUserStateMount />}
       <PublicCmsStrictGuard />
       <PublicTicketsCatalogMount />
     </>}
