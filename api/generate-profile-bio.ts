@@ -202,7 +202,10 @@ export default async function handler(request: any, response: any) {
 
   const runtimeEnv = (globalThis as any).process?.env ?? {};
   const openAiApiKey = String(runtimeEnv.OPENAI_API_KEY ?? "").trim();
-  const gatewayApiKey = String(runtimeEnv.AI_GATEWAY_API_KEY ?? runtimeEnv.VERCEL_OIDC_TOKEN ?? "").trim();
+  const gatewayEnvironmentKey = String(runtimeEnv.AI_GATEWAY_API_KEY ?? "").trim();
+  const oidcEnvironmentToken = String(runtimeEnv.VERCEL_OIDC_TOKEN ?? "").trim();
+  const oidcRequestToken = String(firstHeader(request.headers?.["x-vercel-oidc-token"]) ?? "").trim();
+  const gatewayApiKey = gatewayEnvironmentKey || oidcEnvironmentToken || oidcRequestToken;
   const useGateway = !openAiApiKey && Boolean(gatewayApiKey);
   const apiKey = openAiApiKey || gatewayApiKey;
   const configuredModel = String(runtimeEnv.OPENAI_PROFILE_MODEL ?? "gpt-5-mini").trim();
@@ -214,6 +217,12 @@ export default async function handler(request: any, response: any) {
     : "https://api.openai.com/v1/responses";
 
   if (!apiKey) {
+    console.error("[api/generate-profile-bio] AI credentials unavailable", {
+      hasOpenAiApiKey: Boolean(openAiApiKey),
+      hasGatewayEnvironmentKey: Boolean(gatewayEnvironmentKey),
+      hasOidcEnvironmentToken: Boolean(oidcEnvironmentToken),
+      hasOidcRequestToken: Boolean(oidcRequestToken),
+    });
     return response.status(503).json({ error: "openai_not_configured" });
   }
 
