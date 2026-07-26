@@ -45,6 +45,7 @@ import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
+import { installProfileModalBioEnhancement } from './profileModalBioEnhancement';
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
 import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
@@ -70,6 +71,7 @@ import './ticketsPageEnhancements.css';
 import './curiositiesPollMobileEnhancements.css';
 import './mobileNavigationAndDirectoryEnhancements.css';
 import './postEventPageRefinements.css';
+import './profileModalBioEnhancement.css';
 import './footerLogoEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -111,6 +113,7 @@ if (!isStandaloneRoute) {
   installEditProfileAiButtonEnhancement();
   installExAlumniEnhancements();
   installContentSyncEnhancements();
+  installProfileModalBioEnhancement();
   installFooterLogoEnhancements();
   installHeaderMenuEnhancements();
   installHistoryContentEnhancements();
