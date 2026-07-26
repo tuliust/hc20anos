@@ -1,65 +1,37 @@
+---
+status: historical
+owner: tuliust
+period: 2026-07-05
+last_verified: 2026-07-26
+last_verified_commit: fe3c9a12bd1e1d15f15ef85af8a546b2a2b69928
+superseded_by:
+  - docs/10-dominios/acervo-fotos-e-moderacao.md
+  - docs/10-dominios/memorias-curiosidades-e-enquetes.md
+  - docs/10-dominios/pessoas-perfis-e-privacidade.md
+---
+
 # Fase 2 — interações
 
-Este documento registra a implementação incremental da Fase 2 do projeto **Turma 2006 — 20 anos depois**.
+Este documento preserva o registro do incremento que introduziu:
 
-## Estado atual
+- curtidas e comentários em fotos;
+- memórias e moderação;
+- destaques editoriais;
+- enquetes;
+- mapa de localização autorizada;
+- convite compartilhável.
 
-Implementado e conectado ao Supabase:
+## Migrations da fase
 
-- curtidas no mural de fotos;
-- comentários moderados em fotos;
-- caixa de memórias;
-- moderação administrativa de comentários e memórias;
-- destaques de fotos e memórias;
-- enquetes nostálgicas;
-- mapa/lista “Onde a turma está hoje” com dados autorizados de perfis;
-- convite personalizado compartilhável.
+- `20260705000005_phase2_interactions.sql`;
+- `20260705000006_polls_where_archive.sql`.
 
-## Migrations
+## Classificação
 
-- `supabase/migrations/20260705000005_phase2_interactions.sql`
-  - `photo_likes`
-  - `photo_comments`
-  - `memories`
-  - campos de destaque em `photos`
+Este é um registro histórico de implementação, não a especificação vigente. As regras atuais estão em:
 
-- `supabase/migrations/20260705000006_polls_where_archive.sql`
-  - `polls`
-  - `poll_options`
-  - `poll_votes`
-  - view `poll_results`
-  - view `public_profile_locations`
+- [`10-dominios/acervo-fotos-e-moderacao.md`](./10-dominios/acervo-fotos-e-moderacao.md);
+- [`10-dominios/memorias-curiosidades-e-enquetes.md`](./10-dominios/memorias-curiosidades-e-enquetes.md);
+- [`10-dominios/pessoas-perfis-e-privacidade.md`](./10-dominios/pessoas-perfis-e-privacidade.md).
 
-## Front-end
-
-Arquivos principais:
-
-- `src/app/App.tsx`
-- `src/lib/services.ts`
-- `src/lib/database.types.ts`
-
-Páginas adicionadas ou expandidas:
-
-- `memories`
-- `polls`
-- `where-now`
-- `share-invite`
-
-Admin expandido:
-
-- comentários de fotos;
-- memórias;
-- enquetes.
-
-## Permissões
-
-- Público vê apenas conteúdo aprovado ou aberto.
-- Usuários autenticados podem curtir, comentar, enviar memórias e votar.
-- `moderator`, `admin` e `superadmin` moderam comentários/memórias.
-- `admin` e `superadmin` gerenciam enquetes.
-
-## Observações
-
-- O convite compartilhável usa Web Share API quando disponível e fallback para compartilhamento por texto.
-- O mapa da turma usa apenas dados de perfis com `show_city=true`.
-- Não foram adicionadas dependências pesadas para geração de imagem.
+O estado atual do banco depende de todas as migrations posteriores, não apenas das migrations desta fase.
