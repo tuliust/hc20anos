@@ -6,6 +6,7 @@ last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
 period: migrations 20260705000000 a 20260705000007
 superseded_by:
   - docs/00-visao-geral/fontes-de-verdade.md
+planned_replacement:
   - docs/30-contratos/banco.generated.md
 ---
 
