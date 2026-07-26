@@ -1,0 +1,6 @@
+# Documentação canônica e mecanismos de validação
+/README.md @tuliust
+/docs/ @tuliust
+/scripts/audit-docs.mjs @tuliust
+/.github/workflows/documentation.yml @tuliust
+/.github/pull_request_template.md @tuliust
