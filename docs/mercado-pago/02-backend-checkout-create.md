@@ -1,23 +1,38 @@
-# Backend de criação do checkout
+---
+status: historical
+owner: tuliust
+last_verified: 2026-07-26
+last_verified_commit: e4e1ee05fb0bf76934fac903740fbf6fea98dc8c
+period: primeiro incremento da Edge Function checkout-create
+superseded_by:
+  - docs/10-dominios/checkout-e-pagamentos.md
+---
 
-## Novo endpoint
+# Backend de criação do checkout — registro do primeiro incremento
+
+> [!WARNING]
+> Este arquivo documenta uma etapa intermediária de implementação. O frontend já migrou para `POST /api/checkout-create`, o contrato de resposta vigente usa `public_token`, e regras comerciais posteriores alteraram produtos, extras e convidados.
+>
+> A referência vigente está em [`../10-dominios/checkout-e-pagamentos.md`](../10-dominios/checkout-e-pagamentos.md).
+
+## Endpoint introduzido
 
 Edge Function: `checkout-create`
 
-Responsabilidades:
+Responsabilidades planejadas e posteriormente consolidadas:
 
 - exigir sessão Supabase válida;
-- validar o payload básico;
+- validar o payload;
 - chamar `create_checkout_order` com service role;
 - identificar o lote vigente;
-- calcular preços exclusivamente no banco;
-- criar pedido, participantes e extras em uma transação;
-- reservar o pedido por 30 minutos;
+- calcular preços no banco;
+- criar pedido e participantes em transação;
+- reservar o pedido por período limitado;
 - criar a preferência do Checkout Pro;
 - escolher `sandbox_init_point` em teste e `init_point` em produção;
-- retornar somente a URL selecionada, o token público do pedido e a expiração.
+- retornar URL, token público e expiração.
 
-## Payload
+## Payload registrado naquele incremento
 
 ```json
 {
@@ -48,28 +63,26 @@ Responsabilidades:
       "relationship_to_alumni": "child"
     }
   ],
-  "extras": [
-    {
-      "participant_key": "alumni-1",
-      "extra_type": "drinks",
-      "quantity": 2
-    }
-  ]
+  "extras": []
 }
 ```
 
-## Resposta
+O campo `extras` permanece no contrato técnico por compatibilidade, mas a RPC vigente é a autoridade sobre sua aceitação.
+
+## Resposta vigente de alto nível
 
 ```json
 {
   "checkout_url": "https://...",
-  "order_public_token": "uuid",
+  "public_token": "uuid",
   "expires_at": "2026-07-16T03:30:00Z",
-  "reused": false
+  "reused_preference": false
 }
 ```
 
-## Secrets necessários
+O proxy e o frontend ainda toleram nomes legados para compatibilidade, mas novos consumidores devem usar esse contrato normalizado.
+
+## Secrets relacionados
 
 ```text
 SITE_URL=https://hc20anos.com.br
@@ -82,25 +95,26 @@ SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_FUNCTIONS_URL=...
 ```
 
-Nenhum desses valores deve ser versionado.
+Nenhum valor secreto deve ser versionado ou exposto em variável `VITE_*`.
 
-## Publicação
+## Publicação registrada
 
 ```bash
 supabase functions deploy checkout-create
 ```
 
-A função deve receber o cabeçalho `Authorization: Bearer <access_token_da_sessao>`.
+O repositório possui scripts npm específicos, que devem ser preferidos pelo runbook vigente quando este for concluído.
 
-## Compatibilidade
+## Estado da compatibilidade
 
-O endpoint legado `/server/make-server-62fab262/orders` ainda não foi removido. O frontend continuará usando o fluxo anterior até a etapa de migração da interface. Isso permite validar banco e Edge Function isoladamente antes da troca.
+A observação original dizia que o frontend continuava usando `/server/make-server-62fab262/orders`. Isso não representa mais o fluxo canônico. O caminho atual é:
 
-## Pendências antes da ativação
+```text
+src/lib/checkout.ts
+  -> /api/checkout-create
+  -> /functions/v1/checkout-create
+```
 
-- aplicar migrations no ambiente Supabase de teste;
-- publicar `checkout-create`;
-- configurar secrets;
-- validar preferência com usuário de teste do Mercado Pago;
-- migrar o frontend;
-- endurecer o webhook legado antes de processar pagamentos reais.
+## Uso deste arquivo
+
+Utilize este registro apenas para compreender a evolução do endpoint e comparar contratos intermediários. Não use como checklist de produção ou referência final de regras comerciais.
