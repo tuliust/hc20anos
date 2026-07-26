@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-26
-last_verified_commit: 8e281938692570941f6862a412d25de091e80aa6
+last_verified_commit: ea95278b538a8a2b4c159b4d3d3a5d80f168096b
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -19,7 +19,7 @@ source_files:
 |---|---|
 | Arquivos consumidores | 20 |
 | Declarações de import ou augmentação | 20 |
-| Símbolos importados distintos | 48 |
+| Símbolos importados distintos | 47 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
 
@@ -39,32 +39,31 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/admin/faq/AdminFaqCategories.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser`, `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/AdminFaqQuestions.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/AdminFaqTrash.tsx` | admin | import type | `../../../lib/database.types` | `DbAdminUser`, `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/faqAdmin.types.ts` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/faqAdmin.utils.ts` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/admin/faq/FaqCategoryDeleteDialog.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `type` |
-| `src/app/admin/faq/FaqItemModal.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `type` |
-| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `type` |
-| `src/app/home/HomeFaqSection.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/home/HomeFaqSectionLoader.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus`, `type` |
-| `src/historyContentEnhancements.ts` | outro runtime | import type | `./lib/database.types` | `DbPhoto`, `type` |
-| `src/historyPersonFilterEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto`, `type` |
-| `src/historyPhotoRefreshEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto`, `type` |
+| `src/app/admin/faq/AdminFaqCategories.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser`, `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/AdminFaqQuestions.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/AdminFaqTrash.tsx` | admin | import type | `../../../lib/database.types` | `DbAdminUser`, `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/faqAdmin.types.ts` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/faqAdmin.utils.ts` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/FaqCategoryDeleteDialog.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory` |
+| `src/app/admin/faq/FaqItemModal.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory` |
+| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
+| `src/app/home/HomeFaqSection.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/home/HomeFaqSectionLoader.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
+| `src/historyContentEnhancements.ts` | outro runtime | import type | `./lib/database.types` | `DbPhoto` |
+| `src/historyPersonFilterEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
+| `src/historyPhotoRefreshEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/lib/database.people-extensions.d.ts` | augmentação de módulo | declare module | `./database.types` | — |
-| `src/lib/faq.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/lib/faqPresentation.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem`, `type` |
-| `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType`, `type` |
-| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `type`, `UpsertProfile` |
+| `src/lib/faq.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/lib/faqPresentation.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem` |
+| `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
+| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
 
 ## Símbolos por alcance
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `type` | 19 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
 | `DbFaqCategory` | 12 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
 | `DbFaqItem` | 10 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
 | `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
@@ -115,7 +114,7 @@ source_files:
 
 ## Interpretação para a migração
 
-- `src/lib/supabase.ts` deve ser tratado separadamente porque define o cliente e a tipagem estrutural do acesso ao banco.
+- `src/lib/supabase.ts` já foi migrado para a baseline gerada e não aparece entre os consumidores do arquivo manual.
 - arquivos em `src/lib/` tendem a combinar queries, adaptadores e tipos de domínio; exigem revisão antes de trocar aliases.
 - componentes e páginas devem migrar depois dos services, evitando acoplamento direto ao formato bruto de tabelas.
 - módulos de FAQ formam um grupo funcional próprio e podem ser migrados em conjunto.
@@ -124,15 +123,14 @@ source_files:
 
 ## Ordem recomendada
 
-1. cliente Supabase;
-2. services e bibliotecas sem UI;
-3. FAQ;
-4. perfis e conteúdo público;
-5. fotos, memórias e enquetes;
-6. checkout, pedidos e catálogo;
-7. componentes administrativos;
-8. enhancements e augmentações;
-9. limpeza do arquivo manual.
+1. services e bibliotecas sem UI;
+2. FAQ;
+3. perfis e conteúdo público;
+4. fotos, memórias e enquetes;
+5. checkout, pedidos e catálogo;
+6. componentes administrativos;
+7. enhancements e augmentações;
+8. limpeza do arquivo manual.
 
 ## Limitações
 
