@@ -1,0 +1,107 @@
+name: One-time safe aggregate imports
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-safe-aggregate-imports.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace exact import blocks
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app = Path("src/app/App.tsx")
+          app_old = '''import type {
+            DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
+            DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
+            DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+            DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus, Gender,
+            DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
+          } from "../lib/database.types";'''
+          app_new = '''import type {
+            DbPerson, DbEvent, DbAuditLog, DbPhotoTag, DbOrder,
+            DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, TicketStatus,
+            DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+            DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, ProfileStatus, Gender,
+            DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
+          } from "../lib/database.types";
+          import type { AdminRole, DbAdminUser } from "../lib/admin.types";
+          import type { DbPhoto } from "../lib/photo.types";
+          import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";'''
+
+          services = Path("src/lib/services.ts")
+          services_old = '''import type {
+            DbPerson, DbTicketType, DbPhoto, DbPhotoTag,
+            DbProfileClaim, DbProfileClaimAnswer, DbTicket,
+            DbOrder, DbEvent, DbProfile, InsertOrder, UpsertProfile,
+            DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
+            DbPhotoRemovalRequest, DbProfileClaimDispute,
+            DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+            DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
+            DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
+          } from "./database.types";'''
+          services_new = '''import type {
+            DbPerson, DbPhotoTag,
+            DbProfileClaim, DbProfileClaimAnswer, DbTicket,
+            DbOrder, DbEvent, DbProfile, InsertOrder, UpsertProfile,
+            DbAuditLog, TicketStatus,
+            DbPhotoRemovalRequest, DbProfileClaimDispute,
+            DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+            DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
+            DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
+          } from "./database.types";
+          import type { AdminRole, DbAdminUser } from "./admin.types";
+          import type { DbPhoto } from "./photo.types";
+          import type { DbTicketType } from "./commerce.types";'''
+
+          for path, old, new in [
+              (app, app_old, app_new),
+              (services, services_old, services_new),
+          ]:
+              content = path.read_text(encoding="utf-8")
+              count = content.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: bloco antigo esperado uma vez; encontrado {count}")
+              path.write_text(content.replace(old, new), encoding="utf-8")
+          PY
+
+          git diff --check
+          git diff --stat
+          git diff -- src/app/App.tsx src/lib/services.ts
+
+      - name: Reject unrelated changes
+        shell: bash
+        run: |
+          changed="$(git diff --name-only)"
+          expected=$'src/app/App.tsx\nsrc/lib/services.ts'
+          if [ "$changed" != "$expected" ]; then
+            echo "Arquivos inesperados no diff:"
+            echo "$changed"
+            exit 1
+          fi
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/App.tsx src/lib/services.ts
+          git commit -m "refactor: decompor tipos validados dos agregadores"
+          git push
