@@ -6,9 +6,14 @@ on:
       - main
     paths:
       - ".github/workflows/one-time-people-type-imports.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: one-time-people-type-imports
+  cancel-in-progress: false
 
 jobs:
   migrate:
