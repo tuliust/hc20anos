@@ -6,13 +6,16 @@ on:
       - main
     paths:
       - ".github/workflows/one-time-people-type-imports.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/one-time-people-type-imports.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: one-time-people-type-imports
+  group: one-time-people-type-imports-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -120,6 +123,7 @@ import type {
           git diff --check
 
       - name: Commit migration
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
