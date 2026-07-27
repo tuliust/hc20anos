@@ -43,7 +43,9 @@ test.describe("interações em fotos", () => {
     });
 
     await page.getByPlaceholder("Marcar alguém da turma...").fill("João");
-    await page.getByRole("button", { name: "João Vitor Melo", exact: true }).click();
+    const tagOption = page.getByText("João Vitor Melo", { exact: true }).locator("xpath=ancestor::button");
+    await expect(tagOption).toBeVisible({ timeout: 20_000 });
+    await tagOption.click();
     await expect.poll(() => api.tagCalls.length, { timeout: 20_000 }).toBe(1);
     await expect(page.getByText("Marcação enviada para moderação.", { exact: true })).toBeVisible();
     expect(api.tagCalls[0]).toMatchObject({
