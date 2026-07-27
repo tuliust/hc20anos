@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DbFaqCategory } from "../../../lib/database.types";
+import type { DbFaqCategory } from "../../../lib/faq.types";
 import {
   Dialog,
   DialogContent,
