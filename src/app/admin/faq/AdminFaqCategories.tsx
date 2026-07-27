@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-react";
-import type { DbFaqCategory, DbFaqItem } from "../../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 
 interface AdminFaqCategoriesProps {
   categories: DbFaqCategory[];
