@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 1231cf9b78d19ba709dcab93fa1f81c5f22c3b9e
+last_verified_commit: 9dd8be93dc99ecec8ca535605c4bf69016a62183
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
   - src/main.tsx
@@ -48,129 +48,144 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 ## Diagnóstico E2E
 
 ```text
+    +       "full_name": "claimant",
+            "participant_type": "alumni",
+    -       "person_id": "00000000-0000-4000-8000-000000000201",
+    +       "phone": null,
+            "user_id": "00000000-0000-4000-8000-000000000101",
+          },
+        ],
+        "product_code": "simple",
+      }
 
-Running 3 tests using 1 worker
-
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✘  1 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (21.9s)
-  ✘  2 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (retry #1) (21.1s)
-  ✘  3 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (retry #2) (20.9s)
-  ✓  4 tests/e2e/ticket-catalog-source-of-truth.spec.ts:88:1 › Home usa nome e preços do lote vigente (1.3s)
-  ✓  5 tests/e2e/ticket-catalog-source-of-truth.spec.ts:105:1 › Home e página de ingressos exibem o mesmo catálogo (1.7s)
-
-
-  1) tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado 
-
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: locator('[data-ticket-product-code="simple"]')
-    Expected: visible
-    Timeout: 20000ms
-    Error: element(s) not found
-
-    Call log:
-      - Expect "toBeVisible" with timeout 20000ms
-      - waiting for locator('[data-ticket-product-code="simple"]')
-
-
-      13 |
-      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
-    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
-         |                              ^
-      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
-      17 |     await expect(simpleCard).toContainText("R$ 159,00");
-      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
+      53 |     expect(headers["idempotency-key"]).toBeTruthy();
+      54 |
+    > 55 |     expect(body).toMatchObject({
+         |                  ^
+      56 |       buyer_name: "Maria Cabeção",
+      57 |       buyer_email: "claimant@example.com",
+      58 |       buyer_phone: "84999999999",
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:55:18
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/trace.zip
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeVisible() failed
+    Error: expect(received).toMatchObject(expected)
 
-    Locator: locator('[data-ticket-product-code="simple"]')
-    Expected: visible
-    Timeout: 20000ms
-    Error: element(s) not found
+    - Expected  - 4
+    + Received  + 6
 
-    Call log:
-      - Expect "toBeVisible" with timeout 20000ms
-      - waiting for locator('[data-ticket-product-code="simple"]')
+      Object {
+        "buyer_email": "claimant@example.com",
+    -   "buyer_name": "Maria Cabeção",
+    +   "buyer_name": "claimant",
+        "buyer_phone": "84999999999",
+        "participants": Array [
+    -     ObjectContaining {
+    +     Object {
+    +       "birth_date": null,
+    +       "client_key": "alumni-acafe162-9da8-4efd-959b-a246389e9af1",
+            "email": "claimant@example.com",
+    -       "full_name": "Maria Cabeção",
+    +       "full_name": "claimant",
+            "participant_type": "alumni",
+    -       "person_id": "00000000-0000-4000-8000-000000000201",
+    +       "phone": null,
+            "user_id": "00000000-0000-4000-8000-000000000101",
+          },
+        ],
+        "product_code": "simple",
+      }
 
-
-      13 |
-      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
-    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
-         |                              ^
-      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
-      17 |     await expect(simpleCard).toContainText("R$ 159,00");
-      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
+      53 |     expect(headers["idempotency-key"]).toBeTruthy();
+      54 |
+    > 55 |     expect(body).toMatchObject({
+         |                  ^
+      56 |       buyer_name: "Maria Cabeção",
+      57 |       buyer_email: "claimant@example.com",
+      58 |       buyer_phone: "84999999999",
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:55:18
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry1/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry1/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/trace.zip
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry1/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry1/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeVisible() failed
+    Error: expect(received).toMatchObject(expected)
 
-    Locator: locator('[data-ticket-product-code="simple"]')
-    Expected: visible
-    Timeout: 20000ms
-    Error: element(s) not found
+    - Expected  - 4
+    + Received  + 6
 
-    Call log:
-      - Expect "toBeVisible" with timeout 20000ms
-      - waiting for locator('[data-ticket-product-code="simple"]')
+      Object {
+        "buyer_email": "claimant@example.com",
+    -   "buyer_name": "Maria Cabeção",
+    +   "buyer_name": "claimant",
+        "buyer_phone": "84999999999",
+        "participants": Array [
+    -     ObjectContaining {
+    +     Object {
+    +       "birth_date": null,
+    +       "client_key": "alumni-57f7f8d3-e213-4d11-be22-a8026c38fa49",
+            "email": "claimant@example.com",
+    -       "full_name": "Maria Cabeção",
+    +       "full_name": "claimant",
+            "participant_type": "alumni",
+    -       "person_id": "00000000-0000-4000-8000-000000000201",
+    +       "phone": null,
+            "user_id": "00000000-0000-4000-8000-000000000101",
+          },
+        ],
+        "product_code": "simple",
+      }
 
-
-      13 |
-      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
-    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
-         |                              ^
-      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
-      17 |     await expect(simpleCard).toContainText("R$ 159,00");
-      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
+      53 |     expect(headers["idempotency-key"]).toBeTruthy();
+      54 |
+    > 55 |     expect(body).toMatchObject({
+         |                  ^
+      56 |       buyer_name: "Maria Cabeção",
+      57 |       buyer_email: "claimant@example.com",
+      58 |       buyer_phone: "84999999999",
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:55:18
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry2/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry2/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/trace.zip
+    test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry2/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-91a75-o-normalizado-e-autenticado-retry2/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
   1 failed
-    tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado 
-  2 passed (1.2m)
+    tests/e2e/checkout-flow.spec.ts:14:3 › catálogo e checkout › usa a seleção vigente e envia um pedido normalizado e autenticado 
+  2 passed (18.7s)
 ```
