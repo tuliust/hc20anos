@@ -1,0 +1,71 @@
+name: One-time final commerce type imports
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-final-commerce-imports.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace exact import blocks
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          app = Path("src/app/App.tsx")
+          app_text = app.read_text()
+          old_legacy = "import type {\n  DbOrder, TicketStatus, TicketWithDetails,\n} from \"../lib/database.types\";\n"
+          if app_text.count(old_legacy) != 1:
+              raise SystemExit("src/app/App.tsx: final legacy import not found exactly once")
+          app_text = app_text.replace(old_legacy, "", 1)
+          old_commerce = 'import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";\n'
+          new_commerce = 'import type { DbOrder, DbTicketType, PaymentStatus, TicketStatus, TicketWithDetails } from "../lib/commerce.types";\n'
+          if app_text.count(old_commerce) != 1:
+              raise SystemExit("src/app/App.tsx: commerce import not found exactly once")
+          app.write_text(app_text.replace(old_commerce, new_commerce, 1))
+
+          services = Path("src/lib/services.ts")
+          services_text = services.read_text()
+          old_legacy = "import type {\n  DbTicket, DbOrder, InsertOrder,\n  TicketStatus, TicketWithDetails,\n} from \"./database.types\";\n"
+          if services_text.count(old_legacy) != 1:
+              raise SystemExit("src/lib/services.ts: final legacy import not found exactly once")
+          services_text = services_text.replace(old_legacy, "", 1)
+          old_commerce = 'import type { DbTicketType } from "./commerce.types";\n'
+          new_commerce = 'import type { DbOrder, DbTicket, DbTicketType, InsertOrder, TicketStatus, TicketWithDetails } from "./commerce.types";\n'
+          if services_text.count(old_commerce) != 1:
+              raise SystemExit("src/lib/services.ts: commerce import not found exactly once")
+          services.write_text(services_text.replace(old_commerce, new_commerce, 1))
+          PY
+
+          changed="$(git diff --name-only)"
+          expected=$'src/app/App.tsx\nsrc/lib/services.ts'
+          if [ "$changed" != "$expected" ]; then
+            echo "Unexpected changed files:"
+            echo "$changed"
+            exit 1
+          fi
+
+          git diff --check
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/App.tsx src/lib/services.ts
+          git commit -m "refactor: eliminar imports do mapa manual"
+          git push
