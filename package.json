@@ -31,6 +31,9 @@
     "supabase:deploy:commerce": "npm run supabase:deploy:checkout && npm run supabase:deploy:webhook && npm run supabase:deploy:notifications && npm run supabase:deploy:refunds",
     "test:e2e": "playwright test",
     "test:faq": "node --test tests/unit/faq.test.mjs",
+    "test:e2e:faq": "playwright test tests/e2e/faq-flow.spec.ts",
+    "test:e2e:profile": "playwright test tests/e2e/profile-claim-flow.spec.ts",
+    "test:e2e:functional": "playwright test tests/e2e/profile-claim-flow.spec.ts tests/e2e/faq-flow.spec.ts",
     "test:e2e:visual": "playwright test tests/e2e/home-visual.spec.ts",
     "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
   },
@@ -54,7 +57,7 @@
     "@radix-ui/react-menubar": "1.1.6",
     "@radix-ui/react-navigation-menu": "1.2.5",
     "@radix-ui/react-popover": "1.1.6",
-    "@radix-ui/react-progress": "1.1.2",
+    "@radix-ui/react-progress": "1.2.3",
     "@radix-ui/react-radio-group": "1.2.3",
     "@radix-ui/react-scroll-area": "1.2.3",
     "@radix-ui/react-select": "2.1.6",
