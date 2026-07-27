@@ -1,0 +1,204 @@
+name: Commerce functional tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/SecureCheckoutPage.tsx"
+      - "src/app/PublicTicketsCatalogMount.tsx"
+      - "src/lib/checkout.ts"
+      - "src/lib/currentTicketCatalog.ts"
+      - "src/lib/publicTicketCatalog.ts"
+      - "src/lib/commerce.types.ts"
+      - "tests/e2e/checkout-flow.spec.ts"
+      - "tests/e2e/commerce-fixtures.ts"
+      - "tests/e2e/ticket-catalog-source-of-truth.spec.ts"
+      - "tests/e2e/home-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/commerce-functional-tests.yml"
+  pull_request:
+    paths:
+      - "src/app/SecureCheckoutPage.tsx"
+      - "src/app/PublicTicketsCatalogMount.tsx"
+      - "src/lib/checkout.ts"
+      - "src/lib/currentTicketCatalog.ts"
+      - "src/lib/publicTicketCatalog.ts"
+      - "src/lib/commerce.types.ts"
+      - "tests/e2e/checkout-flow.spec.ts"
+      - "tests/e2e/commerce-fixtures.ts"
+      - "tests/e2e/ticket-catalog-source-of-truth.spec.ts"
+      - "tests/e2e/home-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/commerce-functional-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: commerce-functional-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  catalog-and-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        id: browser
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Run catalog and checkout E2E
+        id: commerce_e2e
+        if: steps.browser.outcome == 'success'
+        continue-on-error: true
+        run: npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts
+
+      - name: Generate commerce test report
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.commerce_e2e.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          verified_date="$(date -u +%F)"
+          cat > docs/30-contratos/testes-comerciais.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: ${verified_date}
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Commerce functional tests
+          source_files:
+            - playwright.config.ts
+            - tests/e2e/ticket-catalog-source-of-truth.spec.ts
+            - tests/e2e/checkout-flow.spec.ts
+            - tests/e2e/commerce-fixtures.ts
+            - tests/e2e/home-fixtures.ts
+            - tests/e2e/profile-claim-fixtures.ts
+            - src/app/PublicTicketsCatalogMount.tsx
+            - src/app/SecureCheckoutPage.tsx
+            - src/lib/currentTicketCatalog.ts
+            - src/lib/checkout.ts
+            - src/lib/commerce.types.ts
+          ---
+
+          # Testes funcionais de catálogo e checkout
+
+          > Relatório gerado pelo workflow \`Commerce functional tests\`. Não editar manualmente.
+
+          | Verificação | Comando | Resultado |
+          |---|---|---|
+          | Build da aplicação | \`npm run build\` | \`${BUILD_OUTCOME}\` |
+          | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
+          | E2E de catálogo e checkout | \`npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts\` | \`${E2E_OUTCOME:-skipped}\` |
+
+          ## Cobertura funcional
+
+          - Home e página de ingressos usam o mesmo catálogo vigente;
+          - nome do lote e preços em reais vêm das RPCs de catálogo;
+          - seleção do ingresso é preservada até o checkout;
+          - ingresso de ex-aluno exige perfil vinculado;
+          - termos são obrigatórios antes da criação do pagamento;
+          - requisição à API contém sessão, chave pública e chave de idempotência;
+          - nome e e-mail são normalizados antes do envio;
+          - o payload do navegador não envia preço, total ou tipo de ingresso como fonte de verdade;
+          - redirecionamento do provedor é simulado, sem chamada ao Mercado Pago.
+
+          ## Interpretação
+
+          O resultado \`success\` comprova a integração do frontend com fixtures HTTP isoladas. Não comprova criação real de preferência, webhook, reserva no banco, emissão de ingresso ou reconciliação financeira.
+          EOF
+
+      - name: Audit documentation
+        id: docs_audit
+        if: always()
+        continue-on-error: true
+        run: npm run audit:docs
+
+      - name: Publish commerce report to main
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          report="docs/30-contratos/testes-comerciais.generated.md"
+          changes="$(git status --porcelain --untracked-files=all -- "$report")"
+          if [ -z "$changes" ]; then
+            echo "Relatório comercial já está atualizado."
+            exit 0
+          fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report"
+          git commit -m "docs: atualizar evidência dos testes comerciais"
+
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push concorrente detectado; rebase antes da tentativa ${attempt}."
+            git pull --rebase origin main
+          done
+
+          echo "Não foi possível publicar o relatório comercial."
+          exit 1
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: commerce-functional-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+            docs/30-contratos/testes-comerciais.generated.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on commerce regression
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.commerce_e2e.outcome }}
+          DOCS_AUDIT_OUTCOME: ${{ steps.docs_audit.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for result in "$BUILD_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME" "$DOCS_AUDIT_OUTCOME"; do
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+          exit "$failed"
