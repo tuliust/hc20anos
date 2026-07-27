@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, RotateCcw, Search, TicketCheck, Utensils, XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import type { AdminRole } from "../lib/admin.types";
 import { CheckinScanner } from "./CheckinScanner";
 import "./OperationsPage.css";
 
@@ -29,7 +30,8 @@ type RefundRow = {
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((value || 0) / 100);
 
-export function OperationsPage() {
+export function OperationsPage({ role }: { role: AdminRole }) {
+  const canManageRefunds = role === "admin" || role === "superadmin";
   const [tab, setTab] = useState<"checkin" | "refunds">("checkin");
   const [search, setSearch] = useState("");
   const [tickets, setTickets] = useState<CheckinRow[]>([]);
@@ -47,20 +49,25 @@ export function OperationsPage() {
   }, [search]);
 
   const loadRefunds = useCallback(async () => {
+    if (!canManageRefunds) return;
     setLoading(true);
     const { data, error } = await supabase.rpc("get_admin_refund_requests");
     setLoading(false);
     if (error) return setNotice(error.message);
     setRefunds((data ?? []) as RefundRow[]);
-  }, []);
+  }, [canManageRefunds]);
 
   useEffect(() => {
-    void (tab === "checkin" ? loadTickets() : loadRefunds());
+    if (!canManageRefunds && tab === "refunds") setTab("checkin");
+  }, [canManageRefunds, tab]);
+
+  useEffect(() => {
+    void (tab === "checkin" || !canManageRefunds ? loadTickets() : loadRefunds());
     const interval = window.setInterval(() => {
-      void (tab === "checkin" ? loadTickets() : loadRefunds());
+      void (tab === "checkin" || !canManageRefunds ? loadTickets() : loadRefunds());
     }, 10000);
     return () => window.clearInterval(interval);
-  }, [tab, loadTickets, loadRefunds]);
+  }, [tab, canManageRefunds, loadTickets, loadRefunds]);
 
   async function checkin(ticketId: string, undo = false) {
     setNotice(null);
@@ -101,6 +108,7 @@ export function OperationsPage() {
   }
 
   async function reviewRefund(requestId: string, approve: boolean) {
+    if (!canManageRefunds) return;
     const notes = window.prompt(approve ? "Observação da aprovação (opcional)" : "Motivo da rejeição") ?? "";
     const { error } = await supabase.rpc("review_refund_request", { p_request_id: requestId, p_approve: approve, p_notes: notes || null });
     if (error) return setNotice(error.message);
@@ -127,17 +135,17 @@ export function OperationsPage() {
   return <main className="operations-page">
     <header className="operations-header">
       <button onClick={() => window.location.assign("/admin")}><ArrowLeft size={18}/> Painel</button>
-      <div><p>Operação do evento</p><h1>Check-in e reembolsos</h1></div>
+      <div><p>Operação do evento</p><h1>{canManageRefunds ? "Check-in e reembolsos" : "Check-in"}</h1></div>
     </header>
 
     <nav className="operations-tabs">
       <button className={tab === "checkin" ? "active" : ""} onClick={() => setTab("checkin")}>Check-in</button>
-      <button className={tab === "refunds" ? "active" : ""} onClick={() => setTab("refunds")}>Reembolsos</button>
+      {canManageRefunds && <button className={tab === "refunds" ? "active" : ""} onClick={() => setTab("refunds")}>Reembolsos</button>}
     </nav>
 
     {notice && <div className="operations-notice">{notice}</div>}
 
-    {tab === "checkin" ? <>
+    {tab === "checkin" || !canManageRefunds ? <>
       <section className="operations-summary"><strong>{checkedInCount}</strong><span>check-ins de {tickets.length} resultados · atualização automática a cada 10 segundos</span></section>
       <CheckinScanner onCode={code => void handleScannedCode(code)}/>
       <form className="operations-search" onSubmit={event => { event.preventDefault(); void loadTickets(); }}>
