@@ -10,8 +10,7 @@ import type {
   DbOrder, DbEvent, InsertOrder,
   DbAuditLog, TicketStatus,
   DbProfileClaimDispute,
-  DbMemory,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, TicketWithDetails,
+  TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
 import type {
@@ -37,6 +36,7 @@ import type {
   PhotoStats,
 } from "./photo.types";
 import type { DbTicketType } from "./commerce.types";
+import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollResultRow, PollStatus } from "./engagement.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;
