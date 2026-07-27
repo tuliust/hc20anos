@@ -133,3 +133,7 @@ export interface LocationStat {
   count: number;
   people: PublicLocationRow[];
 }
+
+// Consumidores vigentes: `src/app/App.tsx` e `src/lib/services.ts`.
+// Novos fluxos de pessoas, perfis e diretórios públicos devem importar daqui,
+// nunca de `database.types.ts`.
