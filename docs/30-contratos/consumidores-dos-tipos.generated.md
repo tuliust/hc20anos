@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 6d989d563338514546b36022ec06b90b6ab3297e
+last_verified_commit: 314b8a5ee2d293037232e0d37161d6690df73ff0
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,8 +17,8 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 12 |
-| Declarações de import ou augmentação | 12 |
+| Arquivos consumidores | 11 |
+| Declarações de import ou augmentação | 11 |
 | Símbolos importados distintos | 47 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
@@ -27,8 +27,8 @@ source_files:
 
 | Categoria | Arquivos |
 |---|---|
-| admin | 3 |
 | serviço/biblioteca | 3 |
+| admin | 2 |
 | componente/página | 2 |
 | enhancement | 2 |
 | augmentação de módulo | 1 |
@@ -39,7 +39,6 @@ source_files:
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
 | `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser`, `DbFaqCategory`, `DbFaqItem` |
-| `src/app/admin/faq/AdminFaqQuestions.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
 | `src/app/admin/faq/AdminFaqTrash.tsx` | admin | import type | `../../../lib/database.types` | `DbAdminUser`, `DbFaqCategory`, `DbFaqItem` |
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
@@ -57,10 +56,10 @@ source_files:
 |---|---|---|
 | `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
 | `DbAdminUser` | 4 | `src/app/App.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/services.ts` |
-| `DbFaqCategory` | 4 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/faq.ts` |
-| `DbFaqItem` | 4 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/faq.ts` |
 | `DbTicketType` | 4 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
 | `AdminRole` | 3 | `src/app/App.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/lib/services.ts` |
+| `DbFaqCategory` | 3 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/faq.ts` |
+| `DbFaqItem` | 3 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/faq.ts` |
 | `AlumniDirectoryStatusRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `CuriosityProfileStatsRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbAuditLog` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
