@@ -24,3 +24,7 @@ export interface PhotoStats {
   comments_count: number;
   is_featured?: boolean;
 }
+
+// Consumidores vigentes: `src/app/App.tsx` e `src/lib/services.ts`, além dos
+// enhancements que usam somente `DbPhoto`. Novos fluxos de fotos devem importar
+// deste módulo, sem reintroduzir dependência em `database.types.ts`.
