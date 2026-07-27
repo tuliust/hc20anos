@@ -1,0 +1,67 @@
+import { expect, test } from "@playwright/test";
+import {
+  SIMPLE_TICKET_TYPE_ID,
+  installCommerceFixtures,
+} from "./commerce-fixtures";
+import {
+  TEST_PERSON_ID,
+  TEST_USER_ID,
+} from "./profile-claim-fixtures";
+
+test.describe("catálogo e checkout", () => {
+  test("seleciona o preço vigente e envia um pedido normalizado e autenticado", async ({ page }) => {
+    const api = await installCommerceFixtures(page);
+
+    await page.goto("/ingressos");
+
+    const simpleCard = page.locator('[data-ticket-product-code="simple"]');
+    await expect(simpleCard).toBeVisible({ timeout: 20_000 });
+    await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
+    await expect(simpleCard).toContainText("R$ 159,00");
+    await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/checkout$/);
+    await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("R$ 159,00", { exact: true })).toBeVisible();
+    await expect(page.getByText("2º Lote Administrativo", { exact: true })).toBeVisible();
+
+    const submit = page.getByRole("button", { name: "Ir para o Mercado Pago", exact: true });
+    await expect(submit).toBeEnabled({ timeout: 20_000 });
+    await submit.click();
+
+    await expect(page.getByText("Aceite os Termos de Uso e a Política de Privacidade.", { exact: true })).toBeVisible();
+    expect(api.calls).toHaveLength(0);
+
+    await page.getByRole("checkbox").check();
+    await submit.click();
+
+    await expect.poll(() => api.calls.length, { timeout: 20_000 }).toBe(1);
+    await expect(page).toHaveURL(/\/pagamento-simulado\?preference=test-preference$/);
+
+    const [{ body, headers }] = api.calls;
+    expect(headers.authorization).toMatch(/^Bearer\s+.+/);
+    expect(headers.apikey).toBeTruthy();
+    expect(headers["idempotency-key"]).toBeTruthy();
+
+    expect(body).toMatchObject({
+      buyer_name: "Maria Cabeção",
+      buyer_email: "claimant@example.com",
+      buyer_phone: "84999999999",
+      product_code: "simple",
+      participants: [
+        expect.objectContaining({
+          participant_type: "alumni",
+          full_name: "Maria Cabeção",
+          email: "claimant@example.com",
+          person_id: TEST_PERSON_ID,
+          user_id: TEST_USER_ID,
+        }),
+      ],
+    });
+
+    expect(body.idempotency_key).toBe(headers["idempotency-key"]);
+    expect(body).not.toHaveProperty("price_cents");
+    expect(body).not.toHaveProperty("total_amount_cents");
+    expect(body).not.toHaveProperty("ticket_type_id", SIMPLE_TICKET_TYPE_ID);
+  });
+});
