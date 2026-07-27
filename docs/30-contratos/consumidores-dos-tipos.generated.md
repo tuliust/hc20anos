@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: c8fdc65df2ce41cfdfb8db5a638d2cb269904c46
+last_verified_commit: 5b8a0e4683a8a31929a7f99e5bd7722c3978a595
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -19,7 +19,7 @@ source_files:
 |---|---|
 | Arquivos consumidores | 2 |
 | Declarações de import ou augmentação | 2 |
-| Símbolos importados distintos | 13 |
+| Símbolos importados distintos | 5 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 0 |
 
@@ -34,25 +34,17 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbOrder`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `TicketStatus`, `TicketWithDetails` |
-| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbOrder`, `DbTicket`, `InsertOrder`, `TicketStatus`, `TicketWithDetails` |
+| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbOrder`, `TicketStatus`, `TicketWithDetails` |
+| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbOrder`, `DbTicket`, `InsertOrder`, `TicketStatus`, `TicketWithDetails` |
 
 ## Símbolos por alcance
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `DbAuditLog` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbEvent` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbEventArchiveSettings` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketWithDetails` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbEventPageContent` | 1 | `src/lib/services.ts` |
-| `DbHomePageContent` | 1 | `src/lib/services.ts` |
 | `DbTicket` | 1 | `src/lib/services.ts` |
-| `EventPageGalleryItem` | 1 | `src/app/App.tsx` |
-| `EventPageInfoItem` | 1 | `src/app/App.tsx` |
-| `EventPageScheduleItem` | 1 | `src/app/App.tsx` |
 | `InsertOrder` | 1 | `src/lib/services.ts` |
 
 ## Interpretação para a migração
