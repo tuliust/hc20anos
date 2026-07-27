@@ -2,7 +2,7 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: cdbe16b579047a1d8d1ad980cc7dba5cdcf9c576
+last_verified_commit: 2644f2e48d3dee214220c77118fc084b4da76841
 source_files:
   - docs/30-contratos/database.types.generated.ts
   - docs/30-contratos/compatibilidade-de-tipos.generated.md
@@ -10,13 +10,15 @@ source_files:
   - src/lib/database.generated.ts
   - src/lib/database.types.ts
   - src/lib/faq.types.ts
-  - src/lib/faqPresentation.ts
+  - src/lib/admin.types.ts
+  - src/lib/faq.ts
   - src/lib/supabase.ts
-  - src/app/home/HomeFaqSection.tsx
-  - src/app/home/HomeFaqSectionLoader.tsx
+  - src/app/admin/faq/AdminFaqPanel.tsx
+  - src/app/admin/faq/AdminFaqTrash.tsx
   - docs/50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md
   - scripts/audit-database-types.mjs
   - scripts/generate-database-type-consumers.mjs
+  - .github/workflows/type-compatibility.yml
 ---
 
 # Migração dos tipos Supabase
@@ -29,9 +31,7 @@ A decisão arquitetural está registrada em [`ADR-001`](../50-governanca/ADR/ADR
 
 ## Diagnóstico atual
 
-A auditoria automática compara o arquivo usado pela aplicação com `database.types.generated.ts`.
-
-Resumo vigente:
+A auditoria automática compara o arquivo usado historicamente pela aplicação com `database.types.generated.ts`.
 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---:|---:|---:|---:|
@@ -48,52 +48,58 @@ Achados prioritários:
 - `events` omite timezone;
 - tipos editoriais omitem campos atuais;
 - o mapa de RPCs representa menos de 10% das funções públicas geradas;
-- o arquivo manual contém tipos de domínio que não devem ser apagados.
+- o arquivo manual contém tipos de domínio que não devem ser apagados sem adaptação.
 
-O relatório atualizado está em [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md).
+O relatório vigente está em [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md).
 
 ## Estado atual da execução
 
-O inventário automático registra 17 consumidores restantes de `database.types.ts`. O cliente Supabase e a camada pública do FAQ já foram removidos desse conjunto.
+O inventário automático registra 8 consumidores restantes de `database.types.ts`, contra 21 no início da migração.
 
 Implementado:
 
 - ponte estável `src/lib/database.generated.ts`;
 - `SupabaseClient<Database>` parametrizado pela baseline gerada;
-- módulo de domínio `src/lib/faq.types.ts`;
-- apresentação, loader e componente público do FAQ migrados;
+- família FAQ integralmente separada em `src/lib/faq.types.ts`;
+- serviço, Home e painel administrativo de FAQ migrados;
+- diferenças entre domínio FAQ e rows gerados documentadas;
+- `AdminRole` e `DbAdminUser` derivados da baseline em `src/lib/admin.types.ts`;
+- consumidores administrativos do FAQ migrados;
 - inventário regenerado após cada mudança;
-- implantação mais recente validada com sucesso na Vercel.
+- publicação dos relatórios resiliente a pushes concorrentes;
+- builds das etapas publicadas validados na Vercel.
 
-Ainda não comprovado nesta etapa:
+Ainda não comprovado integralmente:
 
 - suíte unitária completa;
 - E2E integral de perfil, checkout e área administrativa;
-- equivalência semântica entre os tipos FAQ manuais e os rows gerados;
-- migração do serviço central `src/lib/faq.ts`;
-- migração do painel administrativo de FAQ.
+- migração dos grandes agregadores `App.tsx` e `services.ts`;
+- eliminação da augmentação `database.people-extensions.d.ts`;
+- adaptação dos tipos comerciais divergentes.
 
 ## Estado desejado
 
 ```text
 src/lib/database.generated.ts          ponte para o contrato bruto gerado
-src/lib/*.types.ts                     tipos funcionais e de apresentação
+src/lib/*.types.ts                     aliases e tipos funcionais explícitos
 src/lib/supabase.ts                    cliente tipado pelo contrato bruto
-src/lib/adapters/                      conversões entre banco e domínio, quando necessárias
+src/lib/adapters/                      conversões entre banco e domínio
 ```
 
-Os nomes exatos dos diretórios podem ser ajustados durante a implementação, mas as responsabilidades não devem voltar a ser misturadas.
+Os nomes exatos podem evoluir, mas as responsabilidades não devem voltar a ser misturadas.
 
 ## Princípios
 
 1. O banco não deve ser alterado para acomodar um tipo de tela.
 2. Arquivos gerados não recebem edição manual.
 3. Tipos de domínio não fingem representar tabelas completas.
-4. Views permanecem na seção de views.
-5. RPCs usam as assinaturas geradas como fonte de verdade.
-6. JSON exige tipo ou adaptador explícito.
-7. Cada etapa deve ser pequena, reversível e testada.
-8. A remoção de `any` não pode criar casts indiscriminados.
+4. Aliases simples derivam da baseline gerada.
+5. Views permanecem na seção de views.
+6. RPCs usam as assinaturas geradas como fonte de verdade.
+7. JSON exige tipo ou adaptador explícito.
+8. Cada etapa deve ser pequena, reversível e testada.
+9. A remoção de `any` não pode criar casts indiscriminados.
+10. Build aprovado não substitui testes funcionais.
 
 ## Fase 0 — preparação
 
@@ -105,16 +111,17 @@ Os nomes exatos dos diretórios podem ser ajustados durante a implementação, m
 - [x] Inventariar todos os imports de `database.types.ts`.
 - [x] Classificar consumidores por categoria e símbolos importados.
 - [x] Confirmar que os imports existentes são exclusivamente de tipos.
-- [ ] Corrigir o cabeçalho do arquivo manual.
-- [ ] Classificar, por fluxo, quais consumidores executam queries Supabase e quais usam apenas tipos de domínio.
+- [x] Tornar a publicação dos relatórios resiliente a concorrência.
+- [ ] Corrigir o cabeçalho do arquivo manual, que ainda se apresenta como gerado.
+- [ ] Classificar os consumidores restantes por fluxo e forma de dados.
 
 ### Critério de saída
 
-O inventário estrutural está concluído. A classificação funcional fina continuará durante cada grupo de migração, antes de alterar seus imports.
+O inventário estrutural está concluído. A classificação funcional fina continua antes de cada família.
 
 ## Fase 1 — cliente Supabase tipado
 
-Objetivo: aplicar o contrato gerado no ponto de criação do cliente, sem mudar ainda todos os tipos importados pelos componentes.
+Objetivo: aplicar o contrato gerado no ponto de criação do cliente.
 
 - [x] Localizar as instâncias vigentes de `createClient`.
 - [x] Criar alias estável para o `Database` gerado.
@@ -126,15 +133,15 @@ Objetivo: aplicar o contrato gerado no ponto de criação do cliente, sem mudar 
 
 ### Validação executada
 
-- deployment mais recente da Vercel concluído com sucesso;
+- deployment da Vercel concluído com sucesso;
 - inventário reduziu de 21 para 20 consumidores após a migração do cliente;
 - nenhuma mudança deliberada de runtime foi introduzida.
 
-### Validação ainda pendente
+### Validação pendente
 
 - testes unitários completos;
-- verificações E2E dos fluxos principais;
-- verificação dedicada de todas as queries inferidas pelo cliente gerado.
+- E2E dos fluxos principais;
+- verificação dedicada das queries inferidas pelo cliente gerado.
 
 ### Rollback
 
@@ -142,64 +149,72 @@ Reverter somente a importação do `Database` em `src/lib/supabase.ts`. Não rem
 
 ## Fase 2 — separar tipos de domínio
 
-Mover para módulos próprios os tipos que não representam diretamente uma linha de tabela ou view:
+Mover para módulos próprios os tipos que não representam diretamente uma linha de tabela ou view.
 
-- conteúdo da home;
-- conteúdo da página do evento;
-- FAQ estruturado;
-- cards e estatísticas públicas;
-- formulários de perfil;
-- agregados de relatórios;
-- payloads de moderação;
-- estados de checkout e notificações.
+### Grupo FAQ
 
-- [x] Criar o primeiro módulo funcional de tipos de domínio.
-- [x] Mover as interfaces públicas de FAQ sem alterar sua forma.
-- [x] Migrar a apresentação e a home do FAQ.
-- [x] Confirmar redução de consumidores de 20 para 17.
-- [x] Validar build da primeira família funcional.
-- [ ] Migrar `src/lib/faq.ts`.
-- [ ] Migrar os oito consumidores do painel administrativo de FAQ.
-- [ ] Revisar `icon_key`, `category_key` e `category_label` antes de derivar aliases da baseline.
-- [ ] Separar os demais grupos funcionais.
+- [x] Criar `src/lib/faq.types.ts`.
+- [x] Preservar inicialmente a forma funcional existente.
+- [x] Migrar apresentação, loader e componente da Home.
+- [x] Migrar `src/lib/faq.ts`.
+- [x] Migrar tipos, filtros, modais, diálogos e painéis administrativos.
+- [x] Documentar `icon_key`, `category_key`, `category_label` e a relação composta `category`.
+- [x] Confirmar que nenhum consumidor de FAQ importa os tipos do arquivo manual.
+- [x] Validar build da família completa.
+- [ ] Executar testes unitários específicos do FAQ.
+- [ ] Executar E2E do painel administrativo e da Home.
+
+### Outros grupos de domínio
+
+- [ ] Conteúdo da Home.
+- [ ] Conteúdo da página do evento.
+- [ ] Cards e estatísticas públicas.
+- [ ] Formulários de perfil.
+- [ ] Agregados de relatórios.
+- [ ] Payloads de moderação.
+- [ ] Estados de checkout e notificações.
 - [ ] Remover a frase “tipos gerados” dos módulos manuais.
-- [ ] Adicionar comentários sobre a fonte de cada forma composta.
+- [x] Adicionar comentários sobre a fonte da forma composta do FAQ.
 
-### Critério de saída do grupo FAQ
+### Critério de saída
 
-- nenhum arquivo funcional de FAQ importa `DbFaqCategory` ou `DbFaqItem` de `database.types.ts`;
-- serviço público e operações administrativas compilam com `faq.types.ts`;
-- home e painel administrativo passam nos testes aplicáveis;
-- diferenças entre o domínio FAQ e o row gerado estão documentadas ou adaptadas explicitamente.
-
-### Critério de saída da fase
-
-O arquivo de compatibilidade deixa de ser ponto central para tipos de tela e conteúdo.
+O arquivo manual deixa de ser ponto central para tipos de tela e conteúdo.
 
 ## Fase 3 — aliases para objetos idênticos
 
-Para objetos cuja forma manual corresponde ao contrato bruto, usar aliases derivados:
+Para objetos cuja forma corresponde ao contrato bruto, usar aliases derivados:
 
 ```ts
 export type DbPerson = Database["public"]["Tables"]["people"]["Row"];
 export type PublicLocationRow = Database["public"]["Views"]["public_profile_locations"]["Row"];
 ```
 
+### Concluído
+
+- [x] Criar `src/lib/admin.types.ts`.
+- [x] Derivar `AdminRole` do enum `admin_role`.
+- [x] Derivar `DbAdminUser` do row de `admin_users`.
+- [x] Migrar os consumidores administrativos do FAQ.
+- [x] Validar build dos aliases administrativos.
+
+### Pendente
+
+- [ ] Migrar `AdminRole` e `DbAdminUser` em `App.tsx` e `services.ts` durante a decomposição desses imports.
+- [ ] Criar módulo de fotos e derivar `DbPhoto`, se a equivalência continuar confirmada.
 - [ ] Começar por objetos simples e estáveis.
 - [ ] Não criar alias quando a interface manual combina campos calculados.
 - [ ] Manter nomes ergonômicos para reduzir mudanças nos consumidores.
 - [ ] Confirmar nullability e defaults antes de cada substituição.
 
-### Ordem sugerida
+### Ordem sugerida atual
 
-1. `people`;
-2. `profiles`;
-3. `admin_users`;
-4. tabelas de FAQ;
-5. fotos e interações;
-6. enquetes;
-7. views públicas;
-8. objetos comerciais somente depois dos adaptadores.
+1. fotos;
+2. `people`;
+3. `profiles`;
+4. enquetes;
+5. views públicas;
+6. conteúdo editorial;
+7. objetos comerciais somente depois dos adaptadores.
 
 ## Fase 4 — comércio e ingressos
 
@@ -278,6 +293,7 @@ Prioridade:
 - [x] O cliente está tipado pela baseline.
 - [ ] Tipos de domínio estão integralmente separados.
 - [ ] O comparador não aponta divergências não justificadas.
+- [ ] A augmentação de módulo foi eliminada.
 - [ ] O arquivo manual antigo é depreciado ou removido.
 - [ ] O processo de geração e drift está documentado no onboarding.
 
@@ -310,7 +326,7 @@ Registrar em cada entrega:
 
 - objetos migrados;
 - consumidores atualizados;
-- divergências removidas do relatório;
+- divergências removidas ou justificadas;
 - comandos executados;
 - testes aprovados;
 - casts temporários introduzidos, com justificativa;
