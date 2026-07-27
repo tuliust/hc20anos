@@ -1,8 +1,5 @@
 import { expect, test } from "@playwright/test";
-import {
-  SIMPLE_TICKET_TYPE_ID,
-  installCommerceFixtures,
-} from "./commerce-fixtures";
+import { installCommerceFixtures } from "./commerce-fixtures";
 import {
   TEST_PERSON_ID,
   TEST_USER_ID,
@@ -62,6 +59,6 @@ test.describe("catálogo e checkout", () => {
     expect(body.idempotency_key).toBe(headers["idempotency-key"]);
     expect(body).not.toHaveProperty("price_cents");
     expect(body).not.toHaveProperty("total_amount_cents");
-    expect(body).not.toHaveProperty("ticket_type_id", SIMPLE_TICKET_TYPE_ID);
+    expect(body).not.toHaveProperty("ticket_type_id");
   });
 });
