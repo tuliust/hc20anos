@@ -1,0 +1,210 @@
+name: Engagement functional tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/App.tsx"
+      - "src/lib/services.ts"
+      - "src/lib/engagement.types.ts"
+      - "tests/e2e/engagement-flow.spec.ts"
+      - "tests/e2e/engagement-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/engagement-functional-tests.yml"
+  pull_request:
+    paths:
+      - "src/app/App.tsx"
+      - "src/lib/services.ts"
+      - "src/lib/engagement.types.ts"
+      - "tests/e2e/engagement-flow.spec.ts"
+      - "tests/e2e/engagement-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/engagement-functional-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: engagement-functional-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  memories-and-polls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        id: browser
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Run memories and polls E2E
+        id: engagement_e2e
+        if: steps.browser.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright test tests/e2e/engagement-flow.spec.ts --workers=1 2>&1 | tee engagement-e2e.log
+
+      - name: Generate engagement test report
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.engagement_e2e.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          verified_date="$(date -u +%F)"
+          if [ "$BUILD_OUTCOME" = "success" ] && [ "$BROWSER_OUTCOME" = "success" ] && [ "$E2E_OUTCOME" = "success" ]; then
+            interpretation="A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita, mas não substitui RLS, triggers, moderação ou controles de abuso em ambiente integrado."
+          else
+            interpretation="A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar memórias e enquetes validadas."
+          fi
+
+          cat > docs/30-contratos/testes-engajamento.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: ${verified_date}
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Engagement functional tests
+          source_files:
+            - playwright.config.ts
+            - tests/e2e/engagement-flow.spec.ts
+            - tests/e2e/engagement-fixtures.ts
+            - tests/e2e/profile-claim-fixtures.ts
+            - src/app/App.tsx
+            - src/lib/services.ts
+            - src/lib/engagement.types.ts
+          ---
+
+          # Testes funcionais de memórias e enquetes
+
+          > Relatório gerado pelo workflow \`Engagement functional tests\`. Não editar manualmente.
+
+          | Verificação | Comando | Resultado |
+          |---|---|---|
+          | Build da aplicação | \`npm run build\` | \`${BUILD_OUTCOME}\` |
+          | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
+          | E2E de memórias e enquetes | \`npx playwright test tests/e2e/engagement-flow.spec.ts --workers=1\` | \`${E2E_OUTCOME:-skipped}\` |
+
+          ## Cobertura funcional
+
+          - somente memórias aprovadas são carregadas na página pública;
+          - memória anônima não exibe o nome administrativo do autor;
+          - memória curta é rejeitada antes da escrita;
+          - nova memória é enviada como \`pending\` para moderação;
+          - enquete aberta permite voto de usuário autenticado;
+          - voto único remove seleção anterior antes da nova inserção;
+          - resultados ficam ocultos antes da participação;
+          - enquete fechada não aceita voto.
+
+          ## Interpretação
+
+          ${interpretation}
+          EOF
+
+          if [ -s engagement-e2e.log ]; then
+            {
+              echo
+              echo "## Diagnóstico E2E"
+              echo
+              echo '```text'
+              tail -n 160 engagement-e2e.log
+              echo '```'
+            } >> docs/30-contratos/testes-engajamento.generated.md
+          fi
+
+      - name: Audit documentation
+        id: docs_audit
+        if: always()
+        continue-on-error: true
+        run: npm run audit:docs
+
+      - name: Publish engagement report to main
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          report="docs/30-contratos/testes-engajamento.generated.md"
+          changes="$(git status --porcelain --untracked-files=all -- "$report")"
+          if [ -z "$changes" ]; then
+            echo "Relatório de engajamento já está atualizado."
+            exit 0
+          fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report"
+          git commit -m "docs: atualizar evidência dos testes de engajamento"
+
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push concorrente detectado; rebase antes da tentativa ${attempt}."
+            git pull --rebase origin main
+          done
+
+          echo "Não foi possível publicar o relatório de engajamento."
+          exit 1
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engagement-functional-${{ github.sha }}
+          path: |
+            engagement-e2e.log
+            playwright-report/
+            test-results/
+            docs/30-contratos/testes-engajamento.generated.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on engagement regression
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.engagement_e2e.outcome }}
+          DOCS_AUDIT_OUTCOME: ${{ steps.docs_audit.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for result in "$BUILD_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME" "$DOCS_AUDIT_OUTCOME"; do
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+          exit "$failed"
