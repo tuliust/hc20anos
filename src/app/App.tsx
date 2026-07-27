@@ -29,9 +29,6 @@ import {
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
-  DbOrder, TicketStatus, TicketWithDetails,
-} from "../lib/database.types";
-import type {
   AlumniDirectoryStatusRow,
   CuriosityProfileStatsRow,
   DbPerson,
@@ -47,7 +44,7 @@ import type {
 import type { AdminRole, DbAdminUser } from "../lib/admin.types";
 import type { DbPhoto } from "../lib/photo.types";
 import type { DbPhotoComment, DbPhotoRemovalRequest, DbPhotoTag, ModerationStatus, PhotoStats } from "../lib/photo.types";
-import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";
+import type { DbOrder, DbTicketType, PaymentStatus, TicketStatus, TicketWithDetails } from "../lib/commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../lib/engagement.types";
 import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";

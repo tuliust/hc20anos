@@ -6,10 +6,6 @@
 
 import { DEV_MODE, supabase } from "./supabase";
 import type {
-  DbTicket, DbOrder, InsertOrder,
-  TicketStatus, TicketWithDetails,
-} from "./database.types";
-import type {
   AlumniDirectoryStatusRow,
   CuriosityProfileStatsRow,
   DbPerson,
@@ -31,7 +27,7 @@ import type {
   ModerationStatus,
   PhotoStats,
 } from "./photo.types";
-import type { DbTicketType } from "./commerce.types";
+import type { DbOrder, DbTicket, DbTicketType, InsertOrder, TicketStatus, TicketWithDetails } from "./commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollResultRow, PollStatus } from "./engagement.types";
 import type { DbProfileClaim, DbProfileClaimAnswer, DbProfileClaimDispute } from "./identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, DbEventPageContent, DbHomePageContent } from "./content.types";
