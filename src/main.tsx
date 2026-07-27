@@ -33,7 +33,7 @@ import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnha
 import { installHomeLandingEnhancements } from './homeLandingEnhancements';
 import { installHomeMemoryAvatarEnhancement } from './homeMemoryAvatarEnhancement';
 import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
-import { installHomeMobileDomRefinements } from './homeMobileRefinements';
+import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
 import { installHomeTicketCardSpacingEnhancements } from './homeTicketCardSpacingEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
