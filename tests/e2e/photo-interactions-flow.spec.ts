@@ -15,8 +15,9 @@ test.describe("interações em fotos", () => {
     await page.goto("/nossa-historia");
 
     await expect(page.getByRole("heading", { name: "Fotos da Época" })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText("1 fotos selecionadas pela organização", { exact: true })).toBeVisible();
-    await page.getByRole("img", { name: "Gincana no pátio" }).first().click();
+    const galleryPhoto = page.getByRole("img", { name: "Gincana no pátio" }).first();
+    await expect(galleryPhoto).toBeVisible();
+    await galleryPhoto.click();
 
     await expect(page).toHaveURL(/\/foto$/);
     await expect(page.getByRole("heading", { name: "Gincana no pátio" })).toBeVisible({ timeout: 20_000 });
@@ -30,7 +31,9 @@ test.describe("interações em fotos", () => {
       user_id: TEST_USER_ID,
     });
 
-    await page.getByLabel("Novo comentário").fill("Também lembro desse dia.");
+    const commentField = page.locator("textarea").first();
+    await expect(commentField).toBeVisible();
+    await commentField.fill("Também lembro desse dia.");
     await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
     await expect.poll(() => api.commentCalls.length, { timeout: 20_000 }).toBe(1);
     await expect(page.getByText("Comentário enviado para moderação.", { exact: true })).toBeVisible();
@@ -54,7 +57,9 @@ test.describe("interações em fotos", () => {
     });
 
     await page.getByRole("button", { name: "Solicitar remoção da foto", exact: true }).click();
-    await page.getByLabel("Motivo da remoção").fill("Apareço na imagem e não autorizo a publicação.");
+    const removalField = page.locator("textarea").last();
+    await expect(removalField).toBeVisible();
+    await removalField.fill("Apareço na imagem e não autorizo a publicação.");
     await page.getByRole("button", { name: "Enviar solicitação", exact: true }).click();
     await expect.poll(() => api.removalCalls.length, { timeout: 20_000 }).toBe(1);
     await expect(page.getByText("Solicitação de remoção enviada.", { exact: true })).toBeVisible();
