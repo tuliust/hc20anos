@@ -6,15 +6,18 @@
 
 import { DEV_MODE, supabase } from "./supabase";
 import type {
-  DbPerson, DbTicketType, DbPhoto, DbPhotoTag,
+  DbPerson, DbPhotoTag,
   DbProfileClaim, DbProfileClaimAnswer, DbTicket,
   DbOrder, DbEvent, DbProfile, InsertOrder, UpsertProfile,
-  DbAdminUser, DbAuditLog, TicketStatus, AdminRole,
+  DbAuditLog, TicketStatus,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
   DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
   DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
+import type { AdminRole, DbAdminUser } from "./admin.types";
+import type { DbPhoto } from "./photo.types";
+import type { DbTicketType } from "./commerce.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;

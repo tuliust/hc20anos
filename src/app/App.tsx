@@ -29,12 +29,15 @@ import {
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
-  DbPerson, DbTicketType, DbEvent, DbAdminUser, DbAuditLog, DbPhoto, DbPhotoTag, DbOrder,
-  DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, AdminRole, TicketStatus,
+  DbPerson, DbEvent, DbAuditLog, DbPhotoTag, DbOrder,
+  DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, TicketStatus,
   DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, PaymentStatus, ProfileStatus, Gender,
+  DbPoll, DbPollOption, DbPollVote, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, PollStatus, TicketWithDetails, DbProfile, ProfileStatus, Gender,
   DbEventArchiveSettings, RelationshipStatus, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
+import type { AdminRole, DbAdminUser } from "../lib/admin.types";
+import type { DbPhoto } from "../lib/photo.types";
+import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
