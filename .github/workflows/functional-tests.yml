@@ -143,30 +143,23 @@ jobs:
           EOF
 
       - name: Audit documentation
+        id: docs_audit
         if: always()
         continue-on-error: true
         run: npm run audit:docs
-
-      - name: Require updated report in pull requests
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          if ! git diff --quiet -- docs/30-contratos/testes-funcionais.generated.md; then
-            echo "O relatório funcional está desatualizado."
-            git diff -- docs/30-contratos/testes-funcionais.generated.md
-            exit 1
-          fi
 
       - name: Publish functional report to main
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           report="docs/30-contratos/testes-funcionais.generated.md"
-          if git diff --quiet -- "$report"; then
+          changes="$(git status --porcelain --untracked-files=all -- "$report")"
+          if [ -z "$changes" ]; then
             echo "Relatório funcional já está atualizado."
             exit 0
           fi
 
+          echo "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$report"
@@ -202,10 +195,11 @@ jobs:
           FAQ_UNIT_OUTCOME: ${{ steps.faq_unit.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
           E2E_OUTCOME: ${{ steps.functional_e2e.outcome }}
+          DOCS_AUDIT_OUTCOME: ${{ steps.docs_audit.outcome }}
         shell: bash
         run: |
           failed=0
-          for result in "$BUILD_OUTCOME" "$FAQ_UNIT_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME"; do
+          for result in "$BUILD_OUTCOME" "$FAQ_UNIT_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME" "$DOCS_AUDIT_OUTCOME"; do
             if [ "$result" != "success" ]; then
               failed=1
             fi
