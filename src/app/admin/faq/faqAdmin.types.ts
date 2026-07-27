@@ -1,4 +1,4 @@
-import type { DbFaqCategory, DbFaqItem } from "../../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 
 export type AdminFaqView = "questions" | "categories" | "trash";
 export type AdminFaqNotice = (message: string, type?: "success" | "error" | "info") => void;
