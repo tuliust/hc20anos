@@ -1,4 +1,4 @@
-import type { DbFaqCategory, DbFaqItem } from "./database.types";
+import type { DbFaqCategory, DbFaqItem } from "./faq.types";
 import { normalizeText } from "./faqText.ts";
 
 export interface FaqGroup {
