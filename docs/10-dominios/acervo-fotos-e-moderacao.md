@@ -1,12 +1,18 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-07-27
+last_verified_commit: 6b73969e40f7495997b703be245b7f73f06ae41c
 source_files:
   - src/app/App.tsx
   - src/lib/services.ts
-  - src/lib/database.types.ts
+  - src/lib/photo.types.ts
+  - tests/e2e/photo-interactions-flow.spec.ts
+  - tests/e2e/photo-interactions-fixtures.ts
+  - tests/e2e/editorial-moderation-flow.spec.ts
+  - tests/e2e/editorial-moderation-fixtures.ts
+  - docs/30-contratos/testes-interacoes-fotos.generated.md
+  - docs/30-contratos/testes-moderacao-editorial.generated.md
   - supabase/migrations/
 ---
 
@@ -73,7 +79,7 @@ O modelo histórico utiliza estados como:
 - `rejected`;
 - `removed`.
 
-A leitura pública deve retornar apenas imagens aprovadas e não removidas. O schema gerado será a autoridade final para enums e transições permitidas.
+A leitura pública deve retornar apenas imagens aprovadas e não removidas. O schema gerado é a autoridade final para enums e transições permitidas.
 
 ## Fluxo de moderação
 
@@ -145,6 +151,37 @@ Fotos e marcações podem identificar pessoas. A aplicação deve considerar:
 - dados embutidos no arquivo, como metadados EXIF;
 - retenção mínima necessária.
 
+## Evidências funcionais automatizadas
+
+### Interações públicas
+
+O workflow `Photo interactions functional tests` aprovou build, Chromium e o E2E de interações em fotos. A evidência versionada está em [`../30-contratos/testes-interacoes-fotos.generated.md`](../30-contratos/testes-interacoes-fotos.generated.md).
+
+A execução comprova, com fixtures HTTP isoladas:
+
+- carregamento de foto aprovada e selecionada pela organização;
+- exibição de comentário aprovado e contadores agregados;
+- curtida autenticada vinculada à foto e ao usuário;
+- novo comentário persistido como `pending`;
+- nova marcação persistida como `pending` para pessoa elegível;
+- solicitação de remoção com motivo e identidade autenticada;
+- ausência de publicação direta nas escritas colaborativas.
+
+### Moderação editorial
+
+O workflow `Editorial moderation functional tests` aprovou dois E2E. A evidência versionada está em [`../30-contratos/testes-moderacao-editorial.generated.md`](../30-contratos/testes-moderacao-editorial.generated.md).
+
+A execução comprova:
+
+- acesso administrativo às filas editoriais;
+- preservação da autoria protegida de memória anônima;
+- aprovação de memória com administrador e timestamp;
+- rejeição de comentário com limpeza da aprovação anterior;
+- retirada do item da fila pendente após a decisão;
+- criação de auditoria com ação, entidade e identificador.
+
+Esses testes não substituem Storage real, RLS, grants, antivírus, inspeção de arquivos, decisão humana ou tratamento operacional de solicitações de remoção.
+
 ## Testes mínimos
 
 - upload inválido é rejeitado;
@@ -164,6 +201,9 @@ Painéis de moderação devem oferecer filtros por status, data e evento, além 
 
 ## Dívidas conhecidas
 
-- O contrato final de buckets, policies e limites ainda precisa ser gerado automaticamente.
+- Validar upload, bucket, MIME type, limites, RLS e falhas parciais contra Storage controlado.
+- Comprovar idempotência de curtidas e exposição pública de tags por testes integrados do banco.
+- Validar o fluxo administrativo completo de solicitações de remoção e ocultação preventiva.
+- Avaliar antivírus, metadados EXIF e política de retenção dos arquivos.
 - Parte das operações continua concentrada na camada ampla de serviços e no `App.tsx`.
 - O runbook específico de resposta a solicitações de remoção ainda deve ser validado em operação real.
