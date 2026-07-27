@@ -84,6 +84,7 @@ async function installCatalogFixture(page: Page) {
   });
 }
 
+// O mount da Home deve preferir o marcador estável `data-home-section="tickets"`.
 test("Home usa nome e preços do lote vigente", async ({ page }) => {
   await installHomeFixtures(page);
   await installCatalogFixture(page);
