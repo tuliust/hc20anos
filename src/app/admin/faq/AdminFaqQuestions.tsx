@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
-import type { DbFaqCategory, DbFaqItem } from "../../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 import type { FaqFeaturedFilter, FaqSort, FaqVisibilityFilter } from "../../../lib/faq";
 import { filterAdminFaqItems } from "./faqAdmin.utils";
 
