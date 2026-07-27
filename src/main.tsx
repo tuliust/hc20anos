@@ -6,8 +6,7 @@ import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
 import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
-import { OperationsPage } from './app/OperationsPage';
-import { OperationsReportingPanel } from './app/OperationsReportingPanel';
+import { OperationsRouteGuard } from './app/OperationsRouteGuard';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
@@ -34,7 +33,7 @@ import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnha
 import { installHomeLandingEnhancements } from './homeLandingEnhancements';
 import { installHomeMemoryAvatarEnhancement } from './homeMemoryAvatarEnhancement';
 import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
-import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
+import { installHomeMobileDomRefinements } from './homeMobileRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
 import { installHomeTicketCardSpacingEnhancements } from './homeTicketCardSpacingEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
@@ -138,7 +137,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isOperationsRoute ? <><OperationsPage /><OperationsReportingPanel /></> : <>
+    {isOperationsRoute ? <OperationsRouteGuard /> : <>
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />
