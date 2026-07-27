@@ -7,7 +7,7 @@ import {
 import { TEST_USER_ID } from "./profile-claim-fixtures";
 
 test.describe("interações em fotos", () => {
-  test("mantém escrita pendente e contratos de privacidade auditáveis", async ({ page }) => {
+  test("mantém escritas pendentes e permite marcar pessoa elegível", async ({ page }) => {
     const api = await installPhotoInteractionsFixtures(page);
 
     await page.goto("/nossa-historia");
