@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: eb30a4a2334d6b2187b59b95db7236d2948828d5
+last_verified_commit: ea3449c3f5d1f0af7b940baf14eb5348d9e228d6
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -19,7 +19,7 @@ source_files:
 |---|---|
 | Arquivos consumidores | 2 |
 | Declarações de import ou augmentação | 2 |
-| Símbolos importados distintos | 28 |
+| Símbolos importados distintos | 22 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 0 |
 
@@ -34,8 +34,8 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimDispute`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `ModerationStatus`, `PhotoStats`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
-| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `InsertOrder`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
+| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimDispute`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
+| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `InsertOrder`, `PollResultRow`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
 
 ## Símbolos por alcance
 
@@ -46,22 +46,16 @@ source_files:
 | `DbEventArchiveSettings` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbMemory` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPhotoComment` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPhotoRemovalRequest` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPhotoTag` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPoll` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPollOption` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPollVote` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaim` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaimDispute` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `ModerationStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `PhotoStats` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `PollStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketWithDetails` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEventPageContent` | 1 | `src/lib/services.ts` |
 | `DbHomePageContent` | 1 | `src/lib/services.ts` |
-| `DbPhotoLike` | 1 | `src/lib/services.ts` |
 | `DbProfileClaimAnswer` | 1 | `src/lib/services.ts` |
 | `DbTicket` | 1 | `src/lib/services.ts` |
 | `EventPageGalleryItem` | 1 | `src/app/App.tsx` |
