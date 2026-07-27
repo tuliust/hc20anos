@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: e40742b617918d05b31fc5fdac0268aad116e48c
+last_verified_commit: 89bbc026b57777b1b309f9c9d743cd572f35f58a
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,8 +17,8 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 20 |
-| Declarações de import ou augmentação | 20 |
+| Arquivos consumidores | 18 |
+| Declarações de import ou augmentação | 18 |
 | Símbolos importados distintos | 47 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
@@ -28,11 +28,11 @@ source_files:
 | Categoria | Arquivos |
 |---|---|
 | admin | 8 |
-| serviço/biblioteca | 4 |
+| serviço/biblioteca | 3 |
 | componente/página | 2 |
 | enhancement | 2 |
-| home | 2 |
 | augmentação de módulo | 1 |
+| home | 1 |
 | outro runtime | 1 |
 
 ## Arquivos consumidores
@@ -49,14 +49,12 @@ source_files:
 | `src/app/admin/faq/FaqItemModal.tsx` | admin | import type | `../../../lib/database.types` | `DbFaqCategory` |
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/home/HomeFaqSection.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
-| `src/app/home/HomeFaqSectionLoader.tsx` | home | import type | `../../lib/database.types` | `DbFaqCategory`, `DbFaqItem` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
 | `src/historyContentEnhancements.ts` | outro runtime | import type | `./lib/database.types` | `DbPhoto` |
 | `src/historyPersonFilterEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/historyPhotoRefreshEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/lib/database.people-extensions.d.ts` | augmentação de módulo | declare module | `./database.types` | — |
 | `src/lib/faq.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem` |
-| `src/lib/faqPresentation.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem` |
 | `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
 
@@ -64,8 +62,8 @@ source_files:
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `DbFaqCategory` | 12 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
-| `DbFaqItem` | 10 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/app/home/HomeFaqSectionLoader.tsx`<br>`src/lib/faq.ts`<br>`src/lib/faqPresentation.ts` |
+| `DbFaqCategory` | 10 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/FaqCategoryDeleteDialog.tsx`<br>`src/app/admin/faq/FaqItemModal.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/lib/faq.ts` |
+| `DbFaqItem` | 8 | `src/app/admin/faq/AdminFaqCategories.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqQuestions.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/app/admin/faq/faqAdmin.types.ts`<br>`src/app/admin/faq/faqAdmin.utils.ts`<br>`src/app/home/HomeFaqSection.tsx`<br>`src/lib/faq.ts` |
 | `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
 | `DbAdminUser` | 4 | `src/app/App.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/services.ts` |
 | `DbTicketType` | 4 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
