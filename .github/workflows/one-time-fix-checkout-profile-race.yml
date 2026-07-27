@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/one-time-fix-checkout-profile-race.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,30 +29,36 @@ jobs:
           path = Path("src/app/SecureCheckoutPage.tsx")
           text = path.read_text()
 
-          old_catalog = """        if (selected) {
-          setProductCode(selected.product_code);
-          setParticipants(defaultParticipants(selected.product_code, auth));
-        }
-"""
-          new_catalog = """        if (selected) {
-          setProductCode((currentProductCode) => {
-            if (currentProductCode !== selected.product_code) {
-              setParticipants(defaultParticipants(selected.product_code, auth));
-            }
-            return selected.product_code;
-          });
-        }
-"""
+          old_catalog = "\n".join([
+              "        if (selected) {",
+              "          setProductCode(selected.product_code);",
+              "          setParticipants(defaultParticipants(selected.product_code, auth));",
+              "        }",
+              "",
+          ])
+          new_catalog = "\n".join([
+              "        if (selected) {",
+              "          setProductCode((currentProductCode) => {",
+              "            if (currentProductCode !== selected.product_code) {",
+              "              setParticipants(defaultParticipants(selected.product_code, auth));",
+              "            }",
+              "            return selected.product_code;",
+              "          });",
+              "        }",
+              "",
+          ])
           if text.count(old_catalog) != 1:
               raise SystemExit(f"Expected one catalog participant reset, found {text.count(old_catalog)}")
           text = text.replace(old_catalog, new_catalog, 1)
 
-          old_buyer = """          name: current.name || name,
-          email: current.email || email,
-"""
-          new_buyer = """          name: name || current.name,
-          email: email || current.email,
-"""
+          old_buyer = "\n".join([
+              "          name: current.name || name,",
+              "          email: current.email || email,",
+          ])
+          new_buyer = "\n".join([
+              "          name: name || current.name,",
+              "          email: email || current.email,",
+          ])
           if text.count(old_buyer) != 1:
               raise SystemExit(f"Expected one buyer precedence block, found {text.count(old_buyer)}")
           path.write_text(text.replace(old_buyer, new_buyer, 1))
