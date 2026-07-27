@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 22a944e78a9d5d8bbc7a15ba1a862ba3179c68fc
+last_verified_commit: cdc43c98d1020fb53df7d18950a8e31c38f8f366
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,9 +17,9 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 11 |
-| Declarações de import ou augmentação | 11 |
-| Símbolos importados distintos | 47 |
+| Arquivos consumidores | 10 |
+| Declarações de import ou augmentação | 10 |
+| Símbolos importados distintos | 45 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
 
@@ -27,10 +27,10 @@ source_files:
 
 | Categoria | Arquivos |
 |---|---|
-| serviço/biblioteca | 3 |
 | admin | 2 |
 | componente/página | 2 |
 | enhancement | 2 |
+| serviço/biblioteca | 2 |
 | augmentação de módulo | 1 |
 | outro runtime | 1 |
 
@@ -38,7 +38,7 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser`, `DbFaqCategory`, `DbFaqItem` |
+| `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser` |
 | `src/app/admin/faq/AdminFaqTrash.tsx` | admin | import type | `../../../lib/database.types` | `DbAdminUser` |
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
@@ -46,7 +46,6 @@ source_files:
 | `src/historyPersonFilterEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/historyPhotoRefreshEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/lib/database.people-extensions.d.ts` | augmentação de módulo | declare module | `./database.types` | — |
-| `src/lib/faq.ts` | serviço/biblioteca | import type | `./database.types` | `DbFaqCategory`, `DbFaqItem` |
 | `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
 
@@ -63,8 +62,6 @@ source_files:
 | `DbAuditLog` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEvent` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEventArchiveSettings` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbFaqCategory` | 2 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/lib/faq.ts` |
-| `DbFaqItem` | 2 | `src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/lib/faq.ts` |
 | `DbMemory` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPerson` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
