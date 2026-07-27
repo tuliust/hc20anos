@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: c76f0582036d83919d53bf2cec3daa859a5631db
+last_verified_commit: d94abfec59533e14dd36de834e043d0eeb19359d
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,8 +17,8 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 10 |
-| Declarações de import ou augmentação | 10 |
+| Arquivos consumidores | 8 |
+| Declarações de import ou augmentação | 8 |
 | Símbolos importados distintos | 45 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
@@ -27,7 +27,6 @@ source_files:
 
 | Categoria | Arquivos |
 |---|---|
-| admin | 2 |
 | componente/página | 2 |
 | enhancement | 2 |
 | serviço/biblioteca | 2 |
@@ -38,8 +37,6 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/admin/faq/AdminFaqPanel.tsx` | admin | import type | `../../../lib/database.types` | `AdminRole`, `DbAdminUser` |
-| `src/app/admin/faq/AdminFaqTrash.tsx` | admin | import type | `../../../lib/database.types` | `DbAdminUser` |
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
 | `src/historyContentEnhancements.ts` | outro runtime | import type | `./lib/database.types` | `DbPhoto` |
@@ -54,11 +51,11 @@ source_files:
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
 | `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
-| `DbAdminUser` | 4 | `src/app/App.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/app/admin/faq/AdminFaqTrash.tsx`<br>`src/lib/services.ts` |
 | `DbTicketType` | 4 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
-| `AdminRole` | 3 | `src/app/App.tsx`<br>`src/app/admin/faq/AdminFaqPanel.tsx`<br>`src/lib/services.ts` |
+| `AdminRole` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `AlumniDirectoryStatusRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `CuriosityProfileStatsRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
+| `DbAdminUser` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbAuditLog` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEvent` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEventArchiveSettings` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
