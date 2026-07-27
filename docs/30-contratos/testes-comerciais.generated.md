@@ -2,9 +2,10 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: a9b651f3605449bd4dd2bea313f4e2280b6e24d8
+last_verified_commit: 66d6cdab0c3430c98f21388e50aa98fdd4e54ca4
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
+  - src/main.tsx
   - playwright.config.ts
   - tests/e2e/ticket-catalog-source-of-truth.spec.ts
   - tests/e2e/checkout-flow.spec.ts
@@ -24,7 +25,7 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `failure` |
+| Build da aplicação | `npm run build` | `success` |
 | Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
 | E2E de catálogo e checkout | `npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts --workers=1` | `failure` |
 
@@ -49,14 +50,14 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 ```text
 
 
-      90 |
-      91 |   await page.goto("/");
-    > 92 |   await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
-         |                                                    ^
       93 |
       94 |   const catalog = page.locator("[data-public-ticket-catalog-home='true']");
-      95 |   await expect(catalog).toBeVisible();
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:92:52
+    > 95 |   await expect(catalog).toBeVisible();
+         |                         ^
+      96 |   await expect(catalog.locator("article")).toHaveCount(3);
+      97 |   await expect(catalog).toContainText("2º LOTE ADMINISTRATIVO");
+      98 |   await expect(catalog).toContainText("R$ 159,00");
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:95:25
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/ticket-catalog-source-of-t-219c0-me-e-preços-do-lote-vigente-retry2/test-failed-1.png
