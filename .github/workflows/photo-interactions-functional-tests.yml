@@ -1,0 +1,209 @@
+name: Photo interactions functional tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/App.tsx"
+      - "src/lib/services.ts"
+      - "src/lib/photo.types.ts"
+      - "tests/e2e/photo-interactions-flow.spec.ts"
+      - "tests/e2e/photo-interactions-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/photo-interactions-functional-tests.yml"
+  pull_request:
+    paths:
+      - "src/app/App.tsx"
+      - "src/lib/services.ts"
+      - "src/lib/photo.types.ts"
+      - "tests/e2e/photo-interactions-flow.spec.ts"
+      - "tests/e2e/photo-interactions-fixtures.ts"
+      - "tests/e2e/profile-claim-fixtures.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/photo-interactions-functional-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: photo-interactions-functional-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  photo-interactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        id: browser
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Run photo interactions E2E
+        id: photo_e2e
+        if: steps.browser.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright test tests/e2e/photo-interactions-flow.spec.ts --workers=1 2>&1 | tee photo-interactions-e2e.log
+
+      - name: Generate photo interactions report
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.photo_e2e.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          verified_date="$(date -u +%F)"
+          if [ "$BUILD_OUTCOME" = "success" ] && [ "$BROWSER_OUTCOME" = "success" ] && [ "$E2E_OUTCOME" = "success" ]; then
+            interpretation="A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova os contratos do frontend, mas não substitui Storage, RLS, moderação administrativa, antivírus ou tratamento de solicitações em ambiente integrado."
+          else
+            interpretation="A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar as interações em fotos validadas."
+          fi
+
+          cat > docs/30-contratos/testes-interacoes-fotos.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: ${verified_date}
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Photo interactions functional tests
+          source_files:
+            - playwright.config.ts
+            - tests/e2e/photo-interactions-flow.spec.ts
+            - tests/e2e/photo-interactions-fixtures.ts
+            - tests/e2e/profile-claim-fixtures.ts
+            - src/app/App.tsx
+            - src/lib/services.ts
+            - src/lib/photo.types.ts
+          ---
+
+          # Testes funcionais de interações em fotos
+
+          > Relatório gerado pelo workflow \`Photo interactions functional tests\`. Não editar manualmente.
+
+          | Verificação | Comando | Resultado |
+          |---|---|---|
+          | Build da aplicação | \`npm run build\` | \`${BUILD_OUTCOME}\` |
+          | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
+          | E2E de interações em fotos | \`npx playwright test tests/e2e/photo-interactions-flow.spec.ts --workers=1\` | \`${E2E_OUTCOME:-skipped}\` |
+
+          ## Cobertura funcional
+
+          - galeria pública carrega foto aprovada e selecionada pela organização;
+          - detalhe exibe comentário aprovado e contadores agregados;
+          - curtida autenticada envia somente foto e usuário;
+          - novo comentário é enviado como \`pending\`;
+          - nova marcação é enviada como \`pending\`;
+          - solicitação de remoção registra motivo e identidade autenticada;
+          - nenhuma dessas escritas publica conteúdo diretamente.
+
+          ## Interpretação
+
+          ${interpretation}
+          EOF
+
+          if [ -s photo-interactions-e2e.log ]; then
+            {
+              echo
+              echo "## Diagnóstico E2E"
+              echo
+              echo '```text'
+              tail -n 180 photo-interactions-e2e.log
+              echo '```'
+            } >> docs/30-contratos/testes-interacoes-fotos.generated.md
+          fi
+
+      - name: Audit documentation
+        id: docs_audit
+        if: always()
+        continue-on-error: true
+        run: npm run audit:docs
+
+      - name: Publish photo interactions report to main
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          report="docs/30-contratos/testes-interacoes-fotos.generated.md"
+          changes="$(git status --porcelain --untracked-files=all -- "$report")"
+          if [ -z "$changes" ]; then
+            echo "Relatório de fotos já está atualizado."
+            exit 0
+          fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report"
+          git commit -m "docs: atualizar evidência das interações em fotos"
+
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push concorrente detectado; rebase antes da tentativa ${attempt}."
+            git pull --rebase origin main
+          done
+
+          echo "Não foi possível publicar o relatório das interações em fotos."
+          exit 1
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: photo-interactions-functional-${{ github.sha }}
+          path: |
+            photo-interactions-e2e.log
+            playwright-report/
+            test-results/
+            docs/30-contratos/testes-interacoes-fotos.generated.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on photo interaction regression
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.photo_e2e.outcome }}
+          DOCS_AUDIT_OUTCOME: ${{ steps.docs_audit.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for result in "$BUILD_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME" "$DOCS_AUDIT_OUTCOME"; do
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+          exit "$failed"
