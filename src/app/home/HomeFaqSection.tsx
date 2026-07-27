@@ -11,7 +11,7 @@ import {
   Ticket,
   type LucideIcon,
 } from "lucide-react";
-import type { DbFaqCategory, DbFaqItem } from "../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../lib/faq.types";
 import { filterPublicFaqItems, groupPublicFaqItems } from "../../lib/faqPresentation";
 
 export interface HomeFaqSectionProps {
