@@ -1,4 +1,4 @@
-import type { DbFaqCategory, DbFaqItem } from "./database.types";
+import type { DbFaqCategory, DbFaqItem } from "./faq.types";
 import { supabase } from "./supabase";
 import { writeAudit } from "./services";
 import { normalizeText, slugifyFaqText } from "./faqText";
