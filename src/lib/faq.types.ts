@@ -1,3 +1,14 @@
+// Contratos de domínio do FAQ.
+//
+// Estes tipos preservam a forma consumida pela interface e pelas operações do
+// módulo. Eles não representam rows brutos completos da Supabase:
+// - `DbFaqCategory` não expõe `icon_key` diretamente; a apresentação o trata
+//   como extensão opcional enquanto a estratégia editorial é revisada;
+// - `DbFaqItem` usa a relação composta `category`, enquanto o row gerado também
+//   possui campos desnormalizados como `category_key` e `category_label`.
+//
+// Não substituir por aliases da baseline sem revisar queries, fallback legado
+// e componentes administrativos.
 export interface DbFaqCategory {
   id: string;
   event_id: string;
