@@ -80,7 +80,10 @@ jobs:
         id: commerce_e2e
         if: steps.browser.outcome == 'success'
         continue-on-error: true
-        run: npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts 2>&1 | tee commerce-e2e.log
 
       - name: Generate commerce test report
         if: always()
@@ -92,6 +95,12 @@ jobs:
         run: |
           mkdir -p docs/30-contratos
           verified_date="$(date -u +%F)"
+          if [ "$BUILD_OUTCOME" = "success" ] && [ "$BROWSER_OUTCOME" = "success" ] && [ "$E2E_OUTCOME" = "success" ]; then
+            interpretation="A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela não substitui testes integrados com banco, provedor e webhook."
+          else
+            interpretation="A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar catálogo e checkout validados."
+          fi
+
           cat > docs/30-contratos/testes-comerciais.generated.md <<EOF
           ---
           status: generated
@@ -137,8 +146,19 @@ jobs:
 
           ## Interpretação
 
-          O resultado \`success\` comprova a integração do frontend com fixtures HTTP isoladas. Não comprova criação real de preferência, webhook, reserva no banco, emissão de ingresso ou reconciliação financeira.
+          ${interpretation}
           EOF
+
+          if [ -s commerce-e2e.log ]; then
+            {
+              echo
+              echo "## Diagnóstico E2E"
+              echo
+              echo '```text'
+              tail -n 140 commerce-e2e.log
+              echo '```'
+            } >> docs/30-contratos/testes-comerciais.generated.md
+          fi
 
       - name: Audit documentation
         id: docs_audit
@@ -180,6 +200,7 @@ jobs:
         with:
           name: commerce-functional-${{ github.sha }}
           path: |
+            commerce-e2e.log
             playwright-report/
             test-results/
             docs/30-contratos/testes-comerciais.generated.md
