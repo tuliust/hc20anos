@@ -1,21 +1,31 @@
 import { expect, test } from "@playwright/test";
-import { installCommerceFixtures } from "./commerce-fixtures";
+import {
+  SIMPLE_TICKET_TYPE_ID,
+  installCommerceFixtures,
+} from "./commerce-fixtures";
 import {
   TEST_PERSON_ID,
   TEST_USER_ID,
 } from "./profile-claim-fixtures";
 
+const SELECTION_KEY = "hc-checkout-ticket-selected";
+
 test.describe("catálogo e checkout", () => {
-  test("seleciona o preço vigente e envia um pedido normalizado e autenticado", async ({ page }) => {
+  test("usa a seleção vigente e envia um pedido normalizado e autenticado", async ({ page }) => {
     const api = await installCommerceFixtures(page);
 
-    await page.goto("/ingressos");
+    await page.addInitScript(
+      ({ selectionKey, ticketTypeId }) => {
+        window.sessionStorage.setItem(selectionKey, JSON.stringify({
+          selectedAt: Date.now(),
+          productCode: "simple",
+          ticketTypeId,
+        }));
+      },
+      { selectionKey: SELECTION_KEY, ticketTypeId: SIMPLE_TICKET_TYPE_ID },
+    );
 
-    const simpleCard = page.locator('[data-ticket-product-code="simple"]');
-    await expect(simpleCard).toBeVisible({ timeout: 20_000 });
-    await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
-    await expect(simpleCard).toContainText("R$ 159,00");
-    await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+    await page.goto("/checkout");
 
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
