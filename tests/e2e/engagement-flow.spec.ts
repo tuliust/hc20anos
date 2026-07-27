@@ -29,9 +29,9 @@ test.describe("memórias e enquetes", () => {
     expect(api.memoryCalls).toHaveLength(0);
 
     await memoryField.fill("Lembro das conversas no corredor antes da primeira aula.");
-    const anonymousControl = page.locator("label").filter({ hasText: "Enviar sem mostrar meu nome" }).locator('input[type="checkbox"]');
+    const anonymousControl = page.getByText("Enviar sem mostrar meu nome", { exact: true });
     await expect(anonymousControl).toBeVisible();
-    await anonymousControl.check();
+    await anonymousControl.click();
     await submitMemory.click();
 
     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
@@ -66,7 +66,7 @@ test.describe("memórias e enquetes", () => {
     await expect.poll(() => api.pollVoteCalls.length, { timeout: 20_000 }).toBe(1);
     await expect.poll(() => api.pollVoteDeletes, { timeout: 20_000 }).toBe(1);
     await expect(page.getByText("Voto registrado.", { exact: true })).toBeVisible();
-    await expect(page.getByText("2 votos", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 votos", { exact: true })).toHaveCount(2);
 
     expect(api.pollVoteCalls[0]).toMatchObject({
       poll_id: TEST_POLL_ID,
