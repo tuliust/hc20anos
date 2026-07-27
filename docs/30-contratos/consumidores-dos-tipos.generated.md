@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 878a6fd97cf566ac479d89f9f51664f912ce8308
+last_verified_commit: 18d87ebc527265239e77b2a6fab20b1d3e36aa3b
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,9 +17,9 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 2 |
-| Declarações de import ou augmentação | 2 |
-| Símbolos importados distintos | 5 |
+| Arquivos consumidores | 0 |
+| Declarações de import ou augmentação | 0 |
+| Símbolos importados distintos | 0 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 0 |
 
@@ -27,25 +27,16 @@ source_files:
 
 | Categoria | Arquivos |
 |---|---|
-| componente/página | 1 |
-| serviço/biblioteca | 1 |
 
 ## Arquivos consumidores
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbOrder`, `TicketStatus`, `TicketWithDetails` |
-| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbOrder`, `DbTicket`, `InsertOrder`, `TicketStatus`, `TicketWithDetails` |
 
 ## Símbolos por alcance
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `TicketStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `TicketWithDetails` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbTicket` | 1 | `src/lib/services.ts` |
-| `InsertOrder` | 1 | `src/lib/services.ts` |
 
 ## Interpretação para a migração
 
