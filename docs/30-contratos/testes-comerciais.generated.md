@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 652045c36c1afb9bac046f3600df24565cb4d3dc
+last_verified_commit: 1231cf9b78d19ba709dcab93fa1f81c5f22c3b9e
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
   - src/main.tsx
@@ -48,18 +48,39 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 ## Diagnóstico E2E
 
 ```text
-         - retrying click action
-           - waiting 500ms
+
+Running 3 tests using 1 worker
+
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✘  1 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (21.9s)
+  ✘  2 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (retry #1) (21.1s)
+  ✘  3 tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado (retry #2) (20.9s)
+  ✓  4 tests/e2e/ticket-catalog-source-of-truth.spec.ts:88:1 › Home usa nome e preços do lote vigente (1.3s)
+  ✓  5 tests/e2e/ticket-catalog-source-of-truth.spec.ts:105:1 › Home e página de ingressos exibem o mesmo catálogo (1.7s)
 
 
+  1) tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-ticket-product-code="simple"]')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 20000ms
+      - waiting for locator('[data-ticket-product-code="simple"]')
+
+
+      13 |
+      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
+    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
+         |                              ^
       16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
       17 |     await expect(simpleCard).toContainText("R$ 159,00");
-    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-         |                                                                                  ^
-      19 |
-      20 |     await expect(page).toHaveURL(/\/checkout$/);
-      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
+      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/test-failed-1.png
@@ -77,44 +98,26 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Test timeout of 30000ms exceeded.
+    Error: expect(locator).toBeVisible() failed
 
-    Error: locator.click: Test timeout of 30000ms exceeded.
+    Locator: locator('[data-ticket-product-code="simple"]')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
     Call log:
-      - waiting for locator('[data-ticket-product-code="simple"]').getByRole('button', { name: 'Comprar agora', exact: true })
-        - locator resolved to <button type="button" class="mt-auto flex min-h-14 w-full items-center justify-center bg-[#2d6a4f] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#f0ebe0] disabled:cursor-not-allowed disabled:opacity-50">Comprar agora</button>
-      - attempting click action
-        2 × waiting for element to be visible, enabled and stable
-          - element is visible, enabled and stable
-          - scrolling into view if needed
-          - done scrolling
-          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-        - retrying click action
-        - waiting 20ms
-        2 × waiting for element to be visible, enabled and stable
-          - element is visible, enabled and stable
-          - scrolling into view if needed
-          - done scrolling
-          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-        - retrying click action
-          - waiting 100ms
-        53 × waiting for element to be visible, enabled and stable
-           - element is visible, enabled and stable
-           - scrolling into view if needed
-           - done scrolling
-           - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-         - retrying click action
-           - waiting 500ms
+      - Expect "toBeVisible" with timeout 20000ms
+      - waiting for locator('[data-ticket-product-code="simple"]')
 
 
+      13 |
+      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
+    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
+         |                              ^
       16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
       17 |     await expect(simpleCard).toContainText("R$ 159,00");
-    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-         |                                                                                  ^
-      19 |
-      20 |     await expect(page).toHaveURL(/\/checkout$/);
-      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
+      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/test-failed-1.png
@@ -132,44 +135,26 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Test timeout of 30000ms exceeded.
+    Error: expect(locator).toBeVisible() failed
 
-    Error: locator.click: Test timeout of 30000ms exceeded.
+    Locator: locator('[data-ticket-product-code="simple"]')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
     Call log:
-      - waiting for locator('[data-ticket-product-code="simple"]').getByRole('button', { name: 'Comprar agora', exact: true })
-        - locator resolved to <button type="button" class="mt-auto flex min-h-14 w-full items-center justify-center bg-[#2d6a4f] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#f0ebe0] disabled:cursor-not-allowed disabled:opacity-50">Comprar agora</button>
-      - attempting click action
-        2 × waiting for element to be visible, enabled and stable
-          - element is visible, enabled and stable
-          - scrolling into view if needed
-          - done scrolling
-          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-        - retrying click action
-        - waiting 20ms
-        2 × waiting for element to be visible, enabled and stable
-          - element is visible, enabled and stable
-          - scrolling into view if needed
-          - done scrolling
-          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-        - retrying click action
-          - waiting 100ms
-        55 × waiting for element to be visible, enabled and stable
-           - element is visible, enabled and stable
-           - scrolling into view if needed
-           - done scrolling
-           - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
-         - retrying click action
-           - waiting 500ms
+      - Expect "toBeVisible" with timeout 20000ms
+      - waiting for locator('[data-ticket-product-code="simple"]')
 
 
+      13 |
+      14 |     const simpleCard = page.locator('[data-ticket-product-code="simple"]');
+    > 15 |     await expect(simpleCard).toBeVisible({ timeout: 20_000 });
+         |                              ^
       16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
       17 |     await expect(simpleCard).toContainText("R$ 159,00");
-    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
-         |                                                                                  ^
-      19 |
-      20 |     await expect(page).toHaveURL(/\/checkout$/);
-      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
+      18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:15:30
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/test-failed-1.png
@@ -187,5 +172,5 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
   1 failed
     tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado 
-  2 passed (1.7m)
+  2 passed (1.2m)
 ```
