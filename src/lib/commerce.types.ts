@@ -129,3 +129,6 @@ export interface TicketWithDetails extends DbTicket {
   ticket_types?: Partial<DbTicketType> | null;
   people?: Partial<DbPerson> | null;
 }
+
+// Todos os consumidores comerciais vigentes importam deste módulo. O mapa
+// manual não deve voltar a ser usado por catálogo, checkout, pedidos ou check-in.
