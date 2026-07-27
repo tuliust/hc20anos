@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 47a314df5e4af8a9a564401fb326a9d0789f33bf
+last_verified_commit: 4550e2f80a3dc207f7ec70aa2511d26dbe044039
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -19,7 +19,7 @@ source_files:
 |---|---|
 | Arquivos consumidores | 2 |
 | Declarações de import ou augmentação | 2 |
-| Símbolos importados distintos | 22 |
+| Símbolos importados distintos | 16 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 0 |
 
@@ -34,8 +34,8 @@ source_files:
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
-| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimDispute`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
-| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `InsertOrder`, `PollResultRow`, `PollStatus`, `TicketStatus`, `TicketWithDetails` |
+| `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbOrder`, `DbProfileClaim`, `DbProfileClaimDispute`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `TicketStatus`, `TicketWithDetails` |
+| `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbOrder`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `InsertOrder`, `TicketStatus`, `TicketWithDetails` |
 
 ## Símbolos por alcance
 
@@ -44,14 +44,9 @@ source_files:
 | `DbAuditLog` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEvent` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEventArchiveSettings` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbMemory` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPoll` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPollOption` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `DbPollVote` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaim` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaimDispute` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `PollStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `TicketWithDetails` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbEventPageContent` | 1 | `src/lib/services.ts` |
@@ -62,7 +57,6 @@ source_files:
 | `EventPageInfoItem` | 1 | `src/app/App.tsx` |
 | `EventPageScheduleItem` | 1 | `src/app/App.tsx` |
 | `InsertOrder` | 1 | `src/lib/services.ts` |
-| `PollResultRow` | 1 | `src/lib/services.ts` |
 
 ## Interpretação para a migração
 
