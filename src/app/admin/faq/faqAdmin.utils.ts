@@ -1,4 +1,4 @@
-import type { DbFaqCategory, DbFaqItem } from "../../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 import type { FaqFeaturedFilter, FaqSort, FaqVisibilityFilter } from "../../../lib/faq";
 import { normalizeText } from "../../../lib/faqText.ts";
 
