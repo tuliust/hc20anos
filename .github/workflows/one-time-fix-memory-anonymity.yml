@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/one-time-fix-memory-anonymity.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -68,11 +69,9 @@ jobs:
           enhancement.write_text(enhancement_text.replace(old_block, new_block, 1))
           PY
 
-          changed="$(git diff --name-only)"
-          expected=$'src/app/App.tsx\nsrc/historyContentEnhancements.ts'
-          if [ "$changed" != "$expected" ]; then
-            echo "Unexpected changed files:"
-            echo "$changed"
+          mapfile -t changed < <(git diff --name-only)
+          if [ "${#changed[@]}" -ne 2 ] || [ "${changed[0]}" != "src/app/App.tsx" ] || [ "${changed[1]}" != "src/historyContentEnhancements.ts" ]; then
+            printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
             exit 1
           fi
           git diff --check
