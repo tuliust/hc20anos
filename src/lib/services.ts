@@ -6,15 +6,27 @@
 
 import { DEV_MODE, supabase } from "./supabase";
 import type {
-  DbPerson, DbPhotoTag,
+  DbPhotoTag,
   DbProfileClaim, DbProfileClaimAnswer, DbTicket,
-  DbOrder, DbEvent, DbProfile, InsertOrder, UpsertProfile,
+  DbOrder, DbEvent, InsertOrder,
   DbAuditLog, TicketStatus,
   DbPhotoRemovalRequest, DbProfileClaimDispute,
   DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
-  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, LocationStat, PublicLocationRow, PublicProfileCardRow, AlumniDirectoryStatusRow, CuriosityProfileStatsRow, SchoolQuestionnaireOptionStatRow, TicketWithDetails, Gender,
+  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
+import type {
+  AlumniDirectoryStatusRow,
+  CuriosityProfileStatsRow,
+  DbPerson,
+  DbProfile,
+  Gender,
+  LocationStat,
+  PublicLocationRow,
+  PublicProfileCardRow,
+  SchoolQuestionnaireOptionStatRow,
+  UpsertProfile,
+} from "./people.types";
 import type { AdminRole, DbAdminUser } from "./admin.types";
 import type { DbPhoto } from "./photo.types";
 import type { DbTicketType } from "./commerce.types";
