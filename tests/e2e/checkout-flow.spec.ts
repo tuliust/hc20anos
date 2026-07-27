@@ -19,7 +19,9 @@ test.describe("catálogo e checkout", () => {
 
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText("R$ 159,00", { exact: true })).toBeVisible();
+    const checkoutPrices = page.getByText("R$ 159,00", { exact: true });
+    await expect(checkoutPrices).toHaveCount(2);
+    await expect(checkoutPrices.first()).toBeVisible();
     await expect(page.getByText("2º Lote Administrativo", { exact: true })).toBeVisible();
 
     const submit = page.getByRole("button", { name: "Ir para o Mercado Pago", exact: true });
