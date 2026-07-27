@@ -1,4 +1,4 @@
-name: One-time memory control diagnostic
+name: One-time fix diagnosed memory anonymity
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  diagnose:
+  patch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -19,26 +19,52 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract exact source and CSS context
+      - name: Patch diagnosed anonymity regression
         shell: bash
         run: |
-          mkdir -p docs/30-contratos
-          {
-            echo "# App.tsx"
-            grep -n -B 30 -A 35 "Enviar sem mostrar meu nome" src/app/App.tsx || true
-            echo
-            echo "# Source and CSS references"
-            grep -RIn -B 5 -A 10 --exclude-dir=node_modules --exclude='App.tsx' "Enviar sem mostrar meu nome\|is_anonymous\|anonymous" src | head -n 500 || true
-          } > docs/30-contratos/memory-control-diagnostic.txt
+          python <<'PY'
+          from pathlib import Path
 
-          test -s docs/30-contratos/memory-control-diagnostic.txt
+          app = Path("src/app/App.tsx")
+          text = app.read_text()
+          old = '              <button onClick={() => setIsAnonymous(v => !v)} className={`relative w-12 h-6 transition-colors ${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>'
+          new = '''              <button
+                type="button"
+                role="switch"
+                aria-checked={isAnonymous}
+                aria-label="Enviar sem mostrar meu nome"
+                onClick={() => setIsAnonymous(v => !v)}
+                className={`relative w-12 h-6 transition-colors ${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}
+              >'''
+          if text.count(old) != 1:
+              raise SystemExit(f"Expected one anonymity button anchor, found {text.count(old)}")
+          text = text.replace(old, new, 1)
+          old_knob = '                <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${isAnonymous ? "left-7" : "left-1"}`} />'
+          new_knob = '                <div aria-hidden="true" className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${isAnonymous ? "left-7" : "left-1"}`} />'
+          if text.count(old_knob) != 1:
+              raise SystemExit(f"Expected one anonymity knob, found {text.count(old_knob)}")
+          app.write_text(text.replace(old_knob, new_knob, 1))
+
+          enhancement = Path("src/historyContentEnhancements.ts")
+          text = enhancement.read_text()
+          old_lines = '''    const toggle = anonymousControl.querySelector<HTMLButtonElement>("button");
+    if (toggle?.className.includes("bg-[#2d6a4f]")) toggle.click();
+    if (anonymousControl.style.display !== "none") anonymousControl.style.display = "none";'''
+          new_lines = '''    anonymousControl.style.removeProperty("display");
+    anonymousControl.removeAttribute("aria-hidden");'''
+          if text.count(old_lines) != 1:
+              raise SystemExit(f"Expected one anonymity hiding block, found {text.count(old_lines)}")
+          enhancement.write_text(text.replace(old_lines, new_lines, 1))
+          PY
+
           git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 2
 
-      - name: Publish diagnostic
+      - name: Commit patch
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/30-contratos/memory-control-diagnostic.txt
-          git commit -m "docs: publicar diagnóstico do controle anônimo"
+          git add src/app/App.tsx src/historyContentEnhancements.ts
+          git commit -m "fix: restaurar envio anônimo de memórias"
           git push
