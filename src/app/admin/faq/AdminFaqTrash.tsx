@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
-import type { DbAdminUser } from "../../../lib/database.types";
+import type { DbAdminUser } from "../../../lib/admin.types";
 import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 
 interface AdminFaqTrashProps {

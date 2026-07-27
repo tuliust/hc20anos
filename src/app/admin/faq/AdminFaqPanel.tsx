@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { AdminRole, DbAdminUser } from "../../../lib/database.types";
+import type { AdminRole, DbAdminUser } from "../../../lib/admin.types";
 import type { DbFaqCategory, DbFaqItem } from "../../../lib/faq.types";
 import {
   createFaqCategory,
