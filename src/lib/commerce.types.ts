@@ -9,6 +9,7 @@ export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 // checkout. Mantém os campos históricos obrigatórios e aceita, de forma
 // opcional, os metadados comerciais adicionados ao row atual.
 //
+// `publicTicketCatalog.ts` e `SecureCheckoutPage.tsx` usam esta projeção.
 // Não usar este tipo como substituto do row completo em operações de escrita.
 export type DbTicketType = Pick<
   TicketTypeRow,
