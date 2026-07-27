@@ -2,22 +2,20 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 2644f2e48d3dee214220c77118fc084b4da76841
+last_verified_commit: e3ad48618537371075278b224192f33300d9abcd
 source_files:
   - docs/30-contratos/database.types.generated.ts
   - docs/30-contratos/compatibilidade-de-tipos.generated.md
   - docs/30-contratos/consumidores-dos-tipos.generated.md
   - src/lib/database.generated.ts
   - src/lib/database.types.ts
-  - src/lib/faq.types.ts
   - src/lib/admin.types.ts
-  - src/lib/faq.ts
-  - src/lib/faqPresentation.ts
+  - src/lib/faq.types.ts
+  - src/lib/photo.types.ts
+  - src/lib/commerce.types.ts
   - src/lib/supabase.ts
-  - src/app/home/HomeFaqSection.tsx
-  - src/app/home/HomeFaqSectionLoader.tsx
-  - src/app/admin/faq/AdminFaqPanel.tsx
-  - src/app/admin/faq/AdminFaqTrash.tsx
+  - src/app/App.tsx
+  - src/lib/services.ts
   - scripts/audit-database-types.mjs
   - scripts/generate-database-type-consumers.mjs
   - .github/workflows/type-compatibility.yml
@@ -27,92 +25,107 @@ source_files:
 
 ## Estado vigente
 
-O projeto possui três camadas de tipos:
+O sistema de tipos possui três camadas:
 
 1. **Contrato estrutural gerado**
    - `docs/30-contratos/database.types.generated.ts`;
-   - produzido pela Supabase CLI contra banco local reconstruído;
+   - produzido pela Supabase CLI contra o banco local reconstruído;
    - representa tabelas, views, RPCs, enums e relações reais;
    - não recebe edição manual.
 
-2. **Tipos de domínio e aliases separados**
-   - `src/lib/faq.types.ts` preserva a forma funcional consumida pelo FAQ;
-   - `src/lib/admin.types.ts` deriva `AdminRole` e `DbAdminUser` diretamente da baseline;
-   - os módulos declaram explicitamente se representam domínio composto ou aliases do banco;
-   - novas famílias devem seguir o mesmo princípio.
+2. **Aliases e contratos funcionais**
+   - `src/lib/admin.types.ts` deriva os tipos administrativos da baseline;
+   - `src/lib/photo.types.ts` deriva o row de fotos;
+   - `src/lib/commerce.types.ts` expõe uma projeção controlada do catálogo e o enum de pagamento;
+   - `src/lib/faq.types.ts` preserva uma forma de domínio composta, documentadamente diferente do row bruto.
 
-3. **Tipos manuais de compatibilidade e domínio**
+3. **Mapa manual legado**
    - `src/lib/database.types.ts`;
-   - contém interfaces históricas, conteúdo JSON, agregados de interface e mapa parcial de banco;
-   - continua temporariamente necessário para 8 arquivos consumidores;
-   - será migrado em etapas.
+   - ainda mistura interfaces históricas, conteúdo JSON, agregados, aliases e um mapa parcial do banco;
+   - permanece necessário somente para `src/app/App.tsx` e `src/lib/services.ts`;
+   - não deve receber novos consumidores.
 
 ## Cliente Supabase
 
-`src/lib/supabase.ts` usa o contrato gerado por meio da ponte:
+`src/lib/supabase.ts` usa o contrato gerado pela ponte:
 
 ```text
 src/lib/database.generated.ts
 ```
 
-A ponte reexporta tipos da baseline sem copiar ou editar o arquivo gerado.
+Assim, `SupabaseClient<Database>` representa o schema reproduzido, enquanto os tipos de domínio são migrados separadamente.
 
-Consequências:
+## Famílias concluídas
 
-- `SupabaseClient<Database>` representa o schema real;
-- novas queries recebem inferência baseada na baseline;
-- tipos de domínio antigos continuam disponíveis aos componentes durante a transição;
-- a mudança é exclusivamente de TypeScript e não altera credenciais, URL ou lógica de runtime.
+### FAQ
 
-## Família FAQ
+A família FAQ foi integralmente removida do mapa manual.
 
-A família FAQ está integralmente separada do mapa manual.
-
-O módulo [`src/lib/faq.types.ts`](../../src/lib/faq.types.ts) documenta que sua forma é um contrato de domínio, não um row bruto completo:
+`src/lib/faq.types.ts` é um contrato de domínio, não um row completo:
 
 - `DbFaqCategory` não expõe `icon_key` diretamente;
 - `DbFaqItem` usa a relação composta opcional `category`;
-- o row gerado também possui campos desnormalizados como `category_key` e `category_label`;
-- qualquer futura derivação direta da baseline exige revisar queries e fallback legado.
+- o row gerado possui também `category_key` e `category_label`;
+- serviço, Home e painel administrativo usam o módulo separado.
 
-Consumidores migrados incluem:
+### Administração
 
-- serviço central `src/lib/faq.ts`;
-- apresentação e loader públicos;
-- componente da Home;
-- tipos e filtros administrativos;
-- modais e diálogo de exclusão;
-- painéis de perguntas, categorias, lixeira e coordenador administrativo.
-
-Nenhum arquivo importa `DbFaqCategory` ou `DbFaqItem` de `database.types.ts`.
-
-## Família administrativa
-
-`src/lib/admin.types.ts` define aliases ergonômicos sem duplicação manual:
+`src/lib/admin.types.ts` deriva diretamente da baseline:
 
 ```ts
 export type AdminRole = Database["public"]["Enums"]["admin_role"];
 export type DbAdminUser = Database["public"]["Tables"]["admin_users"]["Row"];
 ```
 
-Os componentes administrativos do FAQ usam esses aliases. `App.tsx` e `services.ts` ainda importam os mesmos nomes do arquivo manual e serão migrados quando suas importações forem decompostas por família.
+Os dois agregadores restantes também importam esses símbolos do módulo novo.
 
-## Evidência de implantação
+### Fotos
 
-As alterações foram publicadas diretamente em `main`.
+`src/lib/photo.types.ts` deriva:
 
-Evidências atuais:
+```ts
+export type DbPhoto = Database["public"]["Tables"]["photos"]["Row"];
+```
 
-- a implantação que contém a família FAQ completa concluiu com estado `success`;
-- a implantação associada ao relatório `2644f2e48d3dee214220c77118fc084b4da76841` também concluiu com estado `success`;
-- o inventário automático foi atualizado após as migrações;
-- nenhuma alteração deliberada de runtime, consulta ou regra funcional foi incluída nos commits de tipos.
+Os três enhancements da história e os dois agregadores usam esse alias. View models com tags, relações ou contadores continuam sendo tipos distintos.
 
-A evidência disponível comprova o build na Vercel. A suíte unitária completa e os E2E integrais ainda precisam ser executados por família antes da remoção final do arquivo manual.
+### Catálogo e checkout
+
+`src/lib/commerce.types.ts` contém:
+
+- `PaymentStatus`, derivado do enum gerado;
+- `DbTicketType`, projeção de leitura para catálogo e seleção inicial do checkout.
+
+A projeção mantém os campos históricos necessários e aceita como opcionais os metadados comerciais atuais. Ela não deve ser usada como row completo em escritas.
+
+Consumidores migrados:
+
+- `src/lib/publicTicketCatalog.ts`;
+- `src/app/SecureCheckoutPage.tsx`;
+- os imports comerciais de `src/app/App.tsx` e `src/lib/services.ts`.
+
+## Inventário atual
+
+O relatório [`consumidores-dos-tipos.generated.md`](./consumidores-dos-tipos.generated.md) registra:
+
+| Métrica | Quantidade |
+|---|---:|
+| Arquivos consumidores do legado | 2 |
+| Declarações legadas | 2 |
+| Símbolos legados distintos | 40 |
+| Imports que não são `import type` | 0 |
+| Augmentações de módulo | 0 |
+
+Consumidores restantes:
+
+- `src/app/App.tsx`;
+- `src/lib/services.ts`.
+
+A migração reduziu o legado de 21 para 2 arquivos. Os símbolos já validados de FAQ, administração, fotos, catálogo e pagamento não fazem mais parte dos imports legados desses agregadores.
 
 ## Diagnóstico estrutural
 
-O relatório [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md) compara o mapa manual com a baseline gerada.
+O relatório [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md) continua comparando o arquivo manual com a baseline completa.
 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---:|---:|---:|---:|
@@ -121,118 +134,53 @@ O relatório [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipo
 | Funções/RPCs | 80 | 7 | 73 | 0 |
 | Enums | 11 | 9 | 2 | 0 |
 
-Achados críticos:
+Achados críticos ainda abertos:
 
-- quatro views públicas são declaradas como tabelas no mapa manual;
+- quatro views estão classificadas como tabelas no mapa manual;
 - `payment_events` usa `Row: any`;
-- entidades comerciais omitem campos atuais;
-- estruturas editoriais possuem divergências de campos;
-- o mapa manual não representa a maior parte das RPCs públicas.
+- pedidos e ingressos exigem adaptadores, porque o manual omite campos vigentes;
+- estruturas editoriais possuem divergências;
+- a maior parte das RPCs não está representada no mapa manual.
 
-As diferenças de FAQ permanecem no relatório enquanto as interfaces históricas ainda existirem dentro de `database.types.ts`, embora nenhum consumidor funcional de FAQ dependa delas.
+Interfaces históricas já sem consumidores podem continuar aparecendo no relatório até a limpeza final de `database.types.ts`.
 
-## Consumidores do arquivo manual
+## Evidência de implantação
 
-O relatório [`consumidores-dos-tipos.generated.md`](./consumidores-dos-tipos.generated.md) identifica:
+As etapas foram publicadas diretamente em `main` e os builds relevantes concluíram com sucesso na Vercel.
 
-- 8 arquivos consumidores;
-- 8 declarações de import ou augmentação;
-- 45 símbolos reais importados;
-- todos os imports reais são exclusivamente de tipos;
-- uma augmentação de módulo em `database.people-extensions.d.ts`.
+Durante a decomposição dos agregadores, uma primeira automação capturou um bloco de import maior que o pretendido. `main` foi restaurada ao último commit íntegro antes de qualquer validação positiva, e a mudança foi reaplicada com blocos exatos e rejeição de arquivos inesperados. O commit corrigido passou no build.
 
-Distribuição atual:
+A evidência atual comprova compilação e deployment. Ainda não comprova a suíte unitária completa nem os E2E integrais de todos os fluxos.
 
-| Categoria | Arquivos |
-|---|---:|
-| Componente/página | 2 |
-| Enhancement | 2 |
-| Serviço/biblioteca | 2 |
-| Augmentação de módulo | 1 |
-| Outro runtime | 1 |
+## Regras
 
-Consumidores restantes:
+- arquivos gerados não recebem edição manual;
+- aliases simples derivam da baseline;
+- tipos compostos declaram explicitamente sua diferença em relação ao banco;
+- nenhum novo código deve importar `database.types.ts`;
+- TypeScript não substitui RLS, autorização ou validação server-side;
+- migrações de tipos não devem alterar regras financeiras ou schema;
+- cada nova família exige build, auditoria e testes aplicáveis.
 
-- `src/app/App.tsx`;
-- `src/app/SecureCheckoutPage.tsx`;
-- três módulos históricos de enhancement;
-- `src/lib/database.people-extensions.d.ts`;
-- `src/lib/publicTicketCatalog.ts`;
-- `src/lib/services.ts`.
+## Próxima etapa
 
-## Decisão arquitetural
+Decompor os 40 símbolos restantes por famílias:
 
-A decisão de separar contrato e domínio está registrada em:
+1. pessoas, perfis e views públicas;
+2. fotos relacionadas, moderação e interações;
+3. memórias e enquetes;
+4. evento e conteúdo editorial;
+5. pedidos, ingressos e agregados comerciais;
+6. limpeza de interfaces e mapa manual sem consumidores.
 
-[`ADR-001 — Separar contrato Supabase e tipos de domínio`](../50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md).
-
-Regras centrais:
-
-- contrato gerado é a fonte estrutural;
-- tipos de domínio permanecem em módulos próprios;
-- aliases simples devem derivar da baseline;
-- não haverá substituição massiva do arquivo manual;
-- migração ocorre por grupo funcional;
-- build e testes são obrigatórios em cada etapa;
-- migrations não são alteradas para acomodar tipos de interface.
-
-## Plano de migração
-
-O plano completo está em:
-
-[`migracao-dos-tipos-supabase.md`](./migracao-dos-tipos-supabase.md).
-
-### Concluído
-
-- [x] gerar e publicar a baseline Supabase;
-- [x] criar auditoria de compatibilidade e inventário de consumidores;
-- [x] remover ruídos sintáticos do inventário;
-- [x] registrar ADR;
-- [x] tipar o cliente Supabase pela baseline;
-- [x] separar e migrar integralmente a família FAQ;
-- [x] documentar as diferenças entre domínio FAQ e rows gerados;
-- [x] derivar os aliases administrativos da baseline;
-- [x] migrar os consumidores administrativos do FAQ;
-- [x] reduzir o arquivo manual de 21 para 8 consumidores;
-- [x] validar os builds das etapas publicadas;
-- [x] tornar a publicação dos relatórios resiliente a pushes concorrentes.
-
-### Próxima etapa
-
-- [ ] criar módulo de tipos de fotos;
-- [ ] migrar os três enhancements que usam somente `DbPhoto`;
-- [ ] decompor imports de `App.tsx` e `services.ts` por família;
-- [ ] separar tipos de conteúdo editorial;
-- [ ] migrar aliases simples de tabelas e views;
-- [ ] criar adaptadores para comércio e ingressos;
-- [ ] remover `Row: any`;
-- [ ] eliminar a augmentação de módulo;
-- [ ] corrigir o cabeçalho histórico de `database.types.ts`;
-- [ ] depreciar o arquivo manual ao final.
+O plano detalhado está em [`migracao-dos-tipos-supabase.md`](./migracao-dos-tipos-supabase.md).
 
 ## Comandos
 
-Gerar o diagnóstico estrutural:
-
 ```bash
 npm run docs:generate-type-compatibility
-```
-
-Verificar drift:
-
-```bash
 npm run docs:check-type-compatibility
-```
-
-Gerar o inventário de consumidores:
-
-```bash
 npm run docs:generate-type-consumers
-```
-
-Verificar drift dos consumidores:
-
-```bash
 npm run docs:check-type-consumers
 ```
 
@@ -242,18 +190,7 @@ O workflow `Supabase type compatibility`:
 
 1. gera os dois relatórios;
 2. executa a auditoria documental;
-3. falha em pull requests quando houver drift;
-4. publica os relatórios em pushes para `main`;
-5. rebasa e repete o push quando outro workflow atualizar `main` simultaneamente;
-6. envia os arquivos como artefato.
-
-Qualquer mudança em `src/**`, na baseline gerada, nos comparadores ou no workflow atualiza o inventário.
-
-## Limites
-
-- TypeScript não substitui RLS ou autorização server-side;
-- o relatório compara nomes e campos, não equivalência semântica completa;
-- tipos de domínio podem legitimamente diferir de linhas do banco;
-- imports de tipo não produzem código JavaScript, mas ainda podem ocultar contratos desatualizados;
-- a migração deve evitar casts amplos para “silenciar” divergências;
-- build aprovado não substitui testes unitários, E2E e validação operacional.
+3. exige ausência de drift em pull requests;
+4. publica relatórios em pushes para `main`;
+5. usa rebase e novas tentativas quando outro workflow atualizar `main` simultaneamente;
+6. envia os relatórios como artefato.
