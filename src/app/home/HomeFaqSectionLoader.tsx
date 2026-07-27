@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DbFaqCategory, DbFaqItem } from "../../lib/database.types";
+import type { DbFaqCategory, DbFaqItem } from "../../lib/faq.types";
 import { getPublicFaqCategories, getPublicFaqItems } from "../../lib/faq";
 import { HomeFaqSection, type HomeFaqSectionProps } from "./HomeFaqSection";
 
