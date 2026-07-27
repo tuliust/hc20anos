@@ -1,6 +1,8 @@
 // ================================================================
-// Tipos TypeScript gerados do schema do Supabase
-// Turma 2006 — Colégio Henrique Castriciano
+// DEPRECATED — mapa manual histórico, sem consumidores no runtime.
+// Não adicionar imports. Fonte estrutural: database.generated.ts.
+// Tipos funcionais: arquivos *.types.ts deste diretório.
+// Mantido temporariamente apenas para a auditoria comparativa.
 // ================================================================
 
 export type EventStatus   = "draft" | "published" | "cancelled" | "completed";
