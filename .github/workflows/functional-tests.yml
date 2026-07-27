@@ -1,0 +1,213 @@
+name: Functional regression tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/home/**"
+      - "src/app/admin/faq/**"
+      - "src/lib/faq*.ts"
+      - "src/lib/profileClaim*.ts"
+      - "src/lib/people.types.ts"
+      - "src/lib/identity.types.ts"
+      - "tests/unit/faq.test.mjs"
+      - "tests/e2e/faq-*.ts"
+      - "tests/e2e/profile-claim-*.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/functional-tests.yml"
+  pull_request:
+    paths:
+      - "src/app/home/**"
+      - "src/app/admin/faq/**"
+      - "src/lib/faq*.ts"
+      - "src/lib/profileClaim*.ts"
+      - "src/lib/people.types.ts"
+      - "src/lib/identity.types.ts"
+      - "tests/unit/faq.test.mjs"
+      - "tests/e2e/faq-*.ts"
+      - "tests/e2e/profile-claim-*.ts"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/functional-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: functional-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  profile-and-faq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: Run FAQ unit tests
+        id: faq_unit
+        continue-on-error: true
+        run: npm run test:faq
+
+      - name: Install Playwright Chromium
+        id: browser
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Run profile and FAQ E2E
+        id: functional_e2e
+        if: steps.browser.outcome == 'success'
+        continue-on-error: true
+        run: npm run test:e2e:functional
+
+      - name: Generate functional test report
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          FAQ_UNIT_OUTCOME: ${{ steps.faq_unit.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.functional_e2e.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          verified_date="$(date -u +%F)"
+          cat > docs/30-contratos/testes-funcionais.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: ${verified_date}
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Functional regression tests
+          source_files:
+            - package.json
+            - playwright.config.ts
+            - tests/unit/faq.test.mjs
+            - tests/e2e/profile-claim-flow.spec.ts
+            - tests/e2e/profile-claim-fixtures.ts
+            - tests/e2e/faq-flow.spec.ts
+            - tests/e2e/faq-fixtures.ts
+            - src/lib/faq.ts
+            - src/lib/faqPresentation.ts
+            - src/lib/profileClaimIdentity.ts
+            - src/app/home/HomeFaqSection.tsx
+            - src/app/home/HomeFaqSectionLoader.tsx
+            - src/app/admin/faq/
+          ---
+
+          # Testes funcionais de perfil e FAQ
+
+          > Relatório gerado pelo workflow \`Functional regression tests\`. Não editar manualmente.
+
+          | Verificação | Comando | Resultado |
+          |---|---|---|
+          | Build da aplicação e verificadores de perfil | \`npm run build\` | \`${BUILD_OUTCOME}\` |
+          | Unitários do FAQ | \`npm run test:faq\` | \`${FAQ_UNIT_OUTCOME}\` |
+          | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
+          | E2E de perfil e FAQ | \`npm run test:e2e:functional\` | \`${E2E_OUTCOME:-skipped}\` |
+
+          ## Cobertura funcional
+
+          - retomada da reivindicação após confirmação de e-mail e login;
+          - abertura administrativa de disputas e exibição de evidências atuais e legadas;
+          - geração de mini-bio por IA sem envio de data de nascimento, e-mail ou telefone;
+          - FAQ público estruturado com categorias, busca normalizada e expansão de respostas;
+          - exclusão da categoria \`Dados e privacidade\` da Home;
+          - fallback para \`faq_items_json\` quando não existem perguntas estruturadas.
+
+          ## Interpretação
+
+          O resultado \`success\` comprova a execução automatizada com fixtures HTTP isoladas. Ele não substitui testes contra um ambiente integrado com autenticação, RLS e dados reais controlados.
+          EOF
+
+      - name: Audit documentation
+        if: always()
+        continue-on-error: true
+        run: npm run audit:docs
+
+      - name: Require updated report in pull requests
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          if ! git diff --quiet -- docs/30-contratos/testes-funcionais.generated.md; then
+            echo "O relatório funcional está desatualizado."
+            git diff -- docs/30-contratos/testes-funcionais.generated.md
+            exit 1
+          fi
+
+      - name: Publish functional report to main
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          report="docs/30-contratos/testes-funcionais.generated.md"
+          if git diff --quiet -- "$report"; then
+            echo "Relatório funcional já está atualizado."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report"
+          git commit -m "docs: atualizar evidência dos testes funcionais"
+
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push concorrente detectado; rebase antes da tentativa ${attempt}."
+            git pull --rebase origin main
+          done
+
+          echo "Não foi possível publicar o relatório funcional."
+          exit 1
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-faq-functional-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+            docs/30-contratos/testes-funcionais.generated.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on functional regression
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          FAQ_UNIT_OUTCOME: ${{ steps.faq_unit.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          E2E_OUTCOME: ${{ steps.functional_e2e.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for result in "$BUILD_OUTCOME" "$FAQ_UNIT_OUTCOME" "$BROWSER_OUTCOME" "$E2E_OUTCOME"; do
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+          exit "$failed"
