@@ -1,0 +1,134 @@
+name: One-time photo interaction type imports
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-photo-interaction-imports.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace exact import blocks
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def block(lines: list[str]) -> str:
+              return "\n".join(lines) + "\n"
+
+          replacements = {
+              Path("src/app/App.tsx"): (
+                  block([
+                      "import type {",
+                      "  DbEvent, DbAuditLog, DbPhotoTag, DbOrder,",
+                      "  DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, TicketStatus,",
+                      "  DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,",
+                      "  DbPoll, DbPollOption, DbPollVote, PollStatus, TicketWithDetails,",
+                      "  DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,",
+                      "} from \"../lib/database.types\";",
+                  ]),
+                  block([
+                      "import type {",
+                      "  DbEvent, DbAuditLog, DbOrder,",
+                      "  DbProfileClaim, DbProfileClaimDispute, TicketStatus,",
+                      "  DbMemory,",
+                      "  DbPoll, DbPollOption, DbPollVote, PollStatus, TicketWithDetails,",
+                      "  DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,",
+                      "} from \"../lib/database.types\";",
+                  ]),
+              ),
+              Path("src/lib/services.ts"): (
+                  block([
+                      "import type {",
+                      "  DbPhotoTag,",
+                      "  DbProfileClaim, DbProfileClaimAnswer, DbTicket,",
+                      "  DbOrder, DbEvent, InsertOrder,",
+                      "  DbAuditLog, TicketStatus,",
+                      "  DbPhotoRemovalRequest, DbProfileClaimDispute,",
+                      "  DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,",
+                      "  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, TicketWithDetails,",
+                      "  DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,",
+                      "} from \"./database.types\";",
+                  ]),
+                  block([
+                      "import type {",
+                      "  DbProfileClaim, DbProfileClaimAnswer, DbTicket,",
+                      "  DbOrder, DbEvent, InsertOrder,",
+                      "  DbAuditLog, TicketStatus,",
+                      "  DbProfileClaimDispute,",
+                      "  DbMemory,",
+                      "  DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, TicketWithDetails,",
+                      "  DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,",
+                      "} from \"./database.types\";",
+                  ]),
+              ),
+          }
+
+          for path, (old, new) in replacements.items():
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one exact import block, found {count}")
+              path.write_text(text.replace(old, new, 1))
+
+          app = Path("src/app/App.tsx")
+          app_text = app.read_text()
+          anchor = 'import type { DbPhoto } from "../lib/photo.types";\n'
+          addition = (
+              'import type { DbPhoto } from "../lib/photo.types";\n'
+              'import type { DbPhotoComment, DbPhotoRemovalRequest, DbPhotoTag, ModerationStatus, PhotoStats } from "../lib/photo.types";\n'
+          )
+          if app_text.count(anchor) != 1:
+              raise SystemExit("src/app/App.tsx: photo import anchor not found exactly once")
+          app.write_text(app_text.replace(anchor, addition, 1))
+
+          services = Path("src/lib/services.ts")
+          services_text = services.read_text()
+          anchor = 'import type { DbPhoto } from "./photo.types";\n'
+          addition = (
+              'import type {\n'
+              '  DbPhoto,\n'
+              '  DbPhotoComment,\n'
+              '  DbPhotoLike,\n'
+              '  DbPhotoRemovalRequest,\n'
+              '  DbPhotoTag,\n'
+              '  ModerationStatus,\n'
+              '  PhotoStats,\n'
+              '} from "./photo.types";\n'
+          )
+          if services_text.count(anchor) != 1:
+              raise SystemExit("src/lib/services.ts: photo import anchor not found exactly once")
+          services.write_text(services_text.replace(anchor, addition, 1))
+          PY
+
+          changed="$(git diff --name-only)"
+          expected=$'src/app/App.tsx\nsrc/lib/services.ts'
+          if [ "$changed" != "$expected" ]; then
+            echo "Unexpected changed files:"
+            echo "$changed"
+            exit 1
+          fi
+
+          git diff --check
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/App.tsx src/lib/services.ts
+          git commit -m "refactor: migrar interações de fotos"
+          git push
