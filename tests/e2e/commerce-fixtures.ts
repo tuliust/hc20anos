@@ -94,6 +94,7 @@ export async function installCommerceFixtures(page: Page): Promise<CheckoutReque
 
   await page.route("**/rest/v1/rpc/get_public_ticket_catalog", route => fulfillJson(route, commerceCatalogRows));
   await page.route("**/rest/v1/rpc/get_current_ticket_catalog", route => fulfillJson(route, commerceCatalogRows));
+  await page.route("**/rest/v1/ticket_types*", route => fulfillJson(route, [{ id: SIMPLE_TICKET_TYPE_ID }]));
   await page.route("**/rest/v1/profiles*", route => fulfillJson(route, {
     id: TEST_PROFILE_ID,
     user_id: TEST_USER_ID,
