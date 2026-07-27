@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: d2a6c0a50d00061cba03ec3454460a7024a9fcdf
+last_verified_commit: 75e6326c99dfd57fcbc062da57df95e5a019d9b6
 generation_command: GitHub Actions / Engagement functional tests
 source_files:
   - playwright.config.ts
@@ -42,12 +42,6 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 ## Diagnóstico E2E
 
 ```text
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/engagement-flow-memórias-e-99200-ria-pendente-para-moderação-retry1/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results/engagement-flow-memórias-e-99200-ria-pendente-para-moderação-retry1/error-context.md
-
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/engagement-flow-memórias-e-99200-ria-pendente-para-moderação-retry1/trace.zip
     Usage:
@@ -62,17 +56,17 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     Error: locator.click: Test timeout of 30000ms exceeded.
     Call log:
-      - waiting for getByRole('button', { name: 'Enviar para moderação', exact: true })
+      - waiting for locator('label').filter({ hasText: 'Enviar sem mostrar meu nome' }).getByRole('button')
 
 
-      23 |     await expect(memoryField).toBeVisible();
-      24 |     await memoryField.fill("Curta");
-    > 25 |     await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
-         |                                                                                    ^
-      26 |     await expect(page.getByText("Escreva uma memória com pelo menos 10 caracteres.", { exact: true })).toBeVisible();
-      27 |     expect(api.memoryCalls).toHaveLength(0);
-      28 |
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:25:84
+      31 |     await memoryField.fill("Lembro das conversas no corredor antes da primeira aula.");
+      32 |     const anonymousControl = page.locator("label").filter({ hasText: "Enviar sem mostrar meu nome" }).getByRole("button");
+    > 33 |     await anonymousControl.click();
+         |                            ^
+      34 |     await submitMemory.click();
+      35 |
+      36 |     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:33:28
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/engagement-flow-memórias-e-99200-ria-pendente-para-moderação-retry2/test-failed-1.png
@@ -88,28 +82,30 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-  2) tests/e2e/engagement-flow.spec.ts:48:3 › memórias e enquetes › registra voto único e só exibe resultados depois da participação 
+  2) tests/e2e/engagement-flow.spec.ts:50:3 › memórias e enquetes › registra voto único e só exibe resultados depois da participação 
 
-    Error: expect(locator).toBeVisible() failed
+    Error: expect(locator).toHaveCount(expected) failed
 
-    Locator: getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
-    Expected: visible
-    Timeout: 5000ms
-    Error: element(s) not found
+    Locator:  getByText('Gincana', { exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
 
     Call log:
-      - Expect "toBeVisible" with timeout 5000ms
-      - waiting for getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByText('Gincana', { exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
 
 
-      53 |     await expect(page.getByRole("heading", { name: "O raio-X da Turma 2006" })).toBeVisible({ timeout: 20_000 });
-      54 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
-    > 55 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toBeVisible();
-         |                                                                                                   ^
-      56 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
-      57 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
-      58 |     const closedOption = page.getByText("Gincana", { exact: true }).locator("xpath=ancestor::button");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:55:99
+      56 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
+      57 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toHaveCount(0);
+    > 58 |     await expect(page.getByText("Gincana", { exact: true })).toHaveCount(0);
+         |                                                              ^
+      59 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
+      60 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
+      61 |
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:58:62
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/engagement-flow-memórias-e-ae80e-ados-depois-da-participação/test-failed-1.png
@@ -127,26 +123,28 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeVisible() failed
+    Error: expect(locator).toHaveCount(expected) failed
 
-    Locator: getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
-    Expected: visible
-    Timeout: 5000ms
-    Error: element(s) not found
+    Locator:  getByText('Gincana', { exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
 
     Call log:
-      - Expect "toBeVisible" with timeout 5000ms
-      - waiting for getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByText('Gincana', { exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
 
 
-      53 |     await expect(page.getByRole("heading", { name: "O raio-X da Turma 2006" })).toBeVisible({ timeout: 20_000 });
-      54 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
-    > 55 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toBeVisible();
-         |                                                                                                   ^
-      56 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
-      57 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
-      58 |     const closedOption = page.getByText("Gincana", { exact: true }).locator("xpath=ancestor::button");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:55:99
+      56 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
+      57 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toHaveCount(0);
+    > 58 |     await expect(page.getByText("Gincana", { exact: true })).toHaveCount(0);
+         |                                                              ^
+      59 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
+      60 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
+      61 |
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:58:62
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/engagement-flow-memórias-e-ae80e-ados-depois-da-participação-retry1/test-failed-1.png
@@ -164,26 +162,28 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeVisible() failed
+    Error: expect(locator).toHaveCount(expected) failed
 
-    Locator: getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
-    Expected: visible
-    Timeout: 5000ms
-    Error: element(s) not found
+    Locator:  getByText('Gincana', { exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
 
     Call log:
-      - Expect "toBeVisible" with timeout 5000ms
-      - waiting for getByRole('heading', { name: 'Qual tradição deve voltar no reencontro?' })
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByText('Gincana', { exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
 
 
-      53 |     await expect(page.getByRole("heading", { name: "O raio-X da Turma 2006" })).toBeVisible({ timeout: 20_000 });
-      54 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
-    > 55 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toBeVisible();
-         |                                                                                                   ^
-      56 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
-      57 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
-      58 |     const closedOption = page.getByText("Gincana", { exact: true }).locator("xpath=ancestor::button");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:55:99
+      56 |     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
+      57 |     await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toHaveCount(0);
+    > 58 |     await expect(page.getByText("Gincana", { exact: true })).toHaveCount(0);
+         |                                                              ^
+      59 |     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
+      60 |     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
+      61 |
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/engagement-flow.spec.ts:58:62
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/engagement-flow-memórias-e-ae80e-ados-depois-da-participação-retry2/test-failed-1.png
@@ -201,5 +201,5 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 
   2 failed
     tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação 
-    tests/e2e/engagement-flow.spec.ts:48:3 › memórias e enquetes › registra voto único e só exibe resultados depois da participação 
+    tests/e2e/engagement-flow.spec.ts:50:3 › memórias e enquetes › registra voto único e só exibe resultados depois da participação 
 ```
