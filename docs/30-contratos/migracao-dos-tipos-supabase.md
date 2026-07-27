@@ -2,7 +2,7 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: e3ad48618537371075278b224192f33300d9abcd
+last_verified_commit: 18d87ebc527265239e77b2a6fab20b1d3e36aa3b
 source_files:
   - docs/30-contratos/database.types.generated.ts
   - docs/30-contratos/compatibilidade-de-tipos.generated.md
@@ -10,289 +10,170 @@ source_files:
   - src/lib/database.generated.ts
   - src/lib/database.types.ts
   - src/lib/admin.types.ts
-  - src/lib/faq.types.ts
-  - src/lib/photo.types.ts
   - src/lib/commerce.types.ts
+  - src/lib/content.types.ts
+  - src/lib/engagement.types.ts
+  - src/lib/faq.types.ts
+  - src/lib/identity.types.ts
+  - src/lib/people.types.ts
+  - src/lib/photo.types.ts
   - src/lib/supabase.ts
   - src/app/App.tsx
   - src/lib/services.ts
   - docs/50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md
-  - scripts/audit-database-types.mjs
-  - scripts/generate-database-type-consumers.mjs
+  - .github/workflows/type-compatibility.yml
 ---
 
 # Migração dos tipos Supabase
 
 ## Objetivo
 
-Substituir gradualmente o mapa parcial em `src/lib/database.types.ts` pelo contrato real produzido pela Supabase CLI, preservando tipos de domínio e apresentação que não correspondem diretamente a rows do banco.
+Substituir o mapa parcial em `src/lib/database.types.ts` pelo contrato real produzido pela Supabase CLI, preservando tipos de domínio e apresentação que não correspondem diretamente a rows do banco.
 
 A decisão arquitetural está registrada em [`ADR-001`](../50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md).
 
-## Diagnóstico
+## Resultado
 
-| Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
-|---|---:|---:|---:|---:|
-| Tabelas | 45 | 30 | 19 | 4 |
-| Views | 6 | 2 | 4 | 0 |
-| Funções/RPCs | 80 | 7 | 73 | 0 |
-| Enums | 11 | 9 | 2 | 0 |
+A migração estrutural foi concluída:
 
-Pendências estruturais relevantes:
+- [x] baseline Supabase gerada após replay integral;
+- [x] cliente parametrizado com `SupabaseClient<Database>`;
+- [x] comparador entre baseline e snapshot manual;
+- [x] inventário automático dos consumidores;
+- [x] separação dos tipos por família funcional;
+- [x] migração de `App.tsx` e `services.ts`;
+- [x] zero imports de `database.types.ts`;
+- [x] zero augmentações de módulo;
+- [x] CI bloqueando novos consumidores;
+- [x] arquivo manual marcado como depreciado;
+- [x] builds das etapas aprovados na Vercel.
 
-- quatro views classificadas como tabelas;
-- `payment_events` com `Row: any`;
-- entidades comerciais com campos ausentes no mapa manual;
-- estruturas editoriais divergentes;
-- mapa manual de RPCs muito incompleto.
+A redução ocorreu de 21 arquivos e dezenas de símbolos importados para zero consumidores do mapa manual.
 
-## Progresso consolidado
-
-O inventário caiu de 21 para 2 arquivos consumidores e de 49 símbolos inicialmente detectados — incluindo ruídos posteriormente corrigidos — para 40 símbolos legados reais.
-
-Concluído:
-
-- [x] gerar e versionar a baseline Supabase;
-- [x] tipar o cliente Supabase pela baseline;
-- [x] criar auditoria estrutural e inventário de consumidores;
-- [x] proteger relatórios contra drift;
-- [x] tornar o push dos relatórios resiliente à concorrência;
-- [x] separar integralmente a família FAQ;
-- [x] derivar `AdminRole` e `DbAdminUser` da baseline;
-- [x] derivar `DbPhoto` da tabela gerada;
-- [x] migrar os enhancements de fotos;
-- [x] remover a augmentação redundante de `DbPerson`;
-- [x] criar projeção segura de catálogo e enum de pagamento;
-- [x] migrar catálogo público e checkout seguro;
-- [x] decompor os símbolos validados em `App.tsx` e `services.ts`;
-- [x] validar os builds das famílias publicadas.
-
-Restam somente:
-
-- `src/app/App.tsx`;
-- `src/lib/services.ts`.
-
-Esses arquivos continuam importando 40 símbolos de `database.types.ts`.
-
-## Arquitetura-alvo
+## Arquitetura final
 
 ```text
-src/lib/database.generated.ts          ponte para a baseline bruta
-src/lib/*.types.ts                     aliases e tipos funcionais explícitos
-src/lib/adapters/                      banco → domínio/apresentação
-src/lib/supabase.ts                    cliente tipado pela baseline
-src/lib/database.types.ts              removido ou deprecated ao final
+docs/30-contratos/database.types.generated.ts  contrato estrutural gerado
+src/lib/database.generated.ts                  ponte estável para a aplicação
+src/lib/*.types.ts                             contratos funcionais e aliases
+src/lib/supabase.ts                            cliente tipado pela baseline
+src/lib/database.types.ts                      snapshot manual depreciado
 ```
 
-## Princípios
+Módulos funcionais:
 
-1. Arquivos gerados não recebem edição manual.
-2. Aliases simples derivam da baseline.
-3. Tipos compostos não fingem representar rows completos.
-4. Views permanecem classificadas como views.
-5. RPCs usam assinaturas geradas.
-6. JSON exige tipos ou adaptadores explícitos.
-7. Migração de tipos não altera schema ou regra de negócio.
-8. Dinheiro permanece em centavos nas camadas internas.
-9. Cada família é pequena, reversível e validada.
-10. Build aprovado não substitui testes funcionais.
+| Módulo | Responsabilidade |
+|---|---|
+| `admin.types.ts` | roles e usuários administrativos |
+| `commerce.types.ts` | catálogo, pedidos, ingressos e agregados comerciais |
+| `content.types.ts` | evento, CMS, arquivo e auditoria |
+| `engagement.types.ts` | memórias e enquetes |
+| `faq.types.ts` | FAQ estruturado |
+| `identity.types.ts` | reivindicações e disputas |
+| `people.types.ts` | pessoas, perfis e views públicas |
+| `photo.types.ts` | fotos, interações e moderação |
 
-## Fase 0 — infraestrutura
+## Decisões por família
 
-- [x] Replay integral das migrations.
-- [x] Geração de tipos, schema, RPCs, RLS e ERD.
-- [x] Comparador de compatibilidade.
-- [x] Inventário automático de consumidores.
-- [x] ADR e documentação canônica.
-- [x] Workflow com drift e publicação automática.
-- [x] Zero augmentações de módulo restantes.
-- [ ] Corrigir o cabeçalho do arquivo manual, que ainda se apresenta como gerado.
-- [ ] Impedir novos imports de `database.types.ts` por check dedicado.
+### Aliases diretos
 
-## Fase 1 — cliente tipado
+Foram usados quando a forma da aplicação corresponde ao contrato gerado, por exemplo:
 
-- [x] Criar `src/lib/database.generated.ts`.
-- [x] Parametrizar `SupabaseClient<Database>`.
-- [x] Remover o cliente dos consumidores do mapa manual.
-- [x] Validar deployment.
-- [ ] Revisar as queries que ainda dependem de casts amplos.
-- [ ] Proibir cliente sem tipo ou `createClient<any>`.
+- `admin_users`;
+- `photos`;
+- `photo_tags`;
+- `photo_likes`;
+- solicitações de remoção;
+- reivindicações e disputas de perfil;
+- opções e votos de enquetes;
+- evento.
 
-## Fase 2 — contratos de domínio
+### Contratos de domínio
 
-### FAQ
+Foram mantidos quando a interface exige forma mais específica:
 
-- [x] Criar `faq.types.ts`.
-- [x] Migrar serviço, Home e administração.
-- [x] Documentar relação composta e campos desnormalizados.
-- [x] Remover todos os imports FAQ do legado.
-- [ ] Executar testes unitários e E2E específicos do FAQ.
+- FAQ com relação composta de categoria;
+- views públicas com invariantes não nulas;
+- estatísticas JSON transformadas em arrays tipados;
+- comentários e memórias com status restringido;
+- resultados agregados de enquetes;
+- itens editoriais de galeria, agenda e informações;
+- links de destaque do arquivo pós-evento.
 
-### Catálogo e checkout
+### Contratos comerciais de compatibilidade
 
-- [x] Criar `commerce.types.ts`.
-- [x] Derivar `PaymentStatus` do enum gerado.
-- [x] Criar projeção de leitura `DbTicketType`.
-- [x] Migrar catálogo, checkout e imports dos agregadores.
-- [x] Validar build.
-- [ ] Validar E2E de seleção, criação de checkout e retornos de pagamento.
-- [ ] Não reutilizar a projeção como row de escrita.
+Pedidos, ingressos e tipos de ingresso não foram convertidos em aliases crus.
 
-### Conteúdo e apresentação — pendente
+A estratégia adotada:
 
-- [ ] Home e página do evento.
-- [ ] Cards e estatísticas públicas.
-- [ ] Formulários e agregados de perfil.
-- [ ] Relatórios e moderação.
-- [ ] Memórias e enquetes.
+- campos históricos usados pelas telas permanecem obrigatórios;
+- campos atuais do banco ficam disponíveis como opcionais;
+- enums vêm da baseline;
+- relações de `TicketWithDetails` permanecem explícitas;
+- nenhuma regra de preço, pagamento, reserva, emissão ou check-in foi modificada.
 
-## Fase 3 — aliases simples
+Essa compatibilidade deve evoluir para adaptadores específicos depois dos E2E financeiros e operacionais.
 
-### Concluído
+## Proteção contra regressão
 
-- [x] `AdminRole`.
-- [x] `DbAdminUser`.
-- [x] `DbPhoto`.
+O workflow `Supabase type compatibility`:
 
-### Próximos candidatos
+1. regenera o relatório estrutural;
+2. regenera o inventário de consumidores;
+3. falha se `Arquivos consumidores` for diferente de zero;
+4. audita front matter e links;
+5. exige ausência de drift em pull requests;
+6. publica relatórios atualizados em `main`;
+7. lida com pushes concorrentes por rebase e novas tentativas.
 
-- [ ] `DbPerson`.
-- [ ] `DbProfile`.
-- [ ] `DbAuditLog`.
-- [ ] `DbPhotoTag`.
-- [ ] `DbPhotoLike`.
-- [ ] `DbPhotoComment`.
-- [ ] tabelas de enquetes.
-- [ ] views públicas corretamente classificadas.
+## Snapshot manual depreciado
 
-Antes de cada alias:
+`src/lib/database.types.ts` não é mais usado pelo runtime.
 
-- confirmar campos e nullability;
-- verificar divergências no relatório;
-- identificar relações ou cálculos adicionados pela aplicação;
-- executar build e testes do fluxo afetado.
+Ele permanece temporariamente para o comparador histórico, que documenta:
 
-## Fase 4 — decomposição dos agregadores
+- 19 tabelas ausentes no snapshot;
+- quatro views ausentes e outras classificadas incorretamente;
+- 73 RPCs ausentes;
+- dois enums ausentes;
+- `payment_events` com `Row: any` no mapa antigo;
+- campos comerciais e editoriais omitidos.
 
-### Estado atual
+A remoção física exige primeiro alterar o comparador para usar um snapshot arquivado ou excluir essa comparação histórica.
 
-`App.tsx` e `services.ts` já importam de módulos separados:
+## Validações executadas
 
-- administração;
-- fotos;
-- catálogo;
-- status de pagamento.
+- geração dos contratos;
+- replay e testes SQL do banco antes da baseline;
+- auditoria dos consumidores após cada família;
+- inspeção dos imports alterados;
+- build e deployment das etapas funcionais;
+- remoção de todos os workflows temporários utilizados nas migrações.
 
-Os imports legados restantes devem ser removidos por família, não por reescrita massiva.
+## Validações ainda pendentes
 
-### Ordem recomendada
+A migração de imports está concluída, mas a frente de qualidade dos fluxos ainda exige:
 
-1. pessoas, perfis e views públicas;
-2. interações de fotos e moderação;
-3. memórias e enquetes;
-4. evento e conteúdo editorial;
-5. pedidos, ingressos e check-in;
-6. limpeza de aliases históricos e interfaces sem consumidor.
+- [ ] unitários do FAQ e dos adaptadores de conteúdo;
+- [ ] E2E de perfil, reivindicação e disputa;
+- [ ] E2E de fotos, comentários, tags e remoções;
+- [ ] E2E de memórias e enquetes;
+- [ ] E2E do painel editorial;
+- [ ] E2E de catálogo e seleção de ingresso;
+- [ ] E2E de checkout e retornos do pagamento;
+- [ ] E2E de emissão, transferência, cancelamento, check-in e reembolso;
+- [ ] adaptação explícita dos rows comerciais completos;
+- [ ] remoção física do snapshot manual quando o comparador for alterado.
 
-### Controle de segurança
+## Critério de encerramento
 
-Uma primeira automação de decomposição capturou um bloco de import maior que o pretendido. `main` foi restaurada ao último commit íntegro, e a operação foi reaplicada com:
+A migração estrutural pode ser considerada concluída porque:
 
-- correspondência de blocos completos;
-- exigência de ocorrência única;
-- rejeição de arquivos inesperados;
-- inspeção dos imports resultantes;
-- build aprovado.
+- nenhum arquivo importa o mapa manual;
+- o cliente usa o contrato gerado;
+- os tipos funcionais estão separados;
+- o CI impede regressão;
+- o arquivo antigo está depreciado;
+- os builds aprovam a nova organização.
 
-Próximas automações devem preservar esses controles ou usar edição localizada equivalente.
-
-## Fase 5 — comércio, pedidos e ingressos
-
-Essa família não deve ser convertida por aliases simples.
-
-### Divergências conhecidas
-
-`ticket_types` possui campos atuais ausentes no contrato histórico, incluindo `product_code`, composição e metadados.
-
-`orders` omite, entre outros:
-
-- usuário comprador;
-- idempotência;
-- lote;
-- moeda e parcelas;
-- ambiente e detalhes de pagamento;
-- valores subtotal e extras;
-- token público;
-- estados e timestamps de reserva, cancelamento e reembolso.
-
-`tickets` omite campos de participante, QR, status, cancelamento, transferência e vouchers físicos.
-
-### Pendências
-
-- [ ] Criar rows brutos e view models distintos.
-- [ ] Criar adaptadores de pedidos para telas administrativas e comprador.
-- [ ] Tipar catálogo, checkout, transferência, reembolso e check-in pelas RPCs geradas.
-- [ ] Substituir `payment_events: any`.
-- [ ] Executar testes SQL e E2E financeiros.
-
-### Critério de interrupção
-
-Interromper se uma mudança de tipo exigir alteração de preço, status financeiro, reserva, emissão ou inventário sem decisão funcional explícita.
-
-## Fase 6 — RPCs
-
-A baseline contém 80 funções/RPCs; o mapa manual possui 7.
-
-- [ ] Inventariar RPCs realmente chamadas pelo frontend e pelas Functions.
-- [ ] Usar `Args` e `Returns` gerados.
-- [ ] Criar tipos de domínio para retornos compostos.
-- [ ] Remover assinaturas históricas sem consumidor.
-- [ ] Revisar `security definer`, grants e RLS em conjunto.
-
-Prioridade:
-
-1. perfil e identidade;
-2. catálogo e checkout;
-3. pedidos do comprador;
-4. check-in;
-5. reembolsos e transferências;
-6. relatórios;
-7. CMS e FAQ.
-
-## Fase 7 — limpeza final
-
-- [ ] Zero imports de `database.types.ts`.
-- [ ] Zero `Row: any`.
-- [ ] Zero views em `Tables`.
-- [ ] Interfaces sem consumidor removidas ou arquivadas.
-- [ ] Mapa manual marcado como `deprecated` ou removido.
-- [ ] Check que proíbe regressão.
-- [ ] Build, unitários e E2E aprovados.
-
-## Matriz de validação
-
-| Mudança | Build | Unitários | E2E | SQL | Auditoria |
-|---|---:|---:|---:|---:|---:|
-| Alias simples | obrigatório | módulo afetado | fluxo afetado | recomendado | obrigatório |
-| Tipo de domínio | obrigatório | módulo afetado | quando houver UI | não aplicável | obrigatório |
-| RPC | obrigatório | obrigatório | fluxo afetado | obrigatório | obrigatório |
-| Comércio | obrigatório | obrigatório | obrigatório | obrigatório | obrigatório |
-
-## Evidências por entrega
-
-Registrar:
-
-- símbolos e consumidores migrados;
-- diferenças justificadas;
-- adaptadores criados;
-- comandos e testes executados;
-- casts temporários;
-- rollback específico.
-
-## Fora do escopo
-
-- alterar schema para eliminar erro de interface;
-- converter todas as famílias em um commit;
-- remover tipos ergonômicos úteis;
-- validar segurança apenas por TypeScript;
-- substituir testes por compilação.
+As pendências acima pertencem à validação funcional e à limpeza histórica, não à migração de imports.
