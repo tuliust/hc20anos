@@ -50,6 +50,16 @@ jobs:
       - name: Generate consumer inventory
         run: npm run docs:generate-type-consumers
 
+      - name: Prevent legacy type imports
+        shell: bash
+        run: |
+          report="docs/30-contratos/consumidores-dos-tipos.generated.md"
+          if ! grep -Fq '| Arquivos consumidores | 0 |' "$report"; then
+            echo "Novos imports ou augmentações de src/lib/database.types.ts foram detectados."
+            sed -n '18,60p' "$report"
+            exit 1
+          fi
+
       - name: Audit generated documentation
         run: npm run audit:docs
 
