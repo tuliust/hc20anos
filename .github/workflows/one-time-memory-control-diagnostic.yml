@@ -1,0 +1,44 @@
+name: One-time memory control diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-memory-control-diagnostic.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract exact source and CSS context
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          {
+            echo "# App.tsx"
+            grep -n -B 30 -A 35 "Enviar sem mostrar meu nome" src/app/App.tsx || true
+            echo
+            echo "# Source and CSS references"
+            grep -RIn -B 5 -A 10 --exclude-dir=node_modules --exclude='App.tsx' "Enviar sem mostrar meu nome\|is_anonymous\|anonymous" src | head -n 500 || true
+          } > docs/30-contratos/memory-control-diagnostic.txt
+
+          test -s docs/30-contratos/memory-control-diagnostic.txt
+          git diff --check
+
+      - name: Publish diagnostic
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/30-contratos/memory-control-diagnostic.txt
+          git commit -m "docs: publicar diagnóstico do controle anônimo"
+          git push
