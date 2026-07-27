@@ -20,16 +20,18 @@ test.describe("memórias e enquetes", () => {
     await expect(page.getByText("Autor Confidencial", { exact: false })).toHaveCount(0);
 
     const memoryField = page.locator("textarea").first();
+    const submitMemory = page.getByRole("button", { name: /^Enviar(?: para moderação)?$/i });
     await expect(memoryField).toBeVisible();
+    await expect(submitMemory).toBeVisible();
     await memoryField.fill("Curta");
-    await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
+    await submitMemory.click();
     await expect(page.getByText("Escreva uma memória com pelo menos 10 caracteres.", { exact: true })).toBeVisible();
     expect(api.memoryCalls).toHaveLength(0);
 
     await memoryField.fill("Lembro das conversas no corredor antes da primeira aula.");
     const anonymousControl = page.locator("label").filter({ hasText: "Enviar sem mostrar meu nome" }).getByRole("button");
     await anonymousControl.click();
-    await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
+    await submitMemory.click();
 
     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
     await expect(page.getByText("Memória enviada para moderação.", { exact: true })).toBeVisible();
@@ -52,11 +54,10 @@ test.describe("memórias e enquetes", () => {
 
     await expect(page.getByRole("heading", { name: "O raio-X da Turma 2006" })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toHaveCount(0);
+    await expect(page.getByText("Gincana", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
-    const closedOption = page.getByText("Gincana", { exact: true }).locator("xpath=ancestor::button");
-    await expect(closedOption).toBeDisabled();
 
     await page.getByRole("button", { name: "Corredor principal", exact: true }).click();
 
