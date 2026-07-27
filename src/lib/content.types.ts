@@ -51,3 +51,6 @@ export type DbHomePageContent = Omit<HomePageContentRow, "faq_initial_mode"> & {
 // Reexportação útil para adaptadores editoriais que precisem declarar JSON sem
 // recorrer ao arquivo gerado diretamente.
 export type EditorialJson = Json;
+
+// `App.tsx` e `services.ts` são os consumidores centrais. Novos fluxos de CMS,
+// evento, arquivo e auditoria devem importar deste módulo.
