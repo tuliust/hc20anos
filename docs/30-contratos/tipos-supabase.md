@@ -1,15 +1,19 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: 5287ae609251b2bb3001e1f5d369ea6a70fc5e83
+last_verified: 2026-07-27
+last_verified_commit: d39a041275940f5770b8b3a8e59dbb5cd7556674
 source_files:
   - docs/30-contratos/database.types.generated.ts
   - docs/30-contratos/compatibilidade-de-tipos.generated.md
   - docs/30-contratos/consumidores-dos-tipos.generated.md
   - src/lib/database.generated.ts
   - src/lib/database.types.ts
+  - src/lib/faq.types.ts
+  - src/lib/faqPresentation.ts
   - src/lib/supabase.ts
+  - src/app/home/HomeFaqSection.tsx
+  - src/app/home/HomeFaqSectionLoader.tsx
   - scripts/audit-database-types.mjs
   - scripts/generate-database-type-consumers.mjs
   - .github/workflows/type-compatibility.yml
@@ -19,7 +23,7 @@ source_files:
 
 ## Estado vigente
 
-O projeto possui duas camadas de tipos:
+O projeto possui três camadas de tipos:
 
 1. **Contrato estrutural gerado**
    - `docs/30-contratos/database.types.generated.ts`;
@@ -27,15 +31,21 @@ O projeto possui duas camadas de tipos:
    - representa tabelas, views, RPCs, enums e relações reais;
    - não recebe edição manual.
 
-2. **Tipos manuais de compatibilidade e domínio**
+2. **Tipos de domínio separados**
+   - `src/lib/faq.types.ts` é o primeiro módulo funcional extraído;
+   - preserva os contratos utilizados pela apresentação pública do FAQ;
+   - não se apresenta como snapshot completo do banco;
+   - será acompanhado por outros módulos funcionais durante a migração.
+
+3. **Tipos manuais de compatibilidade e domínio**
    - `src/lib/database.types.ts`;
    - contém interfaces históricas, conteúdo JSON, agregados de interface e mapa parcial de banco;
-   - continua temporariamente necessário para 20 arquivos consumidores;
+   - continua temporariamente necessário para 17 arquivos consumidores;
    - será migrado em etapas.
 
 ## Cliente Supabase
 
-`src/lib/supabase.ts` já usa o contrato gerado por meio da ponte:
+`src/lib/supabase.ts` usa o contrato gerado por meio da ponte:
 
 ```text
 src/lib/database.generated.ts
@@ -50,11 +60,33 @@ Consequências:
 - tipos de domínio antigos continuam disponíveis aos componentes;
 - a mudança é exclusivamente de TypeScript e não altera credenciais, URL ou lógica de runtime.
 
+## Primeira família funcional separada
+
+A camada pública do FAQ foi o primeiro recorte de domínio migrado.
+
+Arquivos migrados:
+
+- `src/lib/faqPresentation.ts`;
+- `src/app/home/HomeFaqSection.tsx`;
+- `src/app/home/HomeFaqSectionLoader.tsx`.
+
+Os três arquivos agora importam `DbFaqCategory` e `DbFaqItem` de `src/lib/faq.types.ts`.
+
+O novo módulo preserva a forma que já era consumida pela interface. Nenhuma consulta, regra de visibilidade, ordenação, filtro, texto ou comportamento visual foi alterado deliberadamente.
+
+Permanecem no mapa manual:
+
+- `src/lib/faq.ts`, que centraliza queries e operações administrativas;
+- oito arquivos do painel administrativo de FAQ;
+- outros grupos funcionais não relacionados ao FAQ.
+
 ## Evidência de implantação
 
-A alteração do cliente foi publicada em `main`. O deployment imediatamente associado foi cancelado pela Vercel porque commits automatizados mais novos já estavam em processamento. A implantação mais recente do projeto concluiu com estado `READY` e contém a alteração.
+A separação do FAQ foi publicada diretamente em `main`.
 
-Isso significa que não houve falha de build causada pela ponte de tipos.
+O deployment do commit intermediário do loader foi cancelado porque o workflow de documentação publicou um commit automático mais recente. A implantação associada ao commit `d39a041275940f5770b8b3a8e59dbb5cd7556674` concluiu com estado `success` na Vercel e contém toda a primeira família migrada.
+
+Isso confirma que a troca de origem dos tipos não introduziu falha de build no ambiente de produção.
 
 ## Diagnóstico estrutural
 
@@ -79,23 +111,24 @@ Achados críticos:
 
 O relatório [`consumidores-dos-tipos.generated.md`](./consumidores-dos-tipos.generated.md) identifica:
 
-- 20 arquivos consumidores;
-- 20 declarações de import ou augmentação;
-- 47 símbolos reais importados, além de um token sintático residual que será removido do gerador;
+- 17 arquivos consumidores;
+- 17 declarações de import ou augmentação;
+- 47 símbolos reais importados;
 - todos os imports reais são exclusivamente de tipos;
 - uma augmentação de módulo em `database.people-extensions.d.ts`.
 
-Distribuição:
+Distribuição atual:
 
 | Categoria | Arquivos |
 |---|---:|
-| Serviço/biblioteca | 8 |
-| Outro runtime | 6 |
-| Componente/página | 4 |
-| Admin | 1 |
+| Admin | 8 |
+| Serviço/biblioteca | 3 |
+| Componente/página | 2 |
+| Enhancement | 2 |
 | Augmentação de módulo | 1 |
+| Outro runtime | 1 |
 
-O cliente Supabase não aparece mais entre os consumidores do arquivo manual.
+O cliente Supabase e a camada pública do FAQ não aparecem mais entre os consumidores do arquivo manual.
 
 ## Decisão arquitetural
 
@@ -124,15 +157,19 @@ O plano completo está em:
 - [x] publicar tipos gerados;
 - [x] criar auditoria de compatibilidade;
 - [x] inventariar consumidores;
+- [x] remover ruídos sintáticos do inventário;
 - [x] registrar ADR;
 - [x] tipar o cliente Supabase pela baseline;
-- [x] validar implantação.
+- [x] validar implantação do cliente;
+- [x] criar o primeiro módulo de tipos de domínio;
+- [x] migrar apresentação, loader e componente público do FAQ;
+- [x] validar implantação da primeira família funcional.
 
 ### Próxima etapa
 
-- [ ] remover o token sintático residual do inventário;
-- [ ] classificar consumers por grupo de migração;
-- [ ] separar tipos de FAQ;
+- [ ] migrar `src/lib/faq.ts` para `faq.types.ts`;
+- [ ] migrar os imports FAQ no painel administrativo;
+- [ ] derivar os rows simples de FAQ do contrato gerado após revisar `icon_key`, `category_key` e `category_label`;
 - [ ] separar tipos de conteúdo editorial;
 - [ ] migrar aliases simples de tabelas e views;
 - [ ] criar adaptadores para comércio e ingressos;
