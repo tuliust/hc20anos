@@ -192,8 +192,12 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         const selected = rows.find((item) => item.ticket_type_id === selectedId)
           ?? rows.find((item) => item.product_code === normalizeProductCode(storedSelection?.productCode));
         if (selected) {
-          setProductCode(selected.product_code);
-          setParticipants(defaultParticipants(selected.product_code, auth));
+          setProductCode((currentProductCode) => {
+            if (currentProductCode !== selected.product_code) {
+              setParticipants(defaultParticipants(selected.product_code, auth));
+            }
+            return selected.product_code;
+          });
         }
         setCatalogError(rows.length ? "" : "Nenhum ingresso está disponível no lote vigente.");
       })
@@ -224,8 +228,8 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         setProfilePersonId(data?.person_id || null);
         setBuyer((current) => ({
           ...current,
-          name: current.name || name,
-          email: current.email || email,
+          name: name || current.name,
+          email: email || current.email,
           phone: current.phone || data?.contact_whatsapp || "",
         }));
         setParticipants((current) => current.map((participant) => participant.participant_type === "alumni" ? {
