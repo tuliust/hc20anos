@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 66d6cdab0c3430c98f21388e50aa98fdd4e54ca4
+last_verified_commit: 652045c36c1afb9bac046f3600df24565cb4d3dc
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
   - src/main.tsx
@@ -48,144 +48,144 @@ A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido ante
 ## Diagnóstico E2E
 
 ```text
+         - retrying click action
+           - waiting 500ms
 
 
-      93 |
-      94 |   const catalog = page.locator("[data-public-ticket-catalog-home='true']");
-    > 95 |   await expect(catalog).toBeVisible();
-         |                         ^
-      96 |   await expect(catalog.locator("article")).toHaveCount(3);
-      97 |   await expect(catalog).toContainText("2º LOTE ADMINISTRATIVO");
-      98 |   await expect(catalog).toContainText("R$ 159,00");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:95:25
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-219c0-me-e-preços-do-lote-vigente-retry2/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results/ticket-catalog-source-of-t-219c0-me-e-preços-do-lote-vigente-retry2/error-context.md
-
-    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-219c0-me-e-preços-do-lote-vigente-retry2/trace.zip
-    Usage:
-
-        npx playwright show-trace test-results/ticket-catalog-source-of-t-219c0-me-e-preços-do-lote-vigente-retry2/trace.zip
-
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-  3) tests/e2e/ticket-catalog-source-of-truth.spec.ts:104:1 › Home e página de ingressos exibem o mesmo catálogo 
-
-    Error: expect(locator).toContainText(expected) failed
-
-    Locator: locator('[data-public-ticket-catalog-home=\'true\']')
-    Expected substring: "R$ 159,00"
-    Timeout: 5000ms
-    Error: element(s) not found
-
-    Call log:
-      - Expect "toContainText" with timeout 5000ms
-      - waiting for locator('[data-public-ticket-catalog-home=\'true\']')
-
-
-      107 |
-      108 |   await page.goto("/");
-    > 109 |   await expect(page.locator("[data-public-ticket-catalog-home='true']")).toContainText("R$ 159,00");
-          |                                                                          ^
-      110 |
-      111 |   await page.goto("/ingressos");
-      112 |   const catalog = page.locator("[data-public-ticket-catalog='true']");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:109:74
+      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
+      17 |     await expect(simpleCard).toContainText("R$ 159,00");
+    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+         |                                                                                  ^
+      19 |
+      20 |     await expect(page).toHaveURL(/\/checkout$/);
+      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo/trace.zip
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toContainText(expected) failed
+    Test timeout of 30000ms exceeded.
 
-    Locator: locator('[data-public-ticket-catalog-home=\'true\']')
-    Expected substring: "R$ 159,00"
-    Timeout: 5000ms
-    Error: element(s) not found
-
+    Error: locator.click: Test timeout of 30000ms exceeded.
     Call log:
-      - Expect "toContainText" with timeout 5000ms
-      - waiting for locator('[data-public-ticket-catalog-home=\'true\']')
+      - waiting for locator('[data-ticket-product-code="simple"]').getByRole('button', { name: 'Comprar agora', exact: true })
+        - locator resolved to <button type="button" class="mt-auto flex min-h-14 w-full items-center justify-center bg-[#2d6a4f] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#f0ebe0] disabled:cursor-not-allowed disabled:opacity-50">Comprar agora</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        53 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
 
 
-      107 |
-      108 |   await page.goto("/");
-    > 109 |   await expect(page.locator("[data-public-ticket-catalog-home='true']")).toContainText("R$ 159,00");
-          |                                                                          ^
-      110 |
-      111 |   await page.goto("/ingressos");
-      112 |   const catalog = page.locator("[data-public-ticket-catalog='true']");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:109:74
+      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
+      17 |     await expect(simpleCard).toContainText("R$ 159,00");
+    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+         |                                                                                  ^
+      19 |
+      20 |     await expect(page).toHaveURL(/\/checkout$/);
+      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry1/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry1/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry1/trace.zip
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry1/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry1/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toContainText(expected) failed
+    Test timeout of 30000ms exceeded.
 
-    Locator: locator('[data-public-ticket-catalog-home=\'true\']')
-    Expected substring: "R$ 159,00"
-    Timeout: 5000ms
-    Error: element(s) not found
-
+    Error: locator.click: Test timeout of 30000ms exceeded.
     Call log:
-      - Expect "toContainText" with timeout 5000ms
-      - waiting for locator('[data-public-ticket-catalog-home=\'true\']')
+      - waiting for locator('[data-ticket-product-code="simple"]').getByRole('button', { name: 'Comprar agora', exact: true })
+        - locator resolved to <button type="button" class="mt-auto flex min-h-14 w-full items-center justify-center bg-[#2d6a4f] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#f0ebe0] disabled:cursor-not-allowed disabled:opacity-50">Comprar agora</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        55 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="fixed inset-0 z-[95] bg-[#080f08] flex items-center justify-center px-6">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
 
 
-      107 |
-      108 |   await page.goto("/");
-    > 109 |   await expect(page.locator("[data-public-ticket-catalog-home='true']")).toContainText("R$ 159,00");
-          |                                                                          ^
-      110 |
-      111 |   await page.goto("/ingressos");
-      112 |   const catalog = page.locator("[data-public-ticket-catalog='true']");
-        at /home/runner/work/hc20anos/hc20anos/tests/e2e/ticket-catalog-source-of-truth.spec.ts:109:74
+      16 |     await expect(simpleCard).toContainText("2º LOTE ADMINISTRATIVO");
+      17 |     await expect(simpleCard).toContainText("R$ 159,00");
+    > 18 |     await simpleCard.getByRole("button", { name: "Comprar agora", exact: true }).click();
+         |                                                                                  ^
+      19 |
+      20 |     await expect(page).toHaveURL(/\/checkout$/);
+      21 |     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toBeVisible({ timeout: 20_000 });
+        at /home/runner/work/hc20anos/hc20anos/tests/e2e/checkout-flow.spec.ts:18:82
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry2/test-failed-1.png
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry2/error-context.md
+    Error Context: test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/error-context.md
 
     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry2/trace.zip
+    test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/ticket-catalog-source-of-t-5470d-sos-exibem-o-mesmo-catálogo-retry2/trace.zip
+        npx playwright show-trace test-results/checkout-flow-catálogo-e-c-02afc-o-normalizado-e-autenticado-retry2/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-  3 failed
+  1 failed
     tests/e2e/checkout-flow.spec.ts:9:3 › catálogo e checkout › seleciona o preço vigente e envia um pedido normalizado e autenticado 
-    tests/e2e/ticket-catalog-source-of-truth.spec.ts:87:1 › Home usa nome e preços do lote vigente ─
-    tests/e2e/ticket-catalog-source-of-truth.spec.ts:104:1 › Home e página de ingressos exibem o mesmo catálogo 
+  2 passed (1.7m)
 ```
