@@ -6,12 +6,11 @@
 
 import { DEV_MODE, supabase } from "./supabase";
 import type {
-  DbPhotoTag,
   DbProfileClaim, DbProfileClaimAnswer, DbTicket,
   DbOrder, DbEvent, InsertOrder,
   DbAuditLog, TicketStatus,
-  DbPhotoRemovalRequest, DbProfileClaimDispute,
-  DbPhotoLike, DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+  DbProfileClaimDispute,
+  DbMemory,
   DbPoll, DbPollOption, DbPollVote, PollStatus, PollResultRow, TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
@@ -28,7 +27,15 @@ import type {
   UpsertProfile,
 } from "./people.types";
 import type { AdminRole, DbAdminUser } from "./admin.types";
-import type { DbPhoto } from "./photo.types";
+import type {
+  DbPhoto,
+  DbPhotoComment,
+  DbPhotoLike,
+  DbPhotoRemovalRequest,
+  DbPhotoTag,
+  ModerationStatus,
+  PhotoStats,
+} from "./photo.types";
 import type { DbTicketType } from "./commerce.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {

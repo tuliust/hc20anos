@@ -29,9 +29,9 @@ import {
   getEventPageContent, updateEventPageContent, EVENT_PAGE_CONTENT_DEFAULTS, type EventPageContent,
 } from "../lib/services";
 import type {
-  DbEvent, DbAuditLog, DbPhotoTag, DbOrder,
-  DbProfileClaim, DbPhotoRemovalRequest, DbProfileClaimDispute, TicketStatus,
-  DbPhotoComment, DbMemory, PhotoStats, ModerationStatus,
+  DbEvent, DbAuditLog, DbOrder,
+  DbProfileClaim, DbProfileClaimDispute, TicketStatus,
+  DbMemory,
   DbPoll, DbPollOption, DbPollVote, PollStatus, TicketWithDetails,
   DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
@@ -50,6 +50,7 @@ import type {
 } from "../lib/people.types";
 import type { AdminRole, DbAdminUser } from "../lib/admin.types";
 import type { DbPhoto } from "../lib/photo.types";
+import type { DbPhotoComment, DbPhotoRemovalRequest, DbPhotoTag, ModerationStatus, PhotoStats } from "../lib/photo.types";
 import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
