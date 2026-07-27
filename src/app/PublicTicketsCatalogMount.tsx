@@ -196,8 +196,9 @@ function findTicketsPageTarget() {
 }
 
 function findHomeTicketsTarget() {
+  const explicitSection = document.querySelector<HTMLElement>("main [data-home-section=\'tickets\']");
   const sections = Array.from(document.querySelectorAll<HTMLElement>("main section"));
-  const section = sections.find(candidate => {
+  const section = explicitSection ?? sections.find(candidate => {
     const headings = Array.from(candidate.querySelectorAll<HTMLElement>("h1, h2, h3, p"));
     const hasTicketHeading = headings.some(element => normalize(element.textContent).includes("ingress"));
     const hasCommercialContent = Array.from(candidate.querySelectorAll<HTMLButtonElement>("button"))
