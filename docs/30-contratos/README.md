@@ -1,8 +1,8 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: 23666f0bebd43acc0ee4b2ffabbe210bc6e3056b
+last_verified: 2026-07-27
+last_verified_commit: 68d215e641ad89c7a054bcb87c596b4310deceaf
 source_files:
   - src/
   - api/
@@ -10,19 +10,27 @@ source_files:
   - scripts/generate-static-contracts.mjs
   - scripts/generate-routes-contract.mjs
   - scripts/generate-database-contracts.mjs
+  - scripts/audit-database-types.mjs
+  - scripts/generate-database-type-consumers.mjs
   - supabase/functions/
   - supabase/migrations/
   - supabase/tests/
+  - tests/unit/
+  - tests/e2e/
   - docs/30-contratos/
   - .github/workflows/static-contracts.yml
   - .github/workflows/database-migrations.yml
+  - .github/workflows/type-compatibility.yml
+  - .github/workflows/functional-tests.yml
+  - .github/workflows/commerce-functional-tests.yml
+  - .github/workflows/operations-functional-tests.yml
 ---
 
 # Contratos técnicos
 
 ## Estado
 
-As categorias técnicas planejadas possuem baselines versionadas com `status: generated`:
+As estruturas verificáveis do sistema possuem baselines versionadas com `status: generated`:
 
 - rotas efetivas;
 - Vercel Functions;
@@ -33,9 +41,14 @@ As categorias técnicas planejadas possuem baselines versionadas com `status: ge
 - RPCs e funções públicas;
 - RLS, policies e grants;
 - tipos TypeScript do Supabase;
-- ERD.
+- ERD;
+- consumidores dos tipos legados;
+- compatibilidade entre o snapshot manual e a baseline;
+- evidências funcionais de perfil e FAQ;
+- evidências funcionais de catálogo e checkout;
+- evidências funcionais de autorização e operação.
 
-Os arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais continuam úteis para explicar intenção, semântica, responsabilidades e limitações que não podem ser inferidas automaticamente.
+Arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais explicam intenção, semântica, responsabilidades, operação e limitações que não podem ser inferidas automaticamente.
 
 ## Baselines geradas
 
@@ -66,44 +79,114 @@ Procedimentos:
 
 Procedimento: [`geracao-do-banco.md`](./geracao-do-banco.md).
 
+### Compatibilidade dos tipos
+
+| Contrato | Arquivo | Estado |
+|---|---|---|
+| Comparação estrutural | [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md) | snapshot histórico comparado à baseline |
+| Inventário de consumidores | [`consumidores-dos-tipos.generated.md`](./consumidores-dos-tipos.generated.md) | zero consumidores, imports e augmentações |
+| Referência canônica | [`tipos-supabase.md`](./tipos-supabase.md) | arquitetura e módulos funcionais |
+| Plano concluído | [`migracao-dos-tipos-supabase.md`](./migracao-dos-tipos-supabase.md) | migração estrutural encerrada |
+
+O cliente Supabase usa a baseline gerada. `src/lib/database.types.ts` está depreciado, sem consumidores e mantido temporariamente apenas para a comparação histórica. O workflow `Supabase type compatibility` reprova qualquer reintrodução.
+
+## Evidências funcionais
+
+### Perfil e FAQ
+
+[`testes-funcionais.generated.md`](./testes-funcionais.generated.md) registra:
+
+| Verificação | Resultado |
+|---|---|
+| Build e verificadores de perfil | `success` |
+| Unitários do FAQ | `success` |
+| Chromium | `success` |
+| E2E de perfil e FAQ | `success` |
+
+Cobertura:
+
+- retomada de reivindicação depois de confirmação e login;
+- disputas administrativas com evidências atuais e legadas;
+- mini-bio por IA sem dados pessoais sensíveis;
+- FAQ estruturado, busca normalizada e expansão;
+- exclusão da categoria de privacidade da Home;
+- fallback para `faq_items_json`.
+
+### Catálogo e checkout
+
+[`testes-comerciais.generated.md`](./testes-comerciais.generated.md) registra:
+
+| Verificação | Resultado |
+|---|---|
+| Build | `success` |
+| Chromium | `success` |
+| Três E2E de catálogo e checkout | `success` |
+
+Cobertura:
+
+- Home e página de ingressos usam o mesmo catálogo vigente;
+- lote e preços em reais vêm das RPCs;
+- a seleção é preservada pelo contrato de sessão;
+- o ingresso Individual exige perfil vinculado;
+- o perfil não é perdido por concorrência entre catálogo e consulta de perfil;
+- termos são obrigatórios;
+- a API recebe sessão, chave pública e idempotência;
+- nome e e-mail são normalizados;
+- o navegador não envia preço, total ou `ticket_type_id` como autoridade;
+- o redirecionamento do provedor é simulado.
+
+Durante a execução, os testes encontraram e corrigiram:
+
+1. um seletor frágil do catálogo da Home, substituído pelo marcador estável `data-home-section="tickets"`;
+2. uma corrida que apagava nome e `person_id` do perfil vinculado quando o catálogo terminava de carregar depois da consulta de perfil.
+
+### Autorização e operação
+
+[`testes-operacionais.generated.md`](./testes-operacionais.generated.md) registra:
+
+| Verificação | Resultado |
+|---|---|
+| Build | `success` |
+| Chromium | `success` |
+| Três E2E de autorização e operação | `success` |
+
+Cobertura:
+
+- visitante sem sessão é redirecionado ao login;
+- a rota standalone exige role operacional;
+- `checkin_staff` registra entrada e vouchers;
+- `checkin_staff` não recebe reembolsos ou indicadores financeiros;
+- `admin` recebe reembolsos e indicadores;
+- os argumentos enviados às RPCs são verificados.
+
+O frontend agora possui guard próprio para `/admin/operacao` e `/admin/checkin`. RLS, grants e RPCs continuam sendo a autoridade server-side.
+
 ## Evidência de geração
 
 ### Contratos estáticos e rotas
 
-A baseline vigente foi publicada pelo GitHub Actions no commit:
+O workflow:
 
-```text
-9c6eba3bd05a16511bd8160b3e0d621c34f9918e
-```
-
-Antes da publicação, o workflow:
-
-1. gerou os contratos estáticos;
-2. aplicou o transform real de pedidos;
-3. gerou o contrato de rotas;
-4. executou a auditoria documental;
-5. detectou arquivos novos e modificados;
-6. publicou apenas a lista explícita de contratos.
+1. gera os contratos estáticos;
+2. aplica o transform real de pedidos;
+3. gera o contrato de rotas;
+4. executa a auditoria documental;
+5. detecta arquivos novos e modificados;
+6. publica apenas a lista explícita de contratos.
 
 ### Banco
 
-A baseline vigente foi publicada pelo GitHub Actions no commit:
+O workflow `Database migration safety`:
 
-```text
-2e90f45cb57c001ba5510d9918345b763578b265
-```
-
-Antes da publicação, o workflow:
-
-1. auditou as migrations;
-2. executou o build;
-3. iniciou uma stack Supabase local;
-4. reaplicou todas as migrations em banco vazio;
-5. instalou a fixture autenticada de teste;
-6. executou todos os testes SQL;
-7. consultou os catálogos do Postgres local;
-8. gerou schema, RPCs, RLS, tipos e ERD;
-9. executou a auditoria documental.
+1. audita as migrations;
+2. executa o build;
+3. inicia uma stack Supabase local;
+4. reaplica todas as migrations em banco vazio;
+5. instala a fixture autenticada;
+6. executa todos os testes SQL;
+7. consulta os catálogos do Postgres local;
+8. gera schema, RPCs, RLS, tipos e ERD;
+9. executa a auditoria documental.
 
 Nenhum gerador consulta o banco de produção.
 
@@ -116,15 +199,20 @@ npm run docs:check-contracts
 npm run docs:check-routes
 ```
 
-O workflow `Static contract generation` falha em pull requests quando as saídas esperadas diferem da baseline versionada.
-
 ### Banco
 
 ```bash
 npm run docs:check-db-contracts
 ```
 
-O workflow `Database migration safety` gera os contratos somente depois do replay e dos testes. Em pull requests, qualquer diferença não versionada falha o check.
+### Tipos
+
+```bash
+npm run docs:check-type-compatibility
+npm run docs:check-type-consumers
+```
+
+Em pull requests, os workflows falham quando as saídas esperadas diferem das baselines versionadas.
 
 ## Inventários humanos complementares
 
@@ -133,37 +221,46 @@ O workflow `Database migration safety` gera os contratos somente depois do repla
 | [`rotas.md`](./rotas.md) | `deprecated` | redirect documental para a baseline gerada |
 | [`apis-e-functions.md`](./apis-e-functions.md) | `draft` | responsabilidades, exemplos de payload e integrações |
 | [`variaveis-de-ambiente.md`](./variaveis-de-ambiente.md) | `draft` | obrigatoriedade, sensibilidade e configuração operacional |
-| [`codigos-de-erro.md`](./codigos-de-erro.md) | `draft` | semântica de interface e fluxos que não são literais |
+| [`codigos-de-erro.md`](./codigos-de-erro.md) | `draft` | semântica de interface e fluxos não literais |
 | [`permissoes.md`](./permissoes.md) | `draft` | matriz funcional de atores e papéis |
 
-Esses documentos não podem contradizer as baselines geradas. Quando houver divergência estrutural, prevalece o arquivo `generated` produzido pelo código ou banco reproduzido.
+Esses documentos não podem contradizer as baselines geradas.
 
-## Limites dos contratos
+## Limites das evidências
 
-- análise estática não compreende integralmente autenticação encapsulada;
-- códigos de erro dinâmicos ou retornados por providers podem não aparecer;
-- o contrato de rotas não executa navegação E2E de cada caminho;
-- o ERD mostra relações estruturais, não regras condicionais internas às RPCs;
-- grants representam o estado final e não a sequência histórica de `GRANT` e `REVOKE`;
-- tipos gerados ainda precisam de revisão de compatibilidade antes de substituir o arquivo usado pela aplicação;
-- a existência de rota, tabela ou função não comprova autorização funcional adequada.
+As evidências Playwright utilizam fixtures HTTP isoladas. Elas comprovam comportamento do frontend, composição de payloads e chamadas esperadas, mas não comprovam:
+
+- autenticação real contra o projeto remoto;
+- policies e RLS no ambiente conectado;
+- criação real de preferência no Mercado Pago;
+- assinatura e processamento do webhook;
+- reserva e restauração reais de inventário;
+- emissão, transferência, cancelamento ou reembolso integrados;
+- câmera, iluminação, rede instável ou contingência offline;
+- operação presencial completa.
+
+Essas camadas permanecem subordinadas aos testes SQL, ensaios em ambiente controlado e runbooks.
 
 ## Regras
 
 - não editar arquivos `generated` manualmente;
-- corrigir a fonte ou o gerador e regenerar;
+- corrigir fonte, teste ou gerador e regenerar;
 - nunca incluir secrets, tokens ou dados pessoais reais;
 - manter comandos e workflows reproduzíveis;
 - revisar diffs gerados como mudança de contrato;
-- atualizar documentação de domínio quando uma alteração estrutural mudar regra de negócio;
-- registrar ADR quando a mudança alterar arquitetura, autoridade ou estratégia de compatibilidade.
+- atualizar documentação de domínio quando uma alteração mudar regra de negócio;
+- registrar ADR quando a mudança alterar arquitetura, autoridade ou estratégia de compatibilidade;
+- não promover runbook apenas porque o frontend passou em fixtures isoladas.
 
 ## Pendências restantes
 
-1. comparar `database.types.generated.ts` com `src/lib/database.types.ts` e definir migração segura;
-2. aprofundar contratos de payload e resposta que não podem ser inferidos estaticamente;
-3. revisar alertas de segurança revelados por RLS, grants ou funções `security definer`;
-4. depreciar outros inventários manuais somente quando o conteúdo explicativo tiver substituto;
-5. manter os checks de drift obrigatórios em futuras mudanças estruturais.
+1. executar checkout integrado com Supabase local e preferência controlada do Mercado Pago;
+2. validar webhook assinado, idempotência e reconciliação financeira;
+3. validar emissão, transferência, cancelamento, reembolso e inventário de ponta a ponta;
+4. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
+5. tipar as RPCs efetivamente consumidas com `Args` e `Returns` gerados;
+6. mover o comparador de tipos para um snapshot arquivado e remover o arquivo manual;
+7. executar validações de design, responsividade e acessibilidade;
+8. promover runbooks somente depois de evidência operacional suficiente.
 
-O snapshot manual `docs/SUPABASE_SCHEMA.md` permanece depreciado e não deve voltar a ser usado como representação do banco vigente.
+O snapshot `docs/SUPABASE_SCHEMA.md` permanece depreciado e não deve voltar a representar o banco vigente.
