@@ -1,3 +1,4 @@
+# Diagnostic trigger: validates the exact migration without committing on pull requests.
 name: One-time people and profile type imports
 
 on:
