@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - "src/main.tsx"
       - "src/app/SecureCheckoutPage.tsx"
       - "src/app/PublicTicketsCatalogMount.tsx"
       - "src/lib/checkout.ts"
@@ -22,6 +23,7 @@ on:
       - ".github/workflows/commerce-functional-tests.yml"
   pull_request:
     paths:
+      - "src/main.tsx"
       - "src/app/SecureCheckoutPage.tsx"
       - "src/app/PublicTicketsCatalogMount.tsx"
       - "src/lib/checkout.ts"
@@ -109,6 +111,7 @@ jobs:
           last_verified_commit: ${GITHUB_SHA}
           generation_command: GitHub Actions / Commerce functional tests
           source_files:
+            - src/main.tsx
             - playwright.config.ts
             - tests/e2e/ticket-catalog-source-of-truth.spec.ts
             - tests/e2e/checkout-flow.spec.ts
