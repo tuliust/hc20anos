@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 4550e2f80a3dc207f7ec70aa2511d26dbe044039
+last_verified_commit: b30fd5e444c654c85b5b84c20c0ec18311d831fb
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
