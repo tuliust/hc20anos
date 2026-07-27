@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts 2>&1 | tee commerce-e2e.log
+          npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts --workers=1 2>&1 | tee commerce-e2e.log
 
       - name: Generate commerce test report
         if: always()
@@ -130,7 +130,7 @@ jobs:
           |---|---|---|
           | Build da aplicação | \`npm run build\` | \`${BUILD_OUTCOME}\` |
           | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
-          | E2E de catálogo e checkout | \`npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts\` | \`${E2E_OUTCOME:-skipped}\` |
+          | E2E de catálogo e checkout | \`npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts --workers=1\` | \`${E2E_OUTCOME:-skipped}\` |
 
           ## Cobertura funcional
 
