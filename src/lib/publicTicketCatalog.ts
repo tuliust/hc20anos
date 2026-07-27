@@ -1,4 +1,4 @@
-import type { DbTicketType } from "./database.types";
+import type { DbTicketType } from "./commerce.types";
 
 export const PUBLIC_TICKET_PRODUCT_CODES = [
   "simple",

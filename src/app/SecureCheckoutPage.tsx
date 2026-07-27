@@ -13,7 +13,7 @@ import {
   type CurrentTicketCatalogItem,
 } from "../lib/currentTicketCatalog";
 import { supabase } from "../lib/supabase";
-import type { DbTicketType, PaymentStatus } from "../lib/database.types";
+import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";
 
 type AuthState = {
   loggedIn: boolean;
