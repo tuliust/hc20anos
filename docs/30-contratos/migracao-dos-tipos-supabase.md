@@ -1,14 +1,22 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: e2c64aee03e1abf6ae0e3ac38604e7b831acaccc
+last_verified: 2026-07-27
+last_verified_commit: cdbe16b579047a1d8d1ad980cc7dba5cdcf9c576
 source_files:
   - docs/30-contratos/database.types.generated.ts
   - docs/30-contratos/compatibilidade-de-tipos.generated.md
+  - docs/30-contratos/consumidores-dos-tipos.generated.md
+  - src/lib/database.generated.ts
   - src/lib/database.types.ts
+  - src/lib/faq.types.ts
+  - src/lib/faqPresentation.ts
+  - src/lib/supabase.ts
+  - src/app/home/HomeFaqSection.tsx
+  - src/app/home/HomeFaqSectionLoader.tsx
   - docs/50-governanca/ADR/ADR-001-separar-contrato-supabase-e-tipos-de-dominio.md
   - scripts/audit-database-types.mjs
+  - scripts/generate-database-type-consumers.mjs
 ---
 
 # Migração dos tipos Supabase
@@ -44,13 +52,34 @@ Achados prioritários:
 
 O relatório atualizado está em [`compatibilidade-de-tipos.generated.md`](./compatibilidade-de-tipos.generated.md).
 
+## Estado atual da execução
+
+O inventário automático registra 17 consumidores restantes de `database.types.ts`. O cliente Supabase e a camada pública do FAQ já foram removidos desse conjunto.
+
+Implementado:
+
+- ponte estável `src/lib/database.generated.ts`;
+- `SupabaseClient<Database>` parametrizado pela baseline gerada;
+- módulo de domínio `src/lib/faq.types.ts`;
+- apresentação, loader e componente público do FAQ migrados;
+- inventário regenerado após cada mudança;
+- implantação mais recente validada com sucesso na Vercel.
+
+Ainda não comprovado nesta etapa:
+
+- suíte unitária completa;
+- E2E integral de perfil, checkout e área administrativa;
+- equivalência semântica entre os tipos FAQ manuais e os rows gerados;
+- migração do serviço central `src/lib/faq.ts`;
+- migração do painel administrativo de FAQ.
+
 ## Estado desejado
 
 ```text
-src/lib/supabase/database.generated.ts  contrato bruto gerado
-src/lib/domain/                         tipos funcionais e de apresentação
-src/lib/supabase/client.ts              cliente tipado pelo contrato bruto
-src/lib/adapters/                       conversões entre banco e domínio
+src/lib/database.generated.ts          ponte para o contrato bruto gerado
+src/lib/*.types.ts                     tipos funcionais e de apresentação
+src/lib/supabase.ts                    cliente tipado pelo contrato bruto
+src/lib/adapters/                      conversões entre banco e domínio, quando necessárias
 ```
 
 Os nomes exatos dos diretórios podem ser ajustados durante a implementação, mas as responsabilidades não devem voltar a ser misturadas.
@@ -73,36 +102,43 @@ Os nomes exatos dos diretórios podem ser ajustados durante a implementação, m
 - [x] Criar comparador automático.
 - [x] Versionar relatório de compatibilidade.
 - [x] Criar ADR.
+- [x] Inventariar todos os imports de `database.types.ts`.
+- [x] Classificar consumidores por categoria e símbolos importados.
+- [x] Confirmar que os imports existentes são exclusivamente de tipos.
 - [ ] Corrigir o cabeçalho do arquivo manual.
-- [ ] Inventariar todos os imports de `database.types.ts`.
-- [ ] Identificar consumidores que usam apenas tipos de domínio.
-- [ ] Identificar consumidores que executam queries Supabase.
+- [ ] Classificar, por fluxo, quais consumidores executam queries Supabase e quais usam apenas tipos de domínio.
 
 ### Critério de saída
 
-Todos os consumidores estão classificados antes de qualquer movimentação de tipo.
+O inventário estrutural está concluído. A classificação funcional fina continuará durante cada grupo de migração, antes de alterar seus imports.
 
 ## Fase 1 — cliente Supabase tipado
 
-Objetivo: aplicar o contrato gerado no ponto de criação do cliente, sem mudar ainda os tipos importados pelos componentes.
+Objetivo: aplicar o contrato gerado no ponto de criação do cliente, sem mudar ainda todos os tipos importados pelos componentes.
 
-- [ ] Localizar todas as instâncias de `createClient`.
-- [ ] Criar alias estável para o `Database` gerado.
-- [ ] Parametrizar `createClient<Database>`.
-- [ ] Corrigir erros reais de tabela, view e RPC revelados pelo cliente.
-- [ ] Proibir `createClient<any>` ou cliente não tipado em código novo.
+- [x] Localizar as instâncias vigentes de `createClient`.
+- [x] Criar alias estável para o `Database` gerado.
+- [x] Parametrizar `createClient<Database>`.
+- [x] Confirmar que o cliente deixou de consumir `database.types.ts`.
+- [x] Validar build no deployment de produção.
+- [ ] Corrigir gradualmente erros reais de tabela, view e RPC revelados pelo cliente.
+- [ ] Proibir `createClient<any>` ou cliente não tipado em código novo por regra automatizada.
 
-### Validação
+### Validação executada
 
-- build;
-- testes unitários;
-- verificações de bundle;
-- fluxos E2E de perfil, checkout e área administrativa;
-- nenhuma mudança de runtime deliberada.
+- deployment mais recente da Vercel concluído com sucesso;
+- inventário reduziu de 21 para 20 consumidores após a migração do cliente;
+- nenhuma mudança deliberada de runtime foi introduzida.
+
+### Validação ainda pendente
+
+- testes unitários completos;
+- verificações E2E dos fluxos principais;
+- verificação dedicada de todas as queries inferidas pelo cliente gerado.
 
 ### Rollback
 
-Reverter somente a parametrização do cliente. Não remover a baseline gerada.
+Reverter somente a importação do `Database` em `src/lib/supabase.ts`. Não remover a baseline nem a ponte gerada.
 
 ## Fase 2 — separar tipos de domínio
 
@@ -117,13 +153,26 @@ Mover para módulos próprios os tipos que não representam diretamente uma linh
 - payloads de moderação;
 - estados de checkout e notificações.
 
-- [ ] Criar diretório de tipos de domínio.
-- [ ] Mover interfaces sem alterar sua forma inicialmente.
-- [ ] Atualizar imports por grupo funcional.
+- [x] Criar o primeiro módulo funcional de tipos de domínio.
+- [x] Mover as interfaces públicas de FAQ sem alterar sua forma.
+- [x] Migrar a apresentação e a home do FAQ.
+- [x] Confirmar redução de consumidores de 20 para 17.
+- [x] Validar build da primeira família funcional.
+- [ ] Migrar `src/lib/faq.ts`.
+- [ ] Migrar os oito consumidores do painel administrativo de FAQ.
+- [ ] Revisar `icon_key`, `category_key` e `category_label` antes de derivar aliases da baseline.
+- [ ] Separar os demais grupos funcionais.
 - [ ] Remover a frase “tipos gerados” dos módulos manuais.
 - [ ] Adicionar comentários sobre a fonte de cada forma composta.
 
-### Critério de saída
+### Critério de saída do grupo FAQ
+
+- nenhum arquivo funcional de FAQ importa `DbFaqCategory` ou `DbFaqItem` de `database.types.ts`;
+- serviço público e operações administrativas compilam com `faq.types.ts`;
+- home e painel administrativo passam nos testes aplicáveis;
+- diferenças entre o domínio FAQ e o row gerado estão documentadas ou adaptadas explicitamente.
+
+### Critério de saída da fase
 
 O arquivo de compatibilidade deixa de ser ponto central para tipos de tela e conteúdo.
 
@@ -226,8 +275,8 @@ Prioridade:
 - [ ] Nenhuma view permanece em `Tables`.
 - [ ] Nenhum objeto usa `Row: any`.
 - [ ] Objetos removidos não permanecem no mapa.
-- [ ] O cliente está tipado pela baseline.
-- [ ] Tipos de domínio estão separados.
+- [x] O cliente está tipado pela baseline.
+- [ ] Tipos de domínio estão integralmente separados.
 - [ ] O comparador não aponta divergências não justificadas.
 - [ ] O arquivo manual antigo é depreciado ou removido.
 - [ ] O processo de geração e drift está documentado no onboarding.
