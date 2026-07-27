@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 7c9dea1646ec64e8bdc993f481bd7c61910aa9f5
+last_verified_commit: c2251298f4ce98f6fd17bb23a5d9ecf2682fccda
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,8 +17,8 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 4 |
-| Declarações de import ou augmentação | 4 |
+| Arquivos consumidores | 2 |
+| Declarações de import ou augmentação | 2 |
 | Símbolos importados distintos | 45 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 0 |
@@ -27,23 +27,20 @@ source_files:
 
 | Categoria | Arquivos |
 |---|---|
-| componente/página | 2 |
-| serviço/biblioteca | 2 |
+| componente/página | 1 |
+| serviço/biblioteca | 1 |
 
 ## Arquivos consumidores
 
 | Arquivo | Categoria | Modo | Módulo | Símbolos |
 |---|---|---|---|---|
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
-| `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
-| `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
 
 ## Símbolos por alcance
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `DbTicketType` | 4 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
 | `AdminRole` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `AlumniDirectoryStatusRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `CuriosityProfileStatsRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
@@ -64,10 +61,10 @@ source_files:
 | `DbProfile` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaim` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbProfileClaimDispute` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
+| `DbTicketType` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `Gender` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `LocationStat` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `ModerationStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
-| `PaymentStatus` | 2 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx` |
 | `PhotoStats` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `PollStatus` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `PublicLocationRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
@@ -84,6 +81,7 @@ source_files:
 | `EventPageInfoItem` | 1 | `src/app/App.tsx` |
 | `EventPageScheduleItem` | 1 | `src/app/App.tsx` |
 | `InsertOrder` | 1 | `src/lib/services.ts` |
+| `PaymentStatus` | 1 | `src/app/App.tsx` |
 | `PollResultRow` | 1 | `src/lib/services.ts` |
 | `ProfileStatus` | 1 | `src/app/App.tsx` |
 | `RelationshipStatus` | 1 | `src/app/App.tsx` |
