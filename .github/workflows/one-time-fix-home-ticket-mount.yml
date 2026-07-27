@@ -1,0 +1,88 @@
+name: One-time fix home ticket catalog mount
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-fix-home-ticket-mount.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace exact target resolver
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("src/app/PublicTicketsCatalogMount.tsx")
+          text = path.read_text()
+          old = '''function findHomeTicketsTarget() {
+            const sections = Array.from(document.querySelectorAll<HTMLElement>("main section"));
+            const section = sections.find(candidate => {
+              const headings = Array.from(candidate.querySelectorAll<HTMLElement>("h1, h2, h3, p"));
+              const hasTicketHeading = headings.some(element => normalize(element.textContent).includes("ingress"));
+              const hasCommercialContent = Array.from(candidate.querySelectorAll<HTMLButtonElement>("button"))
+                .some(button => /comprar|esgotado|indisponivel/.test(normalize(button.textContent)))
+                || /r\$\s*\d/i.test(candidate.textContent ?? "");
+              return hasTicketHeading && hasCommercialContent;
+            });
+
+            if (!section) return null;
+            const wrapper = Array.from(section.children).find((child): child is HTMLElement => {
+              return child instanceof HTMLElement && String(child.className).includes("max-w-7xl");
+            }) ?? section;
+
+            return { section, wrapper };
+          }
+'''
+          new = '''function findHomeTicketsTarget() {
+            const explicitSection = document.querySelector<HTMLElement>("main [data-home-section='tickets']");
+            const sections = Array.from(document.querySelectorAll<HTMLElement>("main section"));
+            const section = explicitSection ?? sections.find(candidate => {
+              const headings = Array.from(candidate.querySelectorAll<HTMLElement>("h1, h2, h3, p"));
+              const hasTicketHeading = headings.some(element => normalize(element.textContent).includes("ingress"));
+              const hasCommercialContent = Array.from(candidate.querySelectorAll<HTMLButtonElement>("button"))
+                .some(button => /comprar|esgotado|indisponivel/.test(normalize(button.textContent)))
+                || /r\$\s*\d/i.test(candidate.textContent ?? "");
+              return hasTicketHeading && hasCommercialContent;
+            });
+
+            if (!section) return null;
+            const wrapper = Array.from(section.children).find((child): child is HTMLElement => {
+              return child instanceof HTMLElement && String(child.className).includes("max-w-7xl");
+            }) ?? section;
+
+            return { section, wrapper };
+          }
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f"Expected one target resolver, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          changed="$(git diff --name-only)"
+          if [ "$changed" != "src/app/PublicTicketsCatalogMount.tsx" ]; then
+            echo "Unexpected changed files: $changed"
+            exit 1
+          fi
+          git diff --check
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/PublicTicketsCatalogMount.tsx
+          git commit -m "fix: usar alvo estável no catálogo da Home"
+          git push
