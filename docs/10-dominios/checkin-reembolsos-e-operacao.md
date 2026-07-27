@@ -1,14 +1,22 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-07-27
+last_verified_commit: 8b8086f2d95ec4e6018bb854f2e8bed04d0d0f07
 source_files:
+  - src/main.tsx
+  - src/app/OperationsRouteGuard.tsx
   - src/app/OperationsPage.tsx
-  - src/app/App.tsx
+  - src/app/OperationsReportingPanel.tsx
+  - src/app/CheckinScanner.tsx
+  - tests/e2e/operations-flow.spec.ts
+  - tests/e2e/operations-fixtures.ts
+  - docs/30-contratos/testes-operacionais.generated.md
+  - docs/30-contratos/RLS.generated.md
   - supabase/functions/refund-processor/index.ts
   - supabase/migrations/20260719000009_transfers_refunds_checkin_operations.sql
   - supabase/migrations/
+  - supabase/tests/
 ---
 
 # Check-in, reembolsos e operação
@@ -32,7 +40,35 @@ Capacidades observadas:
 - revisar solicitações;
 - acionar a Edge Function de processamento depois da aprovação.
 
-A rota operacional deve exigir autenticação e role compatível. A existência de uma URL separada não constitui proteção.
+### Proteção da rota standalone
+
+As rotas `/admin/operacao` e `/admin/checkin` são interceptadas em `main.tsx` antes do shell principal. Por isso, não dependem do guard administrativo interno de `App.tsx`.
+
+`OperationsRouteGuard.tsx` aplica proteção própria:
+
+1. exige sessão Supabase;
+2. redireciona visitante sem sessão para `/login`;
+3. lê somente a role do próprio usuário em `admin_users`;
+4. permite acesso a `checkin_staff`, `admin` e `superadmin`;
+5. recusa `viewer`, `moderator` e usuários sem registro administrativo;
+6. renderiza indicadores financeiros somente para `admin` e `superadmin`.
+
+A proteção do frontend reduz exposição indevida e erros operacionais. Ela não substitui RLS, grants ou validação explícita nas RPCs.
+
+### Segregação de funções
+
+A mesma página adapta as capacidades à role:
+
+| Capacidade | `checkin_staff` | `admin` | `superadmin` |
+|---|---:|---:|---:|
+| Consultar dashboard de entrada | sim | sim | sim |
+| Registrar ou desfazer check-in | sim | sim | sim |
+| Registrar entrega de vouchers | sim | sim | sim |
+| Visualizar indicadores operacionais | não na interface atual | sim | sim |
+| Consultar solicitações de reembolso | não | sim | sim |
+| Aprovar e acionar processamento | não | sim | sim |
+
+`OperationsPage.tsx` não carrega reembolsos para `checkin_staff` e não exibe a respectiva aba. `OperationsReportingPanel` também não é montado para essa role.
 
 ## Check-in
 
@@ -64,7 +100,7 @@ A operação deve ser transacional e idempotente. Repetir o mesmo QR Code deve r
 
 O QR Code deve conter token não previsível e não apenas o ID sequencial ou UUID exposto do ingresso.
 
-A operação precisa oferecer fallback por código textual quando câmera ou `BarcodeDetector` não estiverem disponíveis.
+A operação oferece fallback por código textual quando câmera ou `BarcodeDetector` não estão disponíveis.
 
 Não registrar QR tokens completos em capturas, issues ou mensagens de suporte.
 
@@ -158,7 +194,7 @@ O modelo pode incluir:
 - `refunded`;
 - `failed`.
 
-O contrato final será gerado das migrations.
+O contrato final é derivado das migrations e dos contratos gerados.
 
 ## Falhas parciais
 
@@ -181,14 +217,34 @@ Em qualquer caso:
 
 | Operação | Role esperada |
 |---|---|
-| Visualizar dashboard de operação | `checkin_staff`, `admin` ou `superadmin`, conforme RPC final |
+| Visualizar dashboard de entrada | `checkin_staff`, `admin` ou `superadmin` |
 | Executar check-in | `checkin_staff`, `admin` ou `superadmin` |
-| Entregar vouchers | equipe operacional autorizada |
+| Entregar vouchers | `checkin_staff`, `admin` ou `superadmin` |
+| Visualizar indicadores e atividade consolidada | `admin` ou `superadmin` na interface atual |
 | Consultar reembolsos | `admin` ou `superadmin` |
 | Aprovar e processar reembolso | `admin` ou `superadmin` |
 | Alterar policies ou dados financeiros manualmente | acesso técnico excepcional e auditado |
 
-A matriz final depende das policies e RPCs geradas.
+A matriz final depende das policies e RPCs geradas. A interface deve permanecer mais restritiva quando houver dúvida.
+
+## Evidência automatizada
+
+O workflow `Operations functional tests` executa build, Chromium e três cenários Playwright serializados.
+
+A evidência vigente em [`../30-contratos/testes-operacionais.generated.md`](../30-contratos/testes-operacionais.generated.md) registra:
+
+- build: `success`;
+- instalação do Chromium: `success`;
+- E2E de autorização e operação: `success`;
+- três testes aprovados.
+
+Cenários comprovados com fixtures HTTP isoladas:
+
+1. visitante sem sessão é redirecionado ao login;
+2. `checkin_staff` registra entrada e vouchers sem acesso a reembolsos ou indicadores financeiros;
+3. `admin` recebe reembolsos e indicadores.
+
+Essa evidência comprova o comportamento do frontend e os argumentos enviados às RPCs. Não substitui os testes SQL existentes, nem comprova conectividade real, leitura por câmera, Mercado Pago ou operação presencial.
 
 ## Testes mínimos
 
@@ -224,5 +280,7 @@ A matriz final depende das policies e RPCs geradas.
 ## Dívidas conhecidas
 
 - O polling do dashboard precisa ser avaliado quanto a carga e comportamento em conectividade instável.
-- O contrato automático de roles e RPCs ainda não foi gerado.
 - O procedimento de contingência offline deve ser testado antes do evento.
+- O leitor por câmera precisa ser ensaiado em dispositivos e navegadores reais.
+- A segregação visual deve continuar acompanhada de testes SQL/RLS para cada role.
+- O processamento real de reembolso precisa ser validado em ambiente controlado com o provedor.
