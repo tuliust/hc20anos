@@ -32,3 +32,6 @@ export type PollResultRow = Omit<
   sort_order: number;
   votes_count: number;
 };
+
+// `App.tsx` e `services.ts` são os consumidores centrais. Novos fluxos de
+// memórias e enquetes devem importar deste módulo.
