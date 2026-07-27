@@ -11,7 +11,7 @@ import {
 const SELECTION_KEY = "hc-checkout-ticket-selected";
 
 test.describe("catálogo e checkout", () => {
-  test("usa a seleção vigente e envia um pedido normalizado e autenticado", async ({ page }) => {
+  test("preserva o perfil vinculado e envia um pedido normalizado e autenticado", async ({ page }) => {
     const api = await installCommerceFixtures(page);
 
     await page.addInitScript(
