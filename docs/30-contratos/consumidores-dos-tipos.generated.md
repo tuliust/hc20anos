@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: 4e98da0f57d382273f5b24fe6b3b6f3211ca791d
+last_verified_commit: fa6d0f74796300fd188cdc290e4a96da74c44a0d
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,8 +17,8 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 8 |
-| Declarações de import ou augmentação | 8 |
+| Arquivos consumidores | 5 |
+| Declarações de import ou augmentação | 5 |
 | Símbolos importados distintos | 45 |
 | Imports que não são exclusivamente `import type` | 0 |
 | Augmentações de módulo | 1 |
@@ -28,10 +28,8 @@ source_files:
 | Categoria | Arquivos |
 |---|---|
 | componente/página | 2 |
-| enhancement | 2 |
 | serviço/biblioteca | 2 |
 | augmentação de módulo | 1 |
-| outro runtime | 1 |
 
 ## Arquivos consumidores
 
@@ -39,9 +37,6 @@ source_files:
 |---|---|---|---|---|
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
-| `src/historyContentEnhancements.ts` | outro runtime | import type | `./lib/database.types` | `DbPhoto` |
-| `src/historyPersonFilterEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
-| `src/historyPhotoRefreshEnhancement.ts` | enhancement | import type | `./lib/database.types` | `DbPhoto` |
 | `src/lib/database.people-extensions.d.ts` | augmentação de módulo | declare module | `./database.types` | — |
 | `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
@@ -50,7 +45,6 @@ source_files:
 
 | Símbolo | Consumidores | Arquivos |
 |---|---|---|
-| `DbPhoto` | 5 | `src/app/App.tsx`<br>`src/historyContentEnhancements.ts`<br>`src/historyPersonFilterEnhancement.ts`<br>`src/historyPhotoRefreshEnhancement.ts`<br>`src/lib/services.ts` |
 | `DbTicketType` | 4 | `src/app/App.tsx`<br>`src/app/SecureCheckoutPage.tsx`<br>`src/lib/publicTicketCatalog.ts`<br>`src/lib/services.ts` |
 | `AdminRole` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `AlumniDirectoryStatusRow` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
@@ -62,6 +56,7 @@ source_files:
 | `DbMemory` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbOrder` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPerson` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
+| `DbPhoto` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPhotoComment` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPhotoRemovalRequest` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
 | `DbPhotoTag` | 2 | `src/app/App.tsx`<br>`src/lib/services.ts` |
