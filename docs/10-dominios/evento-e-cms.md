@@ -1,13 +1,17 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-07-27
+last_verified_commit: 032971abf43fc1729227ca9013f4331ecf6d724c
 source_files:
   - src/app/PublicCmsStrictGuard.tsx
   - src/app/CmsAdminPanels.tsx
+  - src/app/App.tsx
   - src/lib/neutralCmsDefaults.ts
   - src/lib/services.ts
+  - tests/e2e/editorial-moderation-flow.spec.ts
+  - tests/e2e/editorial-moderation-fixtures.ts
+  - docs/30-contratos/testes-moderacao-editorial.generated.md
   - scripts/audit-strict-cms.mjs
   - scripts/audit-home-cms-production.mjs
   - supabase/migrations/
@@ -100,6 +104,21 @@ A capacidade de editar CMS depende de autenticação, registro em `admin_users` 
 
 Toda alteração administrativa relevante deve produzir `updated_at` e, quando aplicável, trilha em `audit_logs`.
 
+## Evidência funcional de moderação
+
+O workflow `Editorial moderation functional tests` executou build, Chromium e dois E2E com resultado `success`. O relatório gerado está em [`../30-contratos/testes-moderacao-editorial.generated.md`](../30-contratos/testes-moderacao-editorial.generated.md).
+
+A execução com fixtures HTTP isoladas comprova:
+
+- entrada administrativa nas filas de moderação;
+- memória anônima sem exposição do nome protegido na interface editorial;
+- aprovação de memória com status, administrador e timestamp;
+- rejeição de comentário com limpeza de aprovação anterior;
+- remoção do item da fila pendente após a transição;
+- criação de registro de auditoria com ação, entidade e identificador.
+
+A evidência não substitui RLS, grants, constraints, revisão humana ou validação integrada das políticas do banco.
+
 ## Auditorias disponíveis
 
 ```bash
@@ -151,6 +170,7 @@ Uma mudança de CMS está completa quando:
 
 ## Dívidas conhecidas
 
+- Validar as filas editoriais contra RLS e grants reais em ambiente integrado.
+- Executar cenários de concorrência, ações em lote e falha parcial de auditoria.
 - Parte dos contratos editoriais e defaults ainda está concentrada em `src/lib/services.ts`.
 - O frontend combina renderização React, mounts e enhancements; uma alteração visual pode não estar limitada a um único componente.
-- O inventário automático das tabelas e campos do CMS ainda depende da geração do contrato final do banco.
