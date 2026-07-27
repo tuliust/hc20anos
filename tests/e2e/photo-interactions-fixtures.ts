@@ -6,7 +6,53 @@ import {
 } from "./profile-claim-fixtures";
 
 export const TEST_PHOTO_ID = "00000000-0000-4000-8000-000000000901";
+export const TEST_TAG_PERSON_ID = "00000000-0000-4000-8000-000000000202";
 const EVENT_ID = "00000000-0000-0000-0000-000000000001";
+
+const peopleRows = [
+  {
+    id: TEST_PERSON_ID,
+    full_name: "Maria Cabeção da Silva Souza",
+    display_name: "Maria Cabeção",
+    class_year: 2006,
+    class_group: "A",
+    birth_year: 1988,
+    gender: "female",
+    nickname_at_school: null,
+    profile_status: "claimed",
+    verification_status: "approved",
+    claimed_by_user_id: TEST_USER_ID,
+    claimed_at: "2026-07-21T16:00:00Z",
+    is_visible: true,
+    private_notes: null,
+    avatar_url: null,
+    contact_email: "claimant@example.com",
+    contact_whatsapp: null,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-07-21T16:00:00Z",
+  },
+  {
+    id: TEST_TAG_PERSON_ID,
+    full_name: "João Vitor Melo",
+    display_name: "João Vitor",
+    class_year: 2006,
+    class_group: "B",
+    birth_year: 1988,
+    gender: "male",
+    nickname_at_school: "JV",
+    profile_status: "confirmed",
+    verification_status: "approved",
+    claimed_by_user_id: "00000000-0000-4000-8000-000000000102",
+    claimed_at: "2026-07-20T16:00:00Z",
+    is_visible: true,
+    private_notes: null,
+    avatar_url: null,
+    contact_email: null,
+    contact_whatsapp: null,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-07-20T16:00:00Z",
+  },
+];
 
 const photoRow = {
   id: TEST_PHOTO_ID,
@@ -81,6 +127,11 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
     const restPath = url.pathname.split("/rest/v1/")[1] ?? "";
     const resource = restPath.split("/")[0];
     const method = request.method();
+
+    if (resource === "people" && method === "GET") {
+      await fulfillJson(route, peopleRows);
+      return;
+    }
 
     if (resource === "photos" && method === "GET") {
       await fulfillJson(route, [photoRow]);
