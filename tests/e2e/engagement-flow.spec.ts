@@ -29,9 +29,11 @@ test.describe("memórias e enquetes", () => {
     expect(api.memoryCalls).toHaveLength(0);
 
     await memoryField.fill("Lembro das conversas no corredor antes da primeira aula.");
-    const anonymousControl = page.getByText("Enviar sem mostrar meu nome", { exact: true });
+    const anonymousControl = page.getByRole("switch", { name: "Enviar sem mostrar meu nome" });
     await expect(anonymousControl).toBeVisible();
+    await expect(anonymousControl).toHaveAttribute("aria-checked", "false");
     await anonymousControl.click();
+    await expect(anonymousControl).toHaveAttribute("aria-checked", "true");
     await submitMemory.click();
 
     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
