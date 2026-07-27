@@ -89,6 +89,8 @@ jobs:
           git add "${files[@]}"
           git commit -m "docs: atualizar auditoria dos tipos Supabase"
 
+          # Outros workflows também publicam contratos gerados em main.
+          # Rebasear preserva ambos os commits quando ocorrer uma corrida de push.
           for attempt in 1 2 3; do
             if git push; then
               exit 0
