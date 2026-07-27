@@ -145,7 +145,7 @@ async function installFaqRoute(
 
     const resource = restPath.split("?")[0].split("/")[0];
     if (resource === "faq_categories") {
-      await fulfillJson(route, options.structured ? faqCategories : []);
+      await fulfillJson(route, options.structured ? faqCategories : [faqCategories[0]]);
       return;
     }
     if (resource === "faq_items") {
