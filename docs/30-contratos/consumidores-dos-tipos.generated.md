@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-27
-last_verified_commit: fa6d0f74796300fd188cdc290e4a96da74c44a0d
+last_verified_commit: 61809d39dde5c7b1fc980c263cfff12641987e95
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -17,11 +17,11 @@ source_files:
 
 | Métrica | Quantidade |
 |---|---|
-| Arquivos consumidores | 5 |
-| Declarações de import ou augmentação | 5 |
+| Arquivos consumidores | 4 |
+| Declarações de import ou augmentação | 4 |
 | Símbolos importados distintos | 45 |
 | Imports que não são exclusivamente `import type` | 0 |
-| Augmentações de módulo | 1 |
+| Augmentações de módulo | 0 |
 
 ## Consumidores por categoria
 
@@ -29,7 +29,6 @@ source_files:
 |---|---|
 | componente/página | 2 |
 | serviço/biblioteca | 2 |
-| augmentação de módulo | 1 |
 
 ## Arquivos consumidores
 
@@ -37,7 +36,6 @@ source_files:
 |---|---|---|---|---|
 | `src/app/App.tsx` | componente/página | import type | `../lib/database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimDispute`, `DbTicketType`, `EventPageGalleryItem`, `EventPageInfoItem`, `EventPageScheduleItem`, `Gender`, `LocationStat`, `ModerationStatus`, `PaymentStatus`, `PhotoStats`, `PollStatus`, `ProfileStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `RelationshipStatus`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails` |
 | `src/app/SecureCheckoutPage.tsx` | componente/página | import type | `../lib/database.types` | `DbTicketType`, `PaymentStatus` |
-| `src/lib/database.people-extensions.d.ts` | augmentação de módulo | declare module | `./database.types` | — |
 | `src/lib/publicTicketCatalog.ts` | serviço/biblioteca | import type | `./database.types` | `DbTicketType` |
 | `src/lib/services.ts` | serviço/biblioteca | import type | `./database.types` | `AdminRole`, `AlumniDirectoryStatusRow`, `CuriosityProfileStatsRow`, `DbAdminUser`, `DbAuditLog`, `DbEvent`, `DbEventArchiveSettings`, `DbEventPageContent`, `DbHomePageContent`, `DbMemory`, `DbOrder`, `DbPerson`, `DbPhoto`, `DbPhotoComment`, `DbPhotoLike`, `DbPhotoRemovalRequest`, `DbPhotoTag`, `DbPoll`, `DbPollOption`, `DbPollVote`, `DbProfile`, `DbProfileClaim`, `DbProfileClaimAnswer`, `DbProfileClaimDispute`, `DbTicket`, `DbTicketType`, `Gender`, `InsertOrder`, `LocationStat`, `ModerationStatus`, `PhotoStats`, `PollResultRow`, `PollStatus`, `PublicLocationRow`, `PublicProfileCardRow`, `SchoolQuestionnaireOptionStatRow`, `TicketStatus`, `TicketWithDetails`, `UpsertProfile` |
 
