@@ -30,8 +30,7 @@ import {
 } from "../lib/services";
 import type {
   DbEvent, DbAuditLog, DbOrder,
-  DbProfileClaim, DbProfileClaimDispute, TicketStatus,
-  TicketWithDetails,
+  TicketStatus, TicketWithDetails,
   DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem,
 } from "../lib/database.types";
 import type {
@@ -52,6 +51,7 @@ import type { DbPhoto } from "../lib/photo.types";
 import type { DbPhotoComment, DbPhotoRemovalRequest, DbPhotoTag, ModerationStatus, PhotoStats } from "../lib/photo.types";
 import type { DbTicketType, PaymentStatus } from "../lib/commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../lib/engagement.types";
+import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";

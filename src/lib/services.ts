@@ -6,10 +6,9 @@
 
 import { DEV_MODE, supabase } from "./supabase";
 import type {
-  DbProfileClaim, DbProfileClaimAnswer, DbTicket,
+  DbTicket,
   DbOrder, DbEvent, InsertOrder,
   DbAuditLog, TicketStatus,
-  DbProfileClaimDispute,
   TicketWithDetails,
   DbEventArchiveSettings, DbEventPageContent, DbHomePageContent,
 } from "./database.types";
@@ -37,6 +36,7 @@ import type {
 } from "./photo.types";
 import type { DbTicketType } from "./commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollResultRow, PollStatus } from "./engagement.types";
+import type { DbProfileClaim, DbProfileClaimAnswer, DbProfileClaimDispute } from "./identity.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;
