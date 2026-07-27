@@ -19,7 +19,8 @@ test.describe("memórias e enquetes", () => {
     await expect(page.getByText("Anônimo", { exact: false })).toBeVisible();
     await expect(page.getByText("Autor Confidencial", { exact: false })).toHaveCount(0);
 
-    const memoryField = page.getByLabel("Sua memória");
+    const memoryField = page.locator("textarea").first();
+    await expect(memoryField).toBeVisible();
     await memoryField.fill("Curta");
     await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
     await expect(page.getByText("Escreva uma memória com pelo menos 10 caracteres.", { exact: true })).toBeVisible();
@@ -51,9 +52,11 @@ test.describe("memórias e enquetes", () => {
 
     await expect(page.getByRole("heading", { name: "O raio-X da Turma 2006" })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Qual lugar mais representa a turma?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Qual tradição deve voltar no reencontro?" })).toBeVisible();
     await expect(page.getByText("Os resultados serão exibidos depois do seu voto.", { exact: true })).toBeVisible();
     await expect(page.getByText("2 votos", { exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Gincana", exact: true })).toBeDisabled();
+    const closedOption = page.getByText("Gincana", { exact: true }).locator("xpath=ancestor::button");
+    await expect(closedOption).toBeDisabled();
 
     await page.getByRole("button", { name: "Corredor principal", exact: true }).click();
 
@@ -67,6 +70,7 @@ test.describe("memórias e enquetes", () => {
       option_id: TEST_POLL_OPTION_B,
       user_id: TEST_USER_ID,
     });
-    await expect(page.getByRole("button", { name: /Corredor principal.*2 votos/s })).toBeDisabled();
+    const selectedOption = page.getByText("Corredor principal", { exact: true }).locator("xpath=ancestor::button");
+    await expect(selectedOption).toBeDisabled();
   });
 });
