@@ -29,12 +29,12 @@ declare
   v_previous text;
 begin
   if v_role not in ('admin','superadmin') then raise exception 'admin_required'; end if;
-  select r,p.event_id into v_row,v_event_id
-  from public.photo_removal_requests r
-  join public.photos p on p.id=r.photo_id
-  where r.id=p_request_id
-  for update of r;
+  select * into v_row
+  from public.photo_removal_requests
+  where id=p_request_id
+  for update;
   if not found then raise exception 'removal_request_not_found'; end if;
+  select p.event_id into v_event_id from public.photos p where p.id=v_row.photo_id;
   v_previous:=v_row.status::text;
   update public.photo_removal_requests
   set status='rejected',
