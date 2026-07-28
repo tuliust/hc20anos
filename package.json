@@ -23,6 +23,8 @@
     "docs:check-type-consumers": "node scripts/generate-database-type-consumers.mjs --check",
     "docs:generate-rpc-usage": "node scripts/generate-consumed-rpc-contracts.mjs",
     "docs:check-rpc-usage": "node scripts/generate-consumed-rpc-contracts.mjs --check",
+    "rpc:fix-any-casts": "node scripts/migrate-rpc-any-casts.mjs --fix",
+    "rpc:check-any-casts": "node scripts/migrate-rpc-any-casts.mjs",
     "verify:profile-claim-bundle": "node scripts/verify-profile-claim-bundle.mjs",
     "verify:profile-bio-ai": "node scripts/verify-profile-bio-api.mjs",
     "admin:apply-mercado-pago-ui": "node scripts/apply-admin-mercado-pago-ui-windows.mjs",
@@ -100,7 +102,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@tailwindcss/vite": "4.1.12",
+    "@tailwindcss/vite": "4.7.0",
     "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "4.7.0",
     "supabase": "^2.109.1",
