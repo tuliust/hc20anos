@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 1679b315a27b3f2d5b5134db1173fb2acb2456bf
+last_verified_commit: 5d98fbed05d0ea93b3e6250cfc4113aa76b5c085
 generation_command: GitHub Actions / Editorial moderation functional tests
 source_files:
   - playwright.config.ts
@@ -21,9 +21,9 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `skipped` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
-| E2E de moderação editorial | `npx playwright test tests/e2e/editorial-moderation-flow.spec.ts --workers=1` | `skipped` |
+| Build da aplicação | `npm run build` | `success` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
+| E2E de moderação editorial | `npx playwright test tests/e2e/editorial-moderation-flow.spec.ts --workers=1` | `success` |
 
 ## Cobertura funcional
 
@@ -36,4 +36,18 @@ source_files:
 
 ## Interpretação
 
-A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar a moderação editorial validada.
+A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova autorização de interface, filas, patches e auditoria, mas não substitui RLS, grants ou revisão humana em ambiente integrado.
+
+## Diagnóstico E2E
+
+```text
+
+Running 2 tests using 1 worker
+
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✓  1 tests/e2e/editorial-moderation-flow.spec.ts:10:3 › moderação editorial › aprova memória anônima sem revelar autoria pública (5.0s)
+  ✓  2 tests/e2e/editorial-moderation-flow.spec.ts:36:3 › moderação editorial › rejeita comentário pendente e registra auditoria (1.4s)
+
+  2 passed (8.8s)
+```
