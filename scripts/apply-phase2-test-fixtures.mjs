@@ -22,6 +22,24 @@ function insertAfter(source, marker, addition, label) {
   return source.replace(marker, `${marker}${addition}`);
 }
 
+function replaceRequired(source, before, after, label) {
+  if (source.includes(after)) return source;
+  if (!source.includes(before)) throw new Error(`Bloco não encontrado: ${label}`);
+  return source.replace(before, after);
+}
+
+await update("supabase/migrations/20260728000001_phase2_content_storage_security.sql", source => {
+  let next = source;
+  const rejectBefore = `  select r,p.event_id into v_row,v_event_id from public.photo_removal_requests r join public.photos p on p.id=r.photo_id where r.id=p_request_id for update of r;\n  if not found then raise exception 'removal_request_not_found'; end if;`;
+  const rejectAfter = `  select * into v_row from public.photo_removal_requests where id=p_request_id for update;\n  if not found then raise exception 'removal_request_not_found'; end if;\n  select p.event_id into v_event_id from public.photos p where p.id=v_row.photo_id;`;
+  next = replaceRequired(next, rejectBefore, rejectAfter, "leitura da rejeição de remoção");
+
+  const completeBefore = `  select r,p.event_id into v_row,v_event_id from public.photo_removal_requests r join public.photos p on p.id=r.photo_id where r.id=p_request_id for update of r;\n  if not found then raise exception 'removal_request_not_found'; end if;`;
+  const completeAfter = `  select * into v_row from public.photo_removal_requests where id=p_request_id for update;\n  if not found then raise exception 'removal_request_not_found'; end if;\n  select p.event_id into v_event_id from public.photos p where p.id=v_row.photo_id;`;
+  next = replaceRequired(next, completeBefore, completeAfter, "leitura da conclusão de remoção");
+  return next;
+});
+
 await update("tests/e2e/engagement-fixtures.ts", source => {
   let next = source;
   const marker = "    const method = request.method();\n";
