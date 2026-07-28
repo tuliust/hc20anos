@@ -27,6 +27,11 @@ function hex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes)).map(value => value.toString(16).padStart(2, "0")).join("");
 }
 
+function safeName(value: string) {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "image";
+}
+
 function parseTags(value: FormDataEntryValue | null) {
   if (!value) return [];
   if (typeof value !== "string") throw new Error("invalid_photo_tags");
@@ -54,6 +59,20 @@ async function authenticate(request: Request) {
   return { user: data.user, userClient, serviceClient };
 }
 
+function inspectFile(file: File, maxBytes: number) {
+  return file.arrayBuffer().then(buffer => {
+    const bytes = new Uint8Array(buffer);
+    const inspection = inspectImageBytes(bytes, {
+      declaredMimeType: file.type,
+      maxBytes,
+      maxDimension: 12_000,
+      maxPixels: 40_000_000,
+      rejectSensitiveMetadata: true,
+    });
+    return { bytes, inspection };
+  });
+}
+
 async function uploadPhoto(request: Request) {
   const { user, userClient, serviceClient } = await authenticate(request);
   const form = await request.formData();
@@ -62,20 +81,14 @@ async function uploadPhoto(request: Request) {
   const authorizationGiven = String(form.get("authorization_given") ?? "") === "true";
   if (!authorizationGiven) return json({ error: "photo_authorization_required" }, 400);
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let inspection;
+  let inspected;
   try {
-    inspection = inspectImageBytes(bytes, {
-      declaredMimeType: file.type,
-      maxBytes: 10 * 1024 * 1024,
-      maxDimension: 12_000,
-      maxPixels: 40_000_000,
-      rejectSensitiveMetadata: true,
-    });
+    inspected = await inspectFile(file, 10 * 1024 * 1024);
   } catch (error) {
     const code = error instanceof ImageSecurityError ? error.code : "image_validation_failed";
     return json({ error: code }, 400);
   }
+  const { bytes, inspection } = inspected;
 
   let tags;
   try {
@@ -137,6 +150,43 @@ async function uploadPhoto(request: Request) {
   }, 201);
 }
 
+async function uploadAsset(request: Request) {
+  const { user, serviceClient } = await authenticate(request);
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!(file instanceof File)) return json({ error: "image_required" }, 400);
+  const target = String(form.get("target") ?? "");
+  const scope = safeName(String(form.get("scope") ?? "image"));
+  const eventId = safeName(String(form.get("event_id") ?? "default"));
+  if (!['avatar', 'cms'].includes(target)) return json({ error: "invalid_asset_target" }, 400);
+
+  if (target === "cms") {
+    const { data: admin } = await serviceClient.from("admin_users").select("id").eq("user_id", user.id).in("role", ["admin", "superadmin"]).maybeSingle();
+    if (!admin) return json({ error: "admin_required" }, 403);
+  }
+
+  let inspected;
+  try {
+    inspected = await inspectFile(file, target === "avatar" ? 5 * 1024 * 1024 : 10 * 1024 * 1024);
+  } catch (error) {
+    const code = error instanceof ImageSecurityError ? error.code : "image_validation_failed";
+    return json({ error: code }, 400);
+  }
+  const { bytes, inspection } = inspected;
+  const bucket = target === "avatar" ? "avatars" : "cms-assets";
+  const prefix = target === "avatar" ? user.id : eventId;
+  const storagePath = `${prefix}/${scope}-${crypto.randomUUID()}.${inspection.extension}`;
+
+  const { error: uploadError } = await serviceClient.storage.from(bucket).upload(storagePath, bytes, {
+    contentType: inspection.mimeType,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (uploadError) return json({ error: "storage_upload_failed", detail: uploadError.message }, 502);
+  const { data } = serviceClient.storage.from(bucket).getPublicUrl(storagePath);
+  return json({ storage: { path: storagePath, public_url: data.publicUrl, content_type: inspection.mimeType, size: bytes.length } }, 201);
+}
+
 async function removePhoto(request: Request) {
   const { userClient, serviceClient } = await authenticate(request);
   const body = await request.json().catch(() => ({}));
@@ -177,6 +227,7 @@ Deno.serve(async request => {
   try {
     const action = new URL(request.url).searchParams.get("action") ?? "upload";
     if (action === "upload") return await uploadPhoto(request);
+    if (action === "asset") return await uploadAsset(request);
     if (action === "remove") return await removePhoto(request);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
