@@ -1,0 +1,204 @@
+name: Phase 1 environment and security
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "build/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/generate-consumed-rpc-contracts.mjs"
+      - "docs/30-contratos/database.types.generated.ts"
+      - "docs/30-contratos/permissoes.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/phase1-environment-security.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "api/**"
+      - "build/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/generate-consumed-rpc-contracts.mjs"
+      - "docs/30-contratos/database.types.generated.ts"
+      - "docs/30-contratos/permissoes.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/phase1-environment-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase1-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrated-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate consumed RPC contracts
+        id: rpc
+        continue-on-error: true
+        run: npm run docs:generate-rpc-usage
+      - name: Build typed application
+        id: build
+        continue-on-error: true
+        if: steps.rpc.outcome == 'success'
+        run: npm run build
+      - name: Start local Supabase
+        id: start
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npx supabase start 2>&1 | tee phase1-supabase-start.log
+      - name: Replay all migrations
+        id: reset
+        continue-on-error: true
+        if: steps.start.outcome == 'success'
+        run: |
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee phase1-supabase-reset.log
+      - name: Install deterministic users and roles
+        id: fixture
+        continue-on-error: true
+        if: steps.reset.outcome == 'success'
+        run: |
+          docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < supabase/tests/fixtures/local_test_context.sql 2>&1 | tee phase1-fixture.log
+      - name: Run SQL security and integrity tests
+        id: sql
+        continue-on-error: true
+        if: steps.fixture.outcome == 'success'
+        shell: bash
+        run: |
+          set -u
+          : > phase1-sql-tests.log
+          failed=0
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a phase1-sql-tests.log
+            if ! output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"; then
+              printf '%s\n' "${output}" | tee -a phase1-sql-tests.log
+              failed=1
+              continue
+            fi
+            printf '%s\n' "${output}" | tee -a phase1-sql-tests.log
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "${output}"; then failed=1; fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+          exit "${failed}"
+      - name: Generate database contracts
+        id: db_contracts
+        continue-on-error: true
+        if: steps.sql.outcome == 'success'
+        run: npm run docs:generate-db-contracts
+      - name: Audit documentation
+        id: docs
+        continue-on-error: true
+        if: steps.db_contracts.outcome == 'success'
+        run: npm run audit:docs
+      - name: Generate Phase 1 report
+        if: always()
+        env:
+          RPC: ${{ steps.rpc.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          START: ${{ steps.start.outcome }}
+          RESET: ${{ steps.reset.outcome }}
+          FIXTURE: ${{ steps.fixture.outcome }}
+          SQL: ${{ steps.sql.outcome }}
+          DB: ${{ steps.db_contracts.outcome }}
+          DOCS: ${{ steps.docs.outcome }}
+        run: |
+          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: $(date -u +%F)
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Phase 1 environment and security
+          source_files:
+            - supabase/migrations/
+            - supabase/tests/
+            - src/lib/rpc.types.ts
+            - scripts/generate-consumed-rpc-contracts.mjs
+            - .github/workflows/phase1-environment-security.yml
+          ---
+
+          # Fase 1 — ambiente e segurança
+
+          | Verificação | Resultado |
+          |---|---|
+          | Inventário e contratos das RPCs consumidas | \`${RPC}\` |
+          | Build TypeScript e aplicação | \`${BUILD:-skipped}\` |
+          | Inicialização do Supabase local | \`${START}\` |
+          | Replay integral das migrations | \`${RESET:-skipped}\` |
+          | Usuários e roles determinísticos | \`${FIXTURE:-skipped}\` |
+          | RLS, grants, triggers, constraints e roles | \`${SQL:-skipped}\` |
+          | Regeneração dos contratos do banco | \`${DB:-skipped}\` |
+          | Auditoria documental | \`${DOCS:-skipped}\` |
+
+          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
+          EOF
+          if [ -s phase1-sql-tests.log ]; then
+            printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+            tail -n 220 phase1-sql-tests.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+            printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          fi
+      - name: Require generated outputs in pull requests
+        if: github.event_name == 'pull_request'
+        run: |
+          changes="$(git status --porcelain -- src/lib/rpc.generated.ts docs/30-contratos/RPCs-consumidas.generated.md docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md)"
+          test -z "$changes" || { echo "$changes"; exit 1; }
+      - name: Publish Phase 1 evidence to main
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          files=(src/lib/rpc.generated.ts docs/30-contratos/RPCs-consumidas.generated.md docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md)
+          changes="$(git status --porcelain --untracked-files=all -- "${files[@]}")"
+          if [ -z "$changes" ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${files[@]}"
+          git commit -m "docs: atualizar evidência da fase 1"
+          for attempt in 1 2 3; do
+            git push && exit 0
+            git pull --rebase origin main
+          done
+          exit 1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-environment-security-${{ github.sha }}
+          path: |
+            phase1-*.log
+            src/lib/rpc.generated.ts
+            docs/30-contratos/RPCs-consumidas.generated.md
+            docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup || true
+      - name: Fail on Phase 1 regression
+        if: always()
+        env:
+          RESULTS: ${{ join(steps.*.outcome, ' ') }}
+        run: |
+          for result in "${{ steps.rpc.outcome }}" "${{ steps.build.outcome }}" "${{ steps.start.outcome }}" "${{ steps.reset.outcome }}" "${{ steps.fixture.outcome }}" "${{ steps.sql.outcome }}" "${{ steps.db_contracts.outcome }}" "${{ steps.docs.outcome }}"; do
+            [ "$result" = "success" ] || exit 1
+          done
