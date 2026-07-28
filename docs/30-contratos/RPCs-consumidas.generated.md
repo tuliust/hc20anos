@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 207c85fc41d2bc1cab36797deebc5af6ffea7ce0
+last_verified_commit: cb819fce889baa9a49d8398054a649516f9c51ab
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/

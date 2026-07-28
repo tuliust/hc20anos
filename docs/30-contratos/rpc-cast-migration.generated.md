@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 207c85fc41d2bc1cab36797deebc5af6ffea7ce0
+last_verified_commit: cb819fce889baa9a49d8398054a649516f9c51ab
 generation_command: GitHub Actions / RPC cast migration
 source_files:
   - src/
@@ -30,15 +30,7 @@ source_files:
 > @figma/my-make-file@0.0.1 rpc:fix-any-casts
 > node scripts/migrate-rpc-any-casts.mjs --fix
 
-Corrigido: build/profileClaimIdentityTransform.mjs:165 (1)
-Corrigido: src/adminParticipantMaintenance.ts:422,441 (2)
-Corrigido: src/app/AdminOverviewDashboardMount.tsx:130,136,165 (3)
-Corrigido: src/app/AdminTicketLotsMount.tsx:216,289,323 (3)
-Corrigido: src/app/AdminTicketProductCopyMount.tsx:67 (1)
-Corrigido: src/app/PublicTicketsCatalogMount.tsx:112,119 (2)
-Corrigido: src/lib/services.ts:505,548,561,609,865,1083 (6)
-Corrigido: src/ticketsCatalogLayoutEnhancements.ts:82,88 (2)
-Migração concluída: 20 ocorrência(s).
+Migração concluída: 0 ocorrência(s).
 ```
 
 ## Diagnóstico do build
@@ -68,7 +60,7 @@ computing gzip size...
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
-[32m✓ built in 4.24s[39m
+[32m✓ built in 4.26s[39m
 PASS obrigatório: "Qual é a sua data de nascimento?" em dist/assets/index-C_QWUcDE.js
 PASS obrigatório: "Essas informações ajudam a proteger o vínculo do perfil" em dist/assets/index-C_QWUcDE.js
 PASS obrigatório: "complete_profile_registration_v3" em dist/assets/index-C_QWUcDE.js
