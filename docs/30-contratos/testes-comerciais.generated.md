@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 1679b315a27b3f2d5b5134db1173fb2acb2456bf
+last_verified_commit: 5d98fbed05d0ea93b3e6250cfc4113aa76b5c085
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
   - src/main.tsx
@@ -25,9 +25,9 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `skipped` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
-| E2E de catálogo e checkout | `npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts --workers=1` | `skipped` |
+| Build da aplicação | `npm run build` | `success` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
+| E2E de catálogo e checkout | `npx playwright test tests/e2e/ticket-catalog-source-of-truth.spec.ts tests/e2e/checkout-flow.spec.ts --workers=1` | `success` |
 
 ## Cobertura funcional
 
@@ -43,4 +43,19 @@ source_files:
 
 ## Interpretação
 
-A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar catálogo e checkout validados.
+A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela não substitui testes integrados com banco, provedor e webhook.
+
+## Diagnóstico E2E
+
+```text
+
+Running 3 tests using 1 worker
+
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✓  1 tests/e2e/checkout-flow.spec.ts:14:3 › catálogo e checkout › preserva o perfil vinculado e envia um pedido normalizado e autenticado (4.4s)
+  ✓  2 tests/e2e/ticket-catalog-source-of-truth.spec.ts:88:1 › Home usa nome e preços do lote vigente (1.5s)
+  ✓  3 tests/e2e/ticket-catalog-source-of-truth.spec.ts:105:1 › Home e página de ingressos exibem o mesmo catálogo (2.1s)
+
+  3 passed (11.3s)
+```
