@@ -1,3 +1,4 @@
+// Permanent regression check for RPC calls that bypass SupabaseClient<Database>.
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
