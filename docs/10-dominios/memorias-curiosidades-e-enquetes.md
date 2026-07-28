@@ -1,12 +1,20 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-07-28
+last_verified_commit: eb956992069e064ce5589d42b630137b2a21649e
 source_files:
+  - index.html
   - src/app/App.tsx
+  - src/historyContentEnhancements.ts
+  - src/memoryAnonymityEnhancement.ts
   - src/lib/services.ts
-  - src/lib/database.types.ts
+  - src/lib/engagement.types.ts
+  - tests/e2e/engagement-flow.spec.ts
+  - tests/e2e/engagement-fixtures.ts
+  - tests/e2e/editorial-moderation-flow.spec.ts
+  - docs/30-contratos/testes-engajamento.generated.md
+  - docs/30-contratos/testes-moderacao-editorial.generated.md
   - supabase/migrations/
 ---
 
@@ -54,6 +62,21 @@ Quando uma memória for anônima:
 - logs e exports públicos devem respeitar o anonimato;
 - uma alteração posterior não deve revelar acidentalmente o autor.
 
+O controle público de anonimato deve permanecer visível e operável por teclado e tecnologia assistiva. O runtime expõe o controle como `switch`, com nome acessível e estado em `aria-checked`.
+
+## Correção da regressão de anonimato
+
+A regressão funcional encontrada pelos testes vinha de `historyContentEnhancements.ts`, que ocultava o controle e executava um clique programático para desligá-lo quando estivesse ativo.
+
+A correção vigente usa `memoryAnonymityEnhancement.ts`, carregado depois do runtime principal, para:
+
+- restaurar a visibilidade do controle com uma regra de precedência explícita;
+- expor `role="switch"`, nome acessível e `aria-checked`;
+- preservar cliques reais do usuário;
+- bloquear somente o clique programático legado que tentava desligar uma escolha já ativa.
+
+Essa camada é uma correção de compatibilidade. O caminho preferencial futuro é remover o comportamento contraditório do enhancement legado quando o arquivo puder ser refatorado sem risco para os demais ajustes da página histórica.
+
 ## Moderação de memórias
 
 Estados históricos incluem:
@@ -63,7 +86,7 @@ Estados históricos incluem:
 - `rejected`;
 - `hidden`.
 
-Somente conteúdo aprovado e não oculto deve aparecer publicamente. O schema gerado será a autoridade final para estados e transições.
+Somente conteúdo aprovado e não oculto deve aparecer publicamente. O schema gerado é a autoridade final para estados e transições.
 
 Fluxo:
 
@@ -125,6 +148,30 @@ Resultados públicos devem ser agregados a partir de votos válidos. Não persis
 
 Durante uma votação, a política do produto pode ocultar resultados parciais. Essa decisão deve ser configurável e documentada no contrato da enquete.
 
+## Evidências funcionais automatizadas
+
+### Experiência pública
+
+O workflow `Engagement functional tests` aprovou build, Chromium e dois E2E. A evidência versionada está em [`../30-contratos/testes-engajamento.generated.md`](../30-contratos/testes-engajamento.generated.md).
+
+A execução com fixtures HTTP isoladas comprova:
+
+- leitura pública limitada a memórias aprovadas;
+- memória anônima sem exposição do nome administrativo;
+- controle de anonimato visível e acessível como `switch`;
+- rejeição de memória com menos de dez caracteres antes da escrita;
+- nova memória persistida como `pending`;
+- enquete aberta disponível para usuário autenticado;
+- substituição do voto anterior no modelo de voto único;
+- resultados ocultos antes da participação;
+- enquete fechada sem aceitação de novo voto.
+
+### Moderação editorial
+
+O workflow `Editorial moderation functional tests` aprovou a fila de memórias anônimas e as transições administrativas. Consulte [`../30-contratos/testes-moderacao-editorial.generated.md`](../30-contratos/testes-moderacao-editorial.generated.md).
+
+Os testes isolados não substituem RLS, triggers, constraints, rate limiting, proteção contra abuso ou moderação humana em ambiente integrado.
+
 ## Segurança de conteúdo
 
 - Limitar comprimento de memórias e textos.
@@ -178,5 +225,8 @@ O painel administrativo deve permitir:
 
 ## Dívidas conhecidas
 
-- O inventário final de tabelas, triggers e policies ainda depende da geração do banco reproduzido.
-- Alguns fluxos e layouts são instalados por enhancements, tornando necessária validação E2E além da leitura de `App.tsx`.
+- Validar votos, unicidade, opções pertencentes à enquete e estados fechados contra triggers e constraints reais.
+- Executar testes de rate limiting, sanitização e abuso em ambiente integrado.
+- Testar concorrência entre votos e consistência da visão agregada de resultados.
+- Remover a intervenção contraditória de `historyContentEnhancements.ts` e absorver a correção no componente canônico em refatoração futura.
+- Alguns fluxos e layouts continuam distribuídos entre React e enhancements, exigindo regressão E2E permanente.
