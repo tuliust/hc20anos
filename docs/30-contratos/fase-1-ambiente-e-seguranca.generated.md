@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 3661af14a605fcbbe9161909d29f4ee594ee7c15
+last_verified_commit: f5960f0ed4b219166008dac1092c0e4c40ba5550
 generation_command: GitHub Actions / Phase 1 environment and security
 source_files:
   - supabase/migrations/
@@ -68,8 +68,8 @@ SET
  moderator_role_resolves | PASS
 (1 row)
 
-DO
 NOTICE:  PASS moderator_financial_report_denied
+DO
 ROLLBACK
 BEGIN
               set_config              
