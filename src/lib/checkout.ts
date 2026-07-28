@@ -1,7 +1,9 @@
 import { supabase } from "./supabase";
+import type { RpcRow } from "./rpc.types";
 
 export type CheckoutParticipantType = "alumni" | "spouse" | "child" | "external_guest";
 export type CheckoutExtraType = "drinks" | "barbecue";
+export type CheckoutStatusRow = RpcRow<"get_checkout_status_by_token">;
 
 export interface CheckoutParticipantInput {
   client_key: string;
@@ -137,10 +139,10 @@ export async function createSecureCheckout(
   };
 }
 
-export async function getCheckoutStatus(publicToken: string) {
-  const { data, error } = await (supabase as any).rpc("get_checkout_status_by_token", {
+export async function getCheckoutStatus(publicToken: string): Promise<CheckoutStatusRow | null> {
+  const { data, error } = await supabase.rpc("get_checkout_status_by_token", {
     p_public_token: publicToken,
   });
   if (error) throw error;
-  return Array.isArray(data) ? data[0] ?? null : data;
+  return data?.[0] ?? null;
 }
