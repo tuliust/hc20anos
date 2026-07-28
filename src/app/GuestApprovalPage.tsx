@@ -1,32 +1,11 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Check, Clock3, Search, ShieldCheck, UserPlus, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import type { RpcRow } from "../lib/rpc.types";
 import "./GuestApprovalPage.css";
 
-type Sponsor = {
-  person_id: string;
-  full_name: string;
-  class_group: string | null;
-  avatar_url: string | null;
-  approved_guests: number;
-  available_slots: number;
-};
-
-type RequestRow = {
-  id: string;
-  perspective: "guest" | "sponsor";
-  guest_name: string;
-  guest_email: string;
-  guest_phone: string;
-  relationship_to_alumni: string;
-  sponsor_person_id: string;
-  sponsor_name: string;
-  status: string;
-  created_at: string;
-  expires_at: string | null;
-  decided_at: string | null;
-  decision_notes: string | null;
-};
+type Sponsor = RpcRow<"search_external_guest_sponsors">;
+type RequestRow = RpcRow<"get_my_guest_approval_requests">;
 
 const labels: Record<string, string> = {
   pending: "Aguardando decisão",
@@ -59,8 +38,8 @@ export function GuestApprovalPage() {
     ]);
     if (sponsorError || requestError) setNotice(sponsorError?.message ?? requestError?.message ?? "Falha ao carregar dados.");
     else {
-      setSponsors((sponsorData ?? []) as Sponsor[]);
-      setRequests((requestData ?? []) as RequestRow[]);
+      setSponsors(sponsorData ?? []);
+      setRequests(requestData ?? []);
     }
     setLoading(false);
   }, [search]);
