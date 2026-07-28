@@ -1,29 +1,11 @@
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, BadgeDollarSign, Check, Clock3, ExternalLink, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import type { RpcRow } from "../lib/rpc.types";
 import "./BuyerCommerceActions.css";
 
-type TransferRow = {
-  id: string;
-  perspective: "sent" | "received";
-  attendee_name: string;
-  to_name: string;
-  to_email: string;
-  status: string;
-  requested_at: string;
-  expires_at: string | null;
-};
-
-type RefundQuote = {
-  gross_amount_cents: number;
-  non_recoverable_fee_cents: number;
-  refund_amount_cents: number;
-  policy_label: string;
-  policy_notice: string;
-  refund_deadline: string;
-  eligible: boolean;
-  ineligibility_reason: string | null;
-};
+type TransferRow = RpcRow<"get_my_ticket_transfers">;
+type RefundQuote = RpcRow<"calculate_refund_quote">;
 
 const transferLabels: Record<string,string> = {
   requested:"Aguardando aceite", accepted:"Aceita", completed:"Concluída",
@@ -53,7 +35,7 @@ export function OrderRefundAction({ orderId, disabled, onDone }: { orderId: stri
   async function requestRefund() {
     setBusy(true);
     const { data, error: quoteError } = await supabase.rpc("calculate_refund_quote", { p_order_id: orderId });
-    const quote = Array.isArray(data) ? data[0] as RefundQuote | undefined : undefined;
+    const quote: RefundQuote | undefined = data?.[0];
     if (quoteError || !quote) {
       setBusy(false);
       return onDone(`Não foi possível calcular o reembolso: ${quoteError?.message ?? "Cotação indisponível"}`);
@@ -97,16 +79,19 @@ export function AcceptTransfersPanel({ onDone }: { onDone: (message: string) => 
   async function load(){
     const {data,error}=await supabase.rpc("get_my_ticket_transfers");
     if(error) return onDone(`Não foi possível carregar transferências: ${error.message}`);
-    setItems((data??[]) as TransferRow[]);
+    setItems(data??[]);
   }
   useEffect(()=>{void load()},[]);
   async function act(id:string, action:"accept"|"reject"|"cancel"){
     setBusy(id);
-    const rpc=action==="accept"?"accept_ticket_transfer":action==="reject"?"reject_ticket_transfer":"cancel_ticket_transfer";
-    const {error}=await supabase.rpc(rpc,{p_transfer_id:id});
+    const result = action === "accept"
+      ? await supabase.rpc("accept_ticket_transfer", { p_transfer_id: id })
+      : action === "reject"
+        ? await supabase.rpc("reject_ticket_transfer", { p_transfer_id: id })
+        : await supabase.rpc("cancel_ticket_transfer", { p_transfer_id: id });
     setBusy(null);
-    onDone(error?`Não foi possível atualizar: ${error.message}`:action==="accept"?"Transferência aceita. Um novo QR Code foi emitido.":action==="reject"?"Transferência rejeitada.":"Transferência cancelada.");
-    if(!error) await load();
+    onDone(result.error?`Não foi possível atualizar: ${result.error.message}`:action==="accept"?"Transferência aceita. Um novo QR Code foi emitido.":action==="reject"?"Transferência rejeitada.":"Transferência cancelada.");
+    if(!result.error) await load();
   }
   if(items.length===0) return null;
   return <section className="buyer-transfer-panel"><h2><ArrowRightLeft size={20}/> Transferências</h2>{items.map(item=><article key={item.id}><div><strong>{item.perspective==="received"?`Ingresso de ${item.attendee_name}`:`Para ${item.to_name}`}</strong><span>{item.to_email}</span><small><Clock3 size={14}/> {transferLabels[item.status]??item.status}{item.expires_at?` · até ${new Date(item.expires_at).toLocaleString("pt-BR")}`:""}</small></div>{item.status==="requested"&&<div className="buyer-ticket-actions">{item.perspective==="received"?<><button onClick={()=>void act(item.id,"accept")} disabled={busy===item.id}><Check size={16}/> Aceitar</button><button onClick={()=>void act(item.id,"reject")} disabled={busy===item.id}><X size={16}/> Rejeitar</button></>:<button onClick={()=>void act(item.id,"cancel")} disabled={busy===item.id}><X size={16}/> Cancelar</button>}</div>}</article>)}</section>;
