@@ -23,9 +23,9 @@ function insertAfter(source, marker, addition, label) {
 }
 
 function replaceRequired(source, before, after, label) {
+  if (source.includes(before)) return source.replace(before, after);
   if (source.includes(after)) return source;
-  if (!source.includes(before)) throw new Error(`Bloco não encontrado: ${label}`);
-  return source.replace(before, after);
+  throw new Error(`Bloco não encontrado: ${label}`);
 }
 
 await update("supabase/migrations/20260728000001_phase2_content_storage_security.sql", source => {
