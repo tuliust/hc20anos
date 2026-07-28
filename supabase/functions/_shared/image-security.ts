@@ -18,8 +18,11 @@ export interface ImageInspectionOptions {
 }
 
 export class ImageSecurityError extends Error {
-  constructor(public readonly code: string, message = code) {
+  readonly code: string;
+
+  constructor(code: string, message = code) {
     super(message);
+    this.code = code;
     this.name = "ImageSecurityError";
   }
 }
