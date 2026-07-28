@@ -1,221 +1,253 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-07-28
+last_verified_commit: fc81497f428bbd38cf0b62ba360e2906ee8193d9
 source_files:
   - src/lib/supabase.ts
+  - src/lib/database.generated.ts
+  - src/lib/rpc.types.ts
+  - src/lib/rpc.generated.ts
   - src/app/App.tsx
+  - src/app/OperationsRouteGuard.tsx
   - src/app/OperationsPage.tsx
-  - src/lib/database.types.ts
   - supabase/functions/
   - supabase/migrations/
+  - supabase/tests/fixtures/local_test_context.sql
+  - supabase/tests/phase1_environment_security.sql
+  - docs/30-contratos/RLS.generated.md
+  - docs/30-contratos/RPCs.generated.md
+  - docs/30-contratos/RPCs-consumidas.generated.md
+  - docs/30-contratos/permissoes.md
+  - docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
 ---
 
 # Autenticação, autorização e roles
 
 ## Objetivo
 
-Documentar como sessões, identidade, roles administrativas, RLS e operações server-side se combinam para proteger o HC 20 Anos.
+Documentar como sessões, propriedade, roles administrativas, RLS, RPCs e Functions protegem o HC 20 Anos.
 
 ## Autenticação
 
-O frontend usa Supabase Auth por meio do cliente configurado em `src/lib/supabase.ts`.
+O frontend usa Supabase Auth por meio do cliente tipado em `src/lib/supabase.ts`.
 
 A sessão:
 
 - é persistida no navegador;
-- pode ser atualizada automaticamente;
-- é detectada em retornos de autenticação por URL;
+- pode ser renovada automaticamente;
 - fornece access token para chamadas autenticadas;
+- identifica o usuário por `auth.uid()` no banco;
 - não concede, por si só, privilégio administrativo.
-
-A aplicação deve reagir a mudanças de sessão e revalidar dados protegidos.
 
 ## Autorização em camadas
 
-Uma operação protegida pode exigir várias verificações:
+Uma operação protegida pode exigir, de forma cumulativa:
 
 1. sessão válida;
-2. `auth.uid()` associado ao recurso;
+2. propriedade ou vínculo com o recurso;
 3. role em `admin_users`;
 4. policy de RLS;
-5. validação em RPC;
+5. validação dentro de uma RPC;
 6. validação adicional em Vercel ou Edge Function;
-7. service role somente depois que a Function autorizou a solicitação.
+7. uso de service role somente depois que o chamador ou evento foi autenticado.
 
-Nenhuma camada visual substitui essas verificações.
+Ocultar um botão ou bloquear uma rota melhora a experiência, mas não substitui essas verificações.
 
-## Roles administrativas
+## Roles administrativas vigentes
 
-O modelo atual reconhece roles como:
+O enum `admin_role` contém:
 
 - `superadmin`;
-- `admin`;
 - `moderator`;
 - `checkin_staff`;
+- `admin`;
 - `viewer`.
 
 ### `superadmin`
 
-Acesso administrativo máximo, incluindo decisões e configurações de maior risco. Não deve ser usado como role padrão.
+Administração máxima. Pode gerenciar roles e consultar auditoria sensível. Deve ser excepcional e auditada.
 
 ### `admin`
 
-Administração geral do evento, pedidos, conteúdo e operações financeiras autorizadas.
+Administração geral, conteúdo, pedidos, operação e funções financeiras autorizadas. Não pode alterar roles.
 
 ### `moderator`
 
-Moderação de fotos, comentários, memórias, marcações e solicitações relacionadas, sem acesso financeiro irrestrito.
+Moderação de fotos, comentários, memórias, tags e solicitações relacionadas. Não recebe acesso financeiro.
 
 ### `checkin_staff`
 
-Operação de entrada, validação de ingressos e tarefas presenciais permitidas.
+Operação de entrada, check-in, desfazer check-in e entrega de vouchers. Não recebe relatórios financeiros ou reembolsos.
 
 ### `viewer`
 
-Leitura administrativa e relatórios sem mutações sensíveis.
+A role existe e pode ler a própria linha em `admin_users`, mas o helper vigente `is_admin_panel_user()` reconhece somente `admin` e `superadmin`. Assim, `viewer` não possui atualmente uma superfície administrativa geral comprovada. Uma ampliação futura deve usar policies de leitura específicas, sem relaxar policies de escrita.
 
-A matriz final depende das policies, grants e verificações de cada RPC. O nome da role não deve ser interpretado fora do contrato efetivo.
+A matriz completa e efetiva está em [`../30-contratos/permissoes.md`](../30-contratos/permissoes.md).
 
 ## `admin_users`
 
-A tabela associa `auth.users` a uma role administrativa. Inserir uma linha nessa tabela é uma operação privilegiada.
+A tabela associa `auth.users` a uma role administrativa.
 
-Regras:
+Regras comprovadas:
 
-- o próprio usuário não pode promover a própria conta;
-- mudanças de role devem ser auditadas;
-- contas inativas devem ser revogadas;
-- privilégios devem seguir o menor acesso necessário;
-- ambientes de teste e produção devem manter listas separadas.
+- usuário comum não lista roles administrativas;
+- `viewer` lê somente a própria linha;
+- `viewer` não promove a própria conta;
+- `admin` lê as linhas necessárias ao painel, mas não altera roles;
+- somente `superadmin` altera roles;
+- contas temporárias devem ser revogadas depois do uso;
+- homologação e produção devem ter listas separadas.
 
-## RLS
+## RLS e grants
 
-Row Level Security é o controle primário de acesso direto ao Postgres via cliente Supabase.
+RLS é o controle primário para acesso direto pelo cliente Supabase.
 
-Princípios:
+O contrato vigente está em [`../30-contratos/RLS.generated.md`](../30-contratos/RLS.generated.md) e registra:
 
-- habilitar RLS em tabelas expostas;
-- permitir leitura pública somente de registros publicados e autorizados;
-- limitar recursos pessoais a `auth.uid()`;
-- reservar escrita financeira e filas para backend;
-- restringir moderação e operação por role;
-- revogar privilégios genéricos quando a operação deve ocorrer por RPC.
+- tabelas com RLS habilitada ou forçada;
+- policies por comando e role;
+- expressões `USING` e `WITH CHECK`;
+- grants de tabelas e rotinas;
+- estado final resultante de revokes e grants.
 
-O contrato final será gerado em `docs/30-contratos/RLS.generated.md` após replay do banco.
+A Fase 1 valida automaticamente que as tabelas sensíveis possuem RLS e que RPCs operacionais não podem ser executadas por `anon`.
 
 ## RPCs
 
-RPCs encapsulam operações que precisam de validação ou transação, como:
+RPCs encapsulam transações e operações que exigem autorização, como:
 
-- criação de pedido;
-- aplicação de pagamento;
-- reivindicação de perfil;
+- checkout e pagamento;
+- perfis e identidade;
 - moderação;
 - check-in;
-- claim e conclusão de jobs;
+- notificações;
 - relatórios;
-- reembolso e restauração de inventário.
+- transferências e reembolsos.
 
-Cada função precisa definir explicitamente:
+O contrato completo está em [`../30-contratos/RPCs.generated.md`](../30-contratos/RPCs.generated.md).
 
-- quem pode executá-la;
-- se usa `security definer`;
-- `search_path` seguro;
-- validação de `auth.uid()`;
-- roles permitidas;
-- dados retornados;
-- efeitos e idempotência.
+O inventário do runtime está em [`../30-contratos/RPCs-consumidas.generated.md`](../30-contratos/RPCs-consumidas.generated.md). Ele registra 50 RPCs distintas, 61 ocorrências literais e zero chamadas dinâmicas.
+
+Os aliases de `Args`, `Returns` e `Row` são gerados em `src/lib/rpc.generated.ts` a partir de `Database["public"]["Functions"]`. O build reprova nomes ausentes da baseline.
+
+RPCs `security definer` críticas devem:
+
+- definir `search_path` explícito;
+- validar `auth.uid()`, role, propriedade ou contexto interno;
+- limitar os dados retornados;
+- não confiar em IDs arbitrários;
+- preservar idempotência e auditoria.
 
 ## Service role
 
-`SUPABASE_SERVICE_ROLE_KEY` ignora RLS e só pode existir em ambientes server-side controlados.
+`SUPABASE_SERVICE_ROLE_KEY` ignora RLS e só pode existir em ambiente server-side.
 
-É usada por Edge Functions para operações como:
+É usada por Functions para:
 
-- criar pedidos após autenticação;
-- aplicar webhooks;
-- processar fila de notificações;
-- executar reembolsos.
+- criar pedidos depois da autenticação;
+- processar webhook validado;
+- executar notificações;
+- processar reembolsos autorizados.
 
-A presença de service role não elimina a necessidade de validar usuário, assinatura, worker key ou role antes da operação.
+Ela nunca pode ser incluída no bundle do navegador.
 
 ## Vercel Functions
 
 ### `/api/checkout-create`
 
-Exige bearer token e repassa a sessão à Edge Function. Não mantém service role no navegador.
+Exige bearer token e encaminha a sessão à Edge Function. Não mantém service role no frontend.
 
 ### `/api/generate-profile-bio`
 
-Aplica controles de origem, rate limit e contrato de entrada antes de chamar o provedor de IA. Não deve expor chave do provedor ao frontend.
+Aplica controles de origem, rate limiting e contrato de entrada antes de acessar o provedor de IA.
 
 ## Edge Functions
 
 ### `checkout-create`
 
-Valida sessão Supabase e payload antes de usar service role.
+Valida sessão e payload antes de usar service role.
 
 ### `payment-webhook`
 
-Não usa sessão de usuário. Valida assinatura do Mercado Pago, consulta o pagamento no provedor e aplica a transação no banco.
+Valida assinatura do Mercado Pago, consulta o pagamento no provedor e aplica a transação no banco.
 
 ### `notification-worker`
 
-Valida `x-worker-key` e usa service role para assumir e concluir jobs.
+Valida chave própria antes de assumir e concluir jobs.
 
 ### `refund-processor`
 
-Valida sessão e exige role `admin` ou `superadmin` antes de processar reembolso.
+Valida sessão e exige `admin` ou `superadmin` antes do processamento.
 
 ## Rotas protegidas
 
-O roteamento do frontend marca páginas de área de ex-aluno e administração como protegidas. Isso melhora a experiência, mas a segurança real permanece nos dados e endpoints.
+Rotas autenticadas e administrativas são verificadas no frontend, mas o acesso aos dados depende do backend.
 
-Rotas administrativas e standalone, como `/admin`, `/checkin`, `/admin/operacao` e `/admin/checkin`, devem carregar somente depois da verificação apropriada.
+As rotas standalone `/admin/operacao` e `/admin/checkin` usam guard específico e permitem somente:
+
+- `checkin_staff`;
+- `admin`;
+- `superadmin`.
+
+`checkin_staff` não monta painéis financeiros.
+
+## Evidência integrada da Fase 1
+
+O workflow `Phase 1 environment and security` executa:
+
+1. geração dos contratos das RPCs consumidas;
+2. build TypeScript e da aplicação;
+3. inicialização do Supabase local;
+4. replay integral de todas as migrations;
+5. criação de usuários sintéticos por role;
+6. todos os testes SQL;
+7. regeneração dos contratos do banco;
+8. auditoria documental.
+
+A execução aprovada está em [`../30-contratos/fase-1-ambiente-e-seguranca.generated.md`](../30-contratos/fase-1-ambiente-e-seguranca.generated.md).
+
+Foram comprovados:
+
+- isolamento de usuário comum;
+- impossibilidade de autopromoção;
+- segregação de `viewer`, `moderator` e `checkin_staff`;
+- acesso financeiro de `admin`;
+- gestão de roles por `superadmin`;
+- RLS, grants, triggers, constraints e índices críticos;
+- `search_path` em RPCs críticas;
+- replay integral sem acesso a produção.
 
 ## Privacidade de logs
 
 Não registrar:
 
-- access tokens;
-- refresh tokens;
+- access ou refresh tokens;
 - service role;
 - senhas;
-- chaves do Mercado Pago, OpenAI, Resend ou WhatsApp;
+- chaves de provedores;
 - QR token completo;
-- respostas privadas de reivindicação;
+- respostas privadas de identidade;
 - payload financeiro integral quando um identificador for suficiente.
 
 ## Gestão de acesso
 
-Procedimento recomendado:
-
 1. confirmar identidade e função da pessoa;
-2. conceder menor role suficiente;
+2. conceder a menor role suficiente;
 3. registrar responsável, data e justificativa;
 4. testar a operação necessária;
 5. revisar acessos antes do evento;
 6. remover acessos temporários depois da operação;
-7. revisar logs de ações sensíveis.
+7. revisar auditoria de ações sensíveis.
 
-## Testes mínimos
+## Limites e pendências
 
-- visitante não acessa recurso autenticado;
-- usuário autenticado não acessa dados de outro usuário;
-- `viewer` não executa mutação;
-- `moderator` não processa reembolso;
-- `checkin_staff` executa somente operações de entrada permitidas;
-- `admin` processa operação autorizada;
-- chamada direta do cliente não contorna RPC;
-- Function rejeita token ausente ou inválido;
-- webhook rejeita assinatura inválida;
-- worker rejeita chave inválida;
-- service role não aparece no bundle.
+A Fase 1 valida o banco local reproduzido. Ainda dependem de ensaio separado:
 
-## Dívidas conhecidas
-
-- `database.types.ts` pode não refletir todas as roles, tabelas e campos atuais.
-- A matriz completa de policies, grants e RPCs ainda precisa ser gerada automaticamente.
-- O roteamento protegido é customizado e parte dele é injetada por transforms de build.
+- projeto remoto de homologação, caso seja criado;
+- secrets e configurações remotas;
+- Mercado Pago e webhook integrados;
+- Storage e upload real;
+- carga, concorrência e abuso em ambiente conectado;
+- dispositivos e operação presencial.
