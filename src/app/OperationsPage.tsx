@@ -2,31 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, RotateCcw, Search, TicketCheck, Utensils, XCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { AdminRole } from "../lib/admin.types";
+import type { RpcRow } from "../lib/rpc.types";
 import { CheckinScanner } from "./CheckinScanner";
 import "./OperationsPage.css";
 
-type CheckinRow = {
-  ticket_id: string;
-  attendee_name: string;
-  attendee_email: string;
-  qr_code: string;
-  ticket_status: string;
-  checked_in: boolean;
-  checked_in_at: string | null;
-  order_id: string;
-  extras: Array<{ id: string; type: string; quantity: number; units: number; delivered_at: string | null }>;
-};
+type CheckinExtra = { id: string; type: string; quantity: number; units: number; delivered_at: string | null };
+type CheckinRpcRow = RpcRow<"get_checkin_dashboard">;
+type CheckinRow = Omit<CheckinRpcRow, "extras"> & { extras: CheckinExtra[] };
+type RefundRow = RpcRow<"get_admin_refund_requests">;
 
-type RefundRow = {
-  id: string;
-  order_id: string;
-  reason: string;
-  status: string;
-  gross_amount_cents: number;
-  non_recoverable_fee_cents: number;
-  refund_amount_cents: number;
-  requested_at: string;
-};
+function normalizeCheckinRow(row: CheckinRpcRow): CheckinRow {
+  return {
+    ...row,
+    extras: Array.isArray(row.extras) ? row.extras as unknown as CheckinExtra[] : [],
+  };
+}
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((value || 0) / 100);
 
@@ -45,7 +35,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
     const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: term || null });
     setLoading(false);
     if (error) return setNotice(error.message);
-    setTickets((data ?? []) as CheckinRow[]);
+    setTickets((data ?? []).map(normalizeCheckinRow));
   }, [search]);
 
   const loadRefunds = useCallback(async () => {
@@ -54,7 +44,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
     const { data, error } = await supabase.rpc("get_admin_refund_requests");
     setLoading(false);
     if (error) return setNotice(error.message);
-    setRefunds((data ?? []) as RefundRow[]);
+    setRefunds(data ?? []);
   }, [canManageRefunds]);
 
   useEffect(() => {
@@ -84,7 +74,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
     setSearch(normalized);
     const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: normalized });
     if (error) return setNotice(error.message);
-    const found = (data ?? []) as CheckinRow[];
+    const found = (data ?? []).map(normalizeCheckinRow);
     setTickets(found);
     if (found.length !== 1) {
       setNotice(found.length === 0 ? "QR Code não encontrado ou inválido." : "Mais de um resultado encontrado. Confirme o participante.");
