@@ -1,0 +1,376 @@
+name: Phase 2 content and Storage
+
+on:
+  push:
+    branches:
+      - main
+      - agent/phase2-content-storage
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/apply-phase2-content-storage.mjs"
+      - "scripts/apply-phase2-test-fixtures.mjs"
+      - "scripts/test-phase2-content-storage.mjs"
+      - "scripts/generate-database-contracts.mjs"
+      - "tests/unit/image-upload-security.test.mts"
+      - "tests/e2e/phase2-content-security.spec.ts"
+      - "tests/e2e/engagement-fixtures.ts"
+      - "tests/e2e/photo-interactions-fixtures.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/phase2-content-storage.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/apply-phase2-content-storage.mjs"
+      - "scripts/apply-phase2-test-fixtures.mjs"
+      - "scripts/test-phase2-content-storage.mjs"
+      - "scripts/generate-database-contracts.mjs"
+      - "tests/unit/image-upload-security.test.mts"
+      - "tests/e2e/phase2-content-security.spec.ts"
+      - "tests/e2e/engagement-fixtures.ts"
+      - "tests/e2e/photo-interactions-fixtures.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/phase2-content-storage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase2-content-storage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  content-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci
+
+      - name: Apply Phase 2 runtime integration
+        id: transform
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/apply-phase2-content-storage.mjs 2>&1 | tee phase2-transform.log
+          node scripts/apply-phase2-test-fixtures.mjs 2>&1 | tee -a phase2-transform.log
+
+      - name: Run image security unit tests
+        id: image_unit
+        if: steps.transform.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:image-security 2>&1 | tee phase2-image-unit.log
+
+      - name: Start local Supabase
+        id: start
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx supabase start 2>&1 | tee phase2-supabase-start.log
+
+      - name: Replay all migrations
+        id: reset
+        if: steps.start.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee phase2-supabase-reset.log
+
+      - name: Install deterministic users and roles
+        id: fixture
+        if: steps.reset.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < supabase/tests/fixtures/local_test_context.sql 2>&1 | tee phase2-fixture.log
+
+      - name: Run SQL security, integrity and concurrency tests
+        id: sql
+        if: steps.fixture.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          : > phase2-sql-tests.log
+          failed=0
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a phase2-sql-tests.log
+            if ! output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"; then
+              printf '%s\n' "$output" | tee -a phase2-sql-tests.log
+              failed=1
+              continue
+            fi
+            printf '%s\n' "$output" | tee -a phase2-sql-tests.log
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "$output"; then failed=1; fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+          exit "$failed"
+
+      - name: Regenerate database and runtime types
+        id: db_contracts
+        if: steps.sql.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run docs:generate-db-contracts 2>&1 | tee phase2-db-contracts.log
+
+      - name: Regenerate consumed RPC contracts
+        id: rpc_contracts
+        if: steps.db_contracts.outcome == 'success'
+        continue-on-error: true
+        run: npm run docs:generate-rpc-usage
+
+      - name: Build typed application
+        id: build
+        if: steps.rpc_contracts.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee phase2-build.log
+
+      - name: Serve photo-storage Edge Function
+        id: function
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          npx supabase functions serve photo-storage --no-verify-jwt > phase2-edge-function.log 2>&1 &
+          echo $! > phase2-edge-function.pid
+          ready=0
+          for attempt in $(seq 1 60); do
+            status="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS http://127.0.0.1:54321/functions/v1/photo-storage || true)"
+            if [ "$status" = "200" ]; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat phase2-edge-function.log; exit 1; fi
+
+      - name: Run real Storage and content integration
+        id: integration
+        if: steps.function.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:phase2:storage 2>&1 | tee phase2-integration.log
+
+      - name: Install Playwright Chromium
+        id: browser
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser regressions
+        id: e2e
+        if: steps.browser.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright test \
+            tests/e2e/phase2-content-security.spec.ts \
+            tests/e2e/engagement-flow.spec.ts \
+            tests/e2e/photo-interactions-flow.spec.ts \
+            tests/e2e/editorial-moderation-flow.spec.ts \
+            --workers=1 2>&1 | tee phase2-e2e.log
+
+      - name: Generate Phase 2 evidence
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          TRANSFORM: ${{ steps.transform.outcome }}
+          IMAGE_UNIT: ${{ steps.image_unit.outcome }}
+          START: ${{ steps.start.outcome }}
+          RESET: ${{ steps.reset.outcome }}
+          FIXTURE: ${{ steps.fixture.outcome }}
+          SQL: ${{ steps.sql.outcome }}
+          DB: ${{ steps.db_contracts.outcome }}
+          RPC: ${{ steps.rpc_contracts.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          FUNCTION: ${{ steps.function.outcome }}
+          INTEGRATION: ${{ steps.integration.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          E2E: ${{ steps.e2e.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/fase-2-conteudo-storage.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: $(date -u +%F)
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / Phase 2 content and Storage
+          source_files:
+            - src/lib/imageUploadSecurity.ts
+            - src/lib/secureImageStorage.ts
+            - supabase/functions/_shared/image-security.ts
+            - supabase/functions/photo-storage/index.ts
+            - supabase/migrations/20260728000001_phase2_content_storage_security.sql
+            - supabase/migrations/20260728000002_phase2_moderation_concurrency.sql
+            - supabase/tests/phase2_content_storage.sql
+            - scripts/test-phase2-content-storage.mjs
+            - tests/unit/image-upload-security.test.mts
+            - tests/e2e/phase2-content-security.spec.ts
+            - .github/workflows/phase2-content-storage.yml
+          ---
+
+          # Fase 2 — conteúdo e Storage
+
+          | Verificação | Resultado |
+          |---|---|
+          | Dependências | \`${INSTALL}\` |
+          | Integração do runtime e refatoração do anonimato | \`${TRANSFORM:-skipped}\` |
+          | Testes unitários de assinatura, MIME, EXIF e arquivos disfarçados | \`${IMAGE_UNIT:-skipped}\` |
+          | Supabase local | \`${START}\` |
+          | Replay integral das migrations | \`${RESET:-skipped}\` |
+          | Usuários e roles reais no Auth local | \`${FIXTURE:-skipped}\` |
+          | RLS, policies, sanitização, rate limit e contratos SQL | \`${SQL:-skipped}\` |
+          | Tipos e contratos do banco | \`${DB:-skipped}\` |
+          | Contratos das RPCs consumidas | \`${RPC:-skipped}\` |
+          | Build tipado | \`${BUILD:-skipped}\` |
+          | Edge Function local | \`${FUNCTION:-skipped}\` |
+          | Upload, concorrência, moderação e remoção integrados | \`${INTEGRATION:-skipped}\` |
+          | Chromium | \`${BROWSER:-skipped}\` |
+          | Regressões E2E | \`${E2E:-skipped}\` |
+
+          A execução usa Supabase Auth, Postgres, Storage e Edge Runtime locais. Nenhum banco, bucket ou usuário de produção é acessado.
+          EOF
+          for log in phase2-image-unit.log phase2-supabase-reset.log phase2-sql-tests.log phase2-db-contracts.log phase2-build.log phase2-edge-function.log phase2-integration.log phase2-e2e.log; do
+            if [ -s "$log" ]; then
+              printf '\n## %s\n\n```text\n' "$log" >> docs/30-contratos/fase-2-conteudo-storage.generated.md
+              tail -n 180 "$log" >> docs/30-contratos/fase-2-conteudo-storage.generated.md
+              printf '```\n' >> docs/30-contratos/fase-2-conteudo-storage.generated.md
+            fi
+          done
+
+      - name: Audit documentation
+        id: docs
+        if: always()
+        continue-on-error: true
+        run: npm run audit:docs
+
+      - name: Publish successful integration or diagnostic evidence
+        if: always() && github.event_name == 'push'
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          TRANSFORM: ${{ steps.transform.outcome }}
+          IMAGE_UNIT: ${{ steps.image_unit.outcome }}
+          START: ${{ steps.start.outcome }}
+          RESET: ${{ steps.reset.outcome }}
+          FIXTURE: ${{ steps.fixture.outcome }}
+          SQL: ${{ steps.sql.outcome }}
+          DB: ${{ steps.db_contracts.outcome }}
+          RPC: ${{ steps.rpc_contracts.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          FUNCTION: ${{ steps.function.outcome }}
+          INTEGRATION: ${{ steps.integration.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          E2E: ${{ steps.e2e.outcome }}
+          DOCS: ${{ steps.docs.outcome }}
+        shell: bash
+        run: |
+          success=1
+          for result in "$INSTALL" "$TRANSFORM" "$IMAGE_UNIT" "$START" "$RESET" "$FIXTURE" "$SQL" "$DB" "$RPC" "$BUILD" "$FUNCTION" "$INTEGRATION" "$BROWSER" "$E2E" "$DOCS"; do
+            if [ "$result" != "success" ]; then success=0; fi
+          done
+
+          report="docs/30-contratos/fase-2-conteudo-storage.generated.md"
+          cp "$report" /tmp/phase2-report.md
+
+          if [ "$success" -eq 0 ]; then
+            git reset --hard HEAD
+            git clean -fd
+            mkdir -p docs/30-contratos
+            cp /tmp/phase2-report.md "$report"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ "$success" -eq 1 ]; then
+            git add -A -- \
+              src \
+              supabase/migrations/20260728000001_phase2_content_storage_security.sql \
+              supabase/tests/fixtures/local_test_context.sql \
+              tests/e2e/engagement-fixtures.ts \
+              tests/e2e/photo-interactions-fixtures.ts \
+              scripts/generate-database-contracts.mjs \
+              package.json \
+              docs/30-contratos/banco.generated.md \
+              docs/30-contratos/RPCs.generated.md \
+              docs/30-contratos/RLS.generated.md \
+              docs/30-contratos/erd.generated.mmd \
+              docs/30-contratos/database.types.generated.ts \
+              docs/30-contratos/RPCs-consumidas.generated.md \
+              "$report"
+            message="feat: concluir fase 2 de conteúdo e Storage [skip ci]"
+          else
+            git add "$report"
+            message="docs: registrar diagnóstico da fase 2 [skip ci]"
+          fi
+
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "$message"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-content-storage-${{ github.sha }}
+          path: |
+            phase2-*.log
+            docs/30-contratos/fase-2-conteudo-storage.generated.md
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop local services
+        if: always()
+        shell: bash
+        run: |
+          if [ -f phase2-edge-function.pid ]; then kill "$(cat phase2-edge-function.pid)" 2>/dev/null || true; fi
+          npx supabase stop --no-backup || true
+
+      - name: Fail on incomplete Phase 2
+        if: always()
+        run: |
+          for result in "${{ steps.install.outcome }}" "${{ steps.transform.outcome }}" "${{ steps.image_unit.outcome }}" "${{ steps.start.outcome }}" "${{ steps.reset.outcome }}" "${{ steps.fixture.outcome }}" "${{ steps.sql.outcome }}" "${{ steps.db_contracts.outcome }}" "${{ steps.rpc_contracts.outcome }}" "${{ steps.build.outcome }}" "${{ steps.function.outcome }}" "${{ steps.integration.outcome }}" "${{ steps.browser.outcome }}" "${{ steps.e2e.outcome }}" "${{ steps.docs.outcome }}"; do
+            [ "$result" = "success" ] || exit 1
+          done
