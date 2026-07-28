@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 6235f215ad6082c841664e46340f94a774acdfe2
+last_verified_commit: b8a8b672f44ae3c0b1a25919d70ab9066535ab89
 generation_command: GitHub Actions / Phase 2 content and Storage
 source_files:
   - src/lib/imageUploadSecurity.ts
@@ -24,8 +24,8 @@ source_files:
 |---|---|
 | Dependências | `success` |
 | Integração do runtime e refatoração do anonimato | `success` |
-| Testes unitários de assinatura, MIME, EXIF e arquivos disfarçados | `failure` |
-| Supabase local | `cancelled` |
+| Testes unitários de assinatura, MIME, EXIF e arquivos disfarçados | `success` |
+| Supabase local | `failure` |
 | Replay integral das migrations | `skipped` |
 | Usuários e roles reais no Auth local | `skipped` |
 | RLS, policies, sanitização, rate limit e contratos SQL | `skipped` |
@@ -47,47 +47,55 @@ A execução usa Supabase Auth, Postgres, Storage e Edge Runtime locais. Nenhum 
 > node --experimental-strip-types --test tests/unit/image-upload-security.test.mts
 
 TAP version 13
-# node:internal/modules/run_main:123
-#     triggerUncaughtException(
-#     ^
-# file:///home/runner/work/hc20anos/hc20anos/supabase/functions/_shared/image-security.ts:21
-# export class ImageSecurityError extends Error {
-#   constructor(public readonly code: string, message = code) {
-#                               ^^^^^^^^^^^^
-#     super(message);
-# SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript parameter property is not supported in strip-only mode
-#     at parseTypeScript (node:internal/modules/typescript:63:40)
-#     at processTypeScriptCode (node:internal/modules/typescript:133:42)
-#     at stripTypeScriptModuleTypes (node:internal/modules/typescript:163:10)
-#     at ModuleLoader.<anonymous> (node:internal/modules/esm/translators:656:29)
-#     at \#translate (node:internal/modules/esm/loader:559:20)
-#     at afterLoad (node:internal/modules/esm/loader:612:29)
-#     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:617:12)
-#     at \#createModuleJob (node:internal/modules/esm/loader:640:36)
-#     at \#getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
-#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41) {
-#   code: 'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX'
-# }
-# Node.js v22.23.1
-# Subtest: tests/unit/image-upload-security.test.mts
-not ok 1 - tests/unit/image-upload-security.test.mts
+# Subtest: aceita PNG real e identifica dimensões
+ok 1 - aceita PNG real e identifica dimensões
   ---
-  duration_ms: 66.499388
+  duration_ms: 1.19448
   type: 'test'
-  location: '/home/runner/work/hc20anos/hc20anos/tests/unit/image-upload-security.test.mts:1:1'
-  failureType: 'testCodeFailure'
-  exitCode: 1
-  signal: ~
-  error: 'test failed'
-  code: 'ERR_TEST_FAILURE'
   ...
-1..1
-# tests 1
+# Subtest: rejeita MIME divergente da assinatura
+ok 2 - rejeita MIME divergente da assinatura
+  ---
+  duration_ms: 0.51011
+  type: 'test'
+  ...
+# Subtest: rejeita EXIF e metadados textuais
+ok 3 - rejeita EXIF e metadados textuais
+  ---
+  duration_ms: 0.469399
+  type: 'test'
+  ...
+# Subtest: rejeita arquivo com dados anexados depois da imagem
+ok 4 - rejeita arquivo com dados anexados depois da imagem
+  ---
+  duration_ms: 0.217114
+  type: 'test'
+  ...
+# Subtest: rejeita SVG ou HTML disfarçado de imagem
+ok 5 - rejeita SVG ou HTML disfarçado de imagem
+  ---
+  duration_ms: 0.259898
+  type: 'test'
+  ...
+# Subtest: rejeita dimensões e quantidade de pixels abusivas
+ok 6 - rejeita dimensões e quantidade de pixels abusivas
+  ---
+  duration_ms: 0.199287
+  type: 'test'
+  ...
+# Subtest: rejeita arquivo acima do limite
+ok 7 - rejeita arquivo acima do limite
+  ---
+  duration_ms: 0.207139
+  type: 'test'
+  ...
+1..7
+# tests 7
 # suites 0
-# pass 0
-# fail 1
+# pass 7
+# fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 74.628783
+# duration_ms 118.911057
 ```
