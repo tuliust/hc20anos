@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 5d98fbed05d0ea93b3e6250cfc4113aa76b5c085
+last_verified_commit: 227c1da2bea73316877b32a2d075348de27c2531
 generation_command: GitHub Actions / Functional regression tests
 source_files:
   - package.json
@@ -26,10 +26,10 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação e verificadores de perfil | `npm run build` | `success` |
-| Unitários do FAQ | `npm run test:faq` | `success` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
-| E2E de perfil e FAQ | `npm run test:e2e:functional` | `success` |
+| Build da aplicação e verificadores de perfil | `npm run build` | `skipped` |
+| Unitários do FAQ | `npm run test:faq` | `skipped` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
+| E2E de perfil e FAQ | `npm run test:e2e:functional` | `skipped` |
 
 ## Cobertura funcional
 
