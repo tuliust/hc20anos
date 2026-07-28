@@ -1,8 +1,8 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-27
-last_verified_commit: 68d215e641ad89c7a054bcb87c596b4310deceaf
+last_verified: 2026-07-28
+last_verified_commit: eb956992069e064ce5589d42b630137b2a21649e
 source_files:
   - src/
   - api/
@@ -24,6 +24,9 @@ source_files:
   - .github/workflows/functional-tests.yml
   - .github/workflows/commerce-functional-tests.yml
   - .github/workflows/operations-functional-tests.yml
+  - .github/workflows/engagement-functional-tests.yml
+  - .github/workflows/photo-interactions-functional-tests.yml
+  - .github/workflows/editorial-moderation-functional-tests.yml
 ---
 
 # Contratos técnicos
@@ -46,7 +49,10 @@ As estruturas verificáveis do sistema possuem baselines versionadas com `status
 - compatibilidade entre o snapshot manual e a baseline;
 - evidências funcionais de perfil e FAQ;
 - evidências funcionais de catálogo e checkout;
-- evidências funcionais de autorização e operação.
+- evidências funcionais de autorização e operação;
+- evidências funcionais de memórias e enquetes;
+- evidências funcionais de interações em fotos;
+- evidências funcionais de moderação editorial.
 
 Arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais explicam intenção, semântica, responsabilidades, operação e limitações que não podem ser inferidas automaticamente.
 
@@ -94,14 +100,7 @@ O cliente Supabase usa a baseline gerada. `src/lib/database.types.ts` está depr
 
 ### Perfil e FAQ
 
-[`testes-funcionais.generated.md`](./testes-funcionais.generated.md) registra:
-
-| Verificação | Resultado |
-|---|---|
-| Build e verificadores de perfil | `success` |
-| Unitários do FAQ | `success` |
-| Chromium | `success` |
-| E2E de perfil e FAQ | `success` |
+[`testes-funcionais.generated.md`](./testes-funcionais.generated.md) registra build, unitários do FAQ, Chromium e E2E com resultado `success`.
 
 Cobertura:
 
@@ -114,13 +113,7 @@ Cobertura:
 
 ### Catálogo e checkout
 
-[`testes-comerciais.generated.md`](./testes-comerciais.generated.md) registra:
-
-| Verificação | Resultado |
-|---|---|
-| Build | `success` |
-| Chromium | `success` |
-| Três E2E de catálogo e checkout | `success` |
+[`testes-comerciais.generated.md`](./testes-comerciais.generated.md) registra build, Chromium e três E2E com resultado `success`.
 
 Cobertura:
 
@@ -142,13 +135,7 @@ Durante a execução, os testes encontraram e corrigiram:
 
 ### Autorização e operação
 
-[`testes-operacionais.generated.md`](./testes-operacionais.generated.md) registra:
-
-| Verificação | Resultado |
-|---|---|
-| Build | `success` |
-| Chromium | `success` |
-| Três E2E de autorização e operação | `success` |
+[`testes-operacionais.generated.md`](./testes-operacionais.generated.md) registra build, Chromium e três E2E com resultado `success`.
 
 Cobertura:
 
@@ -159,7 +146,51 @@ Cobertura:
 - `admin` recebe reembolsos e indicadores;
 - os argumentos enviados às RPCs são verificados.
 
-O frontend agora possui guard próprio para `/admin/operacao` e `/admin/checkin`. RLS, grants e RPCs continuam sendo a autoridade server-side.
+O frontend possui guard próprio para `/admin/operacao` e `/admin/checkin`. RLS, grants e RPCs continuam sendo a autoridade server-side.
+
+### Memórias e enquetes
+
+[`testes-engajamento.generated.md`](./testes-engajamento.generated.md) registra build, Chromium e dois E2E com resultado `success`.
+
+Cobertura:
+
+- somente memórias aprovadas são exibidas publicamente;
+- memória anônima não revela o nome administrativo;
+- o controle de anonimato permanece visível e acessível como `switch`;
+- memória curta é rejeitada antes da escrita;
+- nova memória é persistida como `pending`;
+- voto único remove a seleção anterior antes da nova inserção;
+- resultados ficam ocultos antes da participação;
+- enquete fechada não aceita novo voto.
+
+A regressão encontrada era causada por um enhancement legado que ocultava e desligava programaticamente o anonimato. `memoryAnonymityEnhancement.ts` restaura a visibilidade, a semântica acessível e bloqueia somente a desativação programática incompatível.
+
+### Interações em fotos
+
+[`testes-interacoes-fotos.generated.md`](./testes-interacoes-fotos.generated.md) registra build, Chromium e um E2E completo com resultado `success`.
+
+Cobertura:
+
+- foto aprovada e selecionada pela organização;
+- comentário aprovado e contadores agregados;
+- curtida autenticada;
+- comentário novo como `pending`;
+- marcação nova como `pending` para pessoa elegível;
+- solicitação de remoção com motivo e identidade autenticada;
+- ausência de publicação direta dessas escritas.
+
+### Moderação editorial
+
+[`testes-moderacao-editorial.generated.md`](./testes-moderacao-editorial.generated.md) registra build, Chromium e dois E2E com resultado `success`.
+
+Cobertura:
+
+- entrada administrativa nas filas editoriais;
+- autoria protegida de memória anônima;
+- aprovação de memória com administrador e timestamp;
+- rejeição de comentário e limpeza de aprovação anterior;
+- retirada do item da fila pendente;
+- auditoria com ação, entidade e identificador.
 
 ## Evidência de geração
 
@@ -231,13 +262,17 @@ Esses documentos não podem contradizer as baselines geradas.
 As evidências Playwright utilizam fixtures HTTP isoladas. Elas comprovam comportamento do frontend, composição de payloads e chamadas esperadas, mas não comprovam:
 
 - autenticação real contra o projeto remoto;
-- policies e RLS no ambiente conectado;
+- policies, grants e RLS no ambiente conectado;
+- triggers, constraints ou concorrência do banco;
+- rate limiting, sanitização e controles de abuso;
+- upload, MIME type, antivírus, EXIF ou Storage real;
 - criação real de preferência no Mercado Pago;
 - assinatura e processamento do webhook;
 - reserva e restauração reais de inventário;
 - emissão, transferência, cancelamento ou reembolso integrados;
 - câmera, iluminação, rede instável ou contingência offline;
-- operação presencial completa.
+- operação presencial completa;
+- decisão humana de moderação ou tratamento jurídico de remoções.
 
 Essas camadas permanecem subordinadas aos testes SQL, ensaios em ambiente controlado e runbooks.
 
@@ -257,10 +292,11 @@ Essas camadas permanecem subordinadas aos testes SQL, ensaios em ambiente contro
 1. executar checkout integrado com Supabase local e preferência controlada do Mercado Pago;
 2. validar webhook assinado, idempotência e reconciliação financeira;
 3. validar emissão, transferência, cancelamento, reembolso e inventário de ponta a ponta;
-4. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
-5. tipar as RPCs efetivamente consumidas com `Args` e `Returns` gerados;
-6. mover o comparador de tipos para um snapshot arquivado e remover o arquivo manual;
-7. executar validações de design, responsividade e acessibilidade;
-8. promover runbooks somente depois de evidência operacional suficiente.
+4. validar upload, Storage, RLS, sanitização e controles de abuso em ambiente integrado;
+5. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
+6. tipar as RPCs efetivamente consumidas com `Args` e `Returns` gerados;
+7. mover o comparador de tipos para um snapshot arquivado e remover o arquivo manual;
+8. executar validações de design, responsividade e acessibilidade;
+9. promover runbooks somente depois de evidência operacional suficiente.
 
 O snapshot `docs/SUPABASE_SCHEMA.md` permanece depreciado e não deve voltar a representar o banco vigente.
