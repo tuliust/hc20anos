@@ -88,6 +88,13 @@ jobs:
           set -o pipefail
           npm run test:image-security 2>&1 | tee phase2-image-unit.log
 
+      - name: Clean stale local Supabase
+        if: always()
+        shell: bash
+        run: |
+          npx supabase stop --no-backup || true
+          docker ps -a --format '{{.Names}} {{.Status}}' | tee phase2-docker-before-start.log
+
       - name: Start local Supabase
         id: start
         continue-on-error: true
@@ -266,7 +273,7 @@ jobs:
 
           A execução usa Supabase Auth, Postgres, Storage e Edge Runtime locais. Nenhum banco, bucket ou usuário de produção é acessado.
           EOF
-          for log in phase2-image-unit.log phase2-supabase-reset.log phase2-sql-tests.log phase2-db-contracts.log phase2-build.log phase2-edge-function.log phase2-integration.log phase2-e2e.log; do
+          for log in phase2-docker-before-start.log phase2-image-unit.log phase2-supabase-start.log phase2-supabase-reset.log phase2-sql-tests.log phase2-db-contracts.log phase2-build.log phase2-edge-function.log phase2-integration.log phase2-e2e.log; do
             if [ -s "$log" ]; then
               printf '\n## %s\n\n```text\n' "$log" >> docs/30-contratos/fase-2-conteudo-storage.generated.md
               tail -n 180 "$log" >> docs/30-contratos/fase-2-conteudo-storage.generated.md
