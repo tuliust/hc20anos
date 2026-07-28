@@ -152,7 +152,9 @@ const rateLimited = commentBurst.filter(result => /rate_limit_exceeded/.test(res
 assert.ok(rateLimited.length >= 3, `Rate limit insuficiente: ${rateLimited.length}`);
 const bucket = await service.from("rate_limit_buckets").select("request_count").eq("action", "photo_comment").eq("actor_user_id", "22222222-2222-4222-8222-222222222222").single();
 assert.ifError(bucket.error);
-assert.equal(bucket.data.request_count, 13);
+// Statements rejected by the rate limiter are rolled back together with the
+// increment that raised the exception, so the persisted counter remains at the limit.
+assert.equal(bucket.data.request_count, 10);
 
 console.log("6. Remoção completa oculta relacionamentos e apaga o objeto físico");
 const removal = await ordinary.client.rpc("submit_photo_removal_request", {
