@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 5d98fbed05d0ea93b3e6250cfc4113aa76b5c085
+last_verified_commit: 227c1da2bea73316877b32a2d075348de27c2531
 generation_command: GitHub Actions / Photo interactions functional tests
 source_files:
   - playwright.config.ts
@@ -20,9 +20,9 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `success` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
-| E2E de interações em fotos | `npx playwright test tests/e2e/photo-interactions-flow.spec.ts --workers=1` | `success` |
+| Build da aplicação | `npm run build` | `skipped` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
+| E2E de interações em fotos | `npx playwright test tests/e2e/photo-interactions-flow.spec.ts --workers=1` | `skipped` |
 
 ## Cobertura funcional
 
@@ -36,17 +36,4 @@ source_files:
 
 ## Interpretação
 
-A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova os contratos do frontend, mas não substitui Storage, RLS, moderação administrativa, antivírus ou tratamento de solicitações em ambiente integrado.
-
-## Diagnóstico E2E
-
-```text
-
-Running 1 test using 1 worker
-
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/photo-interactions-flow.spec.ts:10:3 › interações em fotos › mantém escritas pendentes e permite marcar pessoa elegível (5.3s)
-
-  1 passed (8.3s)
-```
+A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar as interações em fotos validadas.
