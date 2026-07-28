@@ -1,5 +1,6 @@
 const STYLE_ID = "hc-memory-anonymity-enhancement-style";
 const CONTROL_ATTRIBUTE = "data-memory-anonymity-control";
+const PROTECTED_ATTRIBUTE = "data-memory-anonymity-protected";
 const MEMORY_PATH = "/nossa-historia/memorias";
 
 let observer: MutationObserver | null = null;
@@ -29,6 +30,18 @@ function injectStyle() {
   document.head.appendChild(style);
 }
 
+function protectFromLegacyProgrammaticClick(toggle: HTMLButtonElement) {
+  if (toggle.getAttribute(PROTECTED_ATTRIBUTE) === "true") return;
+  toggle.setAttribute(PROTECTED_ATTRIBUTE, "true");
+  toggle.addEventListener("click", event => {
+    const checked = toggle.className.includes("bg-[#2d6a4f]");
+    if (!event.isTrusted && checked) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+}
+
 function syncControl() {
   scheduled = false;
   if (currentPath() !== MEMORY_PATH) return;
@@ -49,6 +62,7 @@ function syncControl() {
   toggle.type = "button";
   toggle.setAttribute("role", "switch");
   toggle.setAttribute("aria-label", "Enviar sem mostrar meu nome");
+  protectFromLegacyProgrammaticClick(toggle);
 
   const checked = toggle.className.includes("bg-[#2d6a4f]");
   toggle.setAttribute("aria-checked", String(checked));
