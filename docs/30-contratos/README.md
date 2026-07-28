@@ -2,7 +2,7 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: eb956992069e064ce5589d42b630137b2a21649e
+last_verified_commit: fc81497f428bbd38cf0b62ba360e2906ee8193d9
 source_files:
   - src/
   - api/
@@ -10,6 +10,7 @@ source_files:
   - scripts/generate-static-contracts.mjs
   - scripts/generate-routes-contract.mjs
   - scripts/generate-database-contracts.mjs
+  - scripts/generate-consumed-rpc-contracts.mjs
   - scripts/audit-database-types.mjs
   - scripts/generate-database-type-consumers.mjs
   - supabase/functions/
@@ -21,6 +22,7 @@ source_files:
   - .github/workflows/static-contracts.yml
   - .github/workflows/database-migrations.yml
   - .github/workflows/type-compatibility.yml
+  - .github/workflows/phase1-environment-security.yml
   - .github/workflows/functional-tests.yml
   - .github/workflows/commerce-functional-tests.yml
   - .github/workflows/operations-functional-tests.yml
@@ -45,8 +47,10 @@ As estruturas verificáveis do sistema possuem baselines versionadas com `status
 - RLS, policies e grants;
 - tipos TypeScript do Supabase;
 - ERD;
+- inventário e aliases das RPCs efetivamente consumidas;
 - consumidores dos tipos legados;
 - compatibilidade entre o snapshot manual e a baseline;
+- evidência integrada da Fase 1 — ambiente e segurança;
 - evidências funcionais de perfil e FAQ;
 - evidências funcionais de catálogo e checkout;
 - evidências funcionais de autorização e operação;
@@ -54,7 +58,7 @@ As estruturas verificáveis do sistema possuem baselines versionadas com `status
 - evidências funcionais de interações em fotos;
 - evidências funcionais de moderação editorial.
 
-Arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais explicam intenção, semântica, responsabilidades, operação e limitações que não podem ser inferidas automaticamente.
+Arquivos gerados têm precedência sobre inventários humanos para estruturas verificáveis. Documentos manuais explicam intenção, semântica, responsabilidades, operação e limites não inferíveis automaticamente.
 
 ## Baselines geradas
 
@@ -85,6 +89,16 @@ Procedimentos:
 
 Procedimento: [`geracao-do-banco.md`](./geracao-do-banco.md).
 
+### RPCs consumidas
+
+| Contrato | Arquivo | Estado |
+|---|---|---|
+| Inventário de chamadas | [`RPCs-consumidas.generated.md`](./RPCs-consumidas.generated.md) | 50 RPCs distintas, 61 ocorrências literais e zero nomes dinâmicos |
+| Aliases TypeScript | `src/lib/rpc.generated.ts` | `Args`, `Returns` e `Row` derivados da baseline |
+| Utilitários genéricos | `src/lib/rpc.types.ts` | acesso tipado a `Database["public"]["Functions"]` |
+
+O gerador falha diante de nomes dinâmicos e o build confirma que todas as RPCs inventariadas existem no contrato reproduzido.
+
 ### Compatibilidade dos tipos
 
 | Contrato | Arquivo | Estado |
@@ -94,153 +108,46 @@ Procedimento: [`geracao-do-banco.md`](./geracao-do-banco.md).
 | Referência canônica | [`tipos-supabase.md`](./tipos-supabase.md) | arquitetura e módulos funcionais |
 | Plano concluído | [`migracao-dos-tipos-supabase.md`](./migracao-dos-tipos-supabase.md) | migração estrutural encerrada |
 
-O cliente Supabase usa a baseline gerada. `src/lib/database.types.ts` está depreciado, sem consumidores e mantido temporariamente apenas para a comparação histórica. O workflow `Supabase type compatibility` reprova qualquer reintrodução.
+O cliente Supabase usa a baseline gerada. `src/lib/database.types.ts` está depreciado, sem consumidores e mantido temporariamente apenas para a comparação histórica.
+
+## Fase 1 — ambiente e segurança
+
+[`fase-1-ambiente-e-seguranca.generated.md`](./fase-1-ambiente-e-seguranca.generated.md) registra resultado `success` para:
+
+- geração dos contratos das RPCs consumidas;
+- build TypeScript e da aplicação;
+- inicialização de uma stack Supabase local;
+- replay integral de todas as migrations em banco vazio;
+- criação de usuários sintéticos para usuário comum, `viewer`, `checkin_staff`, `moderator`, `admin` e `superadmin`;
+- testes de RLS, grants, funções `security definer`, triggers, constraints, índices e segregação por role;
+- regeneração dos contratos do banco;
+- auditoria documental.
+
+A matriz vigente está em [`permissoes.md`](./permissoes.md), agora `canonical`. A execução não consulta produção nem utiliza dados pessoais reais.
 
 ## Evidências funcionais
 
-### Perfil e FAQ
+| Frente | Evidência | Resultado |
+|---|---|---|
+| Perfil e FAQ | [`testes-funcionais.generated.md`](./testes-funcionais.generated.md) | `success` |
+| Catálogo e checkout | [`testes-comerciais.generated.md`](./testes-comerciais.generated.md) | `success` |
+| Autorização e operação | [`testes-operacionais.generated.md`](./testes-operacionais.generated.md) | `success` |
+| Memórias e enquetes | [`testes-engajamento.generated.md`](./testes-engajamento.generated.md) | `success` |
+| Interações em fotos | [`testes-interacoes-fotos.generated.md`](./testes-interacoes-fotos.generated.md) | `success` |
+| Moderação editorial | [`testes-moderacao-editorial.generated.md`](./testes-moderacao-editorial.generated.md) | `success` |
 
-[`testes-funcionais.generated.md`](./testes-funcionais.generated.md) registra build, unitários do FAQ, Chromium e E2E com resultado `success`.
-
-Cobertura:
-
-- retomada de reivindicação depois de confirmação e login;
-- disputas administrativas com evidências atuais e legadas;
-- mini-bio por IA sem dados pessoais sensíveis;
-- FAQ estruturado, busca normalizada e expansão;
-- exclusão da categoria de privacidade da Home;
-- fallback para `faq_items_json`.
-
-### Catálogo e checkout
-
-[`testes-comerciais.generated.md`](./testes-comerciais.generated.md) registra build, Chromium e três E2E com resultado `success`.
-
-Cobertura:
-
-- Home e página de ingressos usam o mesmo catálogo vigente;
-- lote e preços em reais vêm das RPCs;
-- a seleção é preservada pelo contrato de sessão;
-- o ingresso Individual exige perfil vinculado;
-- o perfil não é perdido por concorrência entre catálogo e consulta de perfil;
-- termos são obrigatórios;
-- a API recebe sessão, chave pública e idempotência;
-- nome e e-mail são normalizados;
-- o navegador não envia preço, total ou `ticket_type_id` como autoridade;
-- o redirecionamento do provedor é simulado.
-
-Durante a execução, os testes encontraram e corrigiram:
-
-1. um seletor frágil do catálogo da Home, substituído pelo marcador estável `data-home-section="tickets"`;
-2. uma corrida que apagava nome e `person_id` do perfil vinculado quando o catálogo terminava de carregar depois da consulta de perfil.
-
-### Autorização e operação
-
-[`testes-operacionais.generated.md`](./testes-operacionais.generated.md) registra build, Chromium e três E2E com resultado `success`.
-
-Cobertura:
-
-- visitante sem sessão é redirecionado ao login;
-- a rota standalone exige role operacional;
-- `checkin_staff` registra entrada e vouchers;
-- `checkin_staff` não recebe reembolsos ou indicadores financeiros;
-- `admin` recebe reembolsos e indicadores;
-- os argumentos enviados às RPCs são verificados.
-
-O frontend possui guard próprio para `/admin/operacao` e `/admin/checkin`. RLS, grants e RPCs continuam sendo a autoridade server-side.
-
-### Memórias e enquetes
-
-[`testes-engajamento.generated.md`](./testes-engajamento.generated.md) registra build, Chromium e dois E2E com resultado `success`.
-
-Cobertura:
-
-- somente memórias aprovadas são exibidas publicamente;
-- memória anônima não revela o nome administrativo;
-- o controle de anonimato permanece visível e acessível como `switch`;
-- memória curta é rejeitada antes da escrita;
-- nova memória é persistida como `pending`;
-- voto único remove a seleção anterior antes da nova inserção;
-- resultados ficam ocultos antes da participação;
-- enquete fechada não aceita novo voto.
-
-A regressão encontrada era causada por um enhancement legado que ocultava e desligava programaticamente o anonimato. `memoryAnonymityEnhancement.ts` restaura a visibilidade, a semântica acessível e bloqueia somente a desativação programática incompatível.
-
-### Interações em fotos
-
-[`testes-interacoes-fotos.generated.md`](./testes-interacoes-fotos.generated.md) registra build, Chromium e um E2E completo com resultado `success`.
-
-Cobertura:
-
-- foto aprovada e selecionada pela organização;
-- comentário aprovado e contadores agregados;
-- curtida autenticada;
-- comentário novo como `pending`;
-- marcação nova como `pending` para pessoa elegível;
-- solicitação de remoção com motivo e identidade autenticada;
-- ausência de publicação direta dessas escritas.
-
-### Moderação editorial
-
-[`testes-moderacao-editorial.generated.md`](./testes-moderacao-editorial.generated.md) registra build, Chromium e dois E2E com resultado `success`.
-
-Cobertura:
-
-- entrada administrativa nas filas editoriais;
-- autoria protegida de memória anônima;
-- aprovação de memória com administrador e timestamp;
-- rejeição de comentário e limpeza de aprovação anterior;
-- retirada do item da fila pendente;
-- auditoria com ação, entidade e identificador.
-
-## Evidência de geração
-
-### Contratos estáticos e rotas
-
-O workflow:
-
-1. gera os contratos estáticos;
-2. aplica o transform real de pedidos;
-3. gera o contrato de rotas;
-4. executa a auditoria documental;
-5. detecta arquivos novos e modificados;
-6. publica apenas a lista explícita de contratos.
-
-### Banco
-
-O workflow `Database migration safety`:
-
-1. audita as migrations;
-2. executa o build;
-3. inicia uma stack Supabase local;
-4. reaplica todas as migrations em banco vazio;
-5. instala a fixture autenticada;
-6. executa todos os testes SQL;
-7. consulta os catálogos do Postgres local;
-8. gera schema, RPCs, RLS, tipos e ERD;
-9. executa a auditoria documental.
-
-Nenhum gerador consulta o banco de produção.
+As evidências Playwright usam fixtures HTTP isoladas. A Fase 1 complementa essas suítes com replay e testes SQL reais no Postgres local.
 
 ## Verificação de drift
-
-### Runtime e Functions
 
 ```bash
 npm run docs:check-contracts
 npm run docs:check-routes
-```
-
-### Banco
-
-```bash
 npm run docs:check-db-contracts
-```
-
-### Tipos
-
-```bash
 npm run docs:check-type-compatibility
 npm run docs:check-type-consumers
+npm run docs:check-rpc-usage
+npm run audit:docs
 ```
 
 Em pull requests, os workflows falham quando as saídas esperadas diferem das baselines versionadas.
@@ -253,28 +160,26 @@ Em pull requests, os workflows falham quando as saídas esperadas diferem das ba
 | [`apis-e-functions.md`](./apis-e-functions.md) | `draft` | responsabilidades, exemplos de payload e integrações |
 | [`variaveis-de-ambiente.md`](./variaveis-de-ambiente.md) | `draft` | obrigatoriedade, sensibilidade e configuração operacional |
 | [`codigos-de-erro.md`](./codigos-de-erro.md) | `draft` | semântica de interface e fluxos não literais |
-| [`permissoes.md`](./permissoes.md) | `draft` | matriz funcional de atores e papéis |
+| [`permissoes.md`](./permissoes.md) | `canonical` | matriz efetiva confrontada com banco, RPCs e testes SQL |
 
 Esses documentos não podem contradizer as baselines geradas.
 
 ## Limites das evidências
 
-As evidências Playwright utilizam fixtures HTTP isoladas. Elas comprovam comportamento do frontend, composição de payloads e chamadas esperadas, mas não comprovam:
+A Fase 1 comprova o ambiente local reproduzido, mas ainda não comprova:
 
-- autenticação real contra o projeto remoto;
-- policies, grants e RLS no ambiente conectado;
-- triggers, constraints ou concorrência do banco;
-- rate limiting, sanitização e controles de abuso;
-- upload, MIME type, antivírus, EXIF ou Storage real;
-- criação real de preferência no Mercado Pago;
-- assinatura e processamento do webhook;
-- reserva e restauração reais de inventário;
-- emissão, transferência, cancelamento ou reembolso integrados;
-- câmera, iluminação, rede instável ou contingência offline;
+- autenticação e configuração em um projeto remoto de homologação;
+- Storage, MIME type, antivírus e EXIF;
+- rate limiting e abuso sob carga real;
+- criação de preferência no Mercado Pago;
+- assinatura e processamento integrado do webhook;
+- reserva e restauração de inventário com provedor financeiro;
+- emissão, transferência, cancelamento e reembolso de ponta a ponta;
+- câmera, iluminação, conectividade instável e contingência offline;
 - operação presencial completa;
 - decisão humana de moderação ou tratamento jurídico de remoções.
 
-Essas camadas permanecem subordinadas aos testes SQL, ensaios em ambiente controlado e runbooks.
+Essas camadas permanecem subordinadas aos ensaios integrados e runbooks.
 
 ## Regras
 
@@ -285,17 +190,17 @@ Essas camadas permanecem subordinadas aos testes SQL, ensaios em ambiente contro
 - revisar diffs gerados como mudança de contrato;
 - atualizar documentação de domínio quando uma alteração mudar regra de negócio;
 - registrar ADR quando a mudança alterar arquitetura, autoridade ou estratégia de compatibilidade;
-- não promover runbook apenas porque o frontend passou em fixtures isoladas.
+- não promover runbook apenas porque o frontend ou o banco local passaram.
 
 ## Pendências restantes
 
-1. executar checkout integrado com Supabase local e preferência controlada do Mercado Pago;
-2. validar webhook assinado, idempotência e reconciliação financeira;
-3. validar emissão, transferência, cancelamento, reembolso e inventário de ponta a ponta;
-4. validar upload, Storage, RLS, sanitização e controles de abuso em ambiente integrado;
-5. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
-6. tipar as RPCs efetivamente consumidas com `Args` e `Returns` gerados;
-7. mover o comparador de tipos para um snapshot arquivado e remover o arquivo manual;
+1. validar ambiente remoto de homologação quando houver credenciais e isolamento apropriados;
+2. executar checkout integrado com preferência controlada do Mercado Pago;
+3. validar webhook assinado, idempotência e reconciliação financeira;
+4. validar emissão, transferência, cancelamento, reembolso e inventário de ponta a ponta;
+5. validar upload, Storage, sanitização, concorrência e controles de abuso;
+6. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
+7. mover o comparador de tipos para snapshot arquivado e remover o arquivo manual;
 8. executar validações de design, responsividade e acessibilidade;
 9. promover runbooks somente depois de evidência operacional suficiente.
 
