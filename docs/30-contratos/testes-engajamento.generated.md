@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 227c1da2bea73316877b32a2d075348de27c2531
+last_verified_commit: 39f723afddcac504bbdfbdb856b665b090324089
 generation_command: GitHub Actions / Engagement functional tests
 source_files:
   - index.html
@@ -23,9 +23,9 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `skipped` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
-| E2E de memórias e enquetes | `npx playwright test tests/e2e/engagement-flow.spec.ts --workers=1` | `skipped` |
+| Build da aplicação | `npm run build` | `success` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
+| E2E de memórias e enquetes | `npx playwright test tests/e2e/engagement-flow.spec.ts --workers=1` | `success` |
 
 ## Cobertura funcional
 
@@ -41,4 +41,18 @@ source_files:
 
 ## Interpretação
 
-A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar memórias e enquetes validadas.
+A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita, mas não substitui RLS, triggers, moderação ou controles de abuso em ambiente integrado.
+
+## Diagnóstico E2E
+
+```text
+
+Running 2 tests using 1 worker
+
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✓  1 tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação (4.8s)
+  ✓  2 tests/e2e/engagement-flow.spec.ts:53:3 › memórias e enquetes › registra voto único e impede novo voto em enquete fechada (1.4s)
+
+  2 passed (8.5s)
+```
