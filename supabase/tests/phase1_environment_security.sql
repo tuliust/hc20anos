@@ -5,7 +5,7 @@
 with checks as (
   select 'admin_role_enum_complete' as check_name,
     (
-      select array_agg(e.enumlabel order by e.enumsortorder)
+      select array_agg(e.enumlabel::text order by e.enumsortorder)
       from pg_enum e
       join pg_type t on t.oid = e.enumtypid
       join pg_namespace n on n.oid = t.typnamespace
