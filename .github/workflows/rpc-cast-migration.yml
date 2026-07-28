@@ -1,3 +1,4 @@
+# One-shot workflow: remove after the generated report is approved.
 name: RPC cast migration
 
 on:
