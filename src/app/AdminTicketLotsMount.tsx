@@ -213,7 +213,7 @@ function AdminTicketLotsPanel() {
     setLoading(true);
     setError("");
     try {
-      const { data, error: rpcError } = await (supabase as any).rpc("admin_get_ticket_lots", {
+      const { data, error: rpcError } = await supabase.rpc("admin_get_ticket_lots", {
         p_event_id: DEFAULT_EVENT_ID,
       });
       if (rpcError) throw rpcError;
@@ -286,7 +286,7 @@ function AdminTicketLotsPanel() {
     setError("");
     setSuccess("");
     try {
-      const { data, error: rpcError } = await (supabase as any).rpc("admin_upsert_ticket_lot", {
+      const { data, error: rpcError } = await supabase.rpc("admin_upsert_ticket_lot", {
         p_lot_id: draft.id,
         p_event_id: DEFAULT_EVENT_ID,
         p_code: code,
@@ -320,7 +320,7 @@ function AdminTicketLotsPanel() {
     setError("");
     setSuccess("");
     try {
-      const { data, error: rpcError } = await (supabase as any).rpc("admin_archive_ticket_lot", {
+      const { data, error: rpcError } = await supabase.rpc("admin_archive_ticket_lot", {
         p_lot_id: draft.id,
         p_event_id: DEFAULT_EVENT_ID,
       });

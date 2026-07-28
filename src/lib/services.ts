@@ -502,7 +502,7 @@ export async function importPeopleAdmin(rows: AdminImportPersonInput[], adminId?
 
   if (payload.length === 0) throw new Error("Informe pelo menos uma pessoa com nome completo, ano de nascimento e turma.");
 
-  const { data, error } = await (supabase as any).rpc("admin_import_people", {
+  const { data, error } = await supabase.rpc("admin_import_people", {
     p_people: payload,
   });
   if (error) throw error;
@@ -545,7 +545,7 @@ export interface AdminPersonDetails {
 }
 
 export async function getAdminPersonDetails(personId: string): Promise<AdminPersonDetails> {
-  const { data, error } = await (supabase as any).rpc("admin_get_person_details", {
+  const { data, error } = await supabase.rpc("admin_get_person_details", {
     p_person_id: personId,
   });
   if (error) throw error;
@@ -558,7 +558,7 @@ export async function updateAdminPersonAndProfile(params: {
   profile?: AdminPersonProfileDraft | null;
   adminId?: string | null;
 }): Promise<AdminPersonDetails> {
-  const { data, error } = await (supabase as any).rpc("admin_update_person_and_profile", {
+  const { data, error } = await supabase.rpc("admin_update_person_and_profile", {
     p_person_id: params.personId,
     p_person: params.person,
     p_profile: params.profile ?? {},
@@ -606,7 +606,7 @@ export interface CompleteProfileRegistrationParams {
 }
 
 export async function completeProfileRegistration(params: CompleteProfileRegistrationParams): Promise<DbProfile> {
-  const { data, error } = await (supabase as any).rpc("complete_profile_registration_v2", {
+  const { data, error } = await supabase.rpc("complete_profile_registration_v2", {
     p_person_id: params.personId,
     p_penultimate_surname: params.penultimateSurname,
     p_class_group_confirmation: params.classGroupConfirmation,
@@ -862,7 +862,7 @@ export async function saveMyPublicProfile(
     if (Object.prototype.hasOwnProperty.call(allowedPeoplePatch, "avatar_url")) {
       rpcPatch.p_avatar_url = allowedPeoplePatch.avatar_url ?? "";
     }
-    const { error } = await (supabase as any).rpc("update_my_public_profile", rpcPatch);
+    const { error } = await supabase.rpc("update_my_public_profile", rpcPatch);
     if (error) throw error;
     updatedPeople = (await getMyProfile(userId))?.people ?? null;
   }
@@ -1080,7 +1080,7 @@ export async function getMyOrder(email: string): Promise<DbOrder | null> {
 
 export async function getOrdersByStatus(status?: string): Promise<DbOrder[]> {
   return withFallback(async () => {
-    const { data, error } = await (supabase as any).rpc("get_admin_orders", {
+    const { data, error } = await supabase.rpc("get_admin_orders", {
       p_status: status ? status : null,
     });
 

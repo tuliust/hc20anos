@@ -162,7 +162,7 @@ function transformServices(source) {
   code = replaceRequired(
     code,
     `export async function getProfileClaimDisputes(status?: string): Promise<(DbProfileClaimDispute & { people?: Partial<DbPerson> })[]> {\n  return withFallback(async () => {\n    let q = supabase.from("profile_claim_disputes")\n      .select("*, people(full_name, nickname_at_school, class_group)")\n      .order("created_at", { ascending: false });\n    if (status) q = (q as any).eq("status", status);\n    const { data, error } = await q;\n    if (error) throw error;\n    return (data ?? []) as any;\n  }, []);\n}`,
-    `export async function getProfileClaimDisputes(status?: string): Promise<(DbProfileClaimDispute & { people?: Partial<DbPerson> })[]> {\n  return withFallback(async () => {\n    const { data, error } = await (supabase as any).rpc("admin_get_profile_claim_disputes_with_identity", {\n      p_status: status ?? null,\n    });\n    if (error) throw error;\n    return (data ?? []) as any;\n  }, []);\n}`,
+    `export async function getProfileClaimDisputes(status?: string): Promise<(DbProfileClaimDispute & { people?: Partial<DbPerson> })[]> {\n  return withFallback(async () => {\n    const { data, error } = await supabase.rpc("admin_get_profile_claim_disputes_with_identity", {\n      p_status: status ?? null,\n    });\n    if (error) throw error;\n    return (data ?? []) as any;\n  }, []);\n}`,
     "consulta administrativa de disputas",
   );
 

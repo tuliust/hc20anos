@@ -127,13 +127,13 @@ function groupCatalogRows(rows: CatalogRow[]): DashboardTicket[] {
 }
 
 async function fetchCatalog() {
-  const expanded = await (supabase as any).rpc("get_public_ticket_catalog", {
+  const expanded = await supabase.rpc("get_public_ticket_catalog", {
     p_event_id: DEFAULT_EVENT_ID,
     p_at: new Date().toISOString(),
   });
   if (!expanded.error) return Array.isArray(expanded.data) ? expanded.data as CatalogRow[] : [];
 
-  const compatibility = await (supabase as any).rpc("get_current_ticket_catalog", {
+  const compatibility = await supabase.rpc("get_current_ticket_catalog", {
     p_event_id: DEFAULT_EVENT_ID,
     p_at: new Date().toISOString(),
   });
@@ -162,7 +162,7 @@ function readSiteMetrics(rows: AuditRow[]) {
 
 async function loadDashboardData(): Promise<DashboardData> {
   const [reportResult, profileResult, auditResult, catalogRows] = await Promise.all([
-    (supabase as any).rpc("get_event_reports", { p_event_id: DEFAULT_EVENT_ID }),
+    supabase.rpc("get_event_reports", { p_event_id: DEFAULT_EVENT_ID }),
     (supabase as any).from("profiles").select("id", { count: "exact", head: true }),
     (supabase as any).from("audit_logs").select("metadata_json").eq("action", PAGE_VIEW_ACTION).order("created_at", { ascending: false }).limit(10000),
     fetchCatalog().catch(() => []),

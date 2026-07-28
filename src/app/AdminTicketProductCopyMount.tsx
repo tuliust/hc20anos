@@ -64,7 +64,7 @@ function ProductCopyPanel() {
     setLoading(true);
     setError("");
     try {
-      const { data, error: rpcError } = await (supabase as any).rpc("admin_get_ticket_lots", {
+      const { data, error: rpcError } = await supabase.rpc("admin_get_ticket_lots", {
         p_event_id: DEFAULT_EVENT_ID,
       });
       if (rpcError) throw rpcError;

@@ -419,7 +419,7 @@ function enhanceParticipantModal(): void {
       if (!confirmed) return;
 
       const personId = await resolvePersonId(modal);
-      const { error } = await (supabase as any).rpc("admin_clear_person_profile", { p_person_id: personId });
+      const { error } = await supabase.rpc("admin_clear_person_profile", { p_person_id: personId });
       if (error) throw error;
 
       window.alert("Dados limpos. Nome e turma foram preservados.");
@@ -438,7 +438,7 @@ function enhanceParticipantModal(): void {
       if (!confirmed) return;
 
       const personId = await resolvePersonId(modal);
-      const { error } = await (supabase as any).rpc("admin_delete_person_profile", { p_person_id: personId });
+      const { error } = await supabase.rpc("admin_delete_person_profile", { p_person_id: personId });
       if (error) throw error;
 
       window.alert("Participante removido da base.");
