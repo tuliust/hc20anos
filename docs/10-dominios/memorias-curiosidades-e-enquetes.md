@@ -2,20 +2,22 @@
 status: canonical
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: eb956992069e064ce5589d42b630137b2a21649e
 source_files:
   - index.html
   - src/app/App.tsx
   - src/historyContentEnhancements.ts
-  - src/memoryAnonymityEnhancement.ts
   - src/lib/services.ts
   - src/lib/engagement.types.ts
+  - supabase/migrations/20260728000001_phase2_content_storage_security.sql
+  - supabase/migrations/20260728000002_phase2_moderation_concurrency.sql
+  - supabase/tests/phase2_content_storage.sql
   - tests/e2e/engagement-flow.spec.ts
   - tests/e2e/engagement-fixtures.ts
   - tests/e2e/editorial-moderation-flow.spec.ts
+  - tests/e2e/phase2-content-security.spec.ts
   - docs/30-contratos/testes-engajamento.generated.md
   - docs/30-contratos/testes-moderacao-editorial.generated.md
-  - supabase/migrations/
+  - docs/30-contratos/fase-2-conteudo-storage.generated.md
 ---
 
 # Memórias, curiosidades e enquetes
@@ -53,50 +55,54 @@ Campos funcionais esperados:
 
 ## Anonimato
 
-`is_anonymous` controla a apresentação pública, não necessariamente a inexistência de dados administrativos.
+`is_anonymous` controla a apresentação pública, sem eliminar a autoria necessária para moderação, auditoria e resposta a incidentes.
 
 Quando uma memória for anônima:
 
-- a interface pública não deve exibir nome, e-mail, usuário ou pessoa associada;
-- o painel administrativo deve mostrar apenas os dados necessários para moderação;
-- logs e exports públicos devem respeitar o anonimato;
-- uma alteração posterior não deve revelar acidentalmente o autor.
+- a interface pública não exibe nome, e-mail, usuário ou pessoa associada;
+- a RPC pública `get_public_memories` devolve `author_name`, `user_id` e `person_id` como `null`;
+- a tabela `memories` não possui mais policy de leitura pública direta;
+- o painel administrativo acessa somente os dados necessários para moderação;
+- logs e exports públicos respeitam o anonimato;
+- uma alteração posterior não pode revelar acidentalmente o autor.
 
-O controle público de anonimato deve permanecer visível e operável por teclado e tecnologia assistiva. O runtime expõe o controle como `switch`, com nome acessível e estado em `aria-checked`.
+O controle público permanece visível e operável por teclado e tecnologia assistiva. O componente React canônico expõe `role="switch"`, nome acessível, estado em `aria-checked` e foco visível.
 
-## Correção da regressão de anonimato
+## Refatoração da regressão de anonimato
 
-A regressão funcional encontrada pelos testes vinha de `historyContentEnhancements.ts`, que ocultava o controle e executava um clique programático para desligá-lo quando estivesse ativo.
+A regressão vinha de `historyContentEnhancements.ts`, que ocultava o controle e executava um clique programático para desligá-lo quando estivesse ativo.
 
-A correção vigente usa `memoryAnonymityEnhancement.ts`, carregado depois do runtime principal, para:
+A Fase 2 removeu essa intervenção. O estado e o controle agora pertencem integralmente ao componente React de `App.tsx`:
 
-- restaurar a visibilidade do controle com uma regra de precedência explícita;
-- expor `role="switch"`, nome acessível e `aria-checked`;
-- preservar cliques reais do usuário;
-- bloquear somente o clique programático legado que tentava desligar uma escolha já ativa.
-
-Essa camada é uma correção de compatibilidade. O caminho preferencial futuro é remover o comportamento contraditório do enhancement legado quando o arquivo puder ser refatorado sem risco para os demais ajustes da página histórica.
+- não há clique programático sobre a escolha do usuário;
+- não há regra externa para ocultar o controle;
+- o antigo `memoryAnonymityEnhancement.ts` e seu carregamento em `index.html` foram removidos;
+- `historyContentEnhancements.ts` limita-se a ajustes de apresentação que não alteram o estado;
+- o E2E valida mouse, teclado, persistência da escolha e atributos acessíveis.
 
 ## Moderação de memórias
 
-Estados históricos incluem:
+Estados vigentes:
 
 - `pending`;
 - `approved`;
 - `rejected`;
 - `hidden`.
 
-Somente conteúdo aprovado e não oculto deve aparecer publicamente. O schema gerado é a autoridade final para estados e transições.
+Somente conteúdo aprovado e não oculto aparece publicamente. O schema gerado é a autoridade final para estados e transições.
 
 Fluxo:
 
-1. usuário envia a memória;
-2. serviço valida tamanho e campos mínimos;
-3. registro entra no estado definido pela política editorial;
-4. moderador revisa o conteúdo;
-5. aprovação libera a exibição;
+1. usuário autenticado envia pela RPC `submit_memory`;
+2. a RPC aplica rate limiting e sanitização;
+3. o registro entra como `pending`;
+4. moderador revisa pela RPC central `moderate_content_item`;
+5. aprovação libera a exibição pela RPC pública mascarada;
 6. destaque editorial é aplicado separadamente;
-7. ocultação posterior remove a memória das páginas públicas.
+7. ocultação posterior remove a memória das páginas públicas;
+8. cada decisão gera evento imutável de moderação.
+
+Transições concorrentes usam bloqueio de linha. Duas decisões contraditórias sobre um item pendente não podem ser aceitas simultaneamente.
 
 ## Curiosidades
 
@@ -121,7 +127,7 @@ Não usar conteúdo fixo no frontend como autoridade editorial de produção.
 
 ### Estados
 
-O modelo histórico inclui:
+O modelo inclui:
 
 - `draft`;
 - `open`;
@@ -132,7 +138,7 @@ Uma enquete em `draft` não é pública. Uma enquete fechada pode exibir resulta
 
 ### Regras de voto
 
-A função ou trigger de validação deve ser a autoridade para:
+A função ou trigger de validação é a autoridade para:
 
 - confirmar que a enquete está aberta;
 - confirmar que a opção pertence à enquete;
@@ -140,11 +146,11 @@ A função ou trigger de validação deve ser a autoridade para:
 - permitir múltiplas opções apenas quando configurado;
 - impedir alteração direta de contadores agregados pelo cliente.
 
-O frontend deve apresentar as regras, mas não é responsável por garanti-las.
+O frontend apresenta as regras, mas não é responsável por garanti-las.
 
 ## Resultados
 
-Resultados públicos devem ser agregados a partir de votos válidos. Não persistir totais no frontend nem confiar em contagens enviadas pelo navegador.
+Resultados públicos são agregados a partir de votos válidos. Não persistir totais no frontend nem confiar em contagens enviadas pelo navegador.
 
 Durante uma votação, a política do produto pode ocultar resultados parciais. Essa decisão deve ser configurável e documentada no contrato da enquete.
 
@@ -166,20 +172,36 @@ A execução com fixtures HTTP isoladas comprova:
 - resultados ocultos antes da participação;
 - enquete fechada sem aceitação de novo voto.
 
+### Fase 2 integrada
+
+O workflow `Phase 2 content and Storage` adiciona Supabase Auth, Postgres, Storage e Edge Runtime locais. A evidência está em [`../30-contratos/fase-2-conteudo-storage.generated.md`](../30-contratos/fase-2-conteudo-storage.generated.md).
+
+A suíte integrada comprova:
+
+- sanitização server-side;
+- limite de tamanho dos textos;
+- rate limiting atômico;
+- anonimato mascarado no contrato público do banco;
+- bloqueio de inserções diretas que contornem as RPCs;
+- decisões concorrentes serializadas;
+- trilha de moderação;
+- refatoração do switch sem enhancement externo.
+
 ### Moderação editorial
 
-O workflow `Editorial moderation functional tests` aprovou a fila de memórias anônimas e as transições administrativas. Consulte [`../30-contratos/testes-moderacao-editorial.generated.md`](../30-contratos/testes-moderacao-editorial.generated.md).
-
-Os testes isolados não substituem RLS, triggers, constraints, rate limiting, proteção contra abuso ou moderação humana em ambiente integrado.
+O workflow `Editorial moderation functional tests` cobre a fila de memórias anônimas e as transições administrativas. Consulte [`../30-contratos/testes-moderacao-editorial.generated.md`](../30-contratos/testes-moderacao-editorial.generated.md).
 
 ## Segurança de conteúdo
 
-- Limitar comprimento de memórias e textos.
-- Escapar HTML e não renderizar conteúdo executável.
-- Aplicar rate limiting ou controles de abuso quando necessário.
-- Restringir moderação por role.
-- Não expor e-mails ou identificadores internos.
-- Manter trilha de decisões administrativas relevantes.
+- Comprimento de memórias e textos é limitado no banco.
+- HTML é removido e conteúdo executável não é renderizado.
+- Envios passam por rate limiting por usuário e ação.
+- Escritas colaborativas passam por RPCs específicas.
+- Moderação é restrita a `moderator`, `admin` ou `superadmin`.
+- E-mails e identificadores internos não são devolvidos por contratos públicos anônimos.
+- Decisões administrativas mantêm trilha imutável.
+
+Essas medidas reduzem classes conhecidas de abuso, mas não substituem moderação humana do conteúdo e das alegações sobre terceiros.
 
 ## Privacidade
 
@@ -191,10 +213,12 @@ Contribuições podem conter nomes ou fatos sobre terceiros. A moderação deve 
 
 - memória pendente não aparece publicamente;
 - memória aprovada aparece;
-- memória anônima não revela autor em nenhuma página pública;
+- memória anônima não revela autor no frontend nem na RPC pública;
 - memória ocultada deixa de aparecer;
 - usuário comum não altera status de moderação;
-- texto executável é neutralizado.
+- texto executável é neutralizado;
+- rate limit é aplicado sob concorrência;
+- decisões contraditórias não são aceitas simultaneamente.
 
 ### Enquetes
 
@@ -225,8 +249,6 @@ O painel administrativo deve permitir:
 
 ## Dívidas conhecidas
 
-- Validar votos, unicidade, opções pertencentes à enquete e estados fechados contra triggers e constraints reais.
-- Executar testes de rate limiting, sanitização e abuso em ambiente integrado.
-- Testar concorrência entre votos e consistência da visão agregada de resultados.
-- Remover a intervenção contraditória de `historyContentEnhancements.ts` e absorver a correção no componente canônico em refatoração futura.
-- Alguns fluxos e layouts continuam distribuídos entre React e enhancements, exigindo regressão E2E permanente.
+- Executar a mesma matriz em homologação remota antes da implantação produtiva.
+- Validar volume e thresholds de rate limiting com tráfego representativo.
+- Manter regressão E2E permanente quando layouts e enhancements da página histórica forem alterados.
