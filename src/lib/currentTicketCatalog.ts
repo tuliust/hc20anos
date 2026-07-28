@@ -71,13 +71,13 @@ function normalizeRow(value: unknown): CurrentTicketCatalogItem | null {
 }
 
 async function fetchCatalogRpc(eventId: string): Promise<unknown[]> {
-  const expanded = await (supabase as any).rpc("get_public_ticket_catalog", {
+  const expanded = await supabase.rpc("get_public_ticket_catalog", {
     p_event_id: eventId,
     p_at: new Date().toISOString(),
   });
   if (!expanded.error) return Array.isArray(expanded.data) ? expanded.data : [];
 
-  const compatibility = await (supabase as any).rpc("get_current_ticket_catalog", {
+  const compatibility = await supabase.rpc("get_current_ticket_catalog", {
     p_event_id: eventId,
     p_at: new Date().toISOString(),
   });
