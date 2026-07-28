@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-28
-last_verified_commit: 5d98fbed05d0ea93b3e6250cfc4113aa76b5c085
+last_verified_commit: fc81497f428bbd38cf0b62ba360e2906ee8193d9
 generation_command: GitHub Actions / Phase 1 environment and security
 source_files:
   - supabase/migrations/
@@ -21,120 +21,120 @@ source_files:
 | Inicialização do Supabase local | `success` |
 | Replay integral das migrations | `success` |
 | Usuários e roles determinísticos | `success` |
-| RLS, grants, triggers, constraints e roles | `failure` |
-| Regeneração dos contratos do banco | `skipped` |
-| Auditoria documental | `skipped` |
+| RLS, grants, triggers, constraints e roles | `success` |
+| Regeneração dos contratos do banco | `success` |
+| Auditoria documental | `success` |
 
 O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
 
 ## Diagnóstico SQL
 
 ```text
- guest_cancel_rpc_exists                | PASS
- guest_decision_rpc_exists              | PASS
- guest_expiration_cron_exists           | PASS
- guest_expiration_rpc_exists            | PASS
- guest_list_rpc_exists                  | PASS
- guest_request_rpc_exists               | PASS
- guest_sponsor_search_rpc_exists        | PASS
- guest_whatsapp_trigger_exists          | PASS
- legacy_guest_defer_trigger_removed     | PASS
-(11 rows)
-===== supabase/tests/faq_category_consolidation_validation.sql =====
- total_faq_items | active_faq_items | deleted_faq_items 
------------------+------------------+-------------------
-               6 |                6 |                 0
+SET
+      check_name       | result 
+-----------------------+--------
+ checkin_role_resolves | PASS
 (1 row)
 
-        key        |             label             |   icon_key    | sort_order | is_visible |          deleted_at           | total_items | active_items | visible_items | featured_items 
--------------------+-------------------------------+---------------+------------+------------+-------------------------------+-------------+--------------+---------------+----------------
- account-access    | Cadastro e Login              | user-key      |         10 | t          |                               |           0 |            0 |             0 |              0
- site-sections     | Seções do Site                | layout-grid   |         20 | t          |                               |           0 |            0 |             0 |              0
- data-privacy      | Dados e Privacidade           | shield-lock   |         30 | t          |                               |           0 |            0 |             0 |              0
- event-information | Informações do Evento         | calendar-days |         40 | t          |                               |           6 |            6 |             6 |              6
- tickets-pricing   | Categorias e Valores          | ticket        |         50 | t          |                               |           0 |            0 |             0 |              0
- checkout-payment  | Checkout e Pagamento          | credit-card   |         60 | t          |                               |           0 |            0 |             0 |              0
- refund-transfer   | Reembolso e Transferência     | refresh-cw    |         70 | t          |                               |           0 |            0 |             0 |              0
- general           | Informações gerais            |               |         10 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- pricing           | Lotes e preços                |               |         20 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- tickets           | Categorias de ingresso        |               |         30 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- participants      | Dados dos participantes       |               |         40 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- guests            | Compra por convidado externo  |               |         50 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- extras            | Extras de bebidas e churrasco |               |         60 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- payments          | Checkout e pagamento          |               |         70 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- transfers         | Transferência                 |               |         80 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- refunds           | Reembolso                     |               |         90 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
- checkin           | Check-in                      |               |        100 | f          | 2026-07-28 18:27:02.006788+00 |           0 |            0 |             0 |              0
-(17 rows)
-
-          slug           |            question            |   category_key    |    category_label     | relational_category_key | relational_category_label 
--------------------------+--------------------------------+-------------------+-----------------------+-------------------------+---------------------------
- legacy-909720fbcbaaf0ab | Quem pode participar?          | event-information | Informações do Evento | event-information       | Informações do Evento
- legacy-10e7019319176f8b | Posso levar acompanhante?      | event-information | Informações do Evento | event-information       | Informações do Evento
- legacy-c9b1a76461315592 | Como funciona a reivindicação? | event-information | Informações do Evento | event-information       | Informações do Evento
- legacy-23f94f0a68dcc84d | O ingresso é transferível?     | event-information | Informações do Evento | event-information       | Informações do Evento
- legacy-ec50f08828b0388b | Qual é a forma de pagamento?   | event-information | Informações do Evento | event-information       | Informações do Evento
- legacy-f99e00f805a28032 | Como farei o check-in no dia?  | event-information | Informações do Evento | event-information       | Informações do Evento
-(6 rows)
-
- inconsistent_items 
---------------------
-                  0
+        check_name         | result 
+---------------------------+--------
+ checkin_dashboard_allowed | PASS
 (1 row)
 
- active_obsolete_categories 
-----------------------------
-                          0
-(1 row)
-===== supabase/tests/faq_category_mapping_fix_validation.sql =====
-        key        |           label           |   icon_key    | total_perguntas 
--------------------+---------------------------+---------------+-----------------
- account-access    | Cadastro e Login          | user-key      |               0
- site-sections     | Seções do Site            | layout-grid   |               0
- data-privacy      | Dados e Privacidade       | shield-lock   |               0
- event-information | Informações do Evento     | calendar-days |               6
- tickets-pricing   | Categorias e Valores      | ticket        |               0
- checkout-payment  | Checkout e Pagamento      | credit-card   |               0
- refund-transfer   | Reembolso e Transferência | refresh-cw    |               0
-(7 rows)
-
- inconsistent_items 
---------------------
-                  0
+NOTICE:  PASS checkin_financial_report_denied
+DO
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 55555555-5555-4555-8555-555555555555
 (1 row)
 
- total_items | event_information | tickets_pricing | checkout_payment | refund_transfer | account_access | site_sections | data_privacy 
--------------+-------------------+-----------------+------------------+-----------------+----------------+---------------+--------------
-           6 |                 6 |               0 |                0 |               0 |              0 |             0 |            0
+  set_config   
+---------------
+ authenticated
 (1 row)
-===== supabase/tests/faq_schema_integrity.sql =====
-             check_name              | result 
--------------------------------------+--------
- faq_backup_covers_current_items     | PASS
- faq_backup_table_exists             | PASS
- faq_categories_table_exists         | PASS
- faq_icon_column_exists              | PASS
- faq_items_have_valid_categories     | PASS
- faq_items_table_exists              | PASS
- faq_move_rpc_exists                 | PASS
- faq_redundant_labels_are_consistent | PASS
- seven_active_categories_exist       | PASS
-(9 rows)
-===== supabase/tests/migration_reconciliation.sql =====
-                 check_name                 | result 
---------------------------------------------+--------
- all_expected_versions_are_registered       | PASS
- commerce_foundation_objects_exist          | PASS
- faq_objects_exist                          | PASS
- no_duplicate_registered_versions           | PASS
- operational_objects_exist                  | PASS
- profile_identity_latest_version_registered | PASS
-(6 rows)
-===== supabase/tests/phase1_environment_security.sql =====
-ERROR:  operator does not exist: name[] = text[]
-LINE 9:     ) = array['superadmin','moderator','checkin_staff','admi...
-              ^
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+
+                                                  set_config                                                   
+---------------------------------------------------------------------------------------------------------------
+ {"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated","email":"moderator-tests@local.invalid"}
+(1 row)
+
+SET
+       check_name        | result 
+-------------------------+--------
+ moderator_role_resolves | PASS
+(1 row)
+
+NOTICE:  PASS moderator_financial_report_denied
+DO
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 66666666-6666-4666-8666-666666666666
+(1 row)
+
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","email":"admin-tests@local.invalid"}
+(1 row)
+
+SET
+     check_name      | result 
+---------------------+--------
+ admin_role_resolves | PASS
+(1 row)
+
+        check_name         | result 
+---------------------------+--------
+ admin_reads_all_role_rows | PASS
+(1 row)
+
+           check_name           | result 
+--------------------------------+--------
+ admin_financial_report_allowed | PASS
+(1 row)
+
+        check_name         | result 
+---------------------------+--------
+ admin_cannot_change_roles | PASS
+(1 row)
+
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 11111111-1111-4111-8111-111111111111
+(1 row)
+
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                                                   set_config                                                   
+----------------------------------------------------------------------------------------------------------------
+ {"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","email":"superadmin-tests@local.invalid"}
+(1 row)
+
+SET
+        check_name        | result 
+--------------------------+--------
+ superadmin_role_resolves | PASS
+(1 row)
+
+         check_name          | result 
+-----------------------------+--------
+ superadmin_can_manage_roles | PASS
+(1 row)
+
+ROLLBACK
 ===== supabase/tests/profile_claim_identity_verification.sql =====
                      check_name                      | result 
 -----------------------------------------------------+--------
