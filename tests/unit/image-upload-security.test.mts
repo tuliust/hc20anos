@@ -1,3 +1,4 @@
+// Executes against the same byte-inspection module used by the Edge Function.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ImageSecurityError, inspectImageBytes } from "../../supabase/functions/_shared/image-security.ts";
