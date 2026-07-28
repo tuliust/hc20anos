@@ -1,0 +1,195 @@
+name: RPC cast migration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/rpc-cast-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rpc-cast-migration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-rpc-casts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci
+
+      - name: Replace RPC any casts
+        id: migrate
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run rpc:fix-any-casts 2>&1 | tee rpc-cast-migration.log
+
+      - name: Regenerate consumed RPC contracts
+        id: contracts
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
+        run: npm run docs:generate-rpc-usage
+
+      - name: Build typed application
+        id: build
+        if: steps.contracts.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee rpc-cast-build.log
+
+      - name: Verify no RPC any casts remain
+        id: verify
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: npm run rpc:check-any-casts
+
+      - name: Generate migration report
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
+          CONTRACTS_OUTCOME: ${{ steps.contracts.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/rpc-cast-migration.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: $(date -u +%F)
+          last_verified_commit: ${GITHUB_SHA}
+          generation_command: GitHub Actions / RPC cast migration
+          source_files:
+            - src/
+            - build/
+            - src/lib/rpc.types.ts
+            - scripts/migrate-rpc-any-casts.mjs
+            - scripts/generate-consumed-rpc-contracts.mjs
+            - .github/workflows/rpc-cast-migration.yml
+          ---
+
+          # Migração final dos casts de RPC
+
+          | Verificação | Resultado |
+          |---|---|
+          | Instalação das dependências | \`${INSTALL_OUTCOME}\` |
+          | Substituição de \`(supabase as any).rpc\` | \`${MIGRATE_OUTCOME:-skipped}\` |
+          | Regeneração dos contratos consumidos | \`${CONTRACTS_OUTCOME:-skipped}\` |
+          | Build tipado da aplicação | \`${BUILD_OUTCOME:-skipped}\` |
+          | Verificação de zero casts RPC | \`${VERIFY_OUTCOME:-skipped}\` |
+          EOF
+
+          if [ -s rpc-cast-migration.log ]; then
+            printf '\n## Alterações detectadas\n\n```text\n' >> docs/30-contratos/rpc-cast-migration.generated.md
+            tail -n 120 rpc-cast-migration.log >> docs/30-contratos/rpc-cast-migration.generated.md
+            printf '```\n' >> docs/30-contratos/rpc-cast-migration.generated.md
+          fi
+
+          if [ -s rpc-cast-build.log ]; then
+            printf '\n## Diagnóstico do build\n\n```text\n' >> docs/30-contratos/rpc-cast-migration.generated.md
+            tail -n 160 rpc-cast-build.log >> docs/30-contratos/rpc-cast-migration.generated.md
+            printf '```\n' >> docs/30-contratos/rpc-cast-migration.generated.md
+          fi
+
+      - name: Publish migration or diagnostic report
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
+          CONTRACTS_OUTCOME: ${{ steps.contracts.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        shell: bash
+        run: |
+          success=1
+          for result in "$INSTALL_OUTCOME" "$MIGRATE_OUTCOME" "$CONTRACTS_OUTCOME" "$BUILD_OUTCOME" "$VERIFY_OUTCOME"; do
+            if [ "$result" != "success" ]; then success=0; fi
+          done
+
+          if [ "$success" -eq 0 ]; then
+            git restore --worktree --staged src build 2>/dev/null || true
+            git restore --worktree --staged docs/30-contratos/RPCs-consumidas.generated.md 2>/dev/null || true
+          fi
+
+          allowed=(
+            docs/30-contratos/rpc-cast-migration.generated.md
+            docs/30-contratos/RPCs-consumidas.generated.md
+            src/lib/rpc.generated.ts
+          )
+
+          if [ "$success" -eq 1 ]; then
+            while IFS= read -r file; do
+              case "$file" in
+                src/*|build/*) allowed+=("$file") ;;
+              esac
+            done < <(git status --porcelain --untracked-files=all | sed -E 's/^.. //' | sort -u)
+          fi
+
+          changes="$(git status --porcelain --untracked-files=all -- "${allowed[@]}")"
+          if [ -z "$changes" ]; then exit 0; fi
+
+          echo "$changes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${allowed[@]}"
+          git commit -m "$([ "$success" -eq 1 ] && echo 'refactor: remover casts any das RPCs' || echo 'docs: registrar diagnóstico da migração RPC')"
+
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git pull --rebase origin main
+          done
+          exit 1
+
+      - name: Upload migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpc-cast-migration-${{ github.sha }}
+          path: |
+            rpc-cast-migration.log
+            rpc-cast-build.log
+            docs/30-contratos/rpc-cast-migration.generated.md
+            docs/30-contratos/RPCs-consumidas.generated.md
+            src/lib/rpc.generated.ts
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on incomplete migration
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
+          CONTRACTS_OUTCOME: ${{ steps.contracts.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        shell: bash
+        run: |
+          for result in "$INSTALL_OUTCOME" "$MIGRATE_OUTCOME" "$CONTRACTS_OUTCOME" "$BUILD_OUTCOME" "$VERIFY_OUTCOME"; do
+            [ "$result" = "success" ] || exit 1
+          done
