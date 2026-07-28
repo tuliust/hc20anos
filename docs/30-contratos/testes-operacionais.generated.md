@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-27
-last_verified_commit: 8b8086f2d95ec4e6018bb854f2e8bed04d0d0f07
+last_verified: 2026-07-28
+last_verified_commit: 1679b315a27b3f2d5b5134db1173fb2acb2456bf
 generation_command: GitHub Actions / Operations functional tests
 source_files:
   - playwright.config.ts
@@ -23,9 +23,9 @@ source_files:
 
 | Verificação | Comando | Resultado |
 |---|---|---|
-| Build da aplicação | `npm run build` | `success` |
-| Instalação do Chromium | `npx playwright install --with-deps chromium` | `success` |
-| E2E de autorização e operação | `npx playwright test tests/e2e/operations-flow.spec.ts --workers=1` | `success` |
+| Build da aplicação | `npm run build` | `skipped` |
+| Instalação do Chromium | `npx playwright install --with-deps chromium` | `skipped` |
+| E2E de autorização e operação | `npx playwright test tests/e2e/operations-flow.spec.ts --workers=1` | `skipped` |
 
 ## Cobertura funcional
 
@@ -38,19 +38,4 @@ source_files:
 
 ## Interpretação
 
-A proteção da rota e a segregação de funções foram aprovadas com fixtures isoladas. As RPCs e RLS continuam sendo a autoridade server-side.
-
-## Diagnóstico E2E
-
-```text
-
-Running 3 tests using 1 worker
-
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/operations-flow.spec.ts:8:3 › operação do evento › redireciona visitante sem sessão para o login (2.9s)
-  ✓  2 tests/e2e/operations-flow.spec.ts:13:3 › operação do evento › restringe checkin_staff à operação de entrada e vouchers (1.1s)
-  ✓  3 tests/e2e/operations-flow.spec.ts:46:3 › operação do evento › mantém reembolsos e indicadores restritos a admin (987ms)
-
-  3 passed (8.3s)
-```
+A execução encontrou regressão operacional. O diagnóstico abaixo deve ser resolvido antes de promover a proteção e o runbook.
