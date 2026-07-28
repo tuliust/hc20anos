@@ -112,6 +112,17 @@ const forbiddenRemoval = await moderator.client.rpc("prepare_photo_removal", { p
 assert.match(forbiddenRemoval.error?.message ?? "", /admin_required/);
 const tag = tagRows.data[0];
 assert.ifError((await moderator.client.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: tag.id, p_status: "approved", p_notes: null })).error);
+const duplicateApprovedTag = await ordinary.client.rpc("submit_photo_tag", {
+  p_photo_id: photo.id,
+  p_person_id: person.id,
+  p_tagged_name: "Nome alterado indevidamente",
+});
+assert.ifError(duplicateApprovedTag.error);
+assert.equal(duplicateApprovedTag.data.id, tag.id);
+const tagAfterDuplicate = await service.from("photo_tags").select("status,tagged_name_snapshot").eq("id", tag.id).single();
+assert.ifError(tagAfterDuplicate.error);
+assert.equal(tagAfterDuplicate.data.status, "approved");
+assert.equal(tagAfterDuplicate.data.tagged_name_snapshot, person.full_name);
 
 const memorySubmit = await ordinary.client.rpc("submit_memory", {
   p_event_id: EVENT_ID,
@@ -156,14 +167,20 @@ assert.ifError(bucket.error);
 // increment that raised the exception, so the persisted counter remains at the limit.
 assert.equal(bucket.data.request_count, 10);
 
-console.log("6. Remoção completa oculta relacionamentos e apaga o objeto físico");
-const removal = await ordinary.client.rpc("submit_photo_removal_request", {
+console.log("6. Remoção concorrente é idempotente e apaga o objeto físico");
+const removalAttempts = await Promise.all(Array.from({ length: 3 }, () => ordinary.client.rpc("submit_photo_removal_request", {
   p_photo_id: photo.id,
   p_requester_name: "Solicitante <script>x</script>",
   p_requester_email: "TESTE@LOCAL.INVALID",
   p_reason: "Solicito a remoção desta foto por motivo de privacidade.",
-});
-assert.ifError(removal.error);
+})));
+removalAttempts.forEach(result => assert.ifError(result.error));
+const removalIds = new Set(removalAttempts.map(result => result.data.id));
+assert.equal(removalIds.size, 1, "Solicitações concorrentes criaram registros diferentes");
+const removal = removalAttempts[0];
+const removalRows = await service.from("photo_removal_requests").select("id").eq("photo_id", photo.id).eq("requester_user_id", "22222222-2222-4222-8222-222222222222").in("status", ["pending", "hidden_preventively"]);
+assert.ifError(removalRows.error);
+assert.equal(removalRows.data.length, 1);
 const removed = await functionRequest(admin.token, "remove", JSON.stringify({ request_id: removal.data.id, notes: "Remoção integrada" }), "application/json");
 assert.equal(removed.response.ok, true, JSON.stringify(removed.payload));
 const [photoAfter, requestAfter, commentsAfter, tagsAfter, eventsAfter, objectsAfter] = await Promise.all([
