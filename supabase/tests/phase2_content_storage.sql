@@ -70,12 +70,18 @@ select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222'
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","email":"authenticated-tests@local.invalid"}',true);
 set local role authenticated;
-with inserted as (
-  insert into public.memories(event_id,user_id,author_name,memory_text,is_anonymous,status)
-  values('00000000-0000-0000-0000-000000000001','22222222-2222-4222-8222-222222222222','Teste','Memória direta não autorizada',false,'pending')
-  on conflict do nothing returning 1
-)
-select 'direct_memory_insert_blocked' as check_name, case when (select count(*) from inserted)=0 then 'PASS' else 'FAIL' end as result;
+do $$
+declare blocked boolean:=false;
+begin
+  begin
+    insert into public.memories(event_id,user_id,author_name,memory_text,is_anonymous,status)
+    values('00000000-0000-0000-0000-000000000001','22222222-2222-4222-8222-222222222222','Teste','Memória direta não autorizada',false,'pending');
+  exception when insufficient_privilege then
+    blocked:=true;
+  end;
+  if not blocked then raise exception 'FAIL direct_memory_insert_blocked'; end if;
+  raise notice 'PASS direct_memory_insert_blocked';
+end $$;
 rollback;
 
 -- The public RPC masks authorship and identifiers for anonymous memories.
