@@ -8,7 +8,6 @@ on:
       - "index.html"
       - "src/app/App.tsx"
       - "src/historyContentEnhancements.ts"
-      - "src/memoryAnonymityEnhancement.ts"
       - "src/lib/services.ts"
       - "src/lib/engagement.types.ts"
       - "tests/e2e/engagement-flow.spec.ts"
@@ -23,7 +22,6 @@ on:
       - "index.html"
       - "src/app/App.tsx"
       - "src/historyContentEnhancements.ts"
-      - "src/memoryAnonymityEnhancement.ts"
       - "src/lib/services.ts"
       - "src/lib/engagement.types.ts"
       - "tests/e2e/engagement-flow.spec.ts"
@@ -92,7 +90,7 @@ jobs:
           mkdir -p docs/30-contratos
           verified_date="$(date -u +%F)"
           if [ "$BUILD_OUTCOME" = "success" ] && [ "$BROWSER_OUTCOME" = "success" ] && [ "$E2E_OUTCOME" = "success" ]; then
-            interpretation="A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita, mas não substitui RLS, triggers, moderação ou controles de abuso em ambiente integrado."
+            interpretation="A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita. A validação integrada de RLS, sanitização, rate limiting e concorrência pertence ao workflow Phase 2 content and Storage."
           else
             interpretation="A execução encontrou regressão. O diagnóstico abaixo deve ser resolvido antes de considerar memórias e enquetes validadas."
           fi
@@ -112,7 +110,6 @@ jobs:
             - tests/e2e/profile-claim-fixtures.ts
             - src/app/App.tsx
             - src/historyContentEnhancements.ts
-            - src/memoryAnonymityEnhancement.ts
             - src/lib/services.ts
             - src/lib/engagement.types.ts
           ---
@@ -131,7 +128,7 @@ jobs:
 
           - somente memórias aprovadas são carregadas na página pública;
           - memória anônima não exibe o nome administrativo do autor;
-          - o controle de anonimato permanece visível e acessível como \`switch\`;
+          - o controle de anonimato pertence ao componente React e permanece acessível como \`switch\`;
           - memória curta é rejeitada antes da escrita;
           - nova memória é enviada como \`pending\` para moderação;
           - enquete aberta permite voto de usuário autenticado;
