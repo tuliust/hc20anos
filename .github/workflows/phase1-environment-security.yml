@@ -11,6 +11,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "scripts/generate-consumed-rpc-contracts.mjs"
+      - "scripts/migrate-rpc-any-casts.mjs"
       - "docs/30-contratos/database.types.generated.ts"
       - "docs/30-contratos/permissoes.md"
       - "package.json"
@@ -25,6 +26,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "scripts/generate-consumed-rpc-contracts.mjs"
+      - "scripts/migrate-rpc-any-casts.mjs"
       - "docs/30-contratos/database.types.generated.ts"
       - "docs/30-contratos/permissoes.md"
       - "package.json"
@@ -57,10 +59,15 @@ jobs:
         id: rpc
         continue-on-error: true
         run: npm run docs:generate-rpc-usage
+      - name: Prevent RPC any casts
+        id: rpc_casts
+        continue-on-error: true
+        if: steps.rpc.outcome == 'success'
+        run: npm run rpc:check-any-casts
       - name: Build typed application
         id: build
         continue-on-error: true
-        if: steps.rpc.outcome == 'success'
+        if: steps.rpc.outcome == 'success' && steps.rpc_casts.outcome == 'success'
         run: npm run build
       - name: Start local Supabase
         id: start
@@ -115,6 +122,7 @@ jobs:
         if: always()
         env:
           RPC: ${{ steps.rpc.outcome }}
+          RPC_CASTS: ${{ steps.rpc_casts.outcome }}
           BUILD: ${{ steps.build.outcome }}
           START: ${{ steps.start.outcome }}
           RESET: ${{ steps.reset.outcome }}
@@ -136,6 +144,7 @@ jobs:
             - supabase/tests/
             - src/lib/rpc.types.ts
             - scripts/generate-consumed-rpc-contracts.mjs
+            - scripts/migrate-rpc-any-casts.mjs
             - .github/workflows/phase1-environment-security.yml
           ---
 
@@ -144,6 +153,7 @@ jobs:
           | Verificação | Resultado |
           |---|---|
           | Inventário e contratos das RPCs consumidas | \`${RPC}\` |
+          | Zero casts \`(supabase as any).rpc\` | \`${RPC_CASTS:-skipped}\` |
           | Build TypeScript e aplicação | \`${BUILD:-skipped}\` |
           | Inicialização do Supabase local | \`${START}\` |
           | Replay integral das migrations | \`${RESET:-skipped}\` |
@@ -196,9 +206,7 @@ jobs:
         run: npx supabase stop --no-backup || true
       - name: Fail on Phase 1 regression
         if: always()
-        env:
-          RESULTS: ${{ join(steps.*.outcome, ' ') }}
         run: |
-          for result in "${{ steps.rpc.outcome }}" "${{ steps.build.outcome }}" "${{ steps.start.outcome }}" "${{ steps.reset.outcome }}" "${{ steps.fixture.outcome }}" "${{ steps.sql.outcome }}" "${{ steps.db_contracts.outcome }}" "${{ steps.docs.outcome }}"; do
+          for result in "${{ steps.rpc.outcome }}" "${{ steps.rpc_casts.outcome }}" "${{ steps.build.outcome }}" "${{ steps.start.outcome }}" "${{ steps.reset.outcome }}" "${{ steps.fixture.outcome }}" "${{ steps.sql.outcome }}" "${{ steps.db_contracts.outcome }}" "${{ steps.docs.outcome }}"; do
             [ "$result" = "success" ] || exit 1
           done
