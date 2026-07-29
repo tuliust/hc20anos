@@ -8,6 +8,8 @@ const REQUIRED = [
   "PHASE3_SUPABASE_ANON_KEY",
   "PHASE3_BUYER_EMAIL",
   "PHASE3_BUYER_PASSWORD",
+  "PHASE3_ADMIN_EMAIL",
+  "PHASE3_ADMIN_PASSWORD",
   "PHASE3_CHECKOUT_PAYLOAD_JSON",
 ];
 
@@ -38,6 +40,8 @@ function requiredEnvironment() {
     anonKey: String(process.env.PHASE3_SUPABASE_ANON_KEY),
     buyerEmail: String(process.env.PHASE3_BUYER_EMAIL).trim().toLowerCase(),
     buyerPassword: String(process.env.PHASE3_BUYER_PASSWORD),
+    adminEmail: String(process.env.PHASE3_ADMIN_EMAIL).trim().toLowerCase(),
+    adminPassword: String(process.env.PHASE3_ADMIN_PASSWORD),
     expectedTotalCents: Number(process.env.PHASE3_EXPECTED_TOTAL_CENTS ?? "25000"),
   };
 }
@@ -122,6 +126,85 @@ function normalizedOrders(value) {
   return [];
 }
 
+function summarizeBuyerOrder(order) {
+  return {
+    id: order?.id ?? null,
+    public_token: order?.public_token ?? null,
+    created_at: order?.created_at ?? null,
+    product_code: order?.ticket_type?.product_code ?? null,
+    total_amount_cents: order?.total_amount_cents ?? null,
+    payment_status: order?.payment_status ?? null,
+    reservation_status: order?.reservation_status ?? null,
+    participant_count: Array.isArray(order?.participants) ? order.participants.length : null,
+    expires_at: order?.expires_at ?? null,
+  };
+}
+
+function summarizeAdminOrder(order) {
+  return {
+    id: order?.id ?? null,
+    created_at: order?.created_at ?? null,
+    product_code: order?.product_code ?? null,
+    total_amount_cents: order?.total_amount_cents ?? null,
+    payment_status: order?.payment_status ?? null,
+    payment_environment: order?.payment_environment ?? null,
+    reservation_status: order?.reservation_status ?? null,
+    participant_count: order?.participant_count ?? null,
+    provider_preference_recorded: Boolean(order?.payment_provider_preference_id),
+    preference_status: order?.preference_status ?? null,
+    preference_expires_at: order?.preference_expires_at ?? null,
+    webhook_events: order?.webhook_events ?? null,
+    webhook_failures: order?.webhook_failures ?? null,
+  };
+}
+
+async function collectDiagnostics({ env, buyerClient, payload }) {
+  const diagnostics = {
+    checkout_idempotency_key_sha256_prefix: createHash("sha256")
+      .update(String(payload.idempotency_key))
+      .digest("hex")
+      .slice(0, 16),
+    buyer_orders: [],
+    buyer_rpc_error: null,
+    admin_orders: [],
+    admin_auth_error: null,
+    admin_rpc_error: null,
+  };
+
+  const { data: buyerOrdersRaw, error: buyerOrdersError } = await buyerClient.rpc("get_my_commerce_orders");
+  if (buyerOrdersError) {
+    diagnostics.buyer_rpc_error = buyerOrdersError.message;
+  } else {
+    diagnostics.buyer_orders = normalizedOrders(buyerOrdersRaw)
+      .slice(0, 5)
+      .map(summarizeBuyerOrder);
+  }
+
+  const adminClient = createClient(env.url, env.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: adminSignIn, error: adminSignInError } = await adminClient.auth.signInWithPassword({
+    email: env.adminEmail,
+    password: env.adminPassword,
+  });
+  if (adminSignInError || !adminSignIn.user) {
+    diagnostics.admin_auth_error = adminSignInError?.message ?? "sessão administrativa ausente";
+    return diagnostics;
+  }
+
+  const { data: adminOrdersRaw, error: adminOrdersError } = await adminClient.rpc("get_admin_orders", { p_status: null });
+  if (adminOrdersError) {
+    diagnostics.admin_rpc_error = adminOrdersError.message;
+  } else {
+    diagnostics.admin_orders = normalizedOrders(adminOrdersRaw)
+      .filter((order) => String(order?.buyer_email ?? "").trim().toLowerCase() === env.buyerEmail)
+      .slice(0, 5)
+      .map(summarizeAdminOrder);
+  }
+  await adminClient.auth.signOut();
+  return diagnostics;
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   const env = requiredEnvironment();
@@ -140,12 +223,19 @@ async function main() {
   }
   if (String(signIn.user.email ?? "").toLowerCase() !== env.buyerEmail) fail("Sessão autenticada diverge do comprador esperado");
 
-  const first = await callCheckout({
-    url: env.url,
-    anonKey: env.anonKey,
-    accessToken: signIn.session.access_token,
-    payload,
-  });
+  let first;
+  try {
+    first = await callCheckout({
+      url: env.url,
+      anonKey: env.anonKey,
+      accessToken: signIn.session.access_token,
+      payload,
+    });
+  } catch (error) {
+    const diagnostics = await collectDiagnostics({ env, buyerClient: supabase, payload });
+    fail(error instanceof Error ? error.message : String(error), diagnostics);
+  }
+
   const checkoutHost = assertSandboxCheckout(first.body.checkout_url);
 
   const second = await callCheckout({
@@ -193,17 +283,7 @@ async function main() {
     second_reused_preference: Boolean(second.body.reused_preference),
     same_checkout_url: true,
     same_public_token: true,
-    order: {
-      id: order.id,
-      public_token: order.public_token,
-      product_code: order.ticket_type?.product_code,
-      payment_status: order.payment_status,
-      reservation_status: order.reservation_status,
-      total_amount_cents: order.total_amount_cents,
-      currency_id: order.currency_id,
-      participant_count: order.participants.length,
-      expires_at: order.expires_at,
-    },
+    order: summarizeBuyerOrder(order),
   };
 
   const privateSession = {
@@ -239,6 +319,7 @@ main().catch(async (error) => {
     completed_at: new Date().toISOString(),
     payment_executed: false,
     error: error instanceof Error ? error.message : String(error),
+    diagnostics: error && typeof error === "object" && "detail" in error ? error.detail : null,
   };
   await writeFile("artifacts/phase3-checkout-idempotency.json", `${JSON.stringify(report, null, 2)}\n`, "utf8");
   console.error(report.error);
