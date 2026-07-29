@@ -90,3 +90,8 @@ set role = excluded.role,
     display_name = excluded.display_name,
     email = excluded.email,
     updated_at = now();
+
+-- Integration tests create additional users through the real local Auth API.
+-- This local-only grant lets the service client attach temporary roles without
+-- changing the grants shipped by any migration or remote environment.
+grant select, insert, update, delete on public.admin_users to service_role;
