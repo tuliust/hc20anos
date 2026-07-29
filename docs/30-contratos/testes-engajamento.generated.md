@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
+last_verified_commit: 47cc0e8901c216b91af2f3fbcc1a57b96d466284
 generation_command: GitHub Actions / Engagement functional tests
 source_files:
   - index.html
@@ -49,9 +49,8 @@ A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova 
 Running 2 tests using 1 worker
 
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação (4.8s)
-  ✓  2 tests/e2e/engagement-flow.spec.ts:53:3 › memórias e enquetes › registra voto único e impede novo voto em enquete fechada (1.4s)
+  ✓  1 tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação (1.2s)
+  ✓  2 tests/e2e/engagement-flow.spec.ts:53:3 › memórias e enquetes › registra voto único e impede novo voto em enquete fechada (941ms)
 
-  2 passed (8.6s)
+  2 passed (5.0s)
 ```
