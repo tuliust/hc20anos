@@ -1,19 +1,12 @@
 name: Phase 3 financial execution
 
 on:
-  push:
-    branches:
-      - agent/phase3-financial-execution
-    paths:
-      - scripts/phase3-financial-execution.mjs
-      - .github/workflows/phase3-financial-execution.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - scripts/phase3-financial-execution.mjs
-      - .github/workflows/phase3-financial-execution.yml
   workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Digite EXECUTAR_FASE_3_TESTE após confirmar MERCADO_PAGO_ENV=test"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -30,6 +23,7 @@ jobs:
     timeout-minutes: 20
     environment: phase3-test
     env:
+      PHASE3_CONFIRMATION: ${{ inputs.confirmation }}
       PHASE3_SUPABASE_URL: ${{ secrets.PHASE3_SUPABASE_URL }}
       PHASE3_SUPABASE_ANON_KEY: ${{ secrets.PHASE3_SUPABASE_ANON_KEY }}
       PHASE3_BUYER_EMAIL: ${{ secrets.PHASE3_BUYER_EMAIL }}
@@ -39,35 +33,22 @@ jobs:
       PHASE3_CHECKOUT_PAYLOAD_JSON: ${{ secrets.PHASE3_CHECKOUT_PAYLOAD_JSON }}
       PHASE3_MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.PHASE3_MERCADO_PAGO_ACCESS_TOKEN }}
       PHASE3_EXPECTED_TOTAL_CENTS: "25000"
+      PHASE3_IDEMPOTENCY_KEY_OVERRIDE: "phase3-checkout-allan-simple-20260729-002"
 
     steps:
       - name: Guardar escopo de teste
         shell: bash
         run: |
           set -euo pipefail
-          case "${GITHUB_EVENT_NAME}" in
-            push|workflow_dispatch)
-              if [ "${GITHUB_REF}" != "refs/heads/agent/phase3-financial-execution" ]; then
-                echo "Execução financeira bloqueada fora da branch controlada."
-                exit 1
-              fi
-              ;;
-            pull_request)
-              if [ "${GITHUB_HEAD_REF}" != "agent/phase3-financial-execution" ]; then
-                echo "Execução financeira bloqueada para outro head ref."
-                exit 1
-              fi
-              ;;
-            *)
-              echo "Evento não autorizado: ${GITHUB_EVENT_NAME}"
-              exit 1
-              ;;
-          esac
-          if [ -z "${PHASE3_MERCADO_PAGO_ACCESS_TOKEN:-}" ]; then
-            echo "Access token de teste ausente."
+          if [ "${GITHUB_REF}" != "refs/heads/agent/phase3-financial-execution" ]; then
+            echo "Execução financeira bloqueada fora da branch controlada."
             exit 1
           fi
-          echo "Escopo autorizado: criar preferência sandbox e validar idempotência."
+          if [ "${PHASE3_CONFIRMATION}" != "EXECUTAR_FASE_3_TESTE" ]; then
+            echo "Confirmação inválida."
+            exit 1
+          fi
+          echo "Escopo autorizado: ambiente test, preferência sandbox e idempotência."
           echo "Pagamento, webhook, ingresso, transferência e reembolso não serão executados neste job."
 
       - name: Checkout repository
@@ -119,12 +100,12 @@ jobs:
             "",
             `- Workflow run: ${process.env.GITHUB_RUN_ID}`,
             `- Commit: \`${process.env.GITHUB_SHA}\``,
-            "- Ambiente: sandbox/teste",
             "- Pagamento executado: não",
             `- Etapa: ${report.stage ?? "checkout_preference_idempotency"}`,
           ];
           if (ok) {
             lines.push(
+              `- Ambiente confirmado pela função: \`${report.environment}\``,
               `- Host do checkout: \`${report.checkout_host}\``,
               `- Primeira chamada reutilizou preferência: ${report.first_reused_preference}`,
               `- Segunda chamada reutilizou preferência: ${report.second_reused_preference}`,
@@ -136,24 +117,6 @@ jobs:
             );
           } else {
             lines.push(`- Erro sanitizado: \`${report.error ?? "erro desconhecido"}\``);
-            const buyerOrder = report.diagnostics?.buyer_orders?.[0];
-            const adminOrder = report.diagnostics?.admin_orders?.[0];
-            if (buyerOrder) {
-              lines.push(
-                "- Pedido visível ao comprador: sim",
-                `- Pedido do comprador: pagamento \`${buyerOrder.payment_status}\`, reserva \`${buyerOrder.reservation_status}\`, total R$ ${(Number(buyerOrder.total_amount_cents ?? 0) / 100).toFixed(2).replace(".", ")}`
-              );
-            } else {
-              lines.push("- Pedido visível ao comprador: não");
-            }
-            if (adminOrder) {
-              lines.push(
-                `- Diagnóstico administrativo: preferência registrada=${adminOrder.provider_preference_recorded}, status=${adminOrder.preference_status ?? "null"}, ambiente=${adminOrder.payment_environment ?? "null"}`,
-                `- Webhooks observados: ${adminOrder.webhook_events ?? 0}; falhas: ${adminOrder.webhook_failures ?? 0}`
-              );
-            }
-            if (report.diagnostics?.admin_auth_error) lines.push(`- Falha de autenticação administrativa: \`${report.diagnostics.admin_auth_error}\``);
-            if (report.diagnostics?.admin_rpc_error) lines.push(`- Falha na RPC administrativa: \`${report.diagnostics.admin_rpc_error}\``);
           }
           lines.push("", "Nenhum token, senha, e-mail ou URL completa foi publicado neste comentário.");
           await writeFile("artifacts/phase3-epic-comment.md", `${lines.join("\n")}\n`, "utf8");
@@ -172,7 +135,6 @@ jobs:
           {
             echo "## Fase 3 — checkout integrado"
             echo
-            echo "- Ambiente: sandbox/teste"
             echo "- Pagamento executado: não"
             echo "- Relatório sanitizado: artifact phase3-checkout-idempotency-${GITHUB_RUN_ID}"
             if [ -f artifacts/phase3-checkout-session.private.json ]; then
