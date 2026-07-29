@@ -63,8 +63,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Execute integrated sandbox checkout
-        run: node scripts/phase3-financial-execution.mjs
+      - name: Confirm remote sandbox and execute checkout
+        run: node scripts/phase3-financial-runner.mjs
 
       - name: Publish sanitized report
         if: always()
