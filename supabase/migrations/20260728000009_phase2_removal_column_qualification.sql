@@ -1,9 +1,11 @@
 -- ================================================================
--- Phase 2 — qualify removal columns against output parameters
+-- Phase 2 — qualify removal columns and administrative identities
 -- ================================================================
 -- prepare_photo_removal returns a column named photo_id. In PL/pgSQL that
 -- output parameter is also a variable, so unqualified photo_id references in
--- UPDATE predicates are ambiguous. Qualify every table column explicitly.
+-- UPDATE predicates are ambiguous. The schema also uses two administrative
+-- identifiers: reviewed_by_admin_id references auth.users, while
+-- removed_by_admin_id references public.admin_users.
 
 create or replace function public.prepare_photo_removal(
   p_request_id uuid,
@@ -17,14 +19,17 @@ declare
   v_role text := public.current_security_role();
   v_request public.photo_removal_requests;
   v_photo public.photos;
-  v_admin_id uuid;
+  v_admin_user_id uuid := auth.uid();
+  v_admin_record_id uuid;
 begin
-  if v_role not in ('admin','superadmin') then raise exception 'admin_required'; end if;
+  if v_role not in ('admin','superadmin') or v_admin_user_id is null then
+    raise exception 'admin_required';
+  end if;
 
-  select au.id into v_admin_id
+  select au.id into v_admin_record_id
   from public.admin_users au
-  where au.user_id = auth.uid();
-  if v_admin_id is null then raise exception 'admin_required'; end if;
+  where au.user_id = v_admin_user_id;
+  if v_admin_record_id is null then raise exception 'admin_required'; end if;
 
   select r.* into v_request
   from public.photo_removal_requests r
@@ -48,7 +53,7 @@ begin
 
   update public.photo_removal_requests r
   set status = 'hidden_preventively',
-      reviewed_by_admin_id = v_admin_id,
+      reviewed_by_admin_id = v_admin_user_id,
       reviewed_at = now(),
       admin_notes = p_notes,
       removal_error = null
@@ -60,7 +65,7 @@ begin
       featured_by_admin_id = null,
       featured_at = null,
       removed_at = now(),
-      removed_by_admin_id = v_admin_id
+      removed_by_admin_id = v_admin_record_id
   where p.id = v_photo.id;
 
   update public.photo_comments c
