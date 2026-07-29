@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 import { createClient } from "@supabase/supabase-js";
 
 const EVENT_ID = "00000000-0000-0000-0000-000000000001";
@@ -20,12 +21,36 @@ const functionUrl = `${apiUrl}/functions/v1/photo-storage`;
 const anonymous = createClient(apiUrl, anonKey, { auth: { persistSession: false } });
 const service = createClient(apiUrl, serviceKey, { auth: { persistSession: false } });
 
+async function waitForLocalAuth() {
+  let lastStatus = 0;
+  for (let attempt = 1; attempt <= 30; attempt += 1) {
+    try {
+      const response = await fetch(`${apiUrl}/auth/v1/health`, { headers: { apikey: anonKey } });
+      lastStatus = response.status;
+      if (response.ok) return;
+    } catch {
+      lastStatus = 0;
+    }
+    await delay(1000);
+  }
+  throw new Error(`Supabase Auth local não ficou saudável; último status: ${lastStatus || "indisponível"}`);
+}
+
 async function signedClient(email) {
   const client = createClient(apiUrl, anonKey, { auth: { persistSession: false } });
-  const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
-  assert.ifError(error);
-  assert.ok(data.session?.access_token, `Sessão não criada para ${email}`);
-  return { client, token: data.session.access_token };
+  let lastError = null;
+  for (let attempt = 1; attempt <= 10; attempt += 1) {
+    const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+    if (!error) {
+      assert.ok(data.session?.access_token, `Sessão não criada para ${email}`);
+      return { client, token: data.session.access_token };
+    }
+    lastError = error;
+    const retryable = error.name === "AuthRetryableFetchError" || Number(error.status) >= 500;
+    if (!retryable || attempt === 10) break;
+    await delay(attempt * 500);
+  }
+  assert.ifError(lastError);
 }
 
 async function functionRequest(token, action, body, contentType) {
@@ -63,6 +88,7 @@ async function expectFunctionError(token, file, expected) {
   assert.equal(payload.error, expected);
 }
 
+await waitForLocalAuth();
 const ordinary = await signedClient("authenticated-tests@local.invalid");
 const moderator = await signedClient("moderator-tests@local.invalid");
 const admin = await signedClient("admin-tests@local.invalid");
@@ -132,6 +158,8 @@ const memorySubmit = await ordinary.client.rpc("submit_memory", {
 });
 assert.ifError(memorySubmit.error);
 assert.equal(memorySubmit.data.memory_text, "Uma memória segura da turma.");
+assert.equal(memorySubmit.data.is_anonymous, true);
+assert.equal(memorySubmit.data.status, "pending");
 const decisions = await Promise.all([
   moderator.client.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: memorySubmit.data.id, p_status: "approved", p_notes: "decisão A" }),
   moderator.client.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: memorySubmit.data.id, p_status: "rejected", p_notes: "decisão B" }),
@@ -163,8 +191,6 @@ const rateLimited = commentBurst.filter(result => /rate_limit_exceeded/.test(res
 assert.ok(rateLimited.length >= 3, `Rate limit insuficiente: ${rateLimited.length}`);
 const bucket = await service.from("rate_limit_buckets").select("request_count").eq("action", "photo_comment").eq("actor_user_id", "22222222-2222-4222-8222-222222222222").single();
 assert.ifError(bucket.error);
-// Statements rejected by the rate limiter are rolled back together with the
-// increment that raised the exception, so the persisted counter remains at the limit.
 assert.equal(bucket.data.request_count, 10);
 
 console.log("6. Remoção concorrente é idempotente e apaga o objeto físico");
@@ -191,6 +217,12 @@ const [photoAfter, requestAfter, commentsAfter, tagsAfter, eventsAfter, objectsA
   service.from("content_moderation_events").select("id").in("entity_id", [photo.id, removal.data.id]),
   service.storage.from("photos").list("22222222-2222-4222-8222-222222222222"),
 ]);
+assert.ifError(photoAfter.error);
+assert.ifError(requestAfter.error);
+assert.ifError(commentsAfter.error);
+assert.ifError(tagsAfter.error);
+assert.ifError(eventsAfter.error);
+assert.ifError(objectsAfter.error);
 assert.equal(photoAfter.data.status, "removed");
 assert.ok(photoAfter.data.removed_at);
 assert.equal(requestAfter.data.status, "approved");
