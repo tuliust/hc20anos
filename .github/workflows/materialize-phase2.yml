@@ -97,15 +97,15 @@ jobs:
 
           | Verificação | Resultado |
           |---|---|
-          | Inventário e contratos das RPCs consumidas | `success` |
-          | Zero casts `(supabase as any).rpc` | `success` |
-          | Build TypeScript e aplicação | `success` |
-          | Inicialização do Supabase local | `success` |
-          | Replay integral das migrations | `success` |
-          | Usuários e roles determinísticos | `success` |
-          | RLS, grants, triggers, constraints e roles | `success` |
-          | Regeneração dos contratos do banco | `success` |
-          | Auditoria documental | `success` |
+          | Inventário e contratos das RPCs consumidas | \`success\` |
+          | Zero casts \`(supabase as any).rpc\` | \`success\` |
+          | Build TypeScript e aplicação | \`success\` |
+          | Inicialização do Supabase local | \`success\` |
+          | Replay integral das migrations | \`success\` |
+          | Usuários e roles determinísticos | \`success\` |
+          | RLS, grants, triggers, constraints e roles | \`success\` |
+          | Regeneração dos contratos do banco | \`success\` |
+          | Auditoria documental | \`success\` |
 
           O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
           EOF
