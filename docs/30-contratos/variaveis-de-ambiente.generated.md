@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: d6ea35ed750c13a1458d7e3d3c4c498872456a13
+last_verified_commit: f958a79aeb3ad05d26f89bd3a063b6ee39f385bf
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -27,10 +27,18 @@ source_files:
 | `NOTIFICATION_WORKER_KEY` | server-side | `supabase/functions/notification-worker/index.ts` |
 | `OPENAI_API_KEY` | server-side | `api/generate-profile-bio.ts` |
 | `OPENAI_PROFILE_MODEL` | server-side | `api/generate-profile-bio.ts` |
-| `PHASE3_CHECKOUT_PAYLOAD_JSON` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_ADMIN_EMAIL` | server-side | `scripts/phase3-financial-execution.mjs` |
+| `PHASE3_ADMIN_PASSWORD` | server-side | `scripts/phase3-financial-execution.mjs` |
+| `PHASE3_BUYER_EMAIL` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-runner.mjs` |
+| `PHASE3_BUYER_PASSWORD` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-runner.mjs` |
+| `PHASE3_CHECKOUT_PAYLOAD_JSON` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-preflight.mjs`<br>`scripts/phase3-financial-runner.mjs` |
 | `PHASE3_CONFIRMATION` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_CONFIRMED_ENVIRONMENT` | server-side | `scripts/phase3-financial-runner.mjs` |
 | `PHASE3_ENV` | server-side | `scripts/phase3-financial-preflight.mjs` |
-| `PHASE3_SUPABASE_URL` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_EXPECTED_TOTAL_CENTS` | server-side | `scripts/phase3-financial-execution.mjs` |
+| `PHASE3_IDEMPOTENCY_KEY_OVERRIDE` | server-side | `scripts/phase3-financial-runner.mjs` |
+| `PHASE3_SUPABASE_ANON_KEY` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-runner.mjs` |
+| `PHASE3_SUPABASE_URL` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-preflight.mjs`<br>`scripts/phase3-financial-runner.mjs` |
 | `RESEND_API_KEY` | server-side | `supabase/functions/notification-worker/index.ts`<br>`supabase/functions/server/index.ts` |
 | `SITE_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts` |
 | `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |

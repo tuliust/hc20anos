@@ -1,5 +1,6 @@
 name: Supabase type compatibility
 
+# Mudanças de schema devem publicar os relatórios gerados antes do merge.
 on:
   push:
     branches:

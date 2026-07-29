@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
+last_verified_commit: 116799bbb9c622de23a3246ba82c7c5233618c8f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1257,8 +1257,10 @@ source_files:
 | `public.memories` | `trg_memories_updated_at` | `CREATE TRIGGER trg_memories_updated_at BEFORE UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.notification_jobs` | `enqueue_guest_approval_whatsapp_job` | `CREATE TRIGGER enqueue_guest_approval_whatsapp_job AFTER INSERT ON notification_jobs FOR EACH ROW EXECUTE FUNCTION enqueue_guest_approval_whatsapp_job()` |
 | `public.orders` | `orders_enqueue_status_notifications` | `CREATE TRIGGER orders_enqueue_status_notifications AFTER INSERT OR UPDATE OF payment_status ON orders FOR EACH ROW EXECUTE FUNCTION enqueue_order_status_notifications()` |
+| `public.orders` | `orders_ensure_pending_expiry` | `CREATE TRIGGER orders_ensure_pending_expiry BEFORE INSERT OR UPDATE OF payment_status, reservation_status, expires_at ON orders FOR EACH ROW EXECUTE FUNCTION ensure_pending_order_expiry()` |
 | `public.orders` | `orders_sync_ticket_type_sales` | `CREATE TRIGGER orders_sync_ticket_type_sales AFTER UPDATE OF payment_status ON orders FOR EACH ROW EXECUTE FUNCTION sync_order_payment_sales_trigger()` |
 | `public.orders` | `trg_orders_updated_at` | `CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
+| `public.payment_preferences` | `payment_preferences_ensure_active_expiry` | `CREATE TRIGGER payment_preferences_ensure_active_expiry BEFORE INSERT OR UPDATE OF status, expires_at, order_id ON payment_preferences FOR EACH ROW EXECUTE FUNCTION ensure_active_preference_expiry()` |
 | `public.people` | `trg_people_updated_at` | `CREATE TRIGGER trg_people_updated_at BEFORE UPDATE ON people FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.photo_comments` | `trg_auto_approve_photo_comments` | `CREATE TRIGGER trg_auto_approve_photo_comments AFTER INSERT ON photo_comments FOR EACH ROW EXECUTE FUNCTION apply_automatic_content_approval()` |
 | `public.photo_comments` | `trg_photo_comments_sanitize` | `CREATE TRIGGER trg_photo_comments_sanitize BEFORE INSERT OR UPDATE ON photo_comments FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
