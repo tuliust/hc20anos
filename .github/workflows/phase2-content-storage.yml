@@ -46,7 +46,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  repair-type-consumer-metadata:
+  materialize-static-metadata:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -61,38 +61,22 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Separate source files from Git metadata pathspecs
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("scripts/generate-database-type-consumers.mjs")
-          text = path.read_text()
-          old_constants = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
-          new_constants = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs"];\nconst METADATA_PATHS = [...SOURCE_PATHS, ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
-          if text.count(old_constants) != 1:
-              raise SystemExit("Constante SOURCE_PATHS não reconhecida")
-          text = text.replace(old_constants, new_constants)
-          old_metadata = '  const paths = ["--", ...SOURCE_PATHS];'
-          new_metadata = '  const paths = ["--", ...METADATA_PATHS];'
-          if text.count(old_metadata) != 1:
-              raise SystemExit("Função metadata não reconhecida")
-          path.write_text(text.replace(old_metadata, new_metadata))
-          PY
-
-      - name: Regenerate and publish consumer inventory
+      - name: Generate and publish static contracts
         shell: bash
         run: |
           set -euo pipefail
           npm ci
-          npm run docs:generate-type-consumers
+          npm run docs:generate-contracts
+          npm run docs:generate-routes
           npm run audit:docs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/generate-database-type-consumers.mjs docs/30-contratos/consumidores-dos-tipos.generated.md
-          git commit -m "fix: separar pathspecs da origem documental"
+          git add docs/30-contratos/APIs.generated.md \
+            docs/30-contratos/edge-functions.generated.md \
+            docs/30-contratos/variaveis-de-ambiente.generated.md \
+            docs/30-contratos/codigos-de-erro.generated.md \
+            docs/30-contratos/rotas.generated.md
+          git commit -m "docs: alinhar proveniência dos contratos estáticos"
           git push origin HEAD:agent/phase2-content-storage
 
   content-storage:
