@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
+last_verified_commit: 47cc0e8901c216b91af2f3fbcc1a57b96d466284
 generation_command: GitHub Actions / Photo interactions functional tests
 source_files:
   - playwright.config.ts
@@ -46,7 +46,7 @@ Running 1 test using 1 worker
 
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/photo-interactions-flow.spec.ts:10:3 › interações em fotos › mantém escritas pendentes e permite marcar pessoa elegível (5.3s)
+  ✓  1 tests/e2e/photo-interactions-flow.spec.ts:10:3 › interações em fotos › mantém escritas pendentes e permite marcar pessoa elegível (6.4s)
 
-  1 passed (8.4s)
+  1 passed (8.7s)
 ```
