@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: d6ea35ed750c13a1458d7e3d3c4c498872456a13
+last_verified_commit: f958a79aeb3ad05d26f89bd3a063b6ee39f385bf
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -15,7 +15,7 @@ source_files:
 ## `checkout-create`
 
 - **Arquivo:** `supabase/functions/checkout-create/index.ts`
-- **Métodos detectados:** `OPTIONS`, `POST`
+- **Métodos detectados:** `GET`, `OPTIONS`, `POST`
 - **Sinais de autenticação:** Bearer Supabase, service role, anon key
 - **Variáveis:** `CHECKOUT_ALLOWED_ORIGINS`, `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_ENV`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `create_checkout_order`

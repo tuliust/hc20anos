@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
+last_verified_commit: 8f021029fa55b0a3a1f22522dc2ac29064edf46a
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -53,7 +53,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:143` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:612` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:144` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
-| `create_checkout_order` | `supabase/functions/checkout-create/index.ts:292` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
+| `create_checkout_order` | `supabase/functions/checkout-create/index.ts:335` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
 | `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:166` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
 | `export_checkin_report` | `src/app/OperationsReportingPanel.tsx:17` | `ExportCheckinReportArgs` | `ExportCheckinReportReturns` |

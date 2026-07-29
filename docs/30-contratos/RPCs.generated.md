@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
+last_verified_commit: 116799bbb9c622de23a3246ba82c7c5233618c8f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -54,6 +54,8 @@ source_files:
 | `public.enqueue_guest_approval_whatsapp_job` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enqueue_order_status_notifications` | `—` | `trigger` | sim | `volatile` | `—` |
 | `public.enqueue_ticket_whatsapp_notification` | `—` | `trigger` | sim | `volatile` | `—` |
+| `public.ensure_active_preference_expiry` | `—` | `trigger` | não | `volatile` | `—` |
+| `public.ensure_pending_order_expiry` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.expire_checkout_reservations` | `p_now timestamp with time zone` | `integer` | sim | `volatile` | `postgres=X/postgres,service_role=X/postgres` |
 | `public.expire_guest_approval_requests` | `p_now timestamp with time zone` | `integer` | sim | `volatile` | `postgres=X/postgres` |
 | `public.expire_ticket_transfers` | `p_now timestamp with time zone` | `integer` | sim | `volatile` | `postgres=X/postgres` |

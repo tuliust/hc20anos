@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
+last_verified_commit: 116799bbb9c622de23a3246ba82c7c5233618c8f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1253,6 +1253,10 @@ source_files:
 | `public.enqueue_order_status_notifications` | `postgres` | `EXECUTE` | YES |
 | `public.enqueue_ticket_whatsapp_notification` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enqueue_ticket_whatsapp_notification` | `postgres` | `EXECUTE` | YES |
+| `public.ensure_active_preference_expiry` | `PUBLIC` | `EXECUTE` | NO |
+| `public.ensure_active_preference_expiry` | `postgres` | `EXECUTE` | YES |
+| `public.ensure_pending_order_expiry` | `PUBLIC` | `EXECUTE` | NO |
+| `public.ensure_pending_order_expiry` | `postgres` | `EXECUTE` | YES |
 | `public.expire_checkout_reservations` | `postgres` | `EXECUTE` | YES |
 | `public.expire_checkout_reservations` | `service_role` | `EXECUTE` | NO |
 | `public.expire_guest_approval_requests` | `postgres` | `EXECUTE` | YES |
