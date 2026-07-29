@@ -4,7 +4,7 @@
 -- Supabase installs pgcrypto in the extensions schema. The historical
 -- function used digest(text, text) with search_path=public, which fails in a
 -- replayed environment. Keep the contract and qualify the bytea overload.
--- This migration is covered by the complete Phase 2 replay and integration.
+-- The synchronized branch validates this migration in the complete Phase 2 run.
 
 create or replace function public.enforce_rate_limit(
   p_action text,
