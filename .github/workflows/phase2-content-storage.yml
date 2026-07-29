@@ -1,6 +1,24 @@
 name: Phase 2 content and Storage
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/apply-phase2-content-storage.mjs"
+      - "scripts/apply-phase2-test-fixtures.mjs"
+      - "scripts/test-phase2-content-storage.mjs"
+      - "scripts/generate-database-contracts.mjs"
+      - "tests/unit/image-upload-security.test.mts"
+      - "tests/e2e/phase2-content-security.spec.ts"
+      - "tests/e2e/engagement-fixtures.ts"
+      - "tests/e2e/photo-interactions-fixtures.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/phase2-content-storage.yml"
   pull_request:
     paths:
       - "src/**"
@@ -24,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase2-pr-${{ github.event.pull_request.number || github.ref }}
+  group: phase2-content-storage-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -130,7 +148,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase2-pr-${{ github.sha }}
+          name: phase2-content-storage-${{ github.sha }}
           path: |
             phase2-edge-function.log
             playwright-report/
