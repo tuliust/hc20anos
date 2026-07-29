@@ -31,8 +31,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git merge --no-commit --no-ff origin/main
+          if ! git merge --no-commit --no-ff origin/main; then
+            conflicts="$(git diff --name-only --diff-filter=U)"
+            unexpected="$(printf '%s\n' "$conflicts" | grep -v '^\.github/workflows/materialize-phase2\.yml$' || true)"
+            if [ -n "$unexpected" ]; then
+              printf 'Conflitos inesperados:\n%s\n' "$unexpected"
+              exit 1
+            fi
+          fi
           git rm -f .github/workflows/materialize-phase2.yml
+          if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+            echo "Conflitos não resolvidos após remover o workflow temporário."
+            exit 1
+          fi
 
       - uses: actions/setup-node@v4
         with:
