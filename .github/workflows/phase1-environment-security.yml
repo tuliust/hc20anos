@@ -131,13 +131,16 @@ jobs:
           DB: ${{ steps.db_contracts.outcome }}
           DOCS: ${{ steps.docs.outcome }}
         run: |
+          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
+          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
+          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
           mkdir -p docs/30-contratos
           cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
           ---
           status: generated
           owner: tuliust
-          last_verified: $(date -u +%F)
-          last_verified_commit: ${GITHUB_SHA}
+          last_verified: ${verified_date}
+          last_verified_commit: ${verified_commit}
           generation_command: GitHub Actions / Phase 1 environment and security
           source_files:
             - supabase/migrations/
