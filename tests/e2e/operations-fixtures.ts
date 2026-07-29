@@ -79,7 +79,7 @@ export async function installOperationsFixtures(
     requested_at: "2026-07-27T17:00:00.000Z",
   }]));
 
-  await page.route("**/rest/v1/rpc/get_checkin_operation_metrics", route => fulfillJson(route, {
+  await page.route("**/rest/v1/rpc/get_checkin_operation_metrics", route => fulfillJson(route, [{
     total_tickets: 10,
     active_tickets: 10,
     checked_in_tickets: 4,
@@ -89,7 +89,7 @@ export async function installOperationsFixtures(
     vouchers_required: 4,
     vouchers_delivered: 2,
     last_checkin_at: "2026-07-27T18:00:00.000Z",
-  }));
+  }]));
 
   await page.route("**/rest/v1/rpc/get_checkin_activity", route => fulfillJson(route, [{
     event_id: "00000000-0000-4000-8000-000000006001",

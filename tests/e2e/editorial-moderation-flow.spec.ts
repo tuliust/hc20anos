@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 import {
   TEST_PENDING_COMMENT_ID,
   TEST_PENDING_MEMORY_ID,
-  TEST_USER_ID,
   installEditorialModerationFixtures,
 } from "./editorial-moderation-fixtures";
 
@@ -18,10 +17,12 @@ test.describe("moderação editorial", () => {
 
     await page.getByRole("button", { name: "Aprovar", exact: true }).click();
 
-    await expect.poll(() => api.memoryPatches.length, { timeout: 20_000 }).toBe(1);
-    expect(api.memoryPatches[0]).toMatchObject({
-      status: "approved",
-      approved_by_admin_id: TEST_USER_ID,
+    await expect.poll(() => api.moderationCalls.length, { timeout: 20_000 }).toBe(1);
+    expect(api.moderationCalls[0]).toEqual({
+      p_entity_type: "memory",
+      p_entity_id: TEST_PENDING_MEMORY_ID,
+      p_status: "approved",
+      p_notes: null,
     });
     await expect(page.getByText("A biblioteca era nosso refúgio nos intervalos mais tranquilos.", { exact: true })).toHaveCount(0);
     expect(api.auditCalls).toEqual(expect.arrayContaining([
@@ -43,11 +44,12 @@ test.describe("moderação editorial", () => {
 
     await page.getByRole("button", { name: "Rejeitar", exact: true }).click();
 
-    await expect.poll(() => api.commentPatches.length, { timeout: 20_000 }).toBe(1);
-    expect(api.commentPatches[0]).toMatchObject({
-      status: "rejected",
-      approved_by_admin_id: TEST_USER_ID,
-      approved_at: null,
+    await expect.poll(() => api.moderationCalls.length, { timeout: 20_000 }).toBe(1);
+    expect(api.moderationCalls[0]).toEqual({
+      p_entity_type: "photo_comment",
+      p_entity_id: TEST_PENDING_COMMENT_ID,
+      p_status: "rejected",
+      p_notes: null,
     });
     await expect(page.getByText("Comentário aguardando revisão editorial.", { exact: true })).toHaveCount(0);
     expect(api.auditCalls).toEqual(expect.arrayContaining([

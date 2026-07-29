@@ -1,8 +1,8 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: fc81497f428bbd38cf0b62ba360e2906ee8193d9
+last_verified: 2026-07-29
+last_verified_commit: ff07dc36ba5cc6b3a5b9851a82750778dd17a54b
 source_files:
   - src/
   - api/
@@ -23,6 +23,7 @@ source_files:
   - .github/workflows/database-migrations.yml
   - .github/workflows/type-compatibility.yml
   - .github/workflows/phase1-environment-security.yml
+  - .github/workflows/phase2-content-storage.yml
   - .github/workflows/functional-tests.yml
   - .github/workflows/commerce-functional-tests.yml
   - .github/workflows/operations-functional-tests.yml
@@ -51,6 +52,7 @@ As estruturas verificáveis do sistema possuem baselines versionadas com `status
 - consumidores dos tipos legados;
 - compatibilidade entre o snapshot manual e a baseline;
 - evidência integrada da Fase 1 — ambiente e segurança;
+- evidência integrada da Fase 2 — conteúdo e Storage;
 - evidências funcionais de perfil e FAQ;
 - evidências funcionais de catálogo e checkout;
 - evidências funcionais de autorização e operação;
@@ -93,7 +95,7 @@ Procedimento: [`geracao-do-banco.md`](./geracao-do-banco.md).
 
 | Contrato | Arquivo | Estado |
 |---|---|---|
-| Inventário de chamadas | [`RPCs-consumidas.generated.md`](./RPCs-consumidas.generated.md) | 50 RPCs distintas, 61 ocorrências literais e zero nomes dinâmicos |
+| Inventário de chamadas | [`RPCs-consumidas.generated.md`](./RPCs-consumidas.generated.md) | 61 RPCs distintas, 76 ocorrências literais e zero nomes dinâmicos |
 | Aliases TypeScript | `src/lib/rpc.generated.ts` | `Args`, `Returns` e `Row` derivados da baseline |
 | Utilitários genéricos | `src/lib/rpc.types.ts` | acesso tipado a `Database["public"]["Functions"]` |
 
@@ -125,6 +127,23 @@ O cliente Supabase usa a baseline gerada. `src/lib/database.types.ts` está depr
 
 A matriz vigente está em [`permissoes.md`](./permissoes.md), agora `canonical`. A execução não consulta produção nem utiliza dados pessoais reais.
 
+## Fase 2 — conteúdo e Storage
+
+[`fase-2-conteudo-e-storage.generated.md`](./fase-2-conteudo-e-storage.generated.md) registra resultado `success` para:
+
+- inspeção dos bytes e validação de assinatura, MIME, tamanho e dimensões;
+- rejeição de markup ativo e metadados sensíveis;
+- upload e download reais no Storage local;
+- RLS do bucket privado e centralização das escritas na Edge Function;
+- deduplicação, sanitização, rate limiting e concorrência;
+- moderação por roles e mascaramento de memórias anônimas;
+- solicitações idempotentes de remoção e exclusão física do objeto;
+- assets públicos servidos pela origem correta;
+- sete regressões Playwright em Chromium;
+- auditoria documental.
+
+A execução usa GoTrue, Postgres, Storage e Edge Runtime locais com identidades sintéticas. Não utiliza projeto remoto, dados pessoais reais nem provedor financeiro.
+
 ## Evidências funcionais
 
 | Frente | Evidência | Resultado |
@@ -136,7 +155,7 @@ A matriz vigente está em [`permissoes.md`](./permissoes.md), agora `canonical`.
 | Interações em fotos | [`testes-interacoes-fotos.generated.md`](./testes-interacoes-fotos.generated.md) | `success` |
 | Moderação editorial | [`testes-moderacao-editorial.generated.md`](./testes-moderacao-editorial.generated.md) | `success` |
 
-As evidências Playwright usam fixtures HTTP isoladas. A Fase 1 complementa essas suítes com replay e testes SQL reais no Postgres local.
+As evidências Playwright usam fixtures HTTP isoladas. As Fases 1 e 2 complementam essas suítes com replay, testes SQL, Auth, Storage e Edge Runtime reais no ambiente local.
 
 ## Verificação de drift
 
@@ -166,11 +185,11 @@ Esses documentos não podem contradizer as baselines geradas.
 
 ## Limites das evidências
 
-A Fase 1 comprova o ambiente local reproduzido, mas ainda não comprova:
+As Fases 1 e 2 comprovam o ambiente local reproduzido, incluindo Auth, banco, Storage e Edge Runtime. Ainda não comprovam:
 
 - autenticação e configuração em um projeto remoto de homologação;
-- Storage, MIME type, antivírus e EXIF;
-- rate limiting e abuso sob carga real;
+- funcionamento de um antivírus dedicado ou serviço externo de análise de malware;
+- comportamento sob carga distribuída de grande escala;
 - criação de preferência no Mercado Pago;
 - assinatura e processamento integrado do webhook;
 - reserva e restauração de inventário com provedor financeiro;
@@ -179,7 +198,7 @@ A Fase 1 comprova o ambiente local reproduzido, mas ainda não comprova:
 - operação presencial completa;
 - decisão humana de moderação ou tratamento jurídico de remoções.
 
-Essas camadas permanecem subordinadas aos ensaios integrados e runbooks.
+Essas camadas permanecem subordinadas aos ensaios integrados e runbooks correspondentes.
 
 ## Regras
 
@@ -198,7 +217,7 @@ Essas camadas permanecem subordinadas aos ensaios integrados e runbooks.
 2. executar checkout integrado com preferência controlada do Mercado Pago;
 3. validar webhook assinado, idempotência e reconciliação financeira;
 4. validar emissão, transferência, cancelamento, reembolso e inventário de ponta a ponta;
-5. validar upload, Storage, sanitização, concorrência e controles de abuso;
+5. validar antivírus dedicado e repetir Storage em homologação remota;
 6. ensaiar check-in em dispositivos, câmera, rede reserva e contingência offline;
 7. mover o comparador de tipos para snapshot arquivado e remover o arquivo manual;
 8. executar validações de design, responsividade e acessibilidade;

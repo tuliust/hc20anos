@@ -1,6 +1,5 @@
 import type { Page, Route } from "@playwright/test";
 import {
-  TEST_USER_ID,
   installAuthenticatedProfileClaimFixtures,
 } from "./profile-claim-fixtures";
 
@@ -60,16 +59,14 @@ async function fulfillJson(route: Route, payload: unknown, status = 200) {
 }
 
 export type EditorialModerationApiState = {
-  memoryPatches: Record<string, unknown>[];
-  commentPatches: Record<string, unknown>[];
+  moderationCalls: Record<string, unknown>[];
   auditCalls: Record<string, unknown>[];
 };
 
 export async function installEditorialModerationFixtures(page: Page): Promise<EditorialModerationApiState> {
   await installAuthenticatedProfileClaimFixtures(page, { admin: true });
 
-  const memoryPatches: Record<string, unknown>[] = [];
-  const commentPatches: Record<string, unknown>[] = [];
+  const moderationCalls: Record<string, unknown>[] = [];
   const auditCalls: Record<string, unknown>[] = [];
   let memoryStatus = "pending";
   let commentStatus = "pending";
@@ -82,47 +79,43 @@ export async function installEditorialModerationFixtures(page: Page): Promise<Ed
     const method = request.method();
     const isSingle = (request.headers()["accept"] ?? "").includes("application/vnd.pgrst.object+json");
 
+    if (restPath === "rpc/moderate_content_item" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      moderationCalls.push(body);
+      const entityType = String(body.p_entity_type ?? "");
+      const nextStatus = String(body.p_status ?? "pending");
+      if (entityType === "memory") memoryStatus = nextStatus;
+      if (entityType === "photo_comment") commentStatus = nextStatus;
+      await fulfillJson(route, {
+        entity_type: entityType,
+        entity_id: body.p_entity_id,
+        previous_status: "pending",
+        status: nextStatus,
+      });
+      return;
+    }
+
     if (resource === "content_moderation_settings") {
       await fulfillJson(route, isSingle ? moderationSettings : [moderationSettings]);
       return;
     }
 
-    if (resource === "memories") {
-      if (method === "GET") {
-        const requestedStatus = (url.searchParams.get("status") ?? "").replace(/^eq\./, "");
-        const rows = !requestedStatus || requestedStatus === memoryStatus
-          ? [{ ...pendingMemory, status: memoryStatus }]
-          : [];
-        await fulfillJson(route, rows);
-        return;
-      }
-
-      if (method === "PATCH") {
-        const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
-        memoryPatches.push(body);
-        memoryStatus = String(body.status ?? memoryStatus);
-        await fulfillJson(route, []);
-        return;
-      }
+    if (resource === "memories" && method === "GET") {
+      const requestedStatus = (url.searchParams.get("status") ?? "").replace(/^eq\./, "");
+      const rows = !requestedStatus || requestedStatus === memoryStatus
+        ? [{ ...pendingMemory, status: memoryStatus }]
+        : [];
+      await fulfillJson(route, rows);
+      return;
     }
 
-    if (resource === "photo_comments") {
-      if (method === "GET") {
-        const requestedStatus = (url.searchParams.get("status") ?? "").replace(/^eq\./, "");
-        const rows = !requestedStatus || requestedStatus === commentStatus
-          ? [{ ...pendingComment, status: commentStatus }]
-          : [];
-        await fulfillJson(route, rows);
-        return;
-      }
-
-      if (method === "PATCH") {
-        const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
-        commentPatches.push(body);
-        commentStatus = String(body.status ?? commentStatus);
-        await fulfillJson(route, []);
-        return;
-      }
+    if (resource === "photo_comments" && method === "GET") {
+      const requestedStatus = (url.searchParams.get("status") ?? "").replace(/^eq\./, "");
+      const rows = !requestedStatus || requestedStatus === commentStatus
+        ? [{ ...pendingComment, status: commentStatus }]
+        : [];
+      await fulfillJson(route, rows);
+      return;
     }
 
     if (resource === "audit_logs" && method === "POST") {
@@ -134,7 +127,5 @@ export async function installEditorialModerationFixtures(page: Page): Promise<Ed
     await route.fallback();
   });
 
-  return { memoryPatches, commentPatches, auditCalls };
+  return { moderationCalls, auditCalls };
 }
-
-export { TEST_USER_ID };

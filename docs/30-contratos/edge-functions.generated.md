@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: dd6944248d06c582f64519f241ce20bc7c7df259
+last_verified: 2026-07-29
+last_verified_commit: d6ea35ed750c13a1458d7e3d3c4c498872456a13
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -35,6 +35,14 @@ source_files:
 - **Sinais de autenticação:** service role, assinatura Mercado Pago
 - **Variáveis:** `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `apply_mercado_pago_payment`
+
+## `photo-storage`
+
+- **Arquivo:** `supabase/functions/photo-storage/index.ts`
+- **Métodos detectados:** `OPTIONS`, `POST`
+- **Sinais de autenticação:** Bearer Supabase, service role, anon key, admin_users
+- **Variáveis:** `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_PUBLIC_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **RPCs chamadas:** `complete_photo_removal`, `create_uploaded_photo`, `prepare_photo_removal`
 
 ## `refund-processor`
 

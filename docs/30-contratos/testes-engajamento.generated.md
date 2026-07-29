@@ -12,7 +12,6 @@ source_files:
   - tests/e2e/profile-claim-fixtures.ts
   - src/app/App.tsx
   - src/historyContentEnhancements.ts
-  - src/memoryAnonymityEnhancement.ts
   - src/lib/services.ts
   - src/lib/engagement.types.ts
 ---
@@ -31,7 +30,7 @@ source_files:
 
 - somente memórias aprovadas são carregadas na página pública;
 - memória anônima não exibe o nome administrativo do autor;
-- o controle de anonimato permanece visível e acessível como `switch`;
+- o controle de anonimato pertence ao componente React e permanece acessível como `switch`;
 - memória curta é rejeitada antes da escrita;
 - nova memória é enviada como `pending` para moderação;
 - enquete aberta permite voto de usuário autenticado;
@@ -41,18 +40,4 @@ source_files:
 
 ## Interpretação
 
-A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita, mas não substitui RLS, triggers, moderação ou controles de abuso em ambiente integrado.
-
-## Diagnóstico E2E
-
-```text
-
-Running 2 tests using 1 worker
-
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação (4.8s)
-  ✓  2 tests/e2e/engagement-flow.spec.ts:53:3 › memórias e enquetes › registra voto único e impede novo voto em enquete fechada (1.4s)
-
-  2 passed (8.5s)
-```
+A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita. A validação integrada de RLS, sanitização, rate limiting e concorrência pertence ao workflow `Phase 2 content and Storage`.

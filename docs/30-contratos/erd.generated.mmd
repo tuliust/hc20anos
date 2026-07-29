@@ -1,6 +1,6 @@
 %% status: generated
-%% last_verified: 2026-07-26
-%% last_verified_commit: 161cdcd81218e8802a2440453ffe0df3362dc9b3
+%% last_verified: 2026-07-29
+%% last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -46,6 +46,20 @@ erDiagram
     timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
     uuid updated_by_admin_id
+  }
+  public_content_moderation_events {
+    uuid id
+    uuid event_id
+    text entity_type
+    uuid entity_id
+    text previous_status
+    text new_status
+    text action
+    text notes
+    uuid actor_user_id
+    text actor_role
+    jsonb metadata_json
+    timestamp_with_time_zone created_at
   }
   public_content_moderation_settings {
     uuid event_id
@@ -497,6 +511,8 @@ erDiagram
     text admin_notes
     timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
+    timestamp_with_time_zone storage_deleted_at
+    text removal_error
   }
   public_photo_tags {
     uuid id
@@ -530,6 +546,15 @@ erDiagram
     boolean is_featured
     uuid featured_by_admin_id
     timestamp_with_time_zone featured_at
+    text original_file_name
+    text content_type
+    bigint file_size_bytes
+    text content_sha256
+    integer image_width
+    integer image_height
+    boolean metadata_stripped
+    timestamp_with_time_zone removed_at
+    uuid removed_by_admin_id
   }
   public_poll_options {
     uuid id
@@ -800,6 +825,7 @@ erDiagram
   public_tickets ||--o{ public_checkin_events : "ticket_id → id"
   public_events ||--o{ public_cms_assets : "event_id → id"
   public_admin_users ||--o{ public_cms_assets : "updated_by_admin_id → id"
+  public_events ||--o{ public_content_moderation_events : "event_id → id"
   public_events ||--o{ public_content_moderation_settings : "event_id → id"
   public_events ||--o{ public_event_archive_settings : "event_id → id"
   public_events ||--o{ public_event_page_content : "event_id → id"
@@ -839,6 +865,7 @@ erDiagram
   public_people ||--o{ public_photo_tags : "person_id → id"
   public_photos ||--o{ public_photo_tags : "photo_id → id"
   public_events ||--o{ public_photos : "event_id → id"
+  public_admin_users ||--o{ public_photos : "removed_by_admin_id → id"
   public_polls ||--o{ public_poll_options : "poll_id → id"
   public_poll_options ||--o{ public_poll_votes : "option_id → id"
   public_polls ||--o{ public_poll_votes : "poll_id → id"

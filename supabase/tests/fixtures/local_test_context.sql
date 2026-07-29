@@ -43,9 +43,35 @@ select
 from users_to_seed
 on conflict (id) do update
 set email = excluded.email,
+    encrypted_password = excluded.encrypted_password,
     email_confirmed_at = excluded.email_confirmed_at,
     raw_app_meta_data = excluded.raw_app_meta_data,
     raw_user_meta_data = excluded.raw_user_meta_data,
+    updated_at = now();
+
+with identities_to_seed(user_id, email, display_name) as (
+  values
+    ('11111111-1111-4111-8111-111111111111'::uuid, 'superadmin-tests@local.invalid', 'Superadmin local'),
+    ('22222222-2222-4222-8222-222222222222'::uuid, 'authenticated-tests@local.invalid', 'Usuário autenticado local'),
+    ('33333333-3333-4333-8333-333333333333'::uuid, 'viewer-tests@local.invalid', 'Viewer local'),
+    ('44444444-4444-4444-8444-444444444444'::uuid, 'checkin-tests@local.invalid', 'Check-in local'),
+    ('55555555-5555-4555-8555-555555555555'::uuid, 'moderator-tests@local.invalid', 'Moderador local'),
+    ('66666666-6666-4666-8666-666666666666'::uuid, 'admin-tests@local.invalid', 'Administrador local')
+)
+insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select
+  user_id,
+  user_id,
+  email,
+  jsonb_build_object('sub', user_id::text, 'email', email, 'email_verified', true, 'display_name', display_name),
+  'email',
+  now(),
+  now(),
+  now()
+from identities_to_seed
+on conflict (provider_id, provider) do update
+set user_id = excluded.user_id,
+    identity_data = excluded.identity_data,
     updated_at = now();
 
 with roles_to_seed(user_id, role, display_name, email) as (
@@ -64,3 +90,31 @@ set role = excluded.role,
     display_name = excluded.display_name,
     email = excluded.email,
     updated_at = now();
+
+insert into public.people (id, full_name, class_year, class_group, is_visible)
+values (
+  '77777777-7777-4777-8777-777777777777'::uuid,
+  'Pessoa sintética da Fase 2',
+  2006,
+  'Teste',
+  true
+)
+on conflict (id) do update
+set full_name = excluded.full_name,
+    class_year = excluded.class_year,
+    class_group = excluded.class_group,
+    is_visible = excluded.is_visible,
+    updated_at = now();
+
+-- Integration tests create additional users through the real local Auth API.
+-- These local-only grants support fixture setup and assertions without changing
+-- the grants shipped by any migration or remote environment.
+grant select, insert, update, delete on public.admin_users to service_role;
+grant select on public.people to service_role;
+grant select on public.photos to service_role;
+grant select on public.photo_tags to service_role;
+grant select on public.photo_comments to service_role;
+grant select on public.memories to service_role;
+grant select on public.rate_limit_buckets to service_role;
+grant select on public.photo_removal_requests to service_role;
+grant select on public.content_moderation_events to service_role;

@@ -39,7 +39,12 @@
     "test:e2e:profile": "playwright test tests/e2e/profile-claim-flow.spec.ts",
     "test:e2e:functional": "playwright test tests/e2e/profile-claim-flow.spec.ts tests/e2e/faq-flow.spec.ts",
     "test:e2e:visual": "playwright test tests/e2e/home-visual.spec.ts",
-    "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs"
+    "strip:services-editorial-defaults": "node scripts/strip-services-editorial-defaults.mjs",
+    "phase2:apply": "node scripts/apply-phase2-content-storage.mjs",
+    "phase2:check": "node scripts/apply-phase2-content-storage.mjs --check",
+    "test:image-security": "node --experimental-strip-types --test tests/unit/image-upload-security.test.mts",
+    "test:phase2:storage": "node scripts/test-phase2-content-storage.mjs",
+    "supabase:deploy:photo-storage": "supabase functions deploy photo-storage --no-verify-jwt --project-ref tjnqqsbwgjcdzcxykyif"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

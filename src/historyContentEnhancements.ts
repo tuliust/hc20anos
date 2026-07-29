@@ -467,21 +467,10 @@ function enhanceAdminApprovedPhotos() {
 
 function enhanceMemoriesForm() {
   if ((window.location.pathname.replace(/\/+$/, "") || "/") !== "/nossa-historia/memorias") return;
-
   const sectionLabel = Array.from(document.querySelectorAll<HTMLElement>("p"))
     .find(element => normalizeText(element.textContent) === "enviar memória");
   const formCard = sectionLabel?.parentElement;
   if (!formCard) return;
-
-  const anonymousText = Array.from(formCard.querySelectorAll<HTMLElement>("span"))
-    .find(element => normalizeText(element.textContent) === "enviar sem mostrar meu nome");
-  const anonymousControl = anonymousText?.closest<HTMLElement>("label");
-  if (anonymousControl) {
-    const toggle = anonymousControl.querySelector<HTMLButtonElement>("button");
-    if (toggle?.className.includes("bg-[#2d6a4f]")) toggle.click();
-    if (anonymousControl.style.display !== "none") anonymousControl.style.display = "none";
-  }
-
   Array.from(formCard.querySelectorAll<HTMLButtonElement>("button"))
     .filter(button => normalizeText(button.textContent) === "enviar para moderação")
     .forEach(button => replaceButtonLabel(button, "Enviar"));

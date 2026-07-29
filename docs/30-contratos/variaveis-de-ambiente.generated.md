@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: dd6944248d06c582f64519f241ce20bc7c7df259
+last_verified: 2026-07-29
+last_verified_commit: d6ea35ed750c13a1458d7e3d3c4c498872456a13
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -27,18 +27,23 @@ source_files:
 | `NOTIFICATION_WORKER_KEY` | server-side | `supabase/functions/notification-worker/index.ts` |
 | `OPENAI_API_KEY` | server-side | `api/generate-profile-bio.ts` |
 | `OPENAI_PROFILE_MODEL` | server-side | `api/generate-profile-bio.ts` |
+| `PHASE3_CHECKOUT_PAYLOAD_JSON` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_CONFIRMATION` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_ENV` | server-side | `scripts/phase3-financial-preflight.mjs` |
+| `PHASE3_SUPABASE_URL` | server-side | `scripts/phase3-financial-preflight.mjs` |
 | `RESEND_API_KEY` | server-side | `supabase/functions/notification-worker/index.ts`<br>`supabase/functions/server/index.ts` |
-| `SITE_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts` |
-| `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
+| `SITE_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts` |
+| `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
 | `SUPABASE_DB_CONTAINER` | server-side | `scripts/generate-database-contracts.mjs` |
 | `SUPABASE_FUNCTIONS_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/server/index.ts` |
-| `SUPABASE_SERVICE_ROLE_KEY` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts`<br>`supabase/functions/server/kv_store.tsx` |
-| `SUPABASE_URL` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts`<br>`supabase/functions/server/kv_store.tsx` |
+| `SUPABASE_PUBLIC_URL` | server-side | `supabase/functions/photo-storage/index.ts` |
+| `SUPABASE_SERVICE_ROLE_KEY` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts`<br>`supabase/functions/server/kv_store.tsx` |
+| `SUPABASE_URL` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts`<br>`supabase/functions/server/kv_store.tsx` |
 | `TRANSACTIONAL_FROM_EMAIL` | server-side | `supabase/functions/notification-worker/index.ts`<br>`supabase/functions/server/index.ts` |
 | `VERCEL_OIDC_TOKEN` | server-side | `api/generate-profile-bio.ts` |
 | `VITE_DEV_MODE` | pública no bundle | `src/lib/supabase.ts` |
-| `VITE_SUPABASE_ANON_KEY` | pública no bundle | `api/checkout-create.ts`<br>`src/app/OperationsPage.tsx`<br>`src/lib/checkout.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
-| `VITE_SUPABASE_URL` | pública no bundle | `api/checkout-create.ts`<br>`src/app/OperationsPage.tsx`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
+| `VITE_SUPABASE_ANON_KEY` | pública no bundle | `api/checkout-create.ts`<br>`src/app/OperationsPage.tsx`<br>`src/lib/checkout.ts`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
+| `VITE_SUPABASE_URL` | pública no bundle | `api/checkout-create.ts`<br>`scripts/apply-phase2-content-storage.mjs`<br>`src/app/OperationsPage.tsx`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
 | `WHATSAPP_ACCESS_TOKEN` | server-side | `supabase/functions/notification-worker/index.ts` |
 | `WHATSAPP_GRAPH_VERSION` | server-side | `supabase/functions/notification-worker/index.ts` |
 | `WHATSAPP_PHONE_NUMBER_ID` | server-side | `supabase/functions/notification-worker/index.ts` |

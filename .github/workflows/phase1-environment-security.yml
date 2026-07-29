@@ -131,13 +131,16 @@ jobs:
           DB: ${{ steps.db_contracts.outcome }}
           DOCS: ${{ steps.docs.outcome }}
         run: |
+          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
+          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
+          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
           mkdir -p docs/30-contratos
           cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
           ---
           status: generated
           owner: tuliust
-          last_verified: $(date -u +%F)
-          last_verified_commit: ${GITHUB_SHA}
+          last_verified: ${verified_date}
+          last_verified_commit: ${verified_commit}
           generation_command: GitHub Actions / Phase 1 environment and security
           source_files:
             - supabase/migrations/
@@ -162,13 +165,8 @@ jobs:
           | Regeneração dos contratos do banco | \`${DB:-skipped}\` |
           | Auditoria documental | \`${DOCS:-skipped}\` |
 
-          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
+          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado. Os logs SQL completos permanecem nos artefatos do workflow.
           EOF
-          if [ -s phase1-sql-tests.log ]; then
-            printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-            tail -n 220 phase1-sql-tests.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-            printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-          fi
       - name: Require generated outputs in pull requests
         if: github.event_name == 'pull_request'
         run: |

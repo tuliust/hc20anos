@@ -143,6 +143,40 @@ export async function installEngagementFixtures(page: Page): Promise<EngagementA
     const resource = restPath.split("/")[0];
     const method = request.method();
 
+    if (restPath === "rpc/get_public_memories" && method === "POST") {
+      await fulfillJson(route, approvedMemories.map(memory => ({
+        ...memory,
+        user_id: null,
+        person_id: null,
+        author_name: memory.is_anonymous ? null : memory.author_name,
+      })));
+      return;
+    }
+
+    if (restPath === "rpc/submit_memory" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      const mapped = {
+        event_id: body.p_event_id,
+        user_id: TEST_USER_ID,
+        person_id: body.p_person_id ?? null,
+        author_name: "Maria Cabeção",
+        memory_text: body.p_memory_text,
+        is_anonymous: Boolean(body.p_is_anonymous),
+        status: "pending",
+        is_featured: false,
+      };
+      memoryCalls.push(mapped);
+      await fulfillJson(route, {
+        id: "00000000-0000-4000-8000-000000000703",
+        ...mapped,
+        approved_by_admin_id: null,
+        approved_at: null,
+        created_at: "2026-07-27T20:00:00Z",
+        updated_at: "2026-07-27T20:00:00Z",
+      });
+      return;
+    }
+
     if (resource === "memories") {
       if (method === "GET") {
         await fulfillJson(route, approvedMemories);

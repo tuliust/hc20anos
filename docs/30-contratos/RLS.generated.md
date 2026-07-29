@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: 161cdcd81218e8802a2440453ffe0df3362dc9b3
+last_verified: 2026-07-29
+last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -22,6 +22,7 @@ source_files:
 | `public.audit_logs` | sim | não |
 | `public.checkin_events` | sim | não |
 | `public.cms_assets` | sim | não |
+| `public.content_moderation_events` | sim | não |
 | `public.content_moderation_settings` | sim | não |
 | `public.event_archive_settings` | sim | não |
 | `public.event_page_content` | sim | não |
@@ -79,6 +80,7 @@ source_files:
 | `public.audit_logs` | `audit_logs_service_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `true` |
 | `public.cms_assets` | `cms_assets_manage_admins` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.cms_assets` | `cms_assets_select_active` | PERMISSIVE | `public` | `SELECT` | `(is_active = true)` | `—` |
+| `public.content_moderation_events` | `content_moderation_events_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE (au.user_id = auth.uid())))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` |
 | `public.event_archive_settings` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
@@ -111,11 +113,9 @@ source_files:
 | `public.memories` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.memories` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.memories` | `memories_admin_delete` | PERMISSIVE | `public` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.memories` | `memories_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND (status = 'pending'::text))` |
 | `public.memories` | `memories_moderator_read` | PERMISSIVE | `public` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
 | `public.memories` | `memories_moderator_update` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.memories` | `memories_owner_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
-| `public.memories` | `memories_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = 'approved'::text)` | `—` |
 | `public.order_participants` | `order_participants_owner_read` | PERMISSIVE | `authenticated` | `SELECT` | `((user_id = auth.uid()) OR (sponsor_user_id = auth.uid()) OR (EXISTS ( SELECT 1<br>   FROM orders o<br>  WHERE ((o.id = order_participants.order_id) AND (o.buyer_user_id = auth.uid())))))` | `—` |
 | `public.orders` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.orders` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
@@ -133,7 +133,6 @@ source_files:
 | `public.photo_comments` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_comments` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.photo_comments` | `photo_comments_admin_delete` | PERMISSIVE | `public` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.photo_comments` | `photo_comments_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND (status = 'pending'::text))` |
 | `public.photo_comments` | `photo_comments_moderator_read` | PERMISSIVE | `public` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
 | `public.photo_comments` | `photo_comments_moderator_update` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_comments` | `photo_comments_owner_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
@@ -146,20 +145,20 @@ source_files:
 | `public.photo_removal_requests` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_removal_requests` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.photo_removal_requests` | `removal_requests_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
-| `public.photo_removal_requests` | `removal_requests_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (requester_user_id = auth.uid()))` |
+| `public.photo_removal_requests` | `removal_requests_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.photo_removal_requests` | `removal_requests_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_removal_requests` | `removal_requests_owner_read` | PERMISSIVE | `public` | `SELECT` | `(requester_user_id = auth.uid())` | `—` |
 | `public.photo_tags` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_tags` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.photo_tags` | `photo_tags_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
-| `public.photo_tags` | `photo_tags_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `(auth.uid() IS NOT NULL)` |
+| `public.photo_tags` | `photo_tags_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.photo_tags` | `photo_tags_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_tags` | `photo_tags_owner_read` | PERMISSIVE | `public` | `SELECT` | `(created_by_user_id = auth.uid())` | `—` |
 | `public.photo_tags` | `photo_tags_public_read` | PERMISSIVE | `public` | `SELECT` | `((status = 'approved'::tag_status) AND (EXISTS ( SELECT 1<br>   FROM photos<br>  WHERE ((photos.id = photo_tags.photo_id) AND (photos.status = 'approved'::photo_status)))))` | `—` |
 | `public.photos` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photos` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.photos` | `photos_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
-| `public.photos` | `photos_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (uploaded_by_user_id = auth.uid()))` |
+| `public.photos` | `photos_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.photos` | `photos_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photos` | `photos_owner_read` | PERMISSIVE | `public` | `SELECT` | `(uploaded_by_user_id = auth.uid())` | `—` |
 | `public.photos` | `photos_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = 'approved'::photo_status)` | `—` |
@@ -244,9 +243,13 @@ source_files:
 | `public.admin_users` | `postgres` | `TRIGGER` | YES |
 | `public.admin_users` | `postgres` | `TRUNCATE` | YES |
 | `public.admin_users` | `postgres` | `UPDATE` | YES |
+| `public.admin_users` | `service_role` | `DELETE` | NO |
+| `public.admin_users` | `service_role` | `INSERT` | NO |
 | `public.admin_users` | `service_role` | `REFERENCES` | NO |
+| `public.admin_users` | `service_role` | `SELECT` | NO |
 | `public.admin_users` | `service_role` | `TRIGGER` | NO |
 | `public.admin_users` | `service_role` | `TRUNCATE` | NO |
+| `public.admin_users` | `service_role` | `UPDATE` | NO |
 | `public.audit_logs` | `anon` | `REFERENCES` | NO |
 | `public.audit_logs` | `anon` | `TRIGGER` | NO |
 | `public.audit_logs` | `anon` | `TRUNCATE` | NO |
@@ -291,6 +294,18 @@ source_files:
 | `public.cms_assets` | `service_role` | `REFERENCES` | NO |
 | `public.cms_assets` | `service_role` | `TRIGGER` | NO |
 | `public.cms_assets` | `service_role` | `TRUNCATE` | NO |
+| `public.content_moderation_events` | `authenticated` | `SELECT` | NO |
+| `public.content_moderation_events` | `postgres` | `DELETE` | YES |
+| `public.content_moderation_events` | `postgres` | `INSERT` | YES |
+| `public.content_moderation_events` | `postgres` | `REFERENCES` | YES |
+| `public.content_moderation_events` | `postgres` | `SELECT` | YES |
+| `public.content_moderation_events` | `postgres` | `TRIGGER` | YES |
+| `public.content_moderation_events` | `postgres` | `TRUNCATE` | YES |
+| `public.content_moderation_events` | `postgres` | `UPDATE` | YES |
+| `public.content_moderation_events` | `service_role` | `REFERENCES` | NO |
+| `public.content_moderation_events` | `service_role` | `SELECT` | NO |
+| `public.content_moderation_events` | `service_role` | `TRIGGER` | NO |
+| `public.content_moderation_events` | `service_role` | `TRUNCATE` | NO |
 | `public.content_moderation_settings` | `anon` | `REFERENCES` | NO |
 | `public.content_moderation_settings` | `anon` | `TRIGGER` | NO |
 | `public.content_moderation_settings` | `anon` | `TRUNCATE` | NO |
@@ -486,6 +501,7 @@ source_files:
 | `public.memories` | `postgres` | `TRUNCATE` | YES |
 | `public.memories` | `postgres` | `UPDATE` | YES |
 | `public.memories` | `service_role` | `REFERENCES` | NO |
+| `public.memories` | `service_role` | `SELECT` | NO |
 | `public.memories` | `service_role` | `TRIGGER` | NO |
 | `public.memories` | `service_role` | `TRUNCATE` | NO |
 | `public.notification_jobs` | `postgres` | `DELETE` | YES |
@@ -604,6 +620,7 @@ source_files:
 | `public.people` | `postgres` | `TRUNCATE` | YES |
 | `public.people` | `postgres` | `UPDATE` | YES |
 | `public.people` | `service_role` | `REFERENCES` | NO |
+| `public.people` | `service_role` | `SELECT` | NO |
 | `public.people` | `service_role` | `TRIGGER` | NO |
 | `public.people` | `service_role` | `TRUNCATE` | NO |
 | `public.photo_comments` | `anon` | `REFERENCES` | NO |
@@ -624,6 +641,7 @@ source_files:
 | `public.photo_comments` | `postgres` | `TRUNCATE` | YES |
 | `public.photo_comments` | `postgres` | `UPDATE` | YES |
 | `public.photo_comments` | `service_role` | `REFERENCES` | NO |
+| `public.photo_comments` | `service_role` | `SELECT` | NO |
 | `public.photo_comments` | `service_role` | `TRIGGER` | NO |
 | `public.photo_comments` | `service_role` | `TRUNCATE` | NO |
 | `public.photo_likes` | `anon` | `REFERENCES` | NO |
@@ -661,6 +679,7 @@ source_files:
 | `public.photo_removal_requests` | `postgres` | `TRUNCATE` | YES |
 | `public.photo_removal_requests` | `postgres` | `UPDATE` | YES |
 | `public.photo_removal_requests` | `service_role` | `REFERENCES` | NO |
+| `public.photo_removal_requests` | `service_role` | `SELECT` | NO |
 | `public.photo_removal_requests` | `service_role` | `TRIGGER` | NO |
 | `public.photo_removal_requests` | `service_role` | `TRUNCATE` | NO |
 | `public.photo_tags` | `anon` | `REFERENCES` | NO |
@@ -681,6 +700,7 @@ source_files:
 | `public.photo_tags` | `postgres` | `TRUNCATE` | YES |
 | `public.photo_tags` | `postgres` | `UPDATE` | YES |
 | `public.photo_tags` | `service_role` | `REFERENCES` | NO |
+| `public.photo_tags` | `service_role` | `SELECT` | NO |
 | `public.photo_tags` | `service_role` | `TRIGGER` | NO |
 | `public.photo_tags` | `service_role` | `TRUNCATE` | NO |
 | `public.photos` | `anon` | `REFERENCES` | NO |
@@ -701,6 +721,7 @@ source_files:
 | `public.photos` | `postgres` | `TRUNCATE` | YES |
 | `public.photos` | `postgres` | `UPDATE` | YES |
 | `public.photos` | `service_role` | `REFERENCES` | NO |
+| `public.photos` | `service_role` | `SELECT` | NO |
 | `public.photos` | `service_role` | `TRIGGER` | NO |
 | `public.photos` | `service_role` | `TRUNCATE` | NO |
 | `public.poll_options` | `anon` | `REFERENCES` | NO |
@@ -1010,6 +1031,7 @@ source_files:
 | `public.rate_limit_buckets` | `postgres` | `TRUNCATE` | YES |
 | `public.rate_limit_buckets` | `postgres` | `UPDATE` | YES |
 | `public.rate_limit_buckets` | `service_role` | `REFERENCES` | NO |
+| `public.rate_limit_buckets` | `service_role` | `SELECT` | NO |
 | `public.rate_limit_buckets` | `service_role` | `TRIGGER` | NO |
 | `public.rate_limit_buckets` | `service_role` | `TRUNCATE` | NO |
 | `public.refund_policy` | `anon` | `REFERENCES` | NO |
@@ -1188,6 +1210,7 @@ source_files:
 | `public.apply_automatic_content_approval` | `postgres` | `EXECUTE` | YES |
 | `public.apply_mercado_pago_payment` | `postgres` | `EXECUTE` | YES |
 | `public.apply_mercado_pago_payment` | `service_role` | `EXECUTE` | NO |
+| `public.assert_content_moderation_transition` | `postgres` | `EXECUTE` | YES |
 | `public.audit_sensitive_row_change` | `PUBLIC` | `EXECUTE` | NO |
 | `public.audit_sensitive_row_change` | `postgres` | `EXECUTE` | YES |
 | `public.calculate_refund_quote` | `authenticated` | `EXECUTE` | NO |
@@ -1202,8 +1225,11 @@ source_files:
 | `public.cleanup_security_operational_data` | `service_role` | `EXECUTE` | NO |
 | `public.complete_notification_job` | `postgres` | `EXECUTE` | YES |
 | `public.complete_notification_job` | `service_role` | `EXECUTE` | NO |
+| `public.complete_photo_removal` | `postgres` | `EXECUTE` | YES |
+| `public.complete_photo_removal` | `service_role` | `EXECUTE` | NO |
 | `public.complete_profile_registration_v3` | `authenticated` | `EXECUTE` | NO |
 | `public.complete_profile_registration_v3` | `postgres` | `EXECUTE` | YES |
+| `public.content_actor_name` | `postgres` | `EXECUTE` | YES |
 | `public.count_approved_external_guests` | `PUBLIC` | `EXECUTE` | NO |
 | `public.count_approved_external_guests` | `authenticated` | `EXECUTE` | NO |
 | `public.count_approved_external_guests` | `postgres` | `EXECUTE` | YES |
@@ -1211,6 +1237,8 @@ source_files:
 | `public.create_checkout_order` | `service_role` | `EXECUTE` | NO |
 | `public.create_guest_approval_request` | `authenticated` | `EXECUTE` | NO |
 | `public.create_guest_approval_request` | `postgres` | `EXECUTE` | YES |
+| `public.create_uploaded_photo` | `authenticated` | `EXECUTE` | NO |
+| `public.create_uploaded_photo` | `postgres` | `EXECUTE` | YES |
 | `public.current_security_role` | `authenticated` | `EXECUTE` | NO |
 | `public.current_security_role` | `postgres` | `EXECUTE` | YES |
 | `public.decide_guest_approval_request` | `PUBLIC` | `EXECUTE` | NO |
@@ -1241,8 +1269,6 @@ source_files:
 | `public.fn_touch_home_page_content` | `postgres` | `EXECUTE` | YES |
 | `public.fn_validate_poll_vote` | `PUBLIC` | `EXECUTE` | NO |
 | `public.fn_validate_poll_vote` | `postgres` | `EXECUTE` | YES |
-| `public.force_public_memory_defaults` | `PUBLIC` | `EXECUTE` | NO |
-| `public.force_public_memory_defaults` | `postgres` | `EXECUTE` | YES |
 | `public.get_admin_commerce_report` | `authenticated` | `EXECUTE` | NO |
 | `public.get_admin_commerce_report` | `postgres` | `EXECUTE` | YES |
 | `public.get_admin_orders` | `authenticated` | `EXECUTE` | NO |
@@ -1285,6 +1311,9 @@ source_files:
 | `public.get_my_guest_approval_requests` | `postgres` | `EXECUTE` | YES |
 | `public.get_my_ticket_transfers` | `authenticated` | `EXECUTE` | NO |
 | `public.get_my_ticket_transfers` | `postgres` | `EXECUTE` | YES |
+| `public.get_public_memories` | `anon` | `EXECUTE` | NO |
+| `public.get_public_memories` | `authenticated` | `EXECUTE` | NO |
+| `public.get_public_memories` | `postgres` | `EXECUTE` | YES |
 | `public.get_public_ticket_catalog` | `anon` | `EXECUTE` | NO |
 | `public.get_public_ticket_catalog` | `authenticated` | `EXECUTE` | NO |
 | `public.get_public_ticket_catalog` | `postgres` | `EXECUTE` | YES |
@@ -1364,6 +1393,8 @@ source_files:
 | `public.is_superadmin` | `anon` | `EXECUTE` | NO |
 | `public.is_superadmin` | `authenticated` | `EXECUTE` | NO |
 | `public.is_superadmin` | `postgres` | `EXECUTE` | YES |
+| `public.moderate_content_item` | `authenticated` | `EXECUTE` | NO |
+| `public.moderate_content_item` | `postgres` | `EXECUTE` | YES |
 | `public.move_faq_category_items` | `PUBLIC` | `EXECUTE` | NO |
 | `public.move_faq_category_items` | `authenticated` | `EXECUTE` | NO |
 | `public.move_faq_category_items` | `postgres` | `EXECUTE` | YES |
@@ -1375,12 +1406,17 @@ source_files:
 | `public.normalize_ticket_lot_capacity` | `postgres` | `EXECUTE` | YES |
 | `public.perform_ticket_checkin` | `authenticated` | `EXECUTE` | NO |
 | `public.perform_ticket_checkin` | `postgres` | `EXECUTE` | YES |
+| `public.prepare_photo_removal` | `authenticated` | `EXECUTE` | NO |
+| `public.prepare_photo_removal` | `postgres` | `EXECUTE` | YES |
 | `public.prevent_faq_category_delete_with_active_items` | `PUBLIC` | `EXECUTE` | NO |
 | `public.prevent_faq_category_delete_with_active_items` | `postgres` | `EXECUTE` | YES |
 | `public.profile_claim_penultimate_surname` | `PUBLIC` | `EXECUTE` | NO |
 | `public.profile_claim_penultimate_surname` | `postgres` | `EXECUTE` | YES |
+| `public.record_content_moderation` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `service_role` | `EXECUTE` | NO |
+| `public.reject_photo_removal_request` | `authenticated` | `EXECUTE` | NO |
+| `public.reject_photo_removal_request` | `postgres` | `EXECUTE` | YES |
 | `public.reject_ticket_transfer` | `authenticated` | `EXECUTE` | NO |
 | `public.reject_ticket_transfer` | `postgres` | `EXECUTE` | YES |
 | `public.release_expired_ticket_reservations` | `postgres` | `EXECUTE` | YES |
@@ -1404,10 +1440,16 @@ source_files:
 | `public.review_refund_request` | `authenticated` | `EXECUTE` | NO |
 | `public.review_refund_request` | `postgres` | `EXECUTE` | YES |
 | `public.run_commerce_automation` | `postgres` | `EXECUTE` | YES |
+| `public.sanitize_content_row` | `PUBLIC` | `EXECUTE` | NO |
+| `public.sanitize_content_row` | `postgres` | `EXECUTE` | YES |
+| `public.sanitize_plain_text` | `PUBLIC` | `EXECUTE` | NO |
+| `public.sanitize_plain_text` | `postgres` | `EXECUTE` | YES |
 | `public.search_external_guest_sponsors` | `authenticated` | `EXECUTE` | NO |
 | `public.search_external_guest_sponsors` | `postgres` | `EXECUTE` | YES |
 | `public.set_cms_assets_updated_at` | `PUBLIC` | `EXECUTE` | NO |
 | `public.set_cms_assets_updated_at` | `postgres` | `EXECUTE` | YES |
+| `public.set_content_featured` | `authenticated` | `EXECUTE` | NO |
+| `public.set_content_featured` | `postgres` | `EXECUTE` | YES |
 | `public.set_event_page_content_updated_at` | `PUBLIC` | `EXECUTE` | NO |
 | `public.set_event_page_content_updated_at` | `postgres` | `EXECUTE` | YES |
 | `public.set_limit` | `anon` | `EXECUTE` | NO |
@@ -1458,6 +1500,16 @@ source_files:
 | `public.strict_word_similarity_op` | `authenticated` | `EXECUTE` | NO |
 | `public.strict_word_similarity_op` | `postgres` | `EXECUTE` | NO |
 | `public.strict_word_similarity_op` | `service_role` | `EXECUTE` | NO |
+| `public.submit_memory` | `authenticated` | `EXECUTE` | NO |
+| `public.submit_memory` | `postgres` | `EXECUTE` | YES |
+| `public.submit_photo_comment` | `authenticated` | `EXECUTE` | NO |
+| `public.submit_photo_comment` | `postgres` | `EXECUTE` | YES |
+| `public.submit_photo_removal_request` | `authenticated` | `EXECUTE` | NO |
+| `public.submit_photo_removal_request` | `authenticated` | `EXECUTE` | NO |
+| `public.submit_photo_removal_request` | `postgres` | `EXECUTE` | YES |
+| `public.submit_photo_removal_request` | `postgres` | `EXECUTE` | YES |
+| `public.submit_photo_tag` | `authenticated` | `EXECUTE` | NO |
+| `public.submit_photo_tag` | `postgres` | `EXECUTE` | YES |
 | `public.sync_order_payment_sales_trigger` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sync_order_payment_sales_trigger` | `postgres` | `EXECUTE` | YES |
 | `public.sync_ticket_lot_statuses` | `postgres` | `EXECUTE` | YES |
