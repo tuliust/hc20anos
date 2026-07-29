@@ -24,6 +24,16 @@ jobs:
           ref: agent/phase2-content-storage
           fetch-depth: 0
 
+      - name: Synchronize current main without retaining the one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-commit --no-ff origin/main
+          git rm -f .github/workflows/materialize-phase2.yml
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -120,10 +130,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/30-contratos src/lib/database.generated.ts src/lib/rpc.generated.ts
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet && ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then exit 0; fi
           git commit -m "docs: materializar contratos finais da fase 2"
           for attempt in 1 2 3; do
             git push origin HEAD:agent/phase2-content-storage && exit 0
