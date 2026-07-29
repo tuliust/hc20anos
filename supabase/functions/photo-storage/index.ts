@@ -23,14 +23,50 @@ function requiredEnvironment() {
   return { url, anon, service };
 }
 
+function firstHeaderValue(value: string | null) {
+  return value?.split(",")[0]?.trim() || "";
+}
+
+function hostnameOf(value: string) {
+  try {
+    return new URL(`http://${value}`).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function portOf(value: string) {
+  try {
+    return new URL(`http://${value}`).port;
+  } catch {
+    return "";
+  }
+}
+
 function publicSupabaseOrigin(request: Request) {
   const explicit = Deno.env.get("SUPABASE_PUBLIC_URL")?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
+  if (explicit && !/^https?:\/\/(kong|127\.0\.0\.1|localhost)(?::80)?(?:\/|$)/i.test(explicit)) {
+    return explicit.replace(/\/$/, "");
+  }
 
-  const forwardedHost = request.headers.get("x-forwarded-host")?.trim();
+  const forwardedHost = firstHeaderValue(request.headers.get("x-forwarded-host"));
+  const requestHost = firstHeaderValue(request.headers.get("host"));
   if (forwardedHost) {
-    const forwardedProto = request.headers.get("x-forwarded-proto")?.trim() || "https";
-    return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, "");
+    const forwardedProto = firstHeaderValue(request.headers.get("x-forwarded-proto")) || "https";
+    let publicHost = forwardedHost;
+    if (!portOf(publicHost)) {
+      const forwardedPort = firstHeaderValue(request.headers.get("x-forwarded-port"));
+      const requestPort = hostnameOf(requestHost) === hostnameOf(publicHost) ? portOf(requestHost) : "";
+      const port = forwardedPort || requestPort;
+      const isDefault = (forwardedProto === "https" && port === "443") || (forwardedProto === "http" && port === "80");
+      if (port && !isDefault) publicHost = `${publicHost}:${port}`;
+    }
+    return `${forwardedProto}://${publicHost}`.replace(/\/$/, "");
+  }
+
+  if (requestHost) {
+    const requestProto = firstHeaderValue(request.headers.get("x-forwarded-proto")) || new URL(request.url).protocol.replace(":", "");
+    return `${requestProto}://${requestHost}`.replace(/\/$/, "");
   }
 
   const configured = Deno.env.get("SUPABASE_URL")?.trim();
