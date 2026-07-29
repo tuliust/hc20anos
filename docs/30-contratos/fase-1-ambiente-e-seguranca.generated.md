@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: f5960f0ed4b219166008dac1092c0e4c40ba5550
+last_verified: 2026-07-29
+last_verified_commit: 44a90e0c5ed50a48921f81743d86e031a9c6a047
 generation_command: GitHub Actions / Phase 1 environment and security
 source_files:
   - supabase/migrations/
@@ -32,71 +32,6 @@ O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto o
 ## Diagnóstico SQL
 
 ```text
-SET
-      check_name       | result 
------------------------+--------
- checkin_role_resolves | PASS
-(1 row)
-
-        check_name         | result 
----------------------------+--------
- checkin_dashboard_allowed | PASS
-(1 row)
-
-DO
-NOTICE:  PASS checkin_financial_report_denied
-ROLLBACK
-BEGIN
-              set_config              
---------------------------------------
- 55555555-5555-4555-8555-555555555555
-(1 row)
-
-  set_config   
----------------
- authenticated
-(1 row)
-
-                                                  set_config                                                   
----------------------------------------------------------------------------------------------------------------
- {"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated","email":"moderator-tests@local.invalid"}
-(1 row)
-
-SET
-       check_name        | result 
--------------------------+--------
- moderator_role_resolves | PASS
-(1 row)
-
-NOTICE:  PASS moderator_financial_report_denied
-DO
-ROLLBACK
-BEGIN
-              set_config              
---------------------------------------
- 66666666-6666-4666-8666-666666666666
-(1 row)
-
-  set_config   
----------------
- authenticated
-(1 row)
-
-                                                set_config                                                 
------------------------------------------------------------------------------------------------------------
- {"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","email":"admin-tests@local.invalid"}
-(1 row)
-
-SET
-     check_name      | result 
----------------------+--------
- admin_role_resolves | PASS
-(1 row)
-
-        check_name         | result 
----------------------------+--------
- admin_reads_all_role_rows | PASS
-(1 row)
 
            check_name           | result 
 --------------------------------+--------
@@ -134,6 +69,71 @@ SET
          check_name          | result 
 -----------------------------+--------
  superadmin_can_manage_roles | PASS
+(1 row)
+
+ROLLBACK
+===== supabase/tests/phase2_content_storage.sql =====
+                check_name                 | result 
+-------------------------------------------+--------
+ active_photo_hash_is_unique               | PASS
+ anonymous_memory_table_read_removed       | PASS
+ completion_rpc_is_service_only            | PASS
+ content_submission_rpcs_are_authenticated | PASS
+ controlled_photo_read_policy_exists       | PASS
+ direct_photo_storage_writes_removed       | PASS
+ direct_public_asset_uploads_removed       | PASS
+ legacy_memory_defaults_removed            | PASS
+ moderation_history_exists                 | PASS
+ open_removal_request_is_unique            | PASS
+ phase2_rpcs_exist                         | PASS
+ photo_integrity_columns_exist             | PASS
+ photos_bucket_private_and_limited         | PASS
+ public_asset_buckets_are_raster_only      | PASS
+ public_memory_rpc_is_available            | PASS
+ sanitization_triggers_exist               | PASS
+(16 rows)
+
+        check_name        | result 
+--------------------------+--------
+ sanitizer_removes_markup | PASS
+(1 row)
+
+      check_name       | result 
+-----------------------+--------
+ sanitizer_limits_text | PASS
+(1 row)
+
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+(1 row)
+
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                                                    set_config                                                     
+-------------------------------------------------------------------------------------------------------------------
+ {"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","email":"authenticated-tests@local.invalid"}
+(1 row)
+
+SET
+NOTICE:  PASS direct_memory_insert_blocked
+DO
+ROLLBACK
+BEGIN
+INSERT 0 1
+            check_name             | result 
+-----------------------------------+--------
+ anonymous_memory_choice_preserved | PASS
+(1 row)
+
+SET
+            check_name            | result 
+----------------------------------+--------
+ anonymous_memory_identity_masked | PASS
 (1 row)
 
 ROLLBACK
@@ -196,7 +196,7 @@ ROLLBACK
 DO
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 admin_report_after_global_normalization                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"pix_orders": 0, "card_orders": 0, "orders_total": 0, "photos_total": 0, "tickets_sold": 0, "checkins_done": 0, "revenue_cents": 0, "claims_pending": 0, "orders_expired": 0, "orders_pending": 0, "people_claimed": 4, "photos_pending": 0, "subtotal_cents": 0, "transfers_open": 0, "drinks_packages": 0, "orders_approved": 0, "orders_refunded": 0, "orders_rejected": 0, "photos_approved": 0, "photos_rejected": 0, "checkins_pending": 0, "disputes_pending": 0, "orders_cancelled": 0, "people_confirmed": 10, "people_unclaimed": 4, "removals_pending": 0, "barbecue_packages": 0, "preferences_active": 0, "vouchers_delivered": 0, "average_order_cents": 0, "legacy_orders_total": 0, "legacy_tickets_sold": 0, "orders_charged_back": 0, "preferences_expired": 0, "refund_amount_cents": 0, "reservations_active": 0, "extras_revenue_cents": 0, "legacy_revenue_cents": 0, "payment_events_total": 0, "refund_requests_open": 0, "reservations_expired": 0, "participants_approved": 0, "payment_events_failed": 0, "legacy_orders_approved": 0, "reservations_converted": 0, "notification_jobs_failed": 0, "mercado_pago_orders_total": 0, "mercado_pago_participants": 0, "mercado_pago_tickets_sold": 0, "notification_jobs_pending": 0, "legacy_active_reservations": 0, "mercado_pago_revenue_cents": 0, "commerce_data_quality_alerts": 0, "mercado_pago_orders_approved": 0}
+ {"pix_orders": 0, "card_orders": 0, "orders_total": 0, "photos_total": 0, "tickets_sold": 0, "checkins_done": 0, "revenue_cents": 0, "claims_pending": 0, "orders_expired": 0, "orders_pending": 0, "people_claimed": 4, "photos_pending": 0, "subtotal_cents": 0, "transfers_open": 0, "drinks_packages": 0, "orders_approved": 0, "orders_refunded": 0, "orders_rejected": 0, "photos_approved": 0, "photos_rejected": 0, "checkins_pending": 0, "disputes_pending": 0, "orders_cancelled": 0, "people_confirmed": 10, "people_unclaimed": 5, "removals_pending": 0, "barbecue_packages": 0, "preferences_active": 0, "vouchers_delivered": 0, "average_order_cents": 0, "legacy_orders_total": 0, "legacy_tickets_sold": 0, "orders_charged_back": 0, "preferences_expired": 0, "refund_amount_cents": 0, "reservations_active": 0, "extras_revenue_cents": 0, "legacy_revenue_cents": 0, "payment_events_total": 0, "refund_requests_open": 0, "reservations_expired": 0, "participants_approved": 0, "payment_events_failed": 0, "legacy_orders_approved": 0, "reservations_converted": 0, "notification_jobs_failed": 0, "mercado_pago_orders_total": 0, "mercado_pago_participants": 0, "mercado_pago_tickets_sold": 0, "notification_jobs_pending": 0, "legacy_active_reservations": 0, "mercado_pago_revenue_cents": 0, "commerce_data_quality_alerts": 0, "mercado_pago_orders_approved": 0}
 (1 row)
 ===== supabase/tests/reset_commerce_data_and_capacity.sql =====
            check_name           | result 
@@ -211,7 +211,7 @@ DO
 DO
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                admin_report_after_capacity_normalization                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"pix_orders": 0, "card_orders": 0, "orders_total": 0, "photos_total": 0, "tickets_sold": 0, "checkins_done": 0, "revenue_cents": 0, "claims_pending": 0, "orders_expired": 0, "orders_pending": 0, "people_claimed": 4, "photos_pending": 0, "subtotal_cents": 0, "transfers_open": 0, "drinks_packages": 0, "orders_approved": 0, "orders_refunded": 0, "orders_rejected": 0, "photos_approved": 0, "photos_rejected": 0, "checkins_pending": 0, "disputes_pending": 0, "orders_cancelled": 0, "people_confirmed": 10, "people_unclaimed": 4, "removals_pending": 0, "barbecue_packages": 0, "preferences_active": 0, "vouchers_delivered": 0, "average_order_cents": 0, "legacy_orders_total": 0, "legacy_tickets_sold": 0, "orders_charged_back": 0, "preferences_expired": 0, "refund_amount_cents": 0, "reservations_active": 0, "extras_revenue_cents": 0, "legacy_revenue_cents": 0, "payment_events_total": 0, "refund_requests_open": 0, "reservations_expired": 0, "participants_approved": 0, "payment_events_failed": 0, "legacy_orders_approved": 0, "reservations_converted": 0, "notification_jobs_failed": 0, "mercado_pago_orders_total": 0, "mercado_pago_participants": 0, "mercado_pago_tickets_sold": 0, "notification_jobs_pending": 0, "legacy_active_reservations": 0, "mercado_pago_revenue_cents": 0, "commerce_data_quality_alerts": 0, "mercado_pago_orders_approved": 0}
+ {"pix_orders": 0, "card_orders": 0, "orders_total": 0, "photos_total": 0, "tickets_sold": 0, "checkins_done": 0, "revenue_cents": 0, "claims_pending": 0, "orders_expired": 0, "orders_pending": 0, "people_claimed": 4, "photos_pending": 0, "subtotal_cents": 0, "transfers_open": 0, "drinks_packages": 0, "orders_approved": 0, "orders_refunded": 0, "orders_rejected": 0, "photos_approved": 0, "photos_rejected": 0, "checkins_pending": 0, "disputes_pending": 0, "orders_cancelled": 0, "people_confirmed": 10, "people_unclaimed": 5, "removals_pending": 0, "barbecue_packages": 0, "preferences_active": 0, "vouchers_delivered": 0, "average_order_cents": 0, "legacy_orders_total": 0, "legacy_tickets_sold": 0, "orders_charged_back": 0, "preferences_expired": 0, "refund_amount_cents": 0, "reservations_active": 0, "extras_revenue_cents": 0, "legacy_revenue_cents": 0, "payment_events_total": 0, "refund_requests_open": 0, "reservations_expired": 0, "participants_approved": 0, "payment_events_failed": 0, "legacy_orders_approved": 0, "reservations_converted": 0, "notification_jobs_failed": 0, "mercado_pago_orders_total": 0, "mercado_pago_participants": 0, "mercado_pago_tickets_sold": 0, "notification_jobs_pending": 0, "legacy_active_reservations": 0, "mercado_pago_revenue_cents": 0, "commerce_data_quality_alerts": 0, "mercado_pago_orders_approved": 0}
 (1 row)
 ===== supabase/tests/ticket_product_model.sql =====
 SET

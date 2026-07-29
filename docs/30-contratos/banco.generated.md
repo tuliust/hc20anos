@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: 161cdcd81218e8802a2440453ffe0df3362dc9b3
+last_verified: 2026-07-29
+last_verified_commit: 249361f9a6e88a1a1d9d7c526cc308826d03b4f9
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -107,6 +107,18 @@ source_files:
 | `public.cms_assets` | 12 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.cms_assets` | 13 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.cms_assets` | 14 | `updated_by_admin_id` | `uuid` | YES | `—` |
+| `public.content_moderation_events` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
+| `public.content_moderation_events` | 2 | `event_id` | `uuid` | YES | `—` |
+| `public.content_moderation_events` | 3 | `entity_type` | `text` | NO | `—` |
+| `public.content_moderation_events` | 4 | `entity_id` | `uuid` | NO | `—` |
+| `public.content_moderation_events` | 5 | `previous_status` | `text` | YES | `—` |
+| `public.content_moderation_events` | 6 | `new_status` | `text` | NO | `—` |
+| `public.content_moderation_events` | 7 | `action` | `text` | NO | `—` |
+| `public.content_moderation_events` | 8 | `notes` | `text` | YES | `—` |
+| `public.content_moderation_events` | 9 | `actor_user_id` | `uuid` | YES | `—` |
+| `public.content_moderation_events` | 10 | `actor_role` | `text` | YES | `—` |
+| `public.content_moderation_events` | 11 | `metadata_json` | `jsonb` | NO | `'{}'::jsonb` |
+| `public.content_moderation_events` | 12 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.content_moderation_settings` | 1 | `event_id` | `uuid` | NO | `—` |
 | `public.content_moderation_settings` | 2 | `auto_approve_photos` | `boolean` | NO | `false` |
 | `public.content_moderation_settings` | 3 | `auto_approve_comments` | `boolean` | NO | `false` |
@@ -518,6 +530,8 @@ source_files:
 | `public.photo_removal_requests` | 10 | `admin_notes` | `text` | YES | `—` |
 | `public.photo_removal_requests` | 11 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.photo_removal_requests` | 12 | `updated_at` | `timestamp with time zone` | NO | `now()` |
+| `public.photo_removal_requests` | 13 | `storage_deleted_at` | `timestamp with time zone` | YES | `—` |
+| `public.photo_removal_requests` | 14 | `removal_error` | `text` | YES | `—` |
 | `public.photo_tags` | 1 | `id` | `uuid` | NO | `uuid_generate_v4()` |
 | `public.photo_tags` | 2 | `photo_id` | `uuid` | NO | `—` |
 | `public.photo_tags` | 3 | `person_id` | `uuid` | NO | `—` |
@@ -547,6 +561,15 @@ source_files:
 | `public.photos` | 17 | `is_featured` | `boolean` | NO | `false` |
 | `public.photos` | 18 | `featured_by_admin_id` | `uuid` | YES | `—` |
 | `public.photos` | 19 | `featured_at` | `timestamp with time zone` | YES | `—` |
+| `public.photos` | 20 | `original_file_name` | `text` | YES | `—` |
+| `public.photos` | 21 | `content_type` | `text` | YES | `—` |
+| `public.photos` | 22 | `file_size_bytes` | `bigint` | YES | `—` |
+| `public.photos` | 23 | `content_sha256` | `text` | YES | `—` |
+| `public.photos` | 24 | `image_width` | `integer` | YES | `—` |
+| `public.photos` | 25 | `image_height` | `integer` | YES | `—` |
+| `public.photos` | 26 | `metadata_stripped` | `boolean` | NO | `false` |
+| `public.photos` | 27 | `removed_at` | `timestamp with time zone` | YES | `—` |
+| `public.photos` | 28 | `removed_by_admin_id` | `uuid` | YES | `—` |
 | `public.poll_options` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.poll_options` | 2 | `poll_id` | `uuid` | NO | `—` |
 | `public.poll_options` | 3 | `option_text` | `text` | NO | `—` |
@@ -794,6 +817,10 @@ source_files:
 | `public.cms_assets` | `cms_assets_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.cms_assets` | `cms_assets_unique_key` | `UNIQUE` | `UNIQUE (event_id, asset_key)` |
 | `public.cms_assets` | `cms_assets_updated_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (updated_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL` |
+| `public.content_moderation_events` | `content_moderation_events_actor_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.content_moderation_events` | `content_moderation_events_entity_type_check` | `CHECK` | `CHECK (entity_type = ANY (ARRAY['photo'::text, 'photo_tag'::text, 'photo_comment'::text, 'memory'::text, 'photo_removal_request'::text]))` |
+| `public.content_moderation_events` | `content_moderation_events_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
+| `public.content_moderation_events` | `content_moderation_events_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.content_moderation_settings` | `content_moderation_settings_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
 | `public.content_moderation_settings` | `content_moderation_settings_pkey` | `PRIMARY KEY` | `PRIMARY KEY (event_id)` |
 | `public.event_archive_settings` | `event_archive_settings_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
@@ -844,6 +871,7 @@ source_files:
 | `public.memories` | `memories_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL` |
 | `public.memories` | `memories_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.memories` | `memories_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'hidden'::text]))` |
+| `public.memories` | `memories_text_length` | `CHECK` | `CHECK (char_length(memory_text) >= 10 AND char_length(memory_text) <= 420)` |
 | `public.memories` | `memories_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.notification_jobs` | `notification_jobs_attempts_check` | `CHECK` | `CHECK (attempts >= 0)` |
 | `public.notification_jobs` | `notification_jobs_channel_check` | `CHECK` | `CHECK (channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))` |
@@ -898,25 +926,36 @@ source_files:
 | `public.photo_comments` | `photo_comments_photo_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE` |
 | `public.photo_comments` | `photo_comments_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.photo_comments` | `photo_comments_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'hidden'::text]))` |
+| `public.photo_comments` | `photo_comments_text_length` | `CHECK` | `CHECK (char_length(comment_text) >= 1 AND char_length(comment_text) <= 500)` |
 | `public.photo_comments` | `photo_comments_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.photo_likes` | `photo_likes_photo_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE` |
 | `public.photo_likes` | `photo_likes_photo_id_user_id_key` | `UNIQUE` | `UNIQUE (photo_id, user_id)` |
 | `public.photo_likes` | `photo_likes_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.photo_likes` | `photo_likes_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE` |
+| `public.photo_removal_requests` | `photo_removal_reason_length` | `CHECK` | `CHECK (char_length(reason) >= 10 AND char_length(reason) <= 1000)` |
 | `public.photo_removal_requests` | `photo_removal_requests_photo_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE` |
 | `public.photo_removal_requests` | `photo_removal_requests_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.photo_removal_requests` | `photo_removal_requests_requester_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (requester_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.photo_removal_requests` | `photo_removal_requests_reviewed_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (reviewed_by_admin_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.photo_tags` | `photo_tags_approved_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (approved_by_admin_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.photo_tags` | `photo_tags_created_by_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (created_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.photo_tags` | `photo_tags_name_length` | `CHECK` | `CHECK (char_length(tagged_name_snapshot) >= 1 AND char_length(tagged_name_snapshot) <= 120)` |
 | `public.photo_tags` | `photo_tags_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE` |
 | `public.photo_tags` | `photo_tags_photo_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE` |
 | `public.photo_tags` | `photo_tags_photo_id_person_id_key` | `UNIQUE` | `UNIQUE (photo_id, person_id)` |
 | `public.photo_tags` | `photo_tags_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.photos` | `photos_approved_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (approved_by_admin_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.photos` | `photos_authorization_required` | `CHECK` | `CHECK (storage_path IS NULL OR authorization_given = true)` |
+| `public.photos` | `photos_caption_length` | `CHECK` | `CHECK (caption IS NULL OR char_length(caption) <= 240)` |
+| `public.photos` | `photos_content_type_valid` | `CHECK` | `CHECK (content_type IS NULL OR (content_type = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text])))` |
+| `public.photos` | `photos_dimensions_valid` | `CHECK` | `CHECK (image_width IS NULL AND image_height IS NULL OR image_width >= 1 AND image_width <= 12000 AND image_height >= 1 AND image_height <= 12000 AND (image_width::bigint * image_height::bigint) <= 40000000)` |
 | `public.photos` | `photos_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
 | `public.photos` | `photos_featured_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (featured_by_admin_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.photos` | `photos_file_size_valid` | `CHECK` | `CHECK (file_size_bytes IS NULL OR file_size_bytes >= 32 AND file_size_bytes <= 10485760)` |
+| `public.photos` | `photos_location_length` | `CHECK` | `CHECK (location_text IS NULL OR char_length(location_text) <= 160)` |
 | `public.photos` | `photos_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `public.photos` | `photos_removed_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (removed_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL` |
+| `public.photos` | `photos_storage_owner_path` | `CHECK` | `CHECK (storage_path IS NULL OR uploaded_by_user_id IS NULL OR storage_path ~~ (uploaded_by_user_id::text \|\| '/%'::text))` |
 | `public.photos` | `photos_uploaded_by_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (uploaded_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.poll_options` | `poll_options_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.poll_options` | `poll_options_poll_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE` |
@@ -1033,6 +1072,9 @@ source_files:
 | `public.cms_assets` | `cms_assets_event_active_idx` | `CREATE INDEX cms_assets_event_active_idx ON public.cms_assets USING btree (event_id, is_active, sort_order, asset_key)` |
 | `public.cms_assets` | `cms_assets_pkey` | `CREATE UNIQUE INDEX cms_assets_pkey ON public.cms_assets USING btree (id)` |
 | `public.cms_assets` | `cms_assets_unique_key` | `CREATE UNIQUE INDEX cms_assets_unique_key ON public.cms_assets USING btree (event_id, asset_key)` |
+| `public.content_moderation_events` | `content_moderation_events_entity_idx` | `CREATE INDEX content_moderation_events_entity_idx ON public.content_moderation_events USING btree (entity_type, entity_id, created_at DESC)` |
+| `public.content_moderation_events` | `content_moderation_events_event_idx` | `CREATE INDEX content_moderation_events_event_idx ON public.content_moderation_events USING btree (event_id, created_at DESC)` |
+| `public.content_moderation_events` | `content_moderation_events_pkey` | `CREATE UNIQUE INDEX content_moderation_events_pkey ON public.content_moderation_events USING btree (id)` |
 | `public.content_moderation_settings` | `content_moderation_settings_pkey` | `CREATE UNIQUE INDEX content_moderation_settings_pkey ON public.content_moderation_settings USING btree (event_id)` |
 | `public.event_archive_settings` | `event_archive_settings_pkey` | `CREATE UNIQUE INDEX event_archive_settings_pkey ON public.event_archive_settings USING btree (event_id)` |
 | `public.event_page_content` | `event_page_content_pkey` | `CREATE UNIQUE INDEX event_page_content_pkey ON public.event_page_content USING btree (event_id)` |
@@ -1105,6 +1147,7 @@ source_files:
 | `public.photo_likes` | `photo_likes_pkey` | `CREATE UNIQUE INDEX photo_likes_pkey ON public.photo_likes USING btree (id)` |
 | `public.photo_removal_requests` | `idx_removal_requests_photo_id` | `CREATE INDEX idx_removal_requests_photo_id ON public.photo_removal_requests USING btree (photo_id)` |
 | `public.photo_removal_requests` | `idx_removal_requests_status` | `CREATE INDEX idx_removal_requests_status ON public.photo_removal_requests USING btree (status)` |
+| `public.photo_removal_requests` | `photo_removal_one_open_request_per_user` | `CREATE UNIQUE INDEX photo_removal_one_open_request_per_user ON public.photo_removal_requests USING btree (photo_id, requester_user_id) WHERE (status = ANY (ARRAY['pending'::removal_request_status, 'hidden_preventively'::removal_request_status]))` |
 | `public.photo_removal_requests` | `photo_removal_requests_pkey` | `CREATE UNIQUE INDEX photo_removal_requests_pkey ON public.photo_removal_requests USING btree (id)` |
 | `public.photo_tags` | `idx_photo_tags_person_id` | `CREATE INDEX idx_photo_tags_person_id ON public.photo_tags USING btree (person_id)` |
 | `public.photo_tags` | `idx_photo_tags_photo_id` | `CREATE INDEX idx_photo_tags_photo_id ON public.photo_tags USING btree (photo_id)` |
@@ -1114,6 +1157,7 @@ source_files:
 | `public.photos` | `idx_photos_event_id` | `CREATE INDEX idx_photos_event_id ON public.photos USING btree (event_id)` |
 | `public.photos` | `idx_photos_status` | `CREATE INDEX idx_photos_status ON public.photos USING btree (status)` |
 | `public.photos` | `idx_photos_uploaded_by` | `CREATE INDEX idx_photos_uploaded_by ON public.photos USING btree (uploaded_by_user_id)` |
+| `public.photos` | `photos_active_content_hash_unique` | `CREATE UNIQUE INDEX photos_active_content_hash_unique ON public.photos USING btree (event_id, uploaded_by_user_id, content_sha256) WHERE ((content_sha256 IS NOT NULL) AND (status <> 'removed'::photo_status))` |
 | `public.photos` | `photos_pkey` | `CREATE UNIQUE INDEX photos_pkey ON public.photos USING btree (id)` |
 | `public.poll_options` | `idx_poll_options_poll_sort` | `CREATE INDEX idx_poll_options_poll_sort ON public.poll_options USING btree (poll_id, sort_order)` |
 | `public.poll_options` | `poll_options_pkey` | `CREATE UNIQUE INDEX poll_options_pkey ON public.poll_options USING btree (id)` |
@@ -1209,7 +1253,7 @@ source_files:
 | `public.guest_approval_requests` | `audit_guest_approval_requests_change` | `CREATE TRIGGER audit_guest_approval_requests_change AFTER INSERT OR DELETE OR UPDATE ON guest_approval_requests FOR EACH ROW EXECUTE FUNCTION audit_sensitive_row_change()` |
 | `public.home_page_content` | `trg_touch_home_page_content` | `CREATE TRIGGER trg_touch_home_page_content BEFORE UPDATE ON home_page_content FOR EACH ROW EXECUTE FUNCTION fn_touch_home_page_content()` |
 | `public.memories` | `trg_auto_approve_memories` | `CREATE TRIGGER trg_auto_approve_memories AFTER INSERT ON memories FOR EACH ROW EXECUTE FUNCTION apply_automatic_content_approval()` |
-| `public.memories` | `trg_force_public_memory_defaults` | `CREATE TRIGGER trg_force_public_memory_defaults BEFORE INSERT ON memories FOR EACH ROW EXECUTE FUNCTION force_public_memory_defaults()` |
+| `public.memories` | `trg_memories_sanitize` | `CREATE TRIGGER trg_memories_sanitize BEFORE INSERT OR UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.memories` | `trg_memories_updated_at` | `CREATE TRIGGER trg_memories_updated_at BEFORE UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.notification_jobs` | `enqueue_guest_approval_whatsapp_job` | `CREATE TRIGGER enqueue_guest_approval_whatsapp_job AFTER INSERT ON notification_jobs FOR EACH ROW EXECUTE FUNCTION enqueue_guest_approval_whatsapp_job()` |
 | `public.orders` | `orders_enqueue_status_notifications` | `CREATE TRIGGER orders_enqueue_status_notifications AFTER INSERT OR UPDATE OF payment_status ON orders FOR EACH ROW EXECUTE FUNCTION enqueue_order_status_notifications()` |
@@ -1217,10 +1261,14 @@ source_files:
 | `public.orders` | `trg_orders_updated_at` | `CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.people` | `trg_people_updated_at` | `CREATE TRIGGER trg_people_updated_at BEFORE UPDATE ON people FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.photo_comments` | `trg_auto_approve_photo_comments` | `CREATE TRIGGER trg_auto_approve_photo_comments AFTER INSERT ON photo_comments FOR EACH ROW EXECUTE FUNCTION apply_automatic_content_approval()` |
+| `public.photo_comments` | `trg_photo_comments_sanitize` | `CREATE TRIGGER trg_photo_comments_sanitize BEFORE INSERT OR UPDATE ON photo_comments FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.photo_comments` | `trg_photo_comments_updated_at` | `CREATE TRIGGER trg_photo_comments_updated_at BEFORE UPDATE ON photo_comments FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
+| `public.photo_removal_requests` | `trg_photo_removal_requests_sanitize` | `CREATE TRIGGER trg_photo_removal_requests_sanitize BEFORE INSERT OR UPDATE ON photo_removal_requests FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.photo_removal_requests` | `trg_removal_requests_updated_at` | `CREATE TRIGGER trg_removal_requests_updated_at BEFORE UPDATE ON photo_removal_requests FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
+| `public.photo_tags` | `trg_photo_tags_sanitize` | `CREATE TRIGGER trg_photo_tags_sanitize BEFORE INSERT OR UPDATE ON photo_tags FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.photo_tags` | `trg_photo_tags_updated_at` | `CREATE TRIGGER trg_photo_tags_updated_at BEFORE UPDATE ON photo_tags FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.photos` | `trg_auto_approve_photos` | `CREATE TRIGGER trg_auto_approve_photos AFTER INSERT ON photos FOR EACH ROW EXECUTE FUNCTION apply_automatic_content_approval()` |
+| `public.photos` | `trg_photos_sanitize` | `CREATE TRIGGER trg_photos_sanitize BEFORE INSERT OR UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.photos` | `trg_photos_updated_at` | `CREATE TRIGGER trg_photos_updated_at BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.poll_votes` | `trg_validate_poll_vote` | `CREATE TRIGGER trg_validate_poll_vote BEFORE INSERT ON poll_votes FOR EACH ROW EXECUTE FUNCTION fn_validate_poll_vote()` |
 | `public.polls` | `trg_polls_updated_at` | `CREATE TRIGGER trg_polls_updated_at BEFORE UPDATE ON polls FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
