@@ -165,13 +165,8 @@ jobs:
           | Regeneração dos contratos do banco | \`${DB:-skipped}\` |
           | Auditoria documental | \`${DOCS:-skipped}\` |
 
-          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
+          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado. Os logs SQL completos permanecem nos artefatos do workflow.
           EOF
-          if [ -s phase1-sql-tests.log ]; then
-            printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-            tail -n 220 phase1-sql-tests.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-            printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-          fi
       - name: Require generated outputs in pull requests
         if: github.event_name == 'pull_request'
         run: |
