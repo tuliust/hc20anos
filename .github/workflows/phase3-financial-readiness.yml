@@ -1,0 +1,125 @@
+name: Phase 3 financial readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Digite PREPARAR_FASE_3_TESTE. Este workflow não executa pagamentos."
+        required: true
+        type: string
+      include_email:
+        description: "Verificar também a presença da configuração de e-mail"
+        required: false
+        default: false
+        type: boolean
+      include_whatsapp:
+        description: "Verificar também a presença da configuração de WhatsApp"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-financial-readiness
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    name: Preflight sem chamadas financeiras
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: phase3-test
+    env:
+      PHASE3_ENV: test
+      PHASE3_CONFIRMATION: ${{ inputs.confirmation }}
+      PHASE3_SUPABASE_URL: ${{ secrets.PHASE3_SUPABASE_URL }}
+      PHASE3_SUPABASE_ANON_KEY: ${{ secrets.PHASE3_SUPABASE_ANON_KEY }}
+      PHASE3_BUYER_EMAIL: ${{ secrets.PHASE3_BUYER_EMAIL }}
+      PHASE3_BUYER_PASSWORD: ${{ secrets.PHASE3_BUYER_PASSWORD }}
+      PHASE3_ADMIN_EMAIL: ${{ secrets.PHASE3_ADMIN_EMAIL }}
+      PHASE3_ADMIN_PASSWORD: ${{ secrets.PHASE3_ADMIN_PASSWORD }}
+      PHASE3_TRANSFER_RECIPIENT_EMAIL: ${{ secrets.PHASE3_TRANSFER_RECIPIENT_EMAIL }}
+      PHASE3_TRANSFER_RECIPIENT_PASSWORD: ${{ secrets.PHASE3_TRANSFER_RECIPIENT_PASSWORD }}
+      PHASE3_MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.PHASE3_MERCADO_PAGO_ACCESS_TOKEN }}
+      PHASE3_MERCADO_PAGO_WEBHOOK_SECRET: ${{ secrets.PHASE3_MERCADO_PAGO_WEBHOOK_SECRET }}
+      PHASE3_NOTIFICATION_WORKER_KEY: ${{ secrets.PHASE3_NOTIFICATION_WORKER_KEY }}
+      PHASE3_CHECKOUT_PAYLOAD_JSON: ${{ secrets.PHASE3_CHECKOUT_PAYLOAD_JSON }}
+      PHASE3_RESEND_API_KEY: ${{ inputs.include_email && secrets.PHASE3_RESEND_API_KEY || '' }}
+      PHASE3_TRANSACTIONAL_FROM_EMAIL: ${{ inputs.include_email && secrets.PHASE3_TRANSACTIONAL_FROM_EMAIL || '' }}
+      PHASE3_TEST_RECIPIENT_EMAIL: ${{ inputs.include_email && secrets.PHASE3_TEST_RECIPIENT_EMAIL || '' }}
+      PHASE3_WHATSAPP_ACCESS_TOKEN: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_ACCESS_TOKEN || '' }}
+      PHASE3_WHATSAPP_PHONE_NUMBER_ID: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_PHONE_NUMBER_ID || '' }}
+      PHASE3_WHATSAPP_GRAPH_VERSION: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_GRAPH_VERSION || '' }}
+      PHASE3_TEST_RECIPIENT_PHONE: ${{ inputs.include_whatsapp && secrets.PHASE3_TEST_RECIPIENT_PHONE || '' }}
+
+    steps:
+      - name: Guardar escopo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "A preparação da Fase 3 só pode ser verificada a partir de main."
+            exit 1
+          fi
+          if [ "${PHASE3_CONFIRMATION}" != "PREPARAR_FASE_3_TESTE" ]; then
+            echo "Confirmação inválida."
+            exit 1
+          fi
+          if [ "${PHASE3_ENV}" != "test" ]; then
+            echo "Ambiente diferente de test foi bloqueado."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate repository and secret names
+        run: node scripts/phase3-financial-preflight.mjs --require-env
+
+      - name: Validate optional notification configuration
+        shell: bash
+        env:
+          INCLUDE_EMAIL: ${{ inputs.include_email }}
+          INCLUDE_WHATSAPP: ${{ inputs.include_whatsapp }}
+        run: |
+          set -euo pipefail
+          if [ "${INCLUDE_EMAIL}" = "true" ]; then
+            for name in PHASE3_RESEND_API_KEY PHASE3_TRANSACTIONAL_FROM_EMAIL PHASE3_TEST_RECIPIENT_EMAIL; do
+              if [ -z "${!name:-}" ]; then
+                echo "Configuração ausente: ${name}"
+                exit 1
+              fi
+            done
+          fi
+          if [ "${INCLUDE_WHATSAPP}" = "true" ]; then
+            for name in PHASE3_WHATSAPP_ACCESS_TOKEN PHASE3_WHATSAPP_PHONE_NUMBER_ID PHASE3_WHATSAPP_GRAPH_VERSION PHASE3_TEST_RECIPIENT_PHONE; do
+              if [ -z "${!name:-}" ]; then
+                echo "Configuração ausente: ${name}"
+                exit 1
+              fi
+            done
+          fi
+
+      - name: Upload readiness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-financial-readiness-${{ github.run_id }}
+          path: artifacts/phase3-financial-readiness.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Confirm no execution
+        run: |
+          echo "Fase 3 preparada, mas não executada."
+          echo "Nenhuma chamada ao Mercado Pago, Supabase remoto, Resend ou WhatsApp foi realizada."

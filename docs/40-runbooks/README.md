@@ -1,7 +1,7 @@
 ---
 status: draft
 owner: tuliust
-last_verified: 2026-07-26
+last_verified: 2026-07-29
 last_verified_commit: b8b6f242ef8ab1622ec185f9a74ee2dfb7378a94
 source_files:
   - package.json
@@ -10,6 +10,7 @@ source_files:
   - supabase/functions/
   - supabase/migrations/
   - supabase/tests/
+  - scripts/phase3-financial-preflight.mjs
   - .github/workflows/
   - docs/40-runbooks/
 ---
@@ -22,6 +23,8 @@ Os procedimentos necessários foram criados e reconciliados com o código atual.
 
 `draft` não significa que um documento histórico ou depreciado possa substituí-los.
 
+A Fase 3 financeira possui agora um runbook agregador e um preflight sem chamadas remotas. Isso representa preparação operacional, não execução dos fluxos financeiros.
+
 ## Runbooks disponíveis
 
 | Runbook | Estado | Escopo |
@@ -31,6 +34,7 @@ Os procedimentos necessários foram criados e reconciliados com o código atual.
 | [`deploy-edge-functions.md`](./deploy-edge-functions.md) | `draft` | checkout, webhook, notificações e reembolsos |
 | [`migrations.md`](./migrations.md) | `draft` | auditoria, replay, testes SQL, aplicação remota e correção |
 | [`validacao-de-pagamentos.md`](./validacao-de-pagamentos.md) | `draft` | checkout, Mercado Pago, webhook, tickets e notificações |
+| [`fase-3-financeiro.md`](./fase-3-financeiro.md) | `draft` | sequência integrada das etapas 15 a 22, preflight, evidências e interrupção |
 | [`investigacao-de-webhook.md`](./investigacao-de-webhook.md) | `draft` | assinatura, `payment_events`, provedor e reprocessamento |
 | [`notificacoes.md`](./notificacoes.md) | `draft` | fila, worker, e-mail, WhatsApp e tentativas |
 | [`reembolsos.md`](./reembolsos.md) | `draft` | elegibilidade, decisão, provedor, inventário e ingressos |
@@ -95,7 +99,8 @@ Um runbook só pode ser promovido quando:
 - deploy Vercel;
 - deploy de Edge Functions;
 - migrations;
-- validação de pagamentos;
+- preflight da Fase 3;
+- validação integrada de pagamentos;
 - investigação de webhook;
 - reembolsos.
 
@@ -120,4 +125,4 @@ Um runbook só pode ser promovido quando:
 
 ## Pendência restante
 
-A documentação dos runbooks está completa. A pendência é operacional: executar, revisar e promover individualmente os procedimentos comprovados.
+A documentação dos runbooks está completa. A Fase 3 financeira está preparada, mas as etapas 15 a 22 ainda precisam ser executadas em ambiente de teste, revisadas e promovidas individualmente com evidências.
