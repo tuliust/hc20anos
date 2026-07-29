@@ -6,7 +6,8 @@ import process from "node:process";
 const ROOT = process.cwd();
 const CHECK_MODE = process.argv.includes("--check");
 const OUTPUT_PATH = "docs/30-contratos/consumidores-dos-tipos.generated.md";
-const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];
+const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs"];
+const METADATA_PATHS = [...SOURCE_PATHS, ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".d.ts"]);
 
 function gitValue(args, fallback) {
@@ -22,7 +23,7 @@ function gitValue(args, fallback) {
 }
 
 function metadata() {
-  const paths = ["--", ...SOURCE_PATHS];
+  const paths = ["--", ...METADATA_PATHS];
   return {
     commit: gitValue(["log", "--no-merges", "-1", "--format=%H", ...paths], "unknown"),
     date: gitValue(["log", "--no-merges", "-1", "--format=%cs", ...paths], "1970-01-01"),
