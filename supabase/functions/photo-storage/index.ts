@@ -23,6 +23,24 @@ function requiredEnvironment() {
   return { url, anon, service };
 }
 
+function publicSupabaseOrigin(request: Request) {
+  const explicit = Deno.env.get("SUPABASE_PUBLIC_URL")?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.trim();
+  if (forwardedHost) {
+    const forwardedProto = request.headers.get("x-forwarded-proto")?.trim() || "https";
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, "");
+  }
+
+  const configured = Deno.env.get("SUPABASE_URL")?.trim();
+  if (configured && !/^https?:\/\/(kong|127\.0\.0\.1|localhost)(:\d+)?(?:\/|$)/i.test(configured)) {
+    return configured.replace(/\/$/, "");
+  }
+
+  return new URL(request.url).origin;
+}
+
 function hex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes)).map(value => value.toString(16).padStart(2, "0")).join("");
 }
@@ -185,7 +203,7 @@ async function uploadAsset(request: Request) {
   if (uploadError) return json({ error: "storage_upload_failed", detail: uploadError.message }, 502);
 
   const encodedPath = storagePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
-  const publicUrl = new URL(`/storage/v1/object/public/${bucket}/${encodedPath}`, request.url).toString();
+  const publicUrl = `${publicSupabaseOrigin(request)}/storage/v1/object/public/${bucket}/${encodedPath}`;
   return json({ storage: { path: storagePath, public_url: publicUrl, content_type: inspection.mimeType, size: bytes.length } }, 201);
 }
 
