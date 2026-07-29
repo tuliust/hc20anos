@@ -6,7 +6,7 @@ last_verified_commit: 8bdc21cb7b035b0f34d708a5c6b81130efd3263f
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
-  - docs/30-contratos/database.types.generated.ts
+  - supabase/migrations
   - scripts/audit-database-types.mjs
 ---
 
