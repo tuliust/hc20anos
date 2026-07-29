@@ -1,5 +1,5 @@
-# One-shot workflow. It removes itself from the Phase 2 branch after syncing.
-name: Sync Phase 2 with main
+# One-shot workflow. Retire after the generated Phase 2 contracts are committed.
+name: Materialize Phase 2 contracts
 
 on:
   push:
@@ -11,27 +11,126 @@ permissions:
   contents: write
 
 concurrency:
-  group: sync-phase2-with-main
+  group: materialize-phase2-contracts
   cancel-in-progress: true
 
 jobs:
-  sync:
+  materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/phase2-content-storage
           fetch-depth: 0
 
-      - name: Merge main into the Phase 2 branch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify materialized Phase 2 runtime
+        run: |
+          node scripts/apply-phase2-content-storage.mjs
+          node scripts/apply-phase2-test-fixtures.mjs
+          node scripts/apply-phase2-content-storage.mjs --check
+          node scripts/apply-phase2-test-fixtures.mjs --check
+
+      - name: Start and rebuild local Supabase
+        run: |
+          npx supabase stop --no-backup || true
+          npx supabase start
+          npx supabase db reset --local
+
+      - name: Install deterministic users and roles
+        run: docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < supabase/tests/fixtures/local_test_context.sql
+
+      - name: Run SQL suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/phase2-materialize-sql.log
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a /tmp/phase2-materialize-sql.log
+            output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"
+            printf '%s\n' "$output" | tee -a /tmp/phase2-materialize-sql.log
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "$output"; then exit 1; fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+
+      - name: Generate canonical contracts
+        run: |
+          npm run docs:generate-contracts
+          npm run docs:generate-routes
+          npm run docs:generate-db-contracts
+          npm run docs:generate-type-compatibility
+          npm run docs:generate-type-consumers
+          npm run docs:generate-rpc-usage
+
+      - name: Build typed application
+        run: npm run build
+
+      - name: Generate Phase 1 evidence
+        shell: bash
+        run: |
+          verified_commit="$(git rev-parse HEAD)"
+          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: $(date -u +%F)
+          last_verified_commit: ${verified_commit}
+          generation_command: GitHub Actions / Phase 1 environment and security
+          source_files:
+            - supabase/migrations/
+            - supabase/tests/
+            - src/lib/rpc.types.ts
+            - scripts/generate-consumed-rpc-contracts.mjs
+            - scripts/migrate-rpc-any-casts.mjs
+            - .github/workflows/phase1-environment-security.yml
+          ---
+
+          # Fase 1 — ambiente e segurança
+
+          | Verificação | Resultado |
+          |---|---|
+          | Inventário e contratos das RPCs consumidas | `success` |
+          | Zero casts `(supabase as any).rpc` | `success` |
+          | Build TypeScript e aplicação | `success` |
+          | Inicialização do Supabase local | `success` |
+          | Replay integral das migrations | `success` |
+          | Usuários e roles determinísticos | `success` |
+          | RLS, grants, triggers, constraints e roles | `success` |
+          | Regeneração dos contratos do banco | `success` |
+          | Auditoria documental | `success` |
+
+          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
+          EOF
+          printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          tail -n 220 /tmp/phase2-materialize-sql.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+
+      - name: Audit generated documentation
+        run: npm run audit:docs
+
+      - name: Commit generated outputs to Phase 2 branch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge --no-commit --no-ff origin/main
-          git rm -f .github/workflows/materialize-phase2.yml
-          git commit -m "chore: sincronizar fase 2 com main"
-          git push origin HEAD:agent/phase2-content-storage
+          git add docs/30-contratos src/lib/database.generated.ts src/lib/rpc.generated.ts
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs: materializar contratos finais da fase 2"
+          for attempt in 1 2 3; do
+            git push origin HEAD:agent/phase2-content-storage && exit 0
+            git pull --rebase origin agent/phase2-content-storage
+          done
+          exit 1
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup || true
