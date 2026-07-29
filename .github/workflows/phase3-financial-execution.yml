@@ -7,6 +7,12 @@ on:
     paths:
       - scripts/phase3-financial-execution.mjs
       - .github/workflows/phase3-financial-execution.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/phase3-financial-execution.mjs
+      - .github/workflows/phase3-financial-execution.yml
   workflow_dispatch:
 
 permissions:
@@ -39,10 +45,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF}" != "refs/heads/agent/phase3-financial-execution" ]; then
-            echo "Execução financeira bloqueada fora da branch controlada."
-            exit 1
-          fi
+          case "${GITHUB_EVENT_NAME}" in
+            push|workflow_dispatch)
+              if [ "${GITHUB_REF}" != "refs/heads/agent/phase3-financial-execution" ]; then
+                echo "Execução financeira bloqueada fora da branch controlada."
+                exit 1
+              fi
+              ;;
+            pull_request)
+              if [ "${GITHUB_HEAD_REF}" != "agent/phase3-financial-execution" ]; then
+                echo "Execução financeira bloqueada para outro head ref."
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Evento não autorizado: ${GITHUB_EVENT_NAME}"
+              exit 1
+              ;;
+          esac
           if [ -z "${PHASE3_MERCADO_PAGO_ACCESS_TOKEN:-}" ]; then
             echo "Access token de teste ausente."
             exit 1
@@ -120,7 +140,7 @@ jobs:
             const adminOrder = report.diagnostics?.admin_orders?.[0];
             if (buyerOrder) {
               lines.push(
-                `- Pedido visível ao comprador: sim`,
+                "- Pedido visível ao comprador: sim",
                 `- Pedido do comprador: pagamento \`${buyerOrder.payment_status}\`, reserva \`${buyerOrder.reservation_status}\`, total R$ ${(Number(buyerOrder.total_amount_cents ?? 0) / 100).toFixed(2).replace(".", ")}`
               );
             } else {
