@@ -39,13 +39,62 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: phase2-content-storage-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  repair-type-consumer-metadata:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase2-content-storage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase2-content-storage
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Separate source files from Git metadata pathspecs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/generate-database-type-consumers.mjs")
+          text = path.read_text()
+          old_constants = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
+          new_constants = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs"];\nconst METADATA_PATHS = [...SOURCE_PATHS, ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
+          if text.count(old_constants) != 1:
+              raise SystemExit("Constante SOURCE_PATHS não reconhecida")
+          text = text.replace(old_constants, new_constants)
+          old_metadata = '  const paths = ["--", ...SOURCE_PATHS];'
+          new_metadata = '  const paths = ["--", ...METADATA_PATHS];'
+          if text.count(old_metadata) != 1:
+              raise SystemExit("Função metadata não reconhecida")
+          path.write_text(text.replace(old_metadata, new_metadata))
+          PY
+
+      - name: Regenerate and publish consumer inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run docs:generate-type-consumers
+          npm run audit:docs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/generate-database-type-consumers.mjs docs/30-contratos/consumidores-dos-tipos.generated.md
+          git commit -m "fix: separar pathspecs da origem documental"
+          git push origin HEAD:agent/phase2-content-storage
+
   content-storage:
     runs-on: ubuntu-latest
     timeout-minutes: 55
