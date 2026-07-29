@@ -28,6 +28,8 @@ jobs:
       PHASE3_SUPABASE_ANON_KEY: ${{ secrets.PHASE3_SUPABASE_ANON_KEY }}
       PHASE3_BUYER_EMAIL: ${{ secrets.PHASE3_BUYER_EMAIL }}
       PHASE3_BUYER_PASSWORD: ${{ secrets.PHASE3_BUYER_PASSWORD }}
+      PHASE3_ADMIN_EMAIL: ${{ secrets.PHASE3_ADMIN_EMAIL }}
+      PHASE3_ADMIN_PASSWORD: ${{ secrets.PHASE3_ADMIN_PASSWORD }}
       PHASE3_CHECKOUT_PAYLOAD_JSON: ${{ secrets.PHASE3_CHECKOUT_PAYLOAD_JSON }}
       PHASE3_MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.PHASE3_MERCADO_PAGO_ACCESS_TOKEN }}
       PHASE3_EXPECTED_TOTAL_CENTS: "25000"
@@ -114,8 +116,26 @@ jobs:
             );
           } else {
             lines.push(`- Erro sanitizado: \`${report.error ?? "erro desconhecido"}\``);
+            const buyerOrder = report.diagnostics?.buyer_orders?.[0];
+            const adminOrder = report.diagnostics?.admin_orders?.[0];
+            if (buyerOrder) {
+              lines.push(
+                `- Pedido visível ao comprador: sim`,
+                `- Pedido do comprador: pagamento \`${buyerOrder.payment_status}\`, reserva \`${buyerOrder.reservation_status}\`, total R$ ${(Number(buyerOrder.total_amount_cents ?? 0) / 100).toFixed(2).replace(".", ")}`
+              );
+            } else {
+              lines.push("- Pedido visível ao comprador: não");
+            }
+            if (adminOrder) {
+              lines.push(
+                `- Diagnóstico administrativo: preferência registrada=${adminOrder.provider_preference_recorded}, status=${adminOrder.preference_status ?? "null"}, ambiente=${adminOrder.payment_environment ?? "null"}`,
+                `- Webhooks observados: ${adminOrder.webhook_events ?? 0}; falhas: ${adminOrder.webhook_failures ?? 0}`
+              );
+            }
+            if (report.diagnostics?.admin_auth_error) lines.push(`- Falha de autenticação administrativa: \`${report.diagnostics.admin_auth_error}\``);
+            if (report.diagnostics?.admin_rpc_error) lines.push(`- Falha na RPC administrativa: \`${report.diagnostics.admin_rpc_error}\``);
           }
-          lines.push("", "Nenhum token, senha ou URL completa foi publicado neste comentário.");
+          lines.push("", "Nenhum token, senha, e-mail ou URL completa foi publicado neste comentário.");
           await writeFile("artifacts/phase3-epic-comment.md", `${lines.join("\n")}\n`, "utf8");
           NODE
 
