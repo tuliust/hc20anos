@@ -1,4 +1,4 @@
-# One-shot workflow. Remove after the Phase 2 runtime is committed.
+# One-shot workflow. Remove after the Phase 2 runtime is committed and verified.
 name: Materialize Phase 2 runtime
 
 on:
