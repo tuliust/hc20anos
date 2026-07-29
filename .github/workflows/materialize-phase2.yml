@@ -1,0 +1,191 @@
+# One-shot workflow. Remove after the stable generated contracts are committed.
+name: Stabilize Phase 2 generated metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/materialize-phase2.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stabilize-phase2-generated-metadata
+  cancel-in-progress: true
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase2-content-storage
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Stabilize source metadata calculation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path_based = [
+              "scripts/generate-static-contracts.mjs",
+              "scripts/generate-routes-contract.mjs",
+              "scripts/generate-database-contracts.mjs",
+              "scripts/audit-database-types.mjs",
+              "scripts/generate-database-type-consumers.mjs",
+          ]
+          for name in path_based:
+              path = Path(name)
+              text = path.read_text()
+              updated = text.replace(
+                  '["log", "-1", "--format=%H", ...pathArgs]',
+                  '["log", "--no-merges", "-1", "--format=%H", ...pathArgs]',
+              ).replace(
+                  '["log", "-1", "--format=%cs", ...pathArgs]',
+                  '["log", "--no-merges", "-1", "--format=%cs", ...pathArgs]',
+              )
+              if updated == text:
+                  raise SystemExit(f"Nenhuma substituição aplicada em {name}")
+              path.write_text(updated)
+
+          rpc_path = Path("scripts/generate-consumed-rpc-contracts.mjs")
+          rpc_text = rpc_path.read_text()
+          old_rpc = '''const sourceCommit = gitValue(["rev-parse", "HEAD"], "unknown");
+          const verifiedDate = gitValue(["show", "-s", "--format=%cs", "HEAD"], new Date().toISOString().slice(0, 10));'''
+          new_rpc = '''const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs"];
+          const sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");
+          const verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));'''
+          if old_rpc not in rpc_text:
+              raise SystemExit("Bloco de metadados das RPCs não encontrado")
+          rpc_path.write_text(rpc_text.replace(old_rpc, new_rpc))
+
+          workflow_path = Path(".github/workflows/phase1-environment-security.yml")
+          workflow_text = workflow_path.read_text()
+          old_start = '''          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF'''
+          new_start = '''          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
+          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
+          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
+          mkdir -p docs/30-contratos
+          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF'''
+          if old_start not in workflow_text:
+              raise SystemExit("Início do relatório da Fase 1 não encontrado")
+          workflow_text = workflow_text.replace(old_start, new_start)
+          workflow_text = workflow_text.replace("last_verified: $(date -u +%F)", "last_verified: ${verified_date}")
+          workflow_text = workflow_text.replace("last_verified_commit: ${GITHUB_SHA}", "last_verified_commit: ${verified_commit}")
+          workflow_path.write_text(workflow_text)
+          PY
+
+      - name: Commit stable generator sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/generate-static-contracts.mjs \
+            scripts/generate-routes-contract.mjs \
+            scripts/generate-database-contracts.mjs \
+            scripts/audit-database-types.mjs \
+            scripts/generate-database-type-consumers.mjs \
+            scripts/generate-consumed-rpc-contracts.mjs \
+            .github/workflows/phase1-environment-security.yml
+          git commit -m "fix: estabilizar metadados dos contratos gerados"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start and rebuild local Supabase
+        run: |
+          npx supabase stop --no-backup || true
+          npx supabase start
+          npx supabase db reset --local
+
+      - name: Install deterministic users and roles
+        run: docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < supabase/tests/fixtures/local_test_context.sql
+
+      - name: Run SQL suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/phase2-stable-sql.log
+          while IFS= read -r test_file; do
+            echo "===== ${test_file} =====" | tee -a /tmp/phase2-stable-sql.log
+            output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"
+            printf '%s\n' "$output" | tee -a /tmp/phase2-stable-sql.log
+            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "$output"; then exit 1; fi
+          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+
+      - name: Regenerate canonical contracts
+        run: |
+          npm run docs:generate-contracts
+          npm run docs:generate-routes
+          npm run docs:generate-db-contracts
+          npm run docs:generate-type-compatibility
+          npm run docs:generate-type-consumers
+          npm run docs:generate-rpc-usage
+
+      - name: Build typed application
+        run: npm run build
+
+      - name: Regenerate stable Phase 1 evidence
+        shell: bash
+        run: |
+          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
+          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
+          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
+          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
+          ---
+          status: generated
+          owner: tuliust
+          last_verified: ${verified_date}
+          last_verified_commit: ${verified_commit}
+          generation_command: GitHub Actions / Phase 1 environment and security
+          source_files:
+            - supabase/migrations/
+            - supabase/tests/
+            - src/lib/rpc.types.ts
+            - scripts/generate-consumed-rpc-contracts.mjs
+            - scripts/migrate-rpc-any-casts.mjs
+            - .github/workflows/phase1-environment-security.yml
+          ---
+
+          # Fase 1 — ambiente e segurança
+
+          | Verificação | Resultado |
+          |---|---|
+          | Inventário e contratos das RPCs consumidas | \`success\` |
+          | Zero casts \`(supabase as any).rpc\` | \`success\` |
+          | Build TypeScript e aplicação | \`success\` |
+          | Inicialização do Supabase local | \`success\` |
+          | Replay integral das migrations | \`success\` |
+          | Usuários e roles determinísticos | \`success\` |
+          | RLS, grants, triggers, constraints e roles | \`success\` |
+          | Regeneração dos contratos do banco | \`success\` |
+          | Auditoria documental | \`success\` |
+
+          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
+          EOF
+          printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          tail -n 220 /tmp/phase2-stable-sql.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+
+      - name: Audit and commit stable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run audit:docs
+          git add docs/30-contratos src/lib/database.generated.ts src/lib/rpc.generated.ts
+          git commit -m "docs: publicar contratos com metadados estáveis"
+          git push origin HEAD:agent/phase2-content-storage
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup || true
