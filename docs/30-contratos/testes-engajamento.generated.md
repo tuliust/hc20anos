@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: 39f723afddcac504bbdfbdb856b665b090324089
+last_verified: 2026-07-29
+last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
 generation_command: GitHub Actions / Engagement functional tests
 source_files:
   - index.html
@@ -40,4 +40,18 @@ source_files:
 
 ## Interpretação
 
-A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita. A validação integrada de RLS, sanitização, rate limiting e concorrência pertence ao workflow `Phase 2 content and Storage`.
+A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova apresentação, privacidade e contratos de escrita. A validação integrada de RLS, sanitização, rate limiting e concorrência pertence ao workflow Phase 2 content and Storage.
+
+## Diagnóstico E2E
+
+```text
+
+Running 2 tests using 1 worker
+
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✓  1 tests/e2e/engagement-flow.spec.ts:10:3 › memórias e enquetes › preserva anonimato público e envia memória pendente para moderação (4.8s)
+  ✓  2 tests/e2e/engagement-flow.spec.ts:53:3 › memórias e enquetes › registra voto único e impede novo voto em enquete fechada (1.4s)
+
+  2 passed (8.6s)
+```
