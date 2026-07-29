@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-07-29
-last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
+last_verified_commit: 47cc0e8901c216b91af2f3fbcc1a57b96d466284
 generation_command: GitHub Actions / Operations functional tests
 source_files:
   - playwright.config.ts
@@ -47,9 +47,10 @@ A proteção da rota e a segregação de funções foram aprovadas com fixtures 
 Running 3 tests using 1 worker
 
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/operations-flow.spec.ts:8:3 › operação do evento › redireciona visitante sem sessão para o login (1.9s)
-  ✓  2 tests/e2e/operations-flow.spec.ts:13:3 › operação do evento › restringe checkin_staff à operação de entrada e vouchers (750ms)
-  ✓  3 tests/e2e/operations-flow.spec.ts:46:3 › operação do evento › mantém reembolsos e indicadores restritos a admin (673ms)
+[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
+  ✓  1 tests/e2e/operations-flow.spec.ts:8:3 › operação do evento › redireciona visitante sem sessão para o login (3.2s)
+  ✓  2 tests/e2e/operations-flow.spec.ts:13:3 › operação do evento › restringe checkin_staff à operação de entrada e vouchers (1.1s)
+  ✓  3 tests/e2e/operations-flow.spec.ts:46:3 › operação do evento › mantém reembolsos e indicadores restritos a admin (1.0s)
 
-  3 passed (4.9s)
+  3 passed (8.9s)
 ```
