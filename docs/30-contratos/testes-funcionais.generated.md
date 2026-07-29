@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: 39f723afddcac504bbdfbdb856b665b090324089
+last_verified: 2026-07-29
+last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
 generation_command: GitHub Actions / Functional regression tests
 source_files:
   - package.json
