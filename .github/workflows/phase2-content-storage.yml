@@ -88,9 +88,17 @@ jobs:
         run: |
           npx supabase functions serve photo-storage --no-verify-jwt > phase2-edge-function.log 2>&1 &
           echo $! > phase2-edge-function.pid
-          for attempt in $(seq 1 60); do
-            status="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS http://127.0.0.1:54321/functions/v1/photo-storage || true)"
-            if [ "$status" = "200" ]; then exit 0; fi
+          for attempt in $(seq 1 90); do
+            response="$(curl -sS -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{}' \
+              -w $'\n%{http_code}' \
+              'http://127.0.0.1:54321/functions/v1/photo-storage?action=upload' || true)"
+            status="${response##*$'\n'}"
+            body="${response%$'\n'*}"
+            if [ "$status" = "401" ] && grep -q '"error":"authentication_required"' <<< "$body"; then
+              exit 0
+            fi
             sleep 1
           done
           cat phase2-edge-function.log
