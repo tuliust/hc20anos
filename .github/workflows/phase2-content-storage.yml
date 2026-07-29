@@ -155,7 +155,6 @@ jobs:
               "docs/30-contratos/banco.generated.md",
               "docs/30-contratos/RPCs.generated.md",
               "docs/30-contratos/RLS.generated.md",
-              "docs/30-contratos/erd.generated.mmd",
               "docs/30-contratos/compatibilidade-de-tipos.generated.md",
               "docs/30-contratos/consumidores-dos-tipos.generated.md",
               "docs/30-contratos/RPCs-consumidas.generated.md",
@@ -169,6 +168,14 @@ jobs:
               if date_count != 1 or commit_count != 1:
                   raise SystemExit(f"Front matter não reconhecido em {name}")
               path.write_text(text)
+
+          erd_path = Path("docs/30-contratos/erd.generated.mmd")
+          erd_text = erd_path.read_text()
+          erd_text, erd_date_count = re.subn(r"^%% last_verified: .+$", f"%% last_verified: {date}", erd_text, count=1, flags=re.M)
+          erd_text, erd_commit_count = re.subn(r"^%% last_verified_commit: .+$", f"%% last_verified_commit: {commit}", erd_text, count=1, flags=re.M)
+          if erd_date_count != 1 or erd_commit_count != 1:
+              raise SystemExit("Metadados Mermaid do ERD não reconhecidos")
+          erd_path.write_text(erd_text)
 
           for name in [
               "docs/30-contratos/database.types.generated.ts",
