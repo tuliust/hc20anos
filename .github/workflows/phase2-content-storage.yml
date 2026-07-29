@@ -39,61 +39,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: phase2-content-storage-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  align-phase1-evidence:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase2-content-storage'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/phase2-content-storage
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Align Phase 1 evidence metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
-          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
-          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
-          VERIFIED_COMMIT="$verified_commit" VERIFIED_DATE="$verified_date" python - <<'PY'
-          from pathlib import Path
-          import os
-          import re
-
-          path = Path("docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md")
-          text = path.read_text()
-          text, date_count = re.subn(r"^last_verified: .+$", f"last_verified: {os.environ['VERIFIED_DATE']}", text, count=1, flags=re.M)
-          text, commit_count = re.subn(r"^last_verified_commit: .+$", f"last_verified_commit: {os.environ['VERIFIED_COMMIT']}", text, count=1, flags=re.M)
-          if date_count != 1 or commit_count != 1:
-              raise SystemExit("Metadados da evidência da Fase 1 não reconhecidos")
-          path.write_text(text)
-          PY
-
-      - name: Audit and publish Phase 1 evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          npm run audit:docs
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-          git commit -m "docs: alinhar proveniência da evidência da fase 1"
-          git push origin HEAD:agent/phase2-content-storage
-
   content-storage:
     runs-on: ubuntu-latest
     timeout-minutes: 55
