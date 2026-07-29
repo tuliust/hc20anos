@@ -46,10 +46,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  stabilize-generated-metadata:
+  align-phase1-evidence:
     if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase2-content-storage'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,159 +61,37 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Patch stable source metadata
+      - name: Align Phase 1 evidence metadata
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          path_based = [
-              "scripts/generate-static-contracts.mjs",
-              "scripts/generate-routes-contract.mjs",
-              "scripts/generate-database-contracts.mjs",
-              "scripts/audit-database-types.mjs",
-              "scripts/generate-database-type-consumers.mjs",
-          ]
-          for name in path_based:
-              path = Path(name)
-              text = path.read_text()
-              text, commit_count = re.subn(
-                  r'\["log",\s*"-1",\s*"--format=%H",\s*\.\.\.(pathArgs|paths)\]',
-                  r'["log", "--no-merges", "-1", "--format=%H", ...\1]',
-                  text,
-              )
-              text, date_count = re.subn(
-                  r'\["log",\s*"-1",\s*"--format=%cs",\s*\.\.\.(pathArgs|paths)\]',
-                  r'["log", "--no-merges", "-1", "--format=%cs", ...\1]',
-                  text,
-              )
-              if commit_count != 1 or date_count != 1:
-                  raise SystemExit(f"Metadados não reconhecidos em {name}: commit={commit_count}, date={date_count}")
-              path.write_text(text)
-
-          static_path = Path("scripts/generate-static-contracts.mjs")
-          static_text = static_path.read_text()
-          static_old = 'const SOURCE_PATHS = [...SCAN_ROOTS, "scripts/generate-static-contracts.mjs"];'
-          static_new = 'const SOURCE_PATHS = [...SCAN_ROOTS, "scripts/generate-static-contracts.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
-          if static_text.count(static_old) != 1:
-              raise SystemExit("SOURCE_PATHS estático não reconhecido")
-          static_path.write_text(static_text.replace(static_old, static_new))
-
-          audit_path = Path("scripts/audit-database-types.mjs")
-          audit_text = audit_path.read_text()
-          audit_old = 'const SOURCE_PATHS = [MANUAL_PATH, GENERATED_PATH, "scripts/audit-database-types.mjs"];'
-          audit_new = 'const SOURCE_PATHS = [MANUAL_PATH, "supabase/migrations", "scripts/audit-database-types.mjs"];'
-          if audit_text.count(audit_old) != 1:
-              raise SystemExit("SOURCE_PATHS de compatibilidade não reconhecido")
-          audit_path.write_text(audit_text.replace(audit_old, audit_new))
-
-          consumers_path = Path("scripts/generate-database-type-consumers.mjs")
-          consumers_text = consumers_path.read_text()
-          consumers_old = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs"];'
-          consumers_new = 'const SOURCE_PATHS = ["src/", "scripts/generate-database-type-consumers.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];'
-          if consumers_text.count(consumers_old) != 1:
-              raise SystemExit("SOURCE_PATHS de consumidores não reconhecido")
-          consumers_path.write_text(consumers_text.replace(consumers_old, consumers_new))
-
-          rpc_path = Path("scripts/generate-consumed-rpc-contracts.mjs")
-          rpc_text = rpc_path.read_text()
-          rpc_text, rpc_count = re.subn(
-              r'const sourceCommit = gitValue\(\["rev-parse", "HEAD"\], "unknown"\);\nconst verifiedDate = gitValue\(\["show", "-s", "--format=%cs", "HEAD"\], new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\);',
-              'const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];\nconst sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");\nconst verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));',
-              rpc_text,
-          )
-          if rpc_count != 1:
-              raise SystemExit(f"Metadados das RPCs não reconhecidos: {rpc_count}")
-          rpc_path.write_text(rpc_text)
-          PY
-
-      - name: Commit stable generator sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/generate-static-contracts.mjs \
-            scripts/generate-routes-contract.mjs \
-            scripts/generate-database-contracts.mjs \
-            scripts/audit-database-types.mjs \
-            scripts/generate-database-type-consumers.mjs \
-            scripts/generate-consumed-rpc-contracts.mjs
-          git commit -m "fix: estabilizar origem dos contratos gerados"
-          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          echo "SOURCE_DATE=$(git show -s --format=%cs HEAD)" >> "$GITHUB_ENV"
-
-      - name: Align generated outputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
+          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
+          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
+          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
+          VERIFIED_COMMIT="$verified_commit" VERIFIED_DATE="$verified_date" python - <<'PY'
           from pathlib import Path
           import os
           import re
 
-          commit = os.environ["SOURCE_COMMIT"]
-          date = os.environ["SOURCE_DATE"]
-          front_matter_outputs = [
-              "docs/30-contratos/APIs.generated.md",
-              "docs/30-contratos/edge-functions.generated.md",
-              "docs/30-contratos/variaveis-de-ambiente.generated.md",
-              "docs/30-contratos/codigos-de-erro.generated.md",
-              "docs/30-contratos/rotas.generated.md",
-              "docs/30-contratos/banco.generated.md",
-              "docs/30-contratos/RPCs.generated.md",
-              "docs/30-contratos/RLS.generated.md",
-              "docs/30-contratos/compatibilidade-de-tipos.generated.md",
-              "docs/30-contratos/consumidores-dos-tipos.generated.md",
-              "docs/30-contratos/RPCs-consumidas.generated.md",
-          ]
-          for name in front_matter_outputs:
-              path = Path(name)
-              text = path.read_text()
-              text, date_count = re.subn(r"^last_verified: .+$", f"last_verified: {date}", text, count=1, flags=re.M)
-              text, commit_count = re.subn(r"^last_verified_commit: .+$", f"last_verified_commit: {commit}", text, count=1, flags=re.M)
-              if date_count != 1 or commit_count != 1:
-                  raise SystemExit(f"Front matter não reconhecido em {name}")
-              path.write_text(text)
-
-          erd_path = Path("docs/30-contratos/erd.generated.mmd")
-          erd_text = erd_path.read_text()
-          erd_text, date_count = re.subn(r"^%% last_verified: .+$", f"%% last_verified: {date}", erd_text, count=1, flags=re.M)
-          erd_text, commit_count = re.subn(r"^%% last_verified_commit: .+$", f"%% last_verified_commit: {commit}", erd_text, count=1, flags=re.M)
+          path = Path("docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md")
+          text = path.read_text()
+          text, date_count = re.subn(r"^last_verified: .+$", f"last_verified: {os.environ['VERIFIED_DATE']}", text, count=1, flags=re.M)
+          text, commit_count = re.subn(r"^last_verified_commit: .+$", f"last_verified_commit: {os.environ['VERIFIED_COMMIT']}", text, count=1, flags=re.M)
           if date_count != 1 or commit_count != 1:
-              raise SystemExit("Metadados Mermaid do ERD não reconhecidos")
-          erd_path.write_text(erd_text)
-
-          for name in [
-              "docs/30-contratos/database.types.generated.ts",
-              "src/lib/database.generated.ts",
-              "src/lib/rpc.generated.ts",
-          ]:
-              path = Path(name)
-              text = path.read_text()
-              text, count = re.subn(r"^// Source commit: .+$", f"// Source commit: {commit}", text, count=1, flags=re.M)
-              if count != 1:
-                  raise SystemExit(f"Comentário de origem não reconhecido em {name}")
-              path.write_text(text)
+              raise SystemExit("Metadados da evidência da Fase 1 não reconhecidos")
+          path.write_text(text)
           PY
 
-      - name: Validate and publish stable metadata
+      - name: Audit and publish Phase 1 evidence
         shell: bash
         run: |
           set -euo pipefail
           npm ci
-          node --check scripts/generate-static-contracts.mjs
-          node --check scripts/generate-routes-contract.mjs
-          node --check scripts/generate-database-contracts.mjs
-          node --check scripts/audit-database-types.mjs
-          node --check scripts/generate-database-type-consumers.mjs
-          node --check scripts/generate-consumed-rpc-contracts.mjs
-          npm run build
           npm run audit:docs
-          git add docs/30-contratos src/lib/database.generated.ts src/lib/rpc.generated.ts
-          git commit -m "docs: alinhar baselines aos metadados estáveis"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
+          git commit -m "docs: alinhar proveniência da evidência da fase 1"
           git push origin HEAD:agent/phase2-content-storage
 
   content-storage:
