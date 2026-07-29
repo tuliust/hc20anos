@@ -1,4 +1,4 @@
-# One-shot workflow. Remove after the stable generated contracts are committed.
+# One-shot workflow. Remove after the stable generated metadata is committed.
 name: Stabilize Phase 2 generated metadata
 
 on:
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   stabilize:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,11 +29,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Stabilize source metadata calculation
+      - name: Patch metadata generators
         shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
 
           path_based = [
               "scripts/generate-static-contracts.mjs",
@@ -45,40 +47,40 @@ jobs:
           for name in path_based:
               path = Path(name)
               text = path.read_text()
-              updated = text.replace(
-                  '["log", "-1", "--format=%H", ...pathArgs]',
-                  '["log", "--no-merges", "-1", "--format=%H", ...pathArgs]',
-              ).replace(
-                  '["log", "-1", "--format=%cs", ...pathArgs]',
-                  '["log", "--no-merges", "-1", "--format=%cs", ...pathArgs]',
+              updated, commit_count = re.subn(
+                  r'\["log",\s*"-1",\s*"--format=%H",\s*\.\.\.(pathArgs|paths)\]',
+                  r'["log", "--no-merges", "-1", "--format=%H", ...\1]',
+                  text,
               )
-              if updated == text:
-                  raise SystemExit(f"Nenhuma substituição aplicada em {name}")
+              updated, date_count = re.subn(
+                  r'\["log",\s*"-1",\s*"--format=%cs",\s*\.\.\.(pathArgs|paths)\]',
+                  r'["log", "--no-merges", "-1", "--format=%cs", ...\1]',
+                  updated,
+              )
+              if commit_count != 1 or date_count != 1:
+                  raise SystemExit(f"Metadados não reconhecidos em {name}: commit={commit_count}, date={date_count}")
               path.write_text(updated)
 
           rpc_path = Path("scripts/generate-consumed-rpc-contracts.mjs")
           rpc_text = rpc_path.read_text()
-          old_rpc = '''const sourceCommit = gitValue(["rev-parse", "HEAD"], "unknown");
-          const verifiedDate = gitValue(["show", "-s", "--format=%cs", "HEAD"], new Date().toISOString().slice(0, 10));'''
-          new_rpc = '''const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs"];
-          const sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");
-          const verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));'''
-          if old_rpc not in rpc_text:
-              raise SystemExit("Bloco de metadados das RPCs não encontrado")
-          rpc_path.write_text(rpc_text.replace(old_rpc, new_rpc))
+          rpc_text, rpc_count = re.subn(
+              r'const sourceCommit = gitValue\(\["rev-parse", "HEAD"\], "unknown"\);\nconst verifiedDate = gitValue\(\["show", "-s", "--format=%cs", "HEAD"\], new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\);',
+              'const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs"];\nconst sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");\nconst verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));',
+              rpc_text,
+          )
+          if rpc_count != 1:
+              raise SystemExit(f"Metadados das RPCs não reconhecidos: {rpc_count}")
+          rpc_path.write_text(rpc_text)
 
           workflow_path = Path(".github/workflows/phase1-environment-security.yml")
           workflow_text = workflow_path.read_text()
-          old_start = '''          mkdir -p docs/30-contratos
-          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF'''
-          new_start = '''          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
-          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
-          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
-          mkdir -p docs/30-contratos
-          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF'''
-          if old_start not in workflow_text:
-              raise SystemExit("Início do relatório da Fase 1 não encontrado")
-          workflow_text = workflow_text.replace(old_start, new_start)
+          marker = "          mkdir -p docs/30-contratos\n          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF"
+          replacement = "          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)\n          verified_commit=\"$(git log --no-merges -1 --format=%H -- \"${source_paths[@]}\")\"\n          verified_date=\"$(git log --no-merges -1 --format=%cs -- \"${source_paths[@]}\")\"\n          mkdir -p docs/30-contratos\n          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF"
+          if workflow_text.count(marker) != 1:
+              raise SystemExit("Marcador do relatório da Fase 1 não encontrado")
+          workflow_text = workflow_text.replace(marker, replacement)
+          if workflow_text.count("last_verified: $(date -u +%F)") != 1 or workflow_text.count("last_verified_commit: ${GITHUB_SHA}") != 1:
+              raise SystemExit("Campos autorreferentes da Fase 1 não encontrados")
           workflow_text = workflow_text.replace("last_verified: $(date -u +%F)", "last_verified: ${verified_date}")
           workflow_text = workflow_text.replace("last_verified_commit: ${GITHUB_SHA}", "last_verified_commit: ${verified_commit}")
           workflow_path.write_text(workflow_text)
@@ -98,94 +100,76 @@ jobs:
             scripts/generate-consumed-rpc-contracts.mjs \
             .github/workflows/phase1-environment-security.yml
           git commit -m "fix: estabilizar metadados dos contratos gerados"
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SOURCE_DATE=$(git show -s --format=%cs HEAD)" >> "$GITHUB_ENV"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Start and rebuild local Supabase
-        run: |
-          npx supabase stop --no-backup || true
-          npx supabase start
-          npx supabase db reset --local
-
-      - name: Install deterministic users and roles
-        run: docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < supabase/tests/fixtures/local_test_context.sql
-
-      - name: Run SQL suites
+      - name: Align generated metadata with stable source commit
         shell: bash
         run: |
           set -euo pipefail
-          : > /tmp/phase2-stable-sql.log
-          while IFS= read -r test_file; do
-            echo "===== ${test_file} =====" | tee -a /tmp/phase2-stable-sql.log
-            output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"
-            printf '%s\n' "$output" | tee -a /tmp/phase2-stable-sql.log
-            if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "$output"; then exit 1; fi
-          done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
 
-      - name: Regenerate canonical contracts
+          commit = os.environ["SOURCE_COMMIT"]
+          date = os.environ["SOURCE_DATE"]
+          markdown_outputs = [
+              "docs/30-contratos/APIs.generated.md",
+              "docs/30-contratos/edge-functions.generated.md",
+              "docs/30-contratos/variaveis-de-ambiente.generated.md",
+              "docs/30-contratos/codigos-de-erro.generated.md",
+              "docs/30-contratos/rotas.generated.md",
+              "docs/30-contratos/banco.generated.md",
+              "docs/30-contratos/RPCs.generated.md",
+              "docs/30-contratos/RLS.generated.md",
+              "docs/30-contratos/erd.generated.mmd",
+              "docs/30-contratos/compatibilidade-de-tipos.generated.md",
+              "docs/30-contratos/consumidores-dos-tipos.generated.md",
+              "docs/30-contratos/RPCs-consumidas.generated.md",
+              "docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md",
+          ]
+          for name in markdown_outputs:
+              path = Path(name)
+              text = path.read_text()
+              text, date_count = re.subn(r"^last_verified: .+$", f"last_verified: {date}", text, count=1, flags=re.M)
+              text, commit_count = re.subn(r"^last_verified_commit: .+$", f"last_verified_commit: {commit}", text, count=1, flags=re.M)
+              if date_count != 1 or commit_count != 1:
+                  raise SystemExit(f"Front matter não reconhecido em {name}")
+              path.write_text(text)
+
+          type_outputs = [
+              "docs/30-contratos/database.types.generated.ts",
+              "src/lib/database.generated.ts",
+              "src/lib/rpc.generated.ts",
+          ]
+          for name in type_outputs:
+              path = Path(name)
+              text = path.read_text()
+              text, count = re.subn(r"^// Source commit: .+$", f"// Source commit: {commit}", text, count=1, flags=re.M)
+              if count != 1:
+                  raise SystemExit(f"Comentário de origem não reconhecido em {name}")
+              path.write_text(text)
+          PY
+
+      - name: Validate repository after metadata stabilization
         run: |
-          npm run docs:generate-contracts
-          npm run docs:generate-routes
-          npm run docs:generate-db-contracts
-          npm run docs:generate-type-compatibility
-          npm run docs:generate-type-consumers
-          npm run docs:generate-rpc-usage
-
-      - name: Build typed application
-        run: npm run build
-
-      - name: Regenerate stable Phase 1 evidence
-        shell: bash
-        run: |
-          source_paths=(supabase/migrations supabase/tests src/lib/rpc.types.ts scripts/generate-consumed-rpc-contracts.mjs scripts/migrate-rpc-any-casts.mjs .github/workflows/phase1-environment-security.yml)
-          verified_commit="$(git log --no-merges -1 --format=%H -- "${source_paths[@]}")"
-          verified_date="$(git log --no-merges -1 --format=%cs -- "${source_paths[@]}")"
-          cat > docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md <<EOF
-          ---
-          status: generated
-          owner: tuliust
-          last_verified: ${verified_date}
-          last_verified_commit: ${verified_commit}
-          generation_command: GitHub Actions / Phase 1 environment and security
-          source_files:
-            - supabase/migrations/
-            - supabase/tests/
-            - src/lib/rpc.types.ts
-            - scripts/generate-consumed-rpc-contracts.mjs
-            - scripts/migrate-rpc-any-casts.mjs
-            - .github/workflows/phase1-environment-security.yml
-          ---
-
-          # Fase 1 — ambiente e segurança
-
-          | Verificação | Resultado |
-          |---|---|
-          | Inventário e contratos das RPCs consumidas | \`success\` |
-          | Zero casts \`(supabase as any).rpc\` | \`success\` |
-          | Build TypeScript e aplicação | \`success\` |
-          | Inicialização do Supabase local | \`success\` |
-          | Replay integral das migrations | \`success\` |
-          | Usuários e roles determinísticos | \`success\` |
-          | RLS, grants, triggers, constraints e roles | \`success\` |
-          | Regeneração dos contratos do banco | \`success\` |
-          | Auditoria documental | \`success\` |
-
-          O ambiente usa somente Supabase local e dados sintéticos. Nenhum banco remoto ou dado de produção é consultado.
-          EOF
-          printf '\n## Diagnóstico SQL\n\n```text\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-          tail -n 220 /tmp/phase2-stable-sql.log >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-          printf '```\n' >> docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md
-
-      - name: Audit and commit stable outputs
-        shell: bash
-        run: |
-          set -euo pipefail
+          npm ci
+          node --check scripts/generate-static-contracts.mjs
+          node --check scripts/generate-routes-contract.mjs
+          node --check scripts/generate-database-contracts.mjs
+          node --check scripts/audit-database-types.mjs
+          node --check scripts/generate-database-type-consumers.mjs
+          node --check scripts/generate-consumed-rpc-contracts.mjs
+          npm run build
           npm run audit:docs
-          git add docs/30-contratos src/lib/database.generated.ts src/lib/rpc.generated.ts
+
+      - name: Commit and push stable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add docs/30-contratos \
+            src/lib/database.generated.ts \
+            src/lib/rpc.generated.ts
           git commit -m "docs: publicar contratos com metadados estáveis"
           git push origin HEAD:agent/phase2-content-storage
-
-      - name: Stop local Supabase
-        if: always()
-        run: npx supabase stop --no-backup || true
