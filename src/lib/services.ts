@@ -5,6 +5,7 @@
 // ================================================================
 
 import { DEV_MODE, supabase } from "./supabase";
+import { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";
 import type {
   AlumniDirectoryStatusRow,
   CuriosityProfileStatsRow,
@@ -249,6 +250,18 @@ async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
+async function hydratePhotoUrls<T extends DbPhoto>(photos: T[]): Promise<T[]> {
+  const paths = Array.from(new Set(photos.map(photo => photo.storage_path).filter((value): value is string => Boolean(value))));
+  if (!paths.length) return photos;
+  const { data, error } = await supabase.storage.from("photos").createSignedUrls(paths, 3600);
+  if (error) throw error;
+  const urls = new Map((data ?? []).filter(item => item.signedUrl).map(item => [item.path, item.signedUrl]));
+  return photos.map(photo => {
+    const signedUrl = photo.storage_path ? urls.get(photo.storage_path) : null;
+    return signedUrl ? { ...photo, image_url: signedUrl, thumbnail_url: signedUrl } : photo;
+  });
+}
+
 const FUNCTIONS_BASE_URL = `${(import.meta.env.VITE_SUPABASE_URL as string).replace(/\/$/, "")}/functions/v1/server/make-server-62fab262`;
 
 async function callFunction<T>(path: string, init?: RequestInit): Promise<T> {
@@ -357,19 +370,9 @@ export async function updateEventPageContent(
 }
 
 export async function uploadCmsContentImage(file: File, adminId: string, scope: string): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem válida.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 5 MB.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "jpg";
-  const safeScope = scope.replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "") || "content";
-  const path = `${adminId}/cms/${safeScope}-${Date.now()}.${safeExt}`;
-  const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: false, contentType: file.type });
-  if (error) throw error;
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  if (!data.publicUrl) throw new Error("Não foi possível gerar a URL da imagem.");
-  await writeAudit("upload_cms_content_image", "cms_asset", DEFAULT_HOME_EVENT_ID, { path, scope, admin_id: adminId }).catch(() => {});
-  return data.publicUrl;
+  const uploaded = await uploadSecureAsset(file, "cms", scope, DEFAULT_HOME_EVENT_ID);
+  await writeAudit("upload_cms_content_image", "cms_asset", DEFAULT_HOME_EVENT_ID, { path: uploaded.storagePath, scope, admin_id: adminId }).catch(() => {});
+  return uploaded.publicUrl;
 }
 
 export async function getContentModerationSettings(eventId = DEFAULT_HOME_EVENT_ID): Promise<ContentModerationSettings> {
@@ -876,82 +879,23 @@ export async function saveMyPublicProfile(
 }
 
 export async function uploadProfileAvatar(userId: string, file: File): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no maximo 5 MB.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${userId}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do avatar.");
-  return data.publicUrl;
+  return (await uploadSecureAsset(file, "avatar", "profile-avatar")).publicUrl;
 }
 
 export async function uploadAdminPersonAvatar(adminId: string, file: File, personId?: string | null): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("A imagem deve ter no maximo 5 MB.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "jpg";
-  const owner = personId || adminId;
-  const path = `admin-people/${adminId}/${owner}-${Date.now()}.${safeExt}`;
-
-  const { error } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL da foto.");
-  return data.publicUrl;
+  return (await uploadSecureAsset(file, "avatar", `admin-person-${personId || adminId}`)).publicUrl;
 }
 
 export async function uploadHeaderLogo(file: File, adminId: string): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem valida.");
-  if (file.size > 2 * 1024 * 1024) throw new Error("O logo deve ter no maximo 2 MB.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-  const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "png";
-  const path = `${adminId}/header-logo-${Date.now()}.${safeExt}`;
-
-  const { error } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do logo.");
-
-  await writeAudit("upload_header_logo", "home_page_content", DEFAULT_HOME_EVENT_ID, { path, admin_id: adminId }).catch(() => {});
-  return data.publicUrl;
+  const uploaded = await uploadSecureAsset(file, "cms", "header-logo", DEFAULT_HOME_EVENT_ID, { maxOutputBytes: 2 * 1024 * 1024 });
+  await writeAudit("upload_header_logo", "home_page_content", DEFAULT_HOME_EVENT_ID, { path: uploaded.storagePath, admin_id: adminId }).catch(() => {});
+  return uploaded.publicUrl;
 }
 
 export async function uploadFavicon(file: File, adminId: string): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-  const safeExt = ["ico", "jpg", "jpeg", "png", "svg", "webp"].includes(ext) ? ext : "png";
-  const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
-  const isAllowedMimeType = file.type ? allowedMimeTypes.includes(file.type) || file.type.startsWith("image/") : true;
-
-  if (!isAllowedMimeType) throw new Error("Selecione uma imagem valida para favicon.");
-  if (file.size > 1024 * 1024) throw new Error("O favicon deve ter no maximo 1 MB.");
-
-  const contentType = file.type || (safeExt === "ico" ? "image/x-icon" : safeExt === "svg" ? "image/svg+xml" : "image/png");
-  const path = `${adminId}/favicon-${Date.now()}.${safeExt}`;
-
-  const { error } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, { upsert: true, contentType });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  if (!data.publicUrl) throw new Error("Nao foi possivel gerar a URL do favicon.");
-
-  await writeAudit("upload_favicon", "home_page_content", DEFAULT_HOME_EVENT_ID, { path, admin_id: adminId }).catch(() => {});
-  return data.publicUrl;
+  const uploaded = await uploadSecureAsset(file, "cms", "favicon", DEFAULT_HOME_EVENT_ID, { maxOutputBytes: 1024 * 1024, maxDimension: 512, maxPixels: 262144 });
+  await writeAudit("upload_favicon", "home_page_content", DEFAULT_HOME_EVENT_ID, { path: uploaded.storagePath, admin_id: adminId }).catch(() => {});
+  return uploaded.publicUrl;
 }
 
 export async function upsertProfile(profile: UpsertProfile) {
@@ -1112,125 +1056,52 @@ export async function checkInTicket(ticketId: string, adminUserId: string): Prom
 
 export async function getApprovedPhotos(eventId?: string): Promise<DbPhoto[]> {
   return withFallback(async () => {
-    let q = supabase
-      .from("photos")
-      .select("*, photo_tags(person_id, tagged_name_snapshot, status)")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false });
-    if (eventId) q = q.eq("event_id", eventId);
-    const { data, error } = await q;
+    let query = supabase.from("photos").select("*, photo_tags(person_id, tagged_name_snapshot, status)").eq("status", "approved").order("created_at", { ascending: false });
+    if (eventId) query = query.eq("event_id", eventId);
+    const { data, error } = await query;
     if (error) throw error;
-    return (data as DbPhoto[]) ?? [];
+    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
   }, []);
 }
 
 export async function getMyUploadedPhotos(userId: string): Promise<DbPhoto[]> {
   if (!userId) return [];
   return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("photos")
-      .select("*")
-      .eq("uploaded_by_user_id", userId)
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("photos").select("*").eq("uploaded_by_user_id", userId).order("created_at", { ascending: false });
     if (error) throw error;
-    return (data as DbPhoto[]) ?? [];
+    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
   }, []);
 }
 
 export async function getMyTaggedPhotos(personId: string): Promise<DbPhoto[]> {
   if (!personId) return [];
   return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("photo_tags")
-      .select("*, photos(*)")
-      .eq("person_id", personId)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("photo_tags").select("*, photos(*)").eq("person_id", personId).eq("status", "approved").order("created_at", { ascending: false });
     if (error) throw error;
-    return ((data ?? []) as (DbPhotoTag & { photos?: DbPhoto | null })[])
-      .map(row => row.photos)
-      .filter((photo): photo is DbPhoto => Boolean(photo));
+    const photos = ((data ?? []) as (DbPhotoTag & { photos?: DbPhoto | null })[]).map(row => row.photos).filter((photo): photo is DbPhoto => Boolean(photo));
+    return hydratePhotoUrls(photos);
   }, []);
 }
 
 export async function getPendingPhotos(): Promise<DbPhoto[]> {
   return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("photos")
-      .select("*")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("photos").select("*").eq("status", "pending").order("created_at", { ascending: false });
     if (error) throw error;
-    return (data as DbPhoto[]) ?? [];
+    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
   }, []);
 }
 
 export async function uploadPhoto(params: {
-  file: File;
-  userId: string;
-  userName: string;
-  caption: string;
-  yearApprox: number;
-  locationText: string;
-  eventId: string;
-  tags?: { personId: string; name: string }[];
+  file: File; userId: string; userName: string; caption: string; yearApprox: number;
+  locationText: string; eventId: string; tags?: { personId: string; name: string }[];
 }) {
-  // 1. Faz upload no Storage
-  const ext = params.file.name.split(".").pop();
-  const path = `${params.userId}/${Date.now()}.${ext}`;
-  const { error: storageError } = await supabase.storage
-    .from("photos")
-    .upload(path, params.file, { upsert: false });
-  if (storageError) throw storageError;
-
-  // 2. Gera signed URL para thumbnail (expiração longa)
-  const { data: signedData } = await supabase.storage
-    .from("photos")
-    .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 ano
-
-  const imageUrl = signedData?.signedUrl ?? "";
-
-  // 3. Insere registro na tabela photos
-  const { data, error } = await supabase.from("photos").insert({
-    event_id:             params.eventId,
-    image_url:            imageUrl,
-    storage_path:         path,
-    caption:              params.caption,
-    year_approx:          params.yearApprox,
-    location_text:        params.locationText,
-    uploaded_by_user_id:  params.userId,
-    uploaded_by_name:     params.userName,
-    authorization_given:  true,
-    status:               "pending",
-  }).select().single();
-  if (error) throw error;
-  const photo = data as DbPhoto;
-
-  if (params.tags?.length) {
-    const { error: tagError } = await supabase.from("photo_tags").insert(
-      params.tags.map(tag => ({
-        photo_id:              photo.id,
-        person_id:             tag.personId,
-        tagged_name_snapshot:  tag.name,
-        status:                "pending" as const,
-        created_by_user_id:    params.userId,
-      }))
-    );
-    if (tagError) throw tagError;
-  }
-
-  await writeAudit("upload_photo", "photos", photo.id, {
-    tags_count: params.tags?.length ?? 0,
-    authorization_given: true,
-  });
+  const photo = await uploadSecurePhoto({ file: params.file, eventId: params.eventId, caption: params.caption, yearApprox: params.yearApprox, locationText: params.locationText, tags: params.tags, authorizationGiven: true });
+  await writeAudit("upload_photo", "photos", photo.id, { tags_count: params.tags?.length ?? 0, authorization_given: true });
   return photo;
 }
 
 export async function moderatePhoto(id: string, action: "approved" | "rejected", adminId: string) {
-  const patch = action === "approved"
-    ? { status: "approved" as const, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
-    : { status: "rejected" as const };
-  const { error } = await supabase.from("photos").update(patch).eq("id", id);
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo", p_entity_id: id, p_status: action, p_notes: null });
   if (error) throw error;
   await writeAudit(`photo_${action}`, "photos", id, { admin_id: adminId });
 }
@@ -1238,10 +1109,10 @@ export async function moderatePhoto(id: string, action: "approved" | "rejected",
 export async function getPhotosForModeration(status: "pending" | "approved" | "rejected" | "removed" | "all" = "pending"): Promise<DbPhoto[]> {
   return withFallback(async () => {
     let query = supabase.from("photos").select("*").order("created_at", { ascending: false });
-    if (status !== "all") query = query.eq("status", status as any);
+    if (status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return (data as DbPhoto[]) ?? [];
+    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
   }, []);
 }
 
@@ -1260,23 +1131,14 @@ export async function getTagsForModeration(status = "pending"): Promise<(DbPhoto
 }
 
 export async function moderateTag(id: string, action: "approved" | "rejected", adminId: string) {
-  const patch = action === "approved"
-    ? { status: "approved" as const, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
-    : { status: "rejected" as const };
-  const { error } = await supabase.from("photo_tags").update(patch).eq("id", id);
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: id, p_status: action, p_notes: null });
   if (error) throw error;
   await writeAudit(`tag_${action}`, "photo_tags", id, { admin_id: adminId });
 }
 
 export async function addPhotoTag(photoId: string, personId: string, taggedName: string, userId: string) {
-  const { error } = await supabase.from("photo_tags").insert({
-    photo_id:             photoId,
-    person_id:            personId,
-    tagged_name_snapshot: taggedName,
-    status:               "pending",
-    created_by_user_id:   userId,
-  });
-  if (error && !error.message.includes("duplicate")) throw error;
+  const { error } = await supabase.rpc("submit_photo_tag", { p_photo_id: photoId, p_person_id: personId, p_tagged_name: taggedName });
+  if (error && !String(error.message).includes("duplicate")) throw error;
 }
 
 // ─── PROFILE CLAIMS ───────────────────────────────────────────────────────────
@@ -1654,21 +1516,10 @@ export async function getMyPhotoLikes(userId: string): Promise<string[]> {
   }, []);
 }
 
-export async function createPhotoComment(params: {
-  photoId: string;
-  userId: string;
-  authorName: string;
-  commentText: string;
-}): Promise<DbPhotoComment> {
-  const { data, error } = await supabase.from("photo_comments").insert({
-    photo_id:     params.photoId,
-    user_id:      params.userId,
-    author_name:  params.authorName,
-    comment_text: params.commentText,
-    status:       "pending",
-  }).select().single();
+export async function createPhotoComment(params: { photoId: string; userId: string; authorName: string; commentText: string; }): Promise<DbPhotoComment> {
+  const { data, error } = await supabase.rpc("submit_photo_comment", { p_photo_id: params.photoId, p_comment_text: params.commentText });
   if (error) throw error;
-  await writeAudit("create_photo_comment", "photo_comments", (data as DbPhotoComment).id, { photo_id: params.photoId });
+  await writeAudit("create_photo_comment", "photo_comments", data.id, { photo_id: params.photoId });
   return data as DbPhotoComment;
 }
 
@@ -1697,10 +1548,7 @@ export async function getPhotoCommentsForModeration(status: ModerationStatus | "
 }
 
 export async function moderatePhotoComment(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const patch = status === "approved"
-    ? { status, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
-    : { status, approved_by_admin_id: adminId, approved_at: null };
-  const { error } = await supabase.from("photo_comments").update(patch).eq("id", id);
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_comment", p_entity_id: id, p_status: status, p_notes: null });
   if (error) throw error;
   await writeAudit(`photo_comment_${status}`, "photo_comments", id, { admin_id: adminId });
 }
@@ -1722,60 +1570,28 @@ export async function getPhotoCommentCounts(photoIds: string[]): Promise<Record<
 
 export async function getFeaturedOrPopularPhotos(eventId = DEFAULT_EVENT_ID): Promise<DbPhoto[]> {
   return withFallback(async () => {
-    const { data, error } = await supabase.from("photos")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("status", "approved")
-      .order("is_featured", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(12);
+    const { data, error } = await supabase.from("photos").select("*").eq("event_id", eventId).eq("status", "approved").order("is_featured", { ascending: false }).order("created_at", { ascending: false }).limit(12);
     if (error) throw error;
-    return (data as DbPhoto[]) ?? [];
+    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
   }, []);
 }
 
 export async function toggleFeaturedPhoto(photoId: string, featured: boolean, adminId: string): Promise<void> {
-  const patch = featured
-    ? { is_featured: true, featured_by_admin_id: adminId, featured_at: new Date().toISOString() }
-    : { is_featured: false, featured_by_admin_id: null, featured_at: null };
-  const { error } = await supabase.from("photos").update(patch).eq("id", photoId);
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "photo", p_entity_id: photoId, p_featured: featured, p_notes: null });
   if (error) throw error;
   await writeAudit(featured ? "feature_photo" : "unfeature_photo", "photos", photoId, { admin_id: adminId });
 }
 
-export async function createMemory(params: {
-  eventId: string;
-  userId: string;
-  personId?: string | null;
-  authorName: string;
-  memoryText: string;
-  isAnonymous: boolean;
-}): Promise<DbMemory> {
-  const { data, error } = await supabase.from("memories").insert({
-    event_id:      params.eventId,
-    user_id:       params.userId,
-    person_id:     params.personId ?? null,
-    author_name:   params.authorName,
-    memory_text:   params.memoryText,
-    is_anonymous:  params.isAnonymous,
-    status:        "pending",
-    is_featured:   false,
-  }).select().single();
+export async function createMemory(params: { eventId: string; userId: string; personId?: string | null; authorName: string; memoryText: string; isAnonymous: boolean; }): Promise<DbMemory> {
+  const { data, error } = await supabase.rpc("submit_memory", { p_event_id: params.eventId, p_person_id: params.personId ?? null, p_memory_text: params.memoryText, p_is_anonymous: params.isAnonymous });
   if (error) throw error;
-  await writeAudit("create_memory", "memories", (data as DbMemory).id, {});
+  await writeAudit("create_memory", "memories", data.id, { is_anonymous: params.isAnonymous });
   return data as DbMemory;
 }
 
 export async function getApprovedMemories(eventId = DEFAULT_EVENT_ID, featuredOnly = false): Promise<DbMemory[]> {
   return withFallback(async () => {
-    let q = supabase.from("memories")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("status", "approved")
-      .order("is_featured", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (featuredOnly) q = q.eq("is_featured", true);
-    const { data, error } = await q;
+    const { data, error } = await supabase.rpc("get_public_memories", { p_event_id: eventId, p_featured_only: featuredOnly });
     if (error) throw error;
     return (data as DbMemory[]) ?? [];
   }, []);
@@ -1806,16 +1622,13 @@ export async function getMemoriesForModeration(status: ModerationStatus | "all" 
 }
 
 export async function moderateMemory(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const patch = status === "approved"
-    ? { status, approved_by_admin_id: adminId, approved_at: new Date().toISOString() }
-    : { status, approved_by_admin_id: adminId, approved_at: null };
-  const { error } = await supabase.from("memories").update(patch).eq("id", id);
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: id, p_status: status, p_notes: null });
   if (error) throw error;
   await writeAudit(`memory_${status}`, "memories", id, { admin_id: adminId });
 }
 
 export async function toggleFeaturedMemory(id: string, featured: boolean, adminId: string): Promise<void> {
-  const { error } = await supabase.from("memories").update({ is_featured: featured }).eq("id", id);
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "memory", p_entity_id: id, p_featured: featured, p_notes: null });
   if (error) throw error;
   await writeAudit(featured ? "feature_memory" : "unfeature_memory", "memories", id, { admin_id: adminId });
 }
@@ -2013,22 +1826,10 @@ export async function getAuditLogs(limit = 100, offset = 0): Promise<DbAuditLog[
 
 // ─── PHOTO REMOVAL REQUESTS ───────────────────────────────────────────────────
 
-export async function createPhotoRemovalRequest(params: {
-  photoId: string; userId: string; requesterName: string;
-  requesterEmail: string; reason: string;
-}) {
-  const { data, error } = await supabase.from("photo_removal_requests").insert({
-    photo_id:          params.photoId,
-    requester_user_id: params.userId,
-    requester_name:    params.requesterName,
-    requester_email:   params.requesterEmail,
-    reason:            params.reason,
-    status:            "pending",
-  }).select().single();
+export async function createPhotoRemovalRequest(params: { photoId: string; userId: string; requesterName: string; requesterEmail: string; reason: string; }) {
+  const { data, error } = await supabase.rpc("submit_photo_removal_request", { p_photo_id: params.photoId, p_requester_name: params.requesterName, p_requester_email: params.requesterEmail, p_reason: params.reason });
   if (error) throw error;
-  await writeAudit("create_photo_removal_request", "photo_removal_requests", (data as DbPhotoRemovalRequest).id, {
-    photo_id: params.photoId,
-  });
+  await writeAudit("create_photo_removal_request", "photo_removal_requests", data.id, { photo_id: params.photoId });
   return data as DbPhotoRemovalRequest;
 }
 
@@ -2045,14 +1846,11 @@ export async function getPhotoRemovalRequests(status?: string): Promise<(DbPhoto
 }
 
 export async function reviewPhotoRemovalRequest(id: string, action: "approved" | "rejected" | "hidden_preventively", adminId: string, notes?: string) {
-  const { data: req, error: reqErr } = await supabase.from("photo_removal_requests")
-    .update({ status: action, reviewed_by_admin_id: adminId, reviewed_at: new Date().toISOString(), admin_notes: notes ?? null })
-    .eq("id", id).select("photo_id").single();
-  if (reqErr) throw reqErr;
-  if (action === "approved") {
-    await supabase.from("photos").update({ status: "removed" }).eq("id", (req as any).photo_id);
-  } else if (action === "hidden_preventively") {
-    await supabase.from("photos").update({ status: "removed" }).eq("id", (req as any).photo_id);
+  if (action === "rejected") {
+    const { error } = await supabase.rpc("reject_photo_removal_request", { p_request_id: id, p_notes: notes ?? null });
+    if (error) throw error;
+  } else {
+    await removeSecurePhoto(id, notes ?? null);
   }
   await writeAudit(`removal_request_${action}`, "photo_removal_requests", id, { admin_id: adminId, notes });
 }

@@ -16,6 +16,11 @@ update storage.buckets
 set allowed_mime_types = array['image/jpeg','image/png','image/webp']
 where id in ('avatars', 'cms-assets');
 
+-- Direct uploads to public asset buckets are also centralized in the Edge Function.
+drop policy if exists "avatars_owner_upload" on storage.objects;
+drop policy if exists "avatars_owner_update" on storage.objects;
+drop policy if exists "cms_assets_storage_admin_write" on storage.objects;
+
 -- Direct browser writes are removed. Uploads use the photo-storage Edge
 -- Function, which validates bytes and writes with service_role only.
 drop policy if exists "photos_storage_upload" on storage.objects;
@@ -77,7 +82,7 @@ alter table public.photos add constraint photos_storage_owner_path
     or storage_path like uploaded_by_user_id::text || '/%'
   );
 alter table public.photos drop constraint if exists photos_authorization_required;
-alter table public.photos add constraint photos_authorization_required check (authorization_given = true);
+alter table public.photos add constraint photos_authorization_required check (storage_path is null or authorization_given = true);
 alter table public.photos drop constraint if exists photos_caption_length;
 alter table public.photos add constraint photos_caption_length check (caption is null or char_length(caption) <= 240);
 alter table public.photos drop constraint if exists photos_location_length;
@@ -167,7 +172,6 @@ begin
 end;
 $$;
 
-foreach_table:
 do $$
 declare t text;
 begin
@@ -459,8 +463,9 @@ language plpgsql security definer set search_path = public as $$
 declare v_role text:=public.current_security_role(); v_row public.photo_removal_requests; v_event_id uuid; v_previous text;
 begin
   if v_role not in ('admin','superadmin') then raise exception 'admin_required'; end if;
-  select r.*,p.event_id into v_row,v_event_id from public.photo_removal_requests r join public.photos p on p.id=r.photo_id where r.id=p_request_id for update of r;
+  select * into v_row from public.photo_removal_requests where id=p_request_id for update;
   if not found then raise exception 'removal_request_not_found'; end if;
+  select p.event_id into v_event_id from public.photos p where p.id=v_row.photo_id;
   v_previous:=v_row.status::text;
   update public.photo_removal_requests set status='rejected',reviewed_by_admin_id=(select id from public.admin_users where user_id=auth.uid()),reviewed_at=now(),admin_notes=p_notes,removal_error=null where id=p_request_id returning * into v_row;
   perform public.record_content_moderation(v_event_id,'photo_removal_request',p_request_id,v_previous,'rejected','reject_removal',p_notes,jsonb_build_object('photo_id',v_row.photo_id));
@@ -502,8 +507,9 @@ language plpgsql security definer set search_path = public as $$
 declare v_row public.photo_removal_requests; v_event_id uuid; v_previous text;
 begin
   if coalesce(auth.role(),'') <> 'service_role' then raise exception 'service_role_required'; end if;
-  select r.*,p.event_id into v_row,v_event_id from public.photo_removal_requests r join public.photos p on p.id=r.photo_id where r.id=p_request_id for update of r;
+  select * into v_row from public.photo_removal_requests where id=p_request_id for update;
   if not found then raise exception 'removal_request_not_found'; end if;
+  select p.event_id into v_event_id from public.photos p where p.id=v_row.photo_id;
   v_previous:=v_row.status::text;
   update public.photo_removal_requests set
     status=case when p_success then 'approved'::removal_request_status else 'hidden_preventively'::removal_request_status end,

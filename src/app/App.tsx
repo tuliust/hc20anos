@@ -6323,12 +6323,19 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
             <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
             <div className="flex items-center justify-between text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span><StatusBadge status="pending" /></div>
-            <label className="flex items-center justify-between cursor-pointer border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">
-              <span className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>
-              <button onClick={() => setIsAnonymous(v => !v)} className={`relative w-12 h-6 transition-colors ${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${isAnonymous ? "left-7" : "left-1"}`} />
+            <div className="flex items-center justify-between border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">
+              <span id="memory-anonymity-label" className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>
+              <button
+                type="button"
+                role="switch"
+                aria-labelledby="memory-anonymity-label"
+                aria-checked={isAnonymous}
+                onClick={() => setIsAnonymous(value => !value)}
+                className={`relative w-12 h-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a84c] ${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}
+              >
+                <span aria-hidden="true" className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${isAnonymous ? "left-7" : "left-1"}`} />
               </button>
-            </label>
+            </div>
             {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
             {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
             <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Enviar para moderação</Btn>

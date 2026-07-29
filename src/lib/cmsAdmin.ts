@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { uploadSecureAsset } from "./secureImageStorage";
 
 export const CMS_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 export const CMS_ASSETS_BUCKET = "cms-assets";
@@ -246,17 +247,8 @@ export async function saveCmsAssets(assets: Partial<CmsAsset>[], eventId = CMS_E
 }
 
 export async function uploadCmsAssetFile(file: File, assetKey: string, eventId = CMS_EVENT_ID) {
-  const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
-  const storagePath = `${eventId}/${safeName(assetKey)}-${Date.now()}.${safeName(extension ?? "bin")}`;
-
-  const { error } = await supabase.storage
-    .from(CMS_ASSETS_BUCKET)
-    .upload(storagePath, file, { cacheControl: "3600", upsert: true });
-
-  if (error) throw error;
-
-  const { data } = supabase.storage.from(CMS_ASSETS_BUCKET).getPublicUrl(storagePath);
-  return { storagePath, publicUrl: data.publicUrl };
+  const uploaded = await uploadSecureAsset(file, "cms", assetKey, eventId);
+  return { storagePath: uploaded.storagePath, publicUrl: uploaded.publicUrl };
 }
 
 export async function getCmsContentHealth(eventId = CMS_EVENT_ID): Promise<CmsHealthRow[]> {

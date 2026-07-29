@@ -59,7 +59,7 @@ const photoRow = {
   event_id: EVENT_ID,
   image_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect width='800' height='600' fill='%232d6a4f'/%3E%3C/svg%3E",
   thumbnail_url: null,
-  storage_path: "fixtures/gincana.svg",
+  storage_path: null,
   caption: "Gincana no pátio",
   year_approx: 2005,
   location_text: "Pátio do HC",
@@ -127,6 +127,48 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
     const restPath = url.pathname.split("/rest/v1/")[1] ?? "";
     const resource = restPath.split("/")[0];
     const method = request.method();
+
+    if (restPath === "rpc/submit_photo_comment" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      const mapped = {
+        photo_id: body.p_photo_id,
+        user_id: TEST_USER_ID,
+        author_name: "Maria Cabeção",
+        comment_text: body.p_comment_text,
+        status: "pending",
+      };
+      commentCalls.push(mapped);
+      await fulfillJson(route, { id: "00000000-0000-4000-8000-000000000912", ...mapped, approved_by_admin_id: null, approved_at: null, created_at: "2026-07-27T20:30:00Z", updated_at: "2026-07-27T20:30:00Z" });
+      return;
+    }
+
+    if (restPath === "rpc/submit_photo_tag" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      tagCalls.push({
+        photo_id: body.p_photo_id,
+        person_id: body.p_person_id,
+        tagged_name_snapshot: body.p_tagged_name,
+        status: "pending",
+        created_by_user_id: TEST_USER_ID,
+      });
+      await fulfillJson(route, { id: "00000000-0000-4000-8000-000000000913", status: "pending" });
+      return;
+    }
+
+    if (restPath === "rpc/submit_photo_removal_request" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      const mapped = {
+        photo_id: body.p_photo_id,
+        requester_user_id: TEST_USER_ID,
+        requester_name: body.p_requester_name,
+        requester_email: body.p_requester_email,
+        reason: body.p_reason,
+        status: "pending",
+      };
+      removalCalls.push(mapped);
+      await fulfillJson(route, { id: "00000000-0000-4000-8000-000000000921", ...mapped, created_at: "2026-07-27T20:35:00Z", updated_at: "2026-07-27T20:35:00Z" });
+      return;
+    }
 
     if (resource === "people" && method === "GET") {
       await fulfillJson(route, peopleRows);
