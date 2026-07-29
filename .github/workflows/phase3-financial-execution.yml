@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: phase3-financial-execution
@@ -79,6 +80,50 @@ jobs:
           path: artifacts/phase3-checkout-session.private.json
           if-no-files-found: error
           retention-days: 1
+
+      - name: Prepare Epic update
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          let report = { status: "failed", error: "relatório ausente" };
+          try {
+            report = JSON.parse(await readFile("artifacts/phase3-checkout-idempotency.json", "utf8"));
+          } catch {}
+          const ok = report.status === "passed";
+          const lines = [
+            `## Fase 3 — checkout integrado (${ok ? "PASS" : "FAIL"})`,
+            "",
+            `- Workflow run: ${process.env.GITHUB_RUN_ID}`,
+            `- Commit: \`${process.env.GITHUB_SHA}\``,
+            "- Ambiente: sandbox/teste",
+            "- Pagamento executado: não",
+            `- Etapa: ${report.stage ?? "checkout_preference_idempotency"}`,
+          ];
+          if (ok) {
+            lines.push(
+              `- Host do checkout: \`${report.checkout_host}\``,
+              `- Primeira chamada reutilizou preferência: ${report.first_reused_preference}`,
+              `- Segunda chamada reutilizou preferência: ${report.second_reused_preference}`,
+              `- Total autoritativo: R$ ${(Number(report.order?.total_amount_cents ?? 0) / 100).toFixed(2).replace(".", ",")}`,
+              `- Status financeiro: \`${report.order?.payment_status}\``,
+              `- Reserva: \`${report.order?.reservation_status}\``,
+              `- Participantes: ${report.order?.participant_count}`,
+              "- Sessão privada de checkout disponível no artifact por 1 dia."
+            );
+          } else {
+            lines.push(`- Erro sanitizado: \`${report.error ?? "erro desconhecido"}\``);
+          }
+          lines.push("", "Nenhum token, senha ou URL completa foi publicado neste comentário.");
+          await writeFile("artifacts/phase3-epic-comment.md", `${lines.join("\n")}\n`, "utf8");
+          NODE
+
+      - name: Update Epic 41
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 41 --repo "${GITHUB_REPOSITORY}" --body-file artifacts/phase3-epic-comment.md
 
       - name: Write execution summary
         if: always()
