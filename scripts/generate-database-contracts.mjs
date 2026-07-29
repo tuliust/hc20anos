@@ -40,8 +40,8 @@ function gitValue(args, fallback) {
 
 function sourceMetadata() {
   const pathArgs = ["--", ...SOURCE_PATHS];
-  const commit = gitValue(["log", "-1", "--format=%H", ...pathArgs], "unknown");
-  const date = gitValue(["log", "-1", "--format=%cs", ...pathArgs], "1970-01-01");
+  const commit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...pathArgs], "unknown");
+  const date = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...pathArgs], "1970-01-01");
   return { commit, date };
 }
 

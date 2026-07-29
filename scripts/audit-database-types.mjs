@@ -8,7 +8,7 @@ const CHECK_MODE = process.argv.includes("--check");
 const MANUAL_PATH = "src/lib/database.types.ts";
 const GENERATED_PATH = "docs/30-contratos/database.types.generated.ts";
 const OUTPUT_PATH = "docs/30-contratos/compatibilidade-de-tipos.generated.md";
-const SOURCE_PATHS = [MANUAL_PATH, GENERATED_PATH, "scripts/audit-database-types.mjs"];
+const SOURCE_PATHS = [MANUAL_PATH, "supabase/migrations", "scripts/audit-database-types.mjs"];
 const SECTIONS = ["Tables", "Views", "Functions", "Enums", "CompositeTypes"];
 
 function gitValue(args, fallback) {
@@ -26,8 +26,8 @@ function gitValue(args, fallback) {
 function metadata() {
   const paths = ["--", ...SOURCE_PATHS];
   return {
-    commit: gitValue(["log", "-1", "--format=%H", ...paths], "unknown"),
-    date: gitValue(["log", "-1", "--format=%cs", ...paths], "1970-01-01"),
+    commit: gitValue(["log", "--no-merges", "-1", "--format=%H", ...paths], "unknown"),
+    date: gitValue(["log", "--no-merges", "-1", "--format=%cs", ...paths], "1970-01-01"),
   };
 }
 

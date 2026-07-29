@@ -161,8 +161,9 @@ for (const file of files) {
 
 const uniqueUsages = [...new Map(usages.map(item => [`${item.file}:${item.line}:${item.name}`, item])).values()];
 const names = [...new Set(uniqueUsages.map(item => item.name))].sort();
-const sourceCommit = gitValue(["rev-parse", "HEAD"], "unknown");
-const verifiedDate = gitValue(["show", "-s", "--format=%cs", "HEAD"], new Date().toISOString().slice(0, 10));
+const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];
+const sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");
+const verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));
 
 if (dynamic.length > 0) {
   const details = dynamic.map(item => `${item.file}:${item.line} (${item.expression})`).join("\n");
