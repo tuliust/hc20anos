@@ -91,7 +91,23 @@ set role = excluded.role,
     email = excluded.email,
     updated_at = now();
 
+insert into public.people (id, full_name, class_year, class_group, is_visible)
+values (
+  '77777777-7777-4777-8777-777777777777'::uuid,
+  'Pessoa sintética da Fase 2',
+  2006,
+  'Teste',
+  true
+)
+on conflict (id) do update
+set full_name = excluded.full_name,
+    class_year = excluded.class_year,
+    class_group = excluded.class_group,
+    is_visible = excluded.is_visible,
+    updated_at = now();
+
 -- Integration tests create additional users through the real local Auth API.
--- This local-only grant lets the service client attach temporary roles without
--- changing the grants shipped by any migration or remote environment.
+-- These local-only grants support fixture setup and assertions without changing
+-- the grants shipped by any migration or remote environment.
 grant select, insert, update, delete on public.admin_users to service_role;
+grant select on public.people to service_role;
