@@ -36,6 +36,10 @@ with checks as (
     select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_photos_sanitize','trg_photo_comments_sanitize','trg_memories_sanitize','trg_photo_tags_sanitize','trg_photo_removal_requests_sanitize')
   )=5
   union all
+  select 'legacy_memory_defaults_removed',
+    not exists(select 1 from pg_trigger where not tgisinternal and tgname='trg_force_public_memory_defaults')
+    and to_regprocedure('public.force_public_memory_defaults()') is null
+  union all
   select 'phase2_rpcs_exist', (
     select count(distinct proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and proname in ('get_public_memories','create_uploaded_photo','submit_photo_comment','submit_memory','submit_photo_tag','submit_photo_removal_request','moderate_content_item','set_content_featured','reject_photo_removal_request','prepare_photo_removal','complete_photo_removal')
@@ -84,28 +88,29 @@ begin
 end $$;
 rollback;
 
--- The public RPC masks authorship and identifiers for anonymous memories.
+-- The final schema preserves anonymity and the public RPC masks ownership.
 begin;
 insert into public.memories(id,event_id,user_id,person_id,author_name,memory_text,is_anonymous,status,is_featured)
 values('99999999-9999-4999-8999-999999999901','00000000-0000-0000-0000-000000000001','22222222-2222-4222-8222-222222222222',null,'Nome privado','Uma lembrança anônima segura',true,'approved',false)
-on conflict(id) do update set event_id=excluded.event_id,status='approved',is_anonymous=true,author_name='Nome privado';
+on conflict(id) do update set event_id=excluded.event_id,user_id=excluded.user_id,person_id=null,status='approved',is_anonymous=true,author_name='Nome privado';
 
-select 'phase2_memory_raw' as diagnostic, id, event_id, status, is_anonymous, author_name, user_id, person_id
-from public.memories where id='99999999-9999-4999-8999-999999999901';
-
-select 'phase2_memory_function' as diagnostic, p.oid::regprocedure as signature,
-       pg_get_userbyid(p.proowner) as owner, p.prosecdef, p.proconfig
-from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-where n.nspname='public' and p.proname='get_public_memories';
+select 'anonymous_memory_choice_preserved' as check_name,
+  case when exists(
+    select 1 from public.memories
+    where id='99999999-9999-4999-8999-999999999901'
+      and is_anonymous=true
+      and author_name='Nome privado'
+      and user_id='22222222-2222-4222-8222-222222222222'
+  ) then 'PASS' else 'FAIL' end as result;
 
 set local role anon;
-select 'phase2_memory_role' as diagnostic, current_user, session_user,
-       has_function_privilege(current_user,'public.get_public_memories(uuid,boolean)','EXECUTE') as can_execute;
-select 'phase2_memory_rpc_rows' as diagnostic, count(*) as row_count
-from public.get_public_memories('00000000-0000-0000-0000-000000000001',false);
-select 'phase2_memory_rpc_result' as diagnostic, *
-from public.get_public_memories('00000000-0000-0000-0000-000000000001',false)
-where id='99999999-9999-4999-8999-999999999901';
 select 'anonymous_memory_identity_masked' as check_name,
-  case when exists(select 1 from public.get_public_memories('00000000-0000-0000-0000-000000000001',false) m where m.id='99999999-9999-4999-8999-999999999901' and m.author_name is null and m.user_id is null and m.person_id is null) then 'PASS' else 'FAIL' end as result;
+  case when exists(
+    select 1 from public.get_public_memories('00000000-0000-0000-0000-000000000001',false) m
+    where m.id='99999999-9999-4999-8999-999999999901'
+      and m.is_anonymous=true
+      and m.author_name is null
+      and m.user_id is null
+      and m.person_id is null
+  ) then 'PASS' else 'FAIL' end as result;
 rollback;
