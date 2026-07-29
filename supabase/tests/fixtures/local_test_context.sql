@@ -111,3 +111,10 @@ set full_name = excluded.full_name,
 -- the grants shipped by any migration or remote environment.
 grant select, insert, update, delete on public.admin_users to service_role;
 grant select on public.people to service_role;
+grant select on public.photos to service_role;
+grant select on public.photo_tags to service_role;
+grant select on public.photo_comments to service_role;
+grant select on public.memories to service_role;
+grant select on public.rate_limit_buckets to service_role;
+grant select on public.photo_removal_requests to service_role;
+grant select on public.content_moderation_events to service_role;
