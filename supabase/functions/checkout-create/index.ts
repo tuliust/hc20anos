@@ -40,12 +40,15 @@ const CLIENT_ERROR_CODES = new Set([
   "additional_child_price_missing",
   "external_guest_price_missing",
   "extra_price_missing",
+  "checkout_environment_conflict",
+  "checkout_idempotency_expired",
 ]);
 
 const SERVER_ERROR_CODES = new Set([
   "mercado_pago_not_configured",
   "mercado_pago_preference_failed",
   "mercado_pago_checkout_url_missing",
+  "mercado_pago_environment_invalid",
   "order_creation_failed",
   "order_not_found_after_creation",
 ]);
@@ -80,6 +83,20 @@ type CheckoutRequest = {
   idempotency_key: string;
 };
 
+type PreferenceRow = {
+  order_id: string;
+  checkout_url: string;
+  expires_at: string | null;
+  environment: "test" | "production";
+  provider_preference_id?: string | null;
+  orders?: {
+    public_token?: string | null;
+    buyer_user_id?: string | null;
+    payment_status?: string | null;
+    reservation_status?: string | null;
+  } | null;
+};
+
 function json(body: unknown, status = 200, extraHeaders: HeadersInit = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -107,13 +124,13 @@ function corsHeaders(request: Request): HeadersInit {
   return {
     "Access-Control-Allow-Origin": allowedOrigin(request),
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Max-Age": "600",
     "Vary": "Origin",
   };
 }
 
-function assertEnvironment() {
+function assertEnvironment(): "test" | "production" {
   const environment = Deno.env.get("MERCADO_PAGO_ENV") ?? "test";
   if (environment !== "test" && environment !== "production") {
     throw new Error("mercado_pago_environment_invalid");
@@ -190,6 +207,22 @@ async function authenticatedUser(request: Request) {
   return error ? null : data.user;
 }
 
+function preferenceIsUsable(preference: PreferenceRow, now = Date.now()) {
+  if (!preference.checkout_url) return false;
+  if (!preference.expires_at) return true;
+  const expiresAt = Date.parse(preference.expires_at);
+  return Number.isFinite(expiresAt) && expiresAt > now;
+}
+
+function preferenceResponse(preference: PreferenceRow) {
+  return {
+    checkout_url: preference.checkout_url,
+    public_token: preference.orders?.public_token,
+    expires_at: preference.expires_at,
+    reused_preference: true,
+  };
+}
+
 async function createPreference(params: {
   accessToken: string;
   environment: "test" | "production";
@@ -254,13 +287,21 @@ async function createPreference(params: {
 Deno.serve(async (request) => {
   const headers = corsHeaders(request);
   if (request.method === "OPTIONS") return new Response("ok", { headers });
-  if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
 
   try {
     const user = await authenticatedUser(request);
     if (!user) return json({ error: "authentication_required" }, 401, headers);
 
     const environment = assertEnvironment();
+    if (request.method === "GET") {
+      return json({
+        environment,
+        checkout_mode: environment === "test" ? "sandbox" : "production",
+        provider_configured: Boolean(Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")),
+      }, 200, headers);
+    }
+    if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
+
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!accessToken) return json({ error: "mercado_pago_not_configured" }, 503, headers);
 
@@ -271,22 +312,24 @@ Deno.serve(async (request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: existingPreference } = await db
+    const { data: existingPreference, error: existingPreferenceError } = await db
       .from("payment_preferences")
-      .select("order_id,checkout_url,expires_at,orders!inner(public_token,buyer_user_id,payment_status,reservation_status)")
+      .select("order_id,checkout_url,expires_at,environment,provider_preference_id,orders!inner(public_token,buyer_user_id,payment_status,reservation_status)")
       .eq("status", "active")
       .eq("orders.buyer_user_id", user.id)
-      .gt("expires_at", new Date().toISOString())
       .eq("orders.checkout_idempotency_key", body.idempotency_key)
       .maybeSingle();
+    if (existingPreferenceError) throw existingPreferenceError;
 
-    if (existingPreference?.checkout_url) {
-      return json({
-        checkout_url: existingPreference.checkout_url,
-        public_token: (existingPreference.orders as any)?.public_token,
-        expires_at: existingPreference.expires_at,
-        reused_preference: true,
-      }, 200, headers);
+    if (existingPreference) {
+      const typedPreference = existingPreference as unknown as PreferenceRow;
+      if (typedPreference.environment !== environment) {
+        return json({ error: "checkout_environment_conflict" }, 409, headers);
+      }
+      if (preferenceIsUsable(typedPreference)) {
+        return json(preferenceResponse(typedPreference), 200, headers);
+      }
+      await db.from("payment_preferences").update({ status: "expired" }).eq("order_id", typedPreference.order_id).eq("status", "active");
     }
 
     const { data: rows, error: orderError } = await db.rpc("create_checkout_order", {
@@ -309,12 +352,47 @@ Deno.serve(async (request) => {
     const orderSummary = Array.isArray(rows) ? rows[0] : rows;
     if (!orderSummary?.order_id) return json({ error: "order_creation_failed" }, 500, headers);
 
-    const { data: order, error: fetchError } = await db
+    const { data: fetchedOrder, error: fetchError } = await db
       .from("orders")
-      .select("id,public_token,buyer_name,buyer_email,buyer_phone,total_amount_cents,expires_at,lot_id,ticket_lots(code,name)")
+      .select("id,public_token,buyer_name,buyer_email,buyer_phone,total_amount_cents,expires_at,created_at,lot_id,payment_status,reservation_status,ticket_lots(code,name)")
       .eq("id", orderSummary.order_id)
       .single();
-    if (fetchError || !order) return json({ error: "order_not_found_after_creation" }, 500, headers);
+    if (fetchError || !fetchedOrder) return json({ error: "order_not_found_after_creation" }, 500, headers);
+
+    const order = { ...fetchedOrder } as any;
+    if (!order.expires_at) {
+      const repairedExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const { error: expiryRepairError } = await db
+        .from("orders")
+        .update({ expires_at: repairedExpiry })
+        .eq("id", order.id)
+        .is("expires_at", null);
+      if (expiryRepairError) throw expiryRepairError;
+      order.expires_at = repairedExpiry;
+    }
+
+    if (order.payment_status !== "pending" || order.reservation_status !== "active" || Date.parse(order.expires_at) <= Date.now()) {
+      return json({ error: "checkout_idempotency_expired" }, 409, headers);
+    }
+
+    const { data: activeOrderPreference, error: activeOrderPreferenceError } = await db
+      .from("payment_preferences")
+      .select("order_id,checkout_url,expires_at,environment,provider_preference_id,orders(public_token,buyer_user_id,payment_status,reservation_status)")
+      .eq("order_id", order.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (activeOrderPreferenceError) throw activeOrderPreferenceError;
+
+    if (activeOrderPreference) {
+      const typedPreference = activeOrderPreference as unknown as PreferenceRow;
+      if (typedPreference.environment !== environment) {
+        return json({ error: "checkout_environment_conflict" }, 409, headers);
+      }
+      if (preferenceIsUsable(typedPreference)) {
+        return json(preferenceResponse(typedPreference), 200, headers);
+      }
+      await db.from("payment_preferences").update({ status: "expired" }).eq("order_id", order.id).eq("status", "active");
+    }
 
     const preference = await createPreference({
       accessToken,
@@ -346,11 +424,25 @@ Deno.serve(async (request) => {
       status: "active",
       expires_at: order.expires_at,
     });
-    if (prefInsertError) throw prefInsertError;
+    if (prefInsertError) {
+      if ((prefInsertError as any).code === "23505") {
+        const { data: concurrentPreference } = await db
+          .from("payment_preferences")
+          .select("order_id,checkout_url,expires_at,environment,provider_preference_id,orders(public_token,buyer_user_id,payment_status,reservation_status)")
+          .eq("order_id", order.id)
+          .eq("status", "active")
+          .maybeSingle();
+        if (concurrentPreference && (concurrentPreference as any).environment === environment) {
+          return json(preferenceResponse(concurrentPreference as unknown as PreferenceRow), 200, headers);
+        }
+      }
+      throw prefInsertError;
+    }
 
     const { error: updateError } = await db.from("orders").update({
       payment_provider_preference_id: preference.id,
       payment_environment: environment,
+      expires_at: order.expires_at,
     }).eq("id", order.id);
     if (updateError) throw updateError;
 
