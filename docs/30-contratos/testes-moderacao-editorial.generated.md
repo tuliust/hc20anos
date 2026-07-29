@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-28
-last_verified_commit: 39f723afddcac504bbdfbdb856b665b090324089
+last_verified: 2026-07-29
+last_verified_commit: e4faaa0787c1b8dd5149e9ce288f0ce6d6281e3d
 generation_command: GitHub Actions / Editorial moderation functional tests
 source_files:
   - playwright.config.ts
@@ -45,9 +45,8 @@ A execução automatizada com fixtures HTTP isoladas foi aprovada. Ela comprova 
 Running 2 tests using 1 worker
 
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-[WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/editorial-moderation-flow.spec.ts:10:3 › moderação editorial › aprova memória anônima sem revelar autoria pública (4.9s)
-  ✓  2 tests/e2e/editorial-moderation-flow.spec.ts:36:3 › moderação editorial › rejeita comentário pendente e registra auditoria (1.3s)
+  ✓  1 tests/e2e/editorial-moderation-flow.spec.ts:9:3 › moderação editorial › aprova memória anônima sem revelar autoria pública (2.4s)
+  ✓  2 tests/e2e/editorial-moderation-flow.spec.ts:37:3 › moderação editorial › rejeita comentário pendente e registra auditoria (970ms)
 
-  2 passed (8.6s)
+  2 passed (4.7s)
 ```
