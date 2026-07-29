@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: phase2-pr-${{ github.event.pull_request.number || github.ref }}
@@ -49,24 +49,6 @@ jobs:
         run: |
           node scripts/apply-phase2-content-storage.mjs
           node scripts/apply-phase2-test-fixtures.mjs
-
-      - name: Materialize Phase 2 runtime in the source branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        shell: bash
-        run: |
-          git add -A
-          if git diff --cached --quiet; then exit 0; fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "feat: materializar runtime da fase 2"
-          git push origin "HEAD:${HEAD_REF}"
-
-      - name: Verify Phase 2 integration is materialized
-        run: |
-          node scripts/apply-phase2-content-storage.mjs --check
-          node scripts/apply-phase2-test-fixtures.mjs --check
 
       - name: Test image byte validation
         run: npm run test:image-security
