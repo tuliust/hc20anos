@@ -86,8 +86,11 @@ jobs:
       - name: Serve photo-storage Edge Function
         shell: bash
         run: |
-          SUPABASE_PUBLIC_URL=http://127.0.0.1:54321 \
-            npx supabase functions serve photo-storage --no-verify-jwt > phase2-edge-function.log 2>&1 &
+          printf '%s\n' 'SUPABASE_PUBLIC_URL=http://127.0.0.1:54321' > phase2-functions.env
+          npx supabase functions serve photo-storage \
+            --no-verify-jwt \
+            --env-file phase2-functions.env \
+            > phase2-edge-function.log 2>&1 &
           echo $! > phase2-edge-function.pid
           for attempt in $(seq 1 90); do
             response="$(curl -sS -X POST \
@@ -139,4 +142,5 @@ jobs:
         if: always()
         run: |
           if [ -f phase2-edge-function.pid ]; then kill "$(cat phase2-edge-function.pid)" 2>/dev/null || true; fi
+          rm -f phase2-functions.env
           npx supabase stop --no-backup || true
