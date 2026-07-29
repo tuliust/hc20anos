@@ -39,46 +39,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: phase2-content-storage-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  materialize-static-metadata:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/phase2-content-storage
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Generate and publish static contracts
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          npm run docs:generate-contracts
-          npm run docs:generate-routes
-          npm run audit:docs
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/30-contratos/APIs.generated.md \
-            docs/30-contratos/edge-functions.generated.md \
-            docs/30-contratos/variaveis-de-ambiente.generated.md \
-            docs/30-contratos/codigos-de-erro.generated.md \
-            docs/30-contratos/rotas.generated.md
-          git commit -m "docs: alinhar proveniência dos contratos estáticos"
-          git push origin HEAD:agent/phase2-content-storage
-
   content-storage:
     runs-on: ubuntu-latest
     timeout-minutes: 55
