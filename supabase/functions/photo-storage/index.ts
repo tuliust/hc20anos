@@ -158,7 +158,7 @@ async function uploadAsset(request: Request) {
   const target = String(form.get("target") ?? "");
   const scope = safeName(String(form.get("scope") ?? "image"));
   const eventId = safeName(String(form.get("event_id") ?? "default"));
-  if (!['avatar', 'cms'].includes(target)) return json({ error: "invalid_asset_target" }, 400);
+  if (!["avatar", "cms"].includes(target)) return json({ error: "invalid_asset_target" }, 400);
 
   if (target === "cms") {
     const { data: admin } = await serviceClient.from("admin_users").select("id").eq("user_id", user.id).in("role", ["admin", "superadmin"]).maybeSingle();
@@ -183,8 +183,10 @@ async function uploadAsset(request: Request) {
     upsert: false,
   });
   if (uploadError) return json({ error: "storage_upload_failed", detail: uploadError.message }, 502);
-  const { data } = serviceClient.storage.from(bucket).getPublicUrl(storagePath);
-  return json({ storage: { path: storagePath, public_url: data.publicUrl, content_type: inspection.mimeType, size: bytes.length } }, 201);
+
+  const encodedPath = storagePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
+  const publicUrl = new URL(`/storage/v1/object/public/${bucket}/${encodedPath}`, request.url).toString();
+  return json({ storage: { path: storagePath, public_url: publicUrl, content_type: inspection.mimeType, size: bytes.length } }, 201);
 }
 
 async function removePhoto(request: Request) {
