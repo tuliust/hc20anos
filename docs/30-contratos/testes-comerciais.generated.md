@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-29
-last_verified_commit: 47cc0e8901c216b91af2f3fbcc1a57b96d466284
+last_verified: 2026-08-09
+last_verified_commit: e1b9c81c7ce98c11b35bfc87ace050b4fe93a17e
 generation_command: GitHub Actions / Commerce functional tests
 source_files:
   - src/main.tsx
@@ -53,9 +53,9 @@ Running 3 tests using 1 worker
 
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
 [WebServer] [BABEL] Note: The code generator has deoptimised the styling of /home/runner/work/hc20anos/hc20anos/src/app/App.tsx as it exceeds the max of 500KB.
-  ✓  1 tests/e2e/checkout-flow.spec.ts:14:3 › catálogo e checkout › preserva o perfil vinculado e envia um pedido normalizado e autenticado (5.8s)
-  ✓  2 tests/e2e/ticket-catalog-source-of-truth.spec.ts:88:1 › Home usa nome e preços do lote vigente (1.5s)
-  ✓  3 tests/e2e/ticket-catalog-source-of-truth.spec.ts:105:1 › Home e página de ingressos exibem o mesmo catálogo (2.2s)
+  ✓  1 tests/e2e/checkout-flow.spec.ts:14:3 › catálogo e checkout › preserva o perfil vinculado e envia um pedido normalizado e autenticado (5.3s)
+  ✓  2 tests/e2e/ticket-catalog-source-of-truth.spec.ts:88:1 › Home usa nome e preços do lote vigente (1.4s)
+  ✓  3 tests/e2e/ticket-catalog-source-of-truth.spec.ts:105:1 › Home e página de ingressos exibem o mesmo catálogo (2.0s)
 
-  3 passed (12.0s)
+  3 passed (11.2s)
 ```
