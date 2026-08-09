@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   playwright:
@@ -28,3 +29,13 @@ jobs:
         run: npm run build
       - name: Run focused home UI regression
         run: npx playwright test tests/e2e/home-ui-polish.spec.ts
+      - name: Publish PASS in PR 57
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 57 --repo "${GITHUB_REPOSITORY}" --body "## Validação visual focada — PASS\n\n- Subtítulo do card Perfil: validado\n- Contraste das opções da Enquete: validado\n- Hover circular no avatar de Confirmados: validado\n- Build: PASS\n- Chromium/Playwright: PASS\n\nNenhum dado financeiro ou pessoal foi utilizado neste teste."
+      - name: Publish FAIL in PR 57
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 57 --repo "${GITHUB_REPOSITORY}" --body "## Validação visual focada — FAIL\n\nO build ou o teste Chromium/Playwright falhou. Nenhuma alteração financeira foi executada."
