@@ -35,6 +35,7 @@ import { installHomeMemoryAvatarEnhancement } from './homeMemoryAvatarEnhancemen
 import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
 import { installHomeProfileMetricsEnhancements } from './homeProfileMetricsEnhancements';
+import { installHomeUiPolishEnhancements } from './homeUiPolishEnhancements';
 import { installHomeTicketCardSpacingEnhancements } from './homeTicketCardSpacingEnhancements';
 import { installMemorySyncEnhancements } from './memorySyncEnhancements';
 import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
@@ -109,6 +110,7 @@ if (!isStandaloneRoute) {
   installEditProfileQuestionnaireBioEnhancement();
   installEditProfileAiButtonEnhancement();
   installExAlumniEnhancements();
+  installHomeUiPolishEnhancements();
   installContentSyncEnhancements();
   installProfileModalBioEnhancement();
   installProfileAndMemoryUiFollowups();
