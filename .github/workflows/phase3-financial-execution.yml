@@ -40,8 +40,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF}" != "refs/heads/agent/phase3-financial-execution" ]; then
-            echo "Execução financeira bloqueada fora da branch controlada."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Execução financeira bloqueada fora de main."
             exit 1
           fi
           if [ "${PHASE3_CONFIRMATION}" != "EXECUTAR_FASE_3_TESTE" ]; then
