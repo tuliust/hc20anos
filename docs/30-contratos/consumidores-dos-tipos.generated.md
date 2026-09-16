@@ -65,3 +65,4 @@ source_files:
 - um import sem `type` pode ser removido do JavaScript pelo compilador, mas é classificado conservadoramente;
 - o relatório não prova que todos os símbolos importados são efetivamente usados;
 - transforms podem introduzir consumidores somente no bundle final.
+
