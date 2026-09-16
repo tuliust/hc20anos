@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: db5d7fab2a8f1c40b669812029823b7a50fbd7c2
+last_verified_commit: a1dff9e864700bc938bfd78368d3b5a4505d035e
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 61 |
-| Ocorrências literais | 76 |
+| RPCs distintas | 62 |
+| Ocorrências literais | 77 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -68,7 +68,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_current_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:136` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:119` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/lib/currentTicketCatalog.ts:71` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:88` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
+| `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:63` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_event_reports` | `src/lib/services.ts:1314` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:354` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
@@ -78,7 +78,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_public_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:130` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:112` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/lib/currentTicketCatalog.ts:65` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
-| `get_public_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:82` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
+| `get_public_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:57` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `has_structured_faq_items` | `src/lib/faq.ts:201` | `HasStructuredFaqItemsArgs` | `HasStructuredFaqItemsReturns` |
 | `moderate_content_item` | `src/lib/services.ts:1104` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `moderate_content_item` | `src/lib/services.ts:1134` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
@@ -87,6 +87,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
 | `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:255` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
+| `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
 | `reject_photo_removal_request` | `src/lib/services.ts:1850` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
