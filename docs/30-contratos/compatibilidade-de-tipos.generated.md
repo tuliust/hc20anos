@@ -108,3 +108,4 @@ Mapeamentos com `Row: any`: `payment_events`.
 - não interpreta aliases condicionais ou generics complexos;
 - tipos de domínio sem correspondência direta são preservados;
 - diferenças exigem análise funcional antes de correção.
+
