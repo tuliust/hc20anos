@@ -13,7 +13,7 @@ truncate table _checkout_e2e_results;
 
 do $$
 declare
-  v_user_id uuid;
+  v_user_id uuid := '22222222-2222-4222-8222-222222222222'::uuid;
   v_person_id uuid;
   v_profile_id uuid;
   v_created_person boolean := false;
@@ -35,13 +35,21 @@ declare
   v_preference_id text;
   v_error text;
 begin
-  select u.id into v_user_id from auth.users u order by u.created_at limit 1;
-  if v_user_id is null then
-    raise exception 'Test requires at least one auth.users row';
+  if not exists (select 1 from auth.users where id = v_user_id) then
+    raise exception 'Deterministic authenticated fixture user is missing';
   end if;
 
   perform set_config('request.jwt.claim.sub', v_user_id::text, true);
   perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+      'sub', v_user_id::text,
+      'role', 'authenticated',
+      'email', 'authenticated-tests@local.invalid'
+    )::text,
+    true
+  );
 
   select pr.id, pr.person_id
     into v_profile_id, v_person_id
