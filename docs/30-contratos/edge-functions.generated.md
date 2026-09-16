@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-08-09
-last_verified_commit: 2b1ba03e46ffda8f0e684c93d72ab75cb134ed99
+last_verified: 2026-09-16
+last_verified_commit: 1e3521feaa1a9f76e06398ce39fc69e7aa782b49
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -12,12 +12,20 @@ source_files:
 
 > Arquivo gerado automaticamente. Não editar manualmente.
 
+## `checkout-consent`
+
+- **Arquivo:** `supabase/functions/checkout-consent/index.ts`
+- **Métodos detectados:** `GET`, `POST`
+- **Sinais de autenticação:** service role
+- **Variáveis:** `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **RPCs chamadas:** nenhuma
+
 ## `checkout-create`
 
 - **Arquivo:** `supabase/functions/checkout-create/index.ts`
 - **Métodos detectados:** `GET`, `OPTIONS`, `POST`
 - **Sinais de autenticação:** Bearer Supabase, service role, anon key
-- **Variáveis:** `CHECKOUT_ALLOWED_ORIGINS`, `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_ENV`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_ENV`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `create_checkout_order`
 
 ## `notification-worker`
@@ -41,7 +49,7 @@ source_files:
 - **Arquivo:** `supabase/functions/photo-storage/index.ts`
 - **Métodos detectados:** `OPTIONS`, `POST`
 - **Sinais de autenticação:** Bearer Supabase, service role, anon key, admin_users
-- **Variáveis:** `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_PUBLIC_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **Variáveis:** `SUPABASE_ANON_KEY`, `SUPABASE_PUBLIC_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `complete_photo_removal`, `create_uploaded_photo`, `prepare_photo_removal`
 
 ## `refund-processor`
@@ -59,4 +67,3 @@ source_files:
 - **Sinais de autenticação:** service role, assinatura Mercado Pago
 - **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`, `WHATSAPP_PROVIDER_TOKEN`, `WHATSAPP_PROVIDER_URL`, `WHATSAPP_TICKET_TEMPLATE`
 - **RPCs chamadas:** `fn_increment_sold`
-
