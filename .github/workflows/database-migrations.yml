@@ -14,6 +14,7 @@ on:
       - "scripts/repair-supabase-migration-history.ps1"
       - "build/profileClaimIdentityTransform.mjs"
       - "src/lib/profileClaimIdentity.ts"
+      - "src/lib/database.generated.ts"
       - "tests/e2e/profile-claim-*.ts"
       - "playwright.config.ts"
       - "package.json"
@@ -35,6 +36,7 @@ on:
       - "scripts/repair-supabase-migration-history.ps1"
       - "build/profileClaimIdentityTransform.mjs"
       - "src/lib/profileClaimIdentity.ts"
+      - "src/lib/database.generated.ts"
       - "tests/e2e/profile-claim-*.ts"
       - "playwright.config.ts"
       - "package.json"
@@ -205,6 +207,7 @@ jobs:
             docs/30-contratos/RLS.generated.md
             docs/30-contratos/erd.generated.mmd
             docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
           )
           changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
           if [ -z "$changes" ]; then
@@ -213,13 +216,16 @@ jobs:
           fi
 
           echo "$changes"
-          git diff --binary -- "${contract_files[@]}" > /tmp/database-contracts.patch
+          git add -- "${contract_files[@]}"
+          git diff --cached --binary -- "${contract_files[@]}" > /tmp/database-contracts.patch
+          git restore --source=HEAD --staged --worktree -- "${contract_files[@]}" 2>/dev/null || true
+          git clean -f -- "${contract_files[@]}"
           git fetch origin "$HEAD_REF"
           git checkout -B "$HEAD_REF" "origin/$HEAD_REF"
           git apply /tmp/database-contracts.patch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${contract_files[@]}"
+          git add -- "${contract_files[@]}"
           git commit -m "docs: atualizar contratos gerados do banco"
           git push origin "HEAD:$HEAD_REF"
 
@@ -232,11 +238,12 @@ jobs:
             docs/30-contratos/RPCs.generated.md \
             docs/30-contratos/RLS.generated.md \
             docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts)"
+            docs/30-contratos/database.types.generated.ts \
+            src/lib/database.generated.ts)"
           if [ -n "$changes" ]; then
             echo "Contratos do banco desatualizados ou ausentes:"
             echo "$changes"
-            git diff -- docs/30-contratos || true
+            git diff -- docs/30-contratos src/lib/database.generated.ts || true
             exit 1
           fi
 
@@ -244,12 +251,15 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- \
-            docs/30-contratos/banco.generated.md \
-            docs/30-contratos/RPCs.generated.md \
-            docs/30-contratos/RLS.generated.md \
-            docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts)"
+          contract_files=(
+            docs/30-contratos/banco.generated.md
+            docs/30-contratos/RPCs.generated.md
+            docs/30-contratos/RLS.generated.md
+            docs/30-contratos/erd.generated.mmd
+            docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
           if [ -z "$changes" ]; then
             echo "Contratos do banco já estão atualizados."
             exit 0
@@ -258,12 +268,7 @@ jobs:
           echo "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            docs/30-contratos/banco.generated.md \
-            docs/30-contratos/RPCs.generated.md \
-            docs/30-contratos/RLS.generated.md \
-            docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts
+          git add -- "${contract_files[@]}"
           git commit -m "docs: atualizar contratos gerados do banco"
           git push
 
@@ -287,5 +292,6 @@ jobs:
             docs/30-contratos/RLS.generated.md
             docs/30-contratos/erd.generated.mmd
             docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
           if-no-files-found: warn
           retention-days: 14
