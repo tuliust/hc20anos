@@ -1,9 +1,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { ImageSecurityError, inspectImageBytes } from "../_shared/image-security.ts";
 
-const siteUrl = Deno.env.get("SITE_URL") ?? "https://hc20anos.com.br";
+// A autenticação é validada dentro da função. A origem permissiva é usada
+// porque a SPA de produção é servida tanto no domínio apex quanto em www e
+// envia Bearer token explícito, sem cookies de autenticação cross-origin.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": siteUrl,
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
