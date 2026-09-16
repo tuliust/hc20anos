@@ -80,15 +80,17 @@ test.describe("catálogo e checkout", () => {
     await page.goto("/checkout");
 
     await page.getByRole("button", { name: "Adicionar cônjuge" }).click();
-    const spouseCard = page.getByText("Cônjuge", { exact: true }).locator("..").locator("..");
-    await spouseCard.getByPlaceholder("Nome completo").fill("João Cônjuge");
+    await expect(page.getByText("Cônjuge", { exact: true })).toBeVisible();
+    const nameInputsAfterSpouse = page.getByPlaceholder("Nome completo");
+    await expect(nameInputsAfterSpouse).toHaveCount(3);
+    await nameInputsAfterSpouse.nth(2).fill("João Cônjuge");
 
     await page.getByRole("button", { name: "Adicionar filho(a)" }).click();
-    const childCards = page.getByText(/Filho\(a\) 1/);
-    await expect(childCards).toHaveCount(1);
-    const childCard = childCards.first().locator("..").locator("..");
-    await childCard.getByPlaceholder("Nome completo").fill("Criança Teste");
-    await childCard.getByLabel("Data de nascimento").fill("2016-09-26");
+    await expect(page.getByText("Filho(a) 1", { exact: true })).toBeVisible();
+    const nameInputsAfterChild = page.getByPlaceholder("Nome completo");
+    await expect(nameInputsAfterChild).toHaveCount(4);
+    await nameInputsAfterChild.nth(3).fill("Criança Teste");
+    await page.getByLabel("Data de nascimento", { exact: true }).fill("2016-09-26");
 
     await expect(page.getByText("R$ 300,00", { exact: true })).toBeVisible();
 
@@ -100,6 +102,7 @@ test.describe("catálogo e checkout", () => {
     const participants = api.calls[0].body.participants as Array<Record<string, unknown>>;
     expect(participants).toHaveLength(3);
     expect(participants.map(item => item.participant_type)).toEqual(["alumni", "spouse", "child"]);
+    expect(participants[1]).toMatchObject({ full_name: "João Cônjuge" });
     expect(participants[2]).toMatchObject({ full_name: "Criança Teste", birth_date: "2016-09-26" });
   });
 });
