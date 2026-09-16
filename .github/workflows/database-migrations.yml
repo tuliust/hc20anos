@@ -18,6 +18,11 @@ on:
       - "playwright.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "docs/30-contratos/banco.generated.md"
+      - "docs/30-contratos/RPCs.generated.md"
+      - "docs/30-contratos/RLS.generated.md"
+      - "docs/30-contratos/erd.generated.mmd"
+      - "docs/30-contratos/database.types.generated.ts"
       - ".github/workflows/database-migrations.yml"
   pull_request:
     paths:
@@ -34,6 +39,11 @@ on:
       - "playwright.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "docs/30-contratos/banco.generated.md"
+      - "docs/30-contratos/RPCs.generated.md"
+      - "docs/30-contratos/RLS.generated.md"
+      - "docs/30-contratos/erd.generated.mmd"
+      - "docs/30-contratos/database.types.generated.ts"
       - ".github/workflows/database-migrations.yml"
   workflow_dispatch:
 
@@ -180,6 +190,38 @@ jobs:
 
       - name: Audit generated database documentation
         run: npm run audit:docs
+
+      - name: Publish database contracts to same-repository pull request
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          contract_files=(
+            docs/30-contratos/banco.generated.md
+            docs/30-contratos/RPCs.generated.md
+            docs/30-contratos/RLS.generated.md
+            docs/30-contratos/erd.generated.mmd
+            docs/30-contratos/database.types.generated.ts
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
+          if [ -z "$changes" ]; then
+            echo "Contratos do banco já estão atualizados."
+            exit 0
+          fi
+
+          echo "$changes"
+          git diff --binary -- "${contract_files[@]}" > /tmp/database-contracts.patch
+          git fetch origin "$HEAD_REF"
+          git checkout -B "$HEAD_REF" "origin/$HEAD_REF"
+          git apply /tmp/database-contracts.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${contract_files[@]}"
+          git commit -m "docs: atualizar contratos gerados do banco"
+          git push origin "HEAD:$HEAD_REF"
 
       - name: Require updated database contracts in pull requests
         if: github.event_name == 'pull_request'
