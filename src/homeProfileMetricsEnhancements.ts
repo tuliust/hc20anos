@@ -4,16 +4,8 @@ const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 const PROFILE_METRICS_SELECTOR = "[data-home-profile-metrics]";
 const CACHE_TTL_MS = 30_000;
 
-type CountItem = {
-  label: string;
-  count: number;
-};
-
-type HomeProfileMetrics = {
-  women: number;
-  married: number;
-  children: number;
-};
+type CountItem = { label: string; count: number };
+type HomeProfileMetrics = { women: number; married: number; children: number };
 
 let installed = false;
 let scheduled = false;
@@ -40,30 +32,20 @@ function percentOf(value: number, total: number) {
 function parseCounts(value: unknown): CountItem[] {
   let parsed = value;
   if (typeof parsed === "string") {
-    try {
-      parsed = JSON.parse(parsed);
-    } catch {
-      return [];
-    }
+    try { parsed = JSON.parse(parsed); } catch { return []; }
   }
-
   if (!Array.isArray(parsed)) return [];
   return parsed
     .map(item => {
       const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
-      return {
-        label: String(row.label ?? ""),
-        count: Number(row.count ?? 0),
-      };
+      return { label: String(row.label ?? ""), count: Number(row.count ?? 0) };
     })
     .filter(item => item.label && Number.isFinite(item.count));
 }
 
 function isRegisteredPerson(person: Record<string, unknown>) {
   const status = normalize(person.profile_status);
-  return status === "claimed"
-    || status === "confirmed"
-    || Boolean(person.claimed_by_user_id);
+  return status === "claimed" || status === "confirmed";
 }
 
 async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
@@ -75,7 +57,7 @@ async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
     const [peopleResult, statsResult] = await Promise.all([
       (supabase as any)
         .from("people")
-        .select("gender,is_visible,profile_status,claimed_by_user_id"),
+        .select("gender,is_visible,profile_status"),
       (supabase as any)
         .from("public_curiosity_profile_stats")
         .select("total_registered,total_with_children,relationship_status_counts")
@@ -97,9 +79,7 @@ async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
     const registeredTotal = Number.isFinite(registeredTotalFromView)
       ? registeredTotalFromView
       : registeredPeople.length;
-    const womenCount = registeredPeople
-      .filter((person: Record<string, unknown>) => person.gender === "female")
-      .length;
+    const womenCount = registeredPeople.filter((person: Record<string, unknown>) => person.gender === "female").length;
     const marriedCount = parseCounts(stats.relationship_status_counts)
       .find(item => normalize(item.label).startsWith("casad"))?.count ?? 0;
     const childrenCount = Number(stats.total_with_children ?? 0);
@@ -113,9 +93,7 @@ async function loadMetrics(force = false): Promise<HomeProfileMetrics> {
     cachedMetrics = metrics;
     cachedAt = Date.now();
     return metrics;
-  })().finally(() => {
-    pendingRequest = null;
-  });
+  })().finally(() => { pendingRequest = null; });
 
   return pendingRequest;
 }
@@ -125,14 +103,12 @@ function applyMetrics(root: HTMLElement, metrics: HomeProfileMetrics) {
   const cards = Array.from(root.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
     .slice(0, values.length);
-
   cards.forEach((card, index) => {
     const valueElement = card.querySelector<HTMLParagraphElement>("p");
     if (!valueElement) return;
     const nextValue = `${values[index]}%`;
     if (valueElement.textContent !== nextValue) valueElement.textContent = nextValue;
   });
-
   root.setAttribute("data-home-profile-metrics-source", "registered-profiles");
 }
 
@@ -140,7 +116,6 @@ async function refreshMetrics(force = false) {
   if (currentPath() !== "/") return;
   const root = document.querySelector<HTMLElement>(PROFILE_METRICS_SELECTOR);
   if (!root) return;
-
   try {
     applyMetrics(root, await loadMetrics(force));
   } catch (error) {
@@ -160,18 +135,14 @@ function scheduleRefresh(force = false) {
 export function installHomeProfileMetricsEnhancements() {
   if (installed || typeof window === "undefined") return;
   installed = true;
-
   const observer = new MutationObserver(() => scheduleRefresh(false));
   observer.observe(document.body, { childList: true, subtree: true });
-
   window.addEventListener("popstate", () => scheduleRefresh(false));
   window.addEventListener("pushstate", () => scheduleRefresh(false));
   window.addEventListener("focus", () => scheduleRefresh(true));
   window.addEventListener("hc-home-profile-metrics-updated", () => scheduleRefresh(true));
-
   window.setInterval(() => {
     if (document.visibilityState === "visible") scheduleRefresh(true);
   }, 60_000);
-
   scheduleRefresh(true);
 }
