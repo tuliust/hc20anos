@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-29
-last_verified_commit: 116799bbb9c622de23a3246ba82c7c5233618c8f
+last_verified: 2026-09-16
+last_verified_commit: 40907ed72e6c4edf5b2d80dafd8c2838a79f21fe
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -21,6 +21,7 @@ source_files:
 | `public.admin_users` | sim | não |
 | `public.audit_logs` | sim | não |
 | `public.checkin_events` | sim | não |
+| `public.checkout_terms_acceptances` | sim | não |
 | `public.cms_assets` | sim | não |
 | `public.content_moderation_events` | sim | não |
 | `public.content_moderation_settings` | sim | não |
@@ -56,7 +57,7 @@ source_files:
 | `public.profiles` | sim | não |
 | `public.public_page_content` | sim | não |
 | `public.rate_limit_buckets` | sim | não |
-| `public.refund_policy` | não | não |
+| `public.refund_policy` | sim | não |
 | `public.refund_requests` | sim | não |
 | `public.security_audit_log` | sim | não |
 | `public.ticket_lot_prices` | sim | não |
@@ -199,10 +200,10 @@ source_files:
 | `public.profiles` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.profiles` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.profiles` | `profiles_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.profiles` | `profiles_anon_attendance_read` | PERMISSIVE | `anon` | `SELECT` | `((show_confirmed_status = true) AND (EXISTS ( SELECT 1<br>   FROM people p<br>  WHERE ((p.id = profiles.person_id) AND (p.is_visible = true)))))` | `—` |
 | `public.profiles` | `profiles_owner_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `(user_id = auth.uid())` |
 | `public.profiles` | `profiles_owner_select` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
 | `public.profiles` | `profiles_owner_update` | PERMISSIVE | `public` | `UPDATE` | `(user_id = auth.uid())` | `—` |
-| `public.profiles` | `profiles_public_read` | PERMISSIVE | `public` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM people p<br>  WHERE ((p.id = profiles.person_id) AND (p.is_visible = true) AND (profiles.show_confirmed_status = true))))` | `—` |
 | `public.public_page_content` | `public_page_content_manage_admins` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.public_page_content` | `public_page_content_select_public` | PERMISSIVE | `public` | `SELECT` | `true` | `—` |
 | `public.refund_requests` | `refund_requests_owner_insert` | PERMISSIVE | `authenticated` | `INSERT` | `—` | `((requested_by_user_id = auth.uid()) AND (status = 'requested'::text) AND (EXISTS ( SELECT 1<br>   FROM orders o<br>  WHERE ((o.id = refund_requests.order_id) AND (o.buyer_user_id = auth.uid())))))` |
@@ -278,6 +279,20 @@ source_files:
 | `public.checkin_events` | `service_role` | `REFERENCES` | NO |
 | `public.checkin_events` | `service_role` | `TRIGGER` | NO |
 | `public.checkin_events` | `service_role` | `TRUNCATE` | NO |
+| `public.checkout_terms_acceptances` | `postgres` | `DELETE` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `INSERT` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `REFERENCES` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `SELECT` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `TRIGGER` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `TRUNCATE` | YES |
+| `public.checkout_terms_acceptances` | `postgres` | `UPDATE` | YES |
+| `public.checkout_terms_acceptances` | `service_role` | `DELETE` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `INSERT` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `REFERENCES` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `SELECT` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `TRIGGER` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `TRUNCATE` | NO |
+| `public.checkout_terms_acceptances` | `service_role` | `UPDATE` | NO |
 | `public.cms_assets` | `anon` | `REFERENCES` | NO |
 | `public.cms_assets` | `anon` | `TRIGGER` | NO |
 | `public.cms_assets` | `anon` | `TRUNCATE` | NO |
@@ -602,9 +617,6 @@ source_files:
 | `public.payment_preferences` | `service_role` | `REFERENCES` | NO |
 | `public.payment_preferences` | `service_role` | `TRIGGER` | NO |
 | `public.payment_preferences` | `service_role` | `TRUNCATE` | NO |
-| `public.people` | `anon` | `REFERENCES` | NO |
-| `public.people` | `anon` | `TRIGGER` | NO |
-| `public.people` | `anon` | `TRUNCATE` | NO |
 | `public.people` | `authenticated` | `DELETE` | NO |
 | `public.people` | `authenticated` | `INSERT` | NO |
 | `public.people` | `authenticated` | `REFERENCES` | NO |
@@ -892,9 +904,6 @@ source_files:
 | `public.profile_school_questionnaire_answers` | `service_role` | `REFERENCES` | NO |
 | `public.profile_school_questionnaire_answers` | `service_role` | `TRIGGER` | NO |
 | `public.profile_school_questionnaire_answers` | `service_role` | `TRUNCATE` | NO |
-| `public.profiles` | `anon` | `REFERENCES` | NO |
-| `public.profiles` | `anon` | `TRIGGER` | NO |
-| `public.profiles` | `anon` | `TRUNCATE` | NO |
 | `public.profiles` | `authenticated` | `DELETE` | NO |
 | `public.profiles` | `authenticated` | `INSERT` | NO |
 | `public.profiles` | `authenticated` | `REFERENCES` | NO |
@@ -930,6 +939,24 @@ source_files:
 | `public.public_alumni_directory_status` | `service_role` | `REFERENCES` | NO |
 | `public.public_alumni_directory_status` | `service_role` | `TRIGGER` | NO |
 | `public.public_alumni_directory_status` | `service_role` | `TRUNCATE` | NO |
+| `public.public_attendance_intents` | `anon` | `REFERENCES` | NO |
+| `public.public_attendance_intents` | `anon` | `SELECT` | NO |
+| `public.public_attendance_intents` | `anon` | `TRIGGER` | NO |
+| `public.public_attendance_intents` | `anon` | `TRUNCATE` | NO |
+| `public.public_attendance_intents` | `authenticated` | `REFERENCES` | NO |
+| `public.public_attendance_intents` | `authenticated` | `SELECT` | NO |
+| `public.public_attendance_intents` | `authenticated` | `TRIGGER` | NO |
+| `public.public_attendance_intents` | `authenticated` | `TRUNCATE` | NO |
+| `public.public_attendance_intents` | `postgres` | `DELETE` | YES |
+| `public.public_attendance_intents` | `postgres` | `INSERT` | YES |
+| `public.public_attendance_intents` | `postgres` | `REFERENCES` | YES |
+| `public.public_attendance_intents` | `postgres` | `SELECT` | YES |
+| `public.public_attendance_intents` | `postgres` | `TRIGGER` | YES |
+| `public.public_attendance_intents` | `postgres` | `TRUNCATE` | YES |
+| `public.public_attendance_intents` | `postgres` | `UPDATE` | YES |
+| `public.public_attendance_intents` | `service_role` | `REFERENCES` | NO |
+| `public.public_attendance_intents` | `service_role` | `TRIGGER` | NO |
+| `public.public_attendance_intents` | `service_role` | `TRUNCATE` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `REFERENCES` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `SELECT` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `TRIGGER` | NO |
@@ -969,6 +996,42 @@ source_files:
 | `public.public_page_content` | `service_role` | `REFERENCES` | NO |
 | `public.public_page_content` | `service_role` | `TRIGGER` | NO |
 | `public.public_page_content` | `service_role` | `TRUNCATE` | NO |
+| `public.public_people_directory` | `anon` | `REFERENCES` | NO |
+| `public.public_people_directory` | `anon` | `SELECT` | NO |
+| `public.public_people_directory` | `anon` | `TRIGGER` | NO |
+| `public.public_people_directory` | `anon` | `TRUNCATE` | NO |
+| `public.public_people_directory` | `authenticated` | `REFERENCES` | NO |
+| `public.public_people_directory` | `authenticated` | `SELECT` | NO |
+| `public.public_people_directory` | `authenticated` | `TRIGGER` | NO |
+| `public.public_people_directory` | `authenticated` | `TRUNCATE` | NO |
+| `public.public_people_directory` | `postgres` | `DELETE` | YES |
+| `public.public_people_directory` | `postgres` | `INSERT` | YES |
+| `public.public_people_directory` | `postgres` | `REFERENCES` | YES |
+| `public.public_people_directory` | `postgres` | `SELECT` | YES |
+| `public.public_people_directory` | `postgres` | `TRIGGER` | YES |
+| `public.public_people_directory` | `postgres` | `TRUNCATE` | YES |
+| `public.public_people_directory` | `postgres` | `UPDATE` | YES |
+| `public.public_people_directory` | `service_role` | `REFERENCES` | NO |
+| `public.public_people_directory` | `service_role` | `TRIGGER` | NO |
+| `public.public_people_directory` | `service_role` | `TRUNCATE` | NO |
+| `public.public_profile_bios` | `anon` | `REFERENCES` | NO |
+| `public.public_profile_bios` | `anon` | `SELECT` | NO |
+| `public.public_profile_bios` | `anon` | `TRIGGER` | NO |
+| `public.public_profile_bios` | `anon` | `TRUNCATE` | NO |
+| `public.public_profile_bios` | `authenticated` | `REFERENCES` | NO |
+| `public.public_profile_bios` | `authenticated` | `SELECT` | NO |
+| `public.public_profile_bios` | `authenticated` | `TRIGGER` | NO |
+| `public.public_profile_bios` | `authenticated` | `TRUNCATE` | NO |
+| `public.public_profile_bios` | `postgres` | `DELETE` | YES |
+| `public.public_profile_bios` | `postgres` | `INSERT` | YES |
+| `public.public_profile_bios` | `postgres` | `REFERENCES` | YES |
+| `public.public_profile_bios` | `postgres` | `SELECT` | YES |
+| `public.public_profile_bios` | `postgres` | `TRIGGER` | YES |
+| `public.public_profile_bios` | `postgres` | `TRUNCATE` | YES |
+| `public.public_profile_bios` | `postgres` | `UPDATE` | YES |
+| `public.public_profile_bios` | `service_role` | `REFERENCES` | NO |
+| `public.public_profile_bios` | `service_role` | `TRIGGER` | NO |
+| `public.public_profile_bios` | `service_role` | `TRUNCATE` | NO |
 | `public.public_profile_cards` | `anon` | `REFERENCES` | NO |
 | `public.public_profile_cards` | `anon` | `SELECT` | NO |
 | `public.public_profile_cards` | `anon` | `TRIGGER` | NO |
@@ -1034,12 +1097,6 @@ source_files:
 | `public.rate_limit_buckets` | `service_role` | `SELECT` | NO |
 | `public.rate_limit_buckets` | `service_role` | `TRIGGER` | NO |
 | `public.rate_limit_buckets` | `service_role` | `TRUNCATE` | NO |
-| `public.refund_policy` | `anon` | `REFERENCES` | NO |
-| `public.refund_policy` | `anon` | `TRIGGER` | NO |
-| `public.refund_policy` | `anon` | `TRUNCATE` | NO |
-| `public.refund_policy` | `authenticated` | `REFERENCES` | NO |
-| `public.refund_policy` | `authenticated` | `TRIGGER` | NO |
-| `public.refund_policy` | `authenticated` | `TRUNCATE` | NO |
 | `public.refund_policy` | `postgres` | `DELETE` | YES |
 | `public.refund_policy` | `postgres` | `INSERT` | YES |
 | `public.refund_policy` | `postgres` | `REFERENCES` | YES |
@@ -1180,42 +1237,50 @@ source_files:
 | `public.accept_ticket_transfer` | `postgres` | `EXECUTE` | YES |
 | `public.admin_archive_ticket_lot` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_archive_ticket_lot` | `postgres` | `EXECUTE` | YES |
+| `public.admin_archive_ticket_lot` | `service_role` | `EXECUTE` | NO |
 | `public.admin_can_manage_people` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_can_manage_people` | `postgres` | `EXECUTE` | YES |
+| `public.admin_can_manage_people` | `service_role` | `EXECUTE` | NO |
 | `public.admin_clear_person_profile` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_clear_person_profile` | `postgres` | `EXECUTE` | YES |
+| `public.admin_clear_person_profile` | `service_role` | `EXECUTE` | NO |
 | `public.admin_delete_person_profile` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_delete_person_profile` | `postgres` | `EXECUTE` | YES |
+| `public.admin_delete_person_profile` | `service_role` | `EXECUTE` | NO |
 | `public.admin_get_person_details` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_get_person_details` | `postgres` | `EXECUTE` | YES |
+| `public.admin_get_person_details` | `service_role` | `EXECUTE` | NO |
 | `public.admin_get_profile_claim_disputes_with_identity` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_get_profile_claim_disputes_with_identity` | `postgres` | `EXECUTE` | YES |
+| `public.admin_get_profile_claim_disputes_with_identity` | `service_role` | `EXECUTE` | NO |
 | `public.admin_get_ticket_lots` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_get_ticket_lots` | `postgres` | `EXECUTE` | YES |
+| `public.admin_get_ticket_lots` | `service_role` | `EXECUTE` | NO |
 | `public.admin_import_people` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_import_people` | `postgres` | `EXECUTE` | YES |
+| `public.admin_import_people` | `service_role` | `EXECUTE` | NO |
 | `public.admin_update_person_and_profile` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_update_person_and_profile` | `postgres` | `EXECUTE` | YES |
+| `public.admin_update_person_and_profile` | `service_role` | `EXECUTE` | NO |
 | `public.admin_update_refund_policy` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_update_refund_policy` | `postgres` | `EXECUTE` | YES |
+| `public.admin_update_refund_policy` | `service_role` | `EXECUTE` | NO |
 | `public.admin_upsert_ticket_lot` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_upsert_ticket_lot` | `postgres` | `EXECUTE` | YES |
+| `public.admin_upsert_ticket_lot` | `service_role` | `EXECUTE` | NO |
 | `public.age_on_date` | `PUBLIC` | `EXECUTE` | NO |
 | `public.age_on_date` | `anon` | `EXECUTE` | NO |
 | `public.age_on_date` | `authenticated` | `EXECUTE` | NO |
 | `public.age_on_date` | `postgres` | `EXECUTE` | YES |
 | `public.age_on_event_date` | `postgres` | `EXECUTE` | YES |
 | `public.age_on_event_date` | `service_role` | `EXECUTE` | NO |
-| `public.apply_automatic_content_approval` | `PUBLIC` | `EXECUTE` | NO |
 | `public.apply_automatic_content_approval` | `postgres` | `EXECUTE` | YES |
 | `public.apply_mercado_pago_payment` | `postgres` | `EXECUTE` | YES |
 | `public.apply_mercado_pago_payment` | `service_role` | `EXECUTE` | NO |
 | `public.assert_content_moderation_transition` | `postgres` | `EXECUTE` | YES |
-| `public.audit_sensitive_row_change` | `PUBLIC` | `EXECUTE` | NO |
 | `public.audit_sensitive_row_change` | `postgres` | `EXECUTE` | YES |
 | `public.calculate_refund_quote` | `authenticated` | `EXECUTE` | NO |
 | `public.calculate_refund_quote` | `postgres` | `EXECUTE` | YES |
-| `public.cancel_guest_approval_request` | `authenticated` | `EXECUTE` | NO |
 | `public.cancel_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.cancel_ticket_transfer` | `authenticated` | `EXECUTE` | NO |
 | `public.cancel_ticket_transfer` | `postgres` | `EXECUTE` | YES |
@@ -1229,29 +1294,24 @@ source_files:
 | `public.complete_photo_removal` | `service_role` | `EXECUTE` | NO |
 | `public.complete_profile_registration_v3` | `authenticated` | `EXECUTE` | NO |
 | `public.complete_profile_registration_v3` | `postgres` | `EXECUTE` | YES |
+| `public.complete_profile_registration_v3` | `service_role` | `EXECUTE` | NO |
 | `public.content_actor_name` | `postgres` | `EXECUTE` | YES |
-| `public.count_approved_external_guests` | `PUBLIC` | `EXECUTE` | NO |
-| `public.count_approved_external_guests` | `authenticated` | `EXECUTE` | NO |
 | `public.count_approved_external_guests` | `postgres` | `EXECUTE` | YES |
+| `public.create_checkout_order` | `authenticated` | `EXECUTE` | NO |
 | `public.create_checkout_order` | `postgres` | `EXECUTE` | YES |
 | `public.create_checkout_order` | `service_role` | `EXECUTE` | NO |
-| `public.create_guest_approval_request` | `authenticated` | `EXECUTE` | NO |
 | `public.create_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.create_uploaded_photo` | `authenticated` | `EXECUTE` | NO |
 | `public.create_uploaded_photo` | `postgres` | `EXECUTE` | YES |
 | `public.current_security_role` | `authenticated` | `EXECUTE` | NO |
 | `public.current_security_role` | `postgres` | `EXECUTE` | YES |
-| `public.decide_guest_approval_request` | `PUBLIC` | `EXECUTE` | NO |
-| `public.decide_guest_approval_request` | `authenticated` | `EXECUTE` | NO |
 | `public.decide_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.enforce_hc20_commerce_capacity` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enforce_hc20_commerce_capacity` | `postgres` | `EXECUTE` | YES |
 | `public.enforce_rate_limit` | `authenticated` | `EXECUTE` | NO |
 | `public.enforce_rate_limit` | `postgres` | `EXECUTE` | YES |
 | `public.enqueue_guest_approval_whatsapp_job` | `postgres` | `EXECUTE` | YES |
-| `public.enqueue_order_status_notifications` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enqueue_order_status_notifications` | `postgres` | `EXECUTE` | YES |
-| `public.enqueue_ticket_whatsapp_notification` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enqueue_ticket_whatsapp_notification` | `postgres` | `EXECUTE` | YES |
 | `public.ensure_active_preference_expiry` | `PUBLIC` | `EXECUTE` | NO |
 | `public.ensure_active_preference_expiry` | `postgres` | `EXECUTE` | YES |
@@ -1263,15 +1323,11 @@ source_files:
 | `public.expire_ticket_transfers` | `postgres` | `EXECUTE` | YES |
 | `public.export_checkin_report` | `authenticated` | `EXECUTE` | NO |
 | `public.export_checkin_report` | `postgres` | `EXECUTE` | YES |
-| `public.fn_generate_qr_code` | `PUBLIC` | `EXECUTE` | NO |
 | `public.fn_generate_qr_code` | `postgres` | `EXECUTE` | YES |
-| `public.fn_increment_sold` | `PUBLIC` | `EXECUTE` | NO |
 | `public.fn_increment_sold` | `postgres` | `EXECUTE` | YES |
-| `public.fn_set_updated_at` | `PUBLIC` | `EXECUTE` | NO |
+| `public.fn_increment_sold` | `service_role` | `EXECUTE` | NO |
 | `public.fn_set_updated_at` | `postgres` | `EXECUTE` | YES |
-| `public.fn_touch_home_page_content` | `PUBLIC` | `EXECUTE` | NO |
 | `public.fn_touch_home_page_content` | `postgres` | `EXECUTE` | YES |
-| `public.fn_validate_poll_vote` | `PUBLIC` | `EXECUTE` | NO |
 | `public.fn_validate_poll_vote` | `postgres` | `EXECUTE` | YES |
 | `public.get_admin_commerce_report` | `authenticated` | `EXECUTE` | NO |
 | `public.get_admin_commerce_report` | `postgres` | `EXECUTE` | YES |
@@ -1311,7 +1367,6 @@ source_files:
 | `public.get_event_reports_mercado_pago_base` | `service_role` | `EXECUTE` | NO |
 | `public.get_my_commerce_orders` | `authenticated` | `EXECUTE` | NO |
 | `public.get_my_commerce_orders` | `postgres` | `EXECUTE` | YES |
-| `public.get_my_guest_approval_requests` | `authenticated` | `EXECUTE` | NO |
 | `public.get_my_guest_approval_requests` | `postgres` | `EXECUTE` | YES |
 | `public.get_my_ticket_transfers` | `authenticated` | `EXECUTE` | NO |
 | `public.get_my_ticket_transfers` | `postgres` | `EXECUTE` | YES |
@@ -1436,7 +1491,6 @@ source_files:
 | `public.request_ticket_resend` | `postgres` | `EXECUTE` | YES |
 | `public.request_ticket_transfer` | `authenticated` | `EXECUTE` | NO |
 | `public.request_ticket_transfer` | `postgres` | `EXECUTE` | YES |
-| `public.respond_guest_approval_request` | `authenticated` | `EXECUTE` | NO |
 | `public.respond_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.restore_refunded_order_inventory` | `postgres` | `EXECUTE` | YES |
 | `public.retry_order_payment` | `authenticated` | `EXECUTE` | NO |
@@ -1448,13 +1502,10 @@ source_files:
 | `public.sanitize_content_row` | `postgres` | `EXECUTE` | YES |
 | `public.sanitize_plain_text` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sanitize_plain_text` | `postgres` | `EXECUTE` | YES |
-| `public.search_external_guest_sponsors` | `authenticated` | `EXECUTE` | NO |
 | `public.search_external_guest_sponsors` | `postgres` | `EXECUTE` | YES |
-| `public.set_cms_assets_updated_at` | `PUBLIC` | `EXECUTE` | NO |
 | `public.set_cms_assets_updated_at` | `postgres` | `EXECUTE` | YES |
 | `public.set_content_featured` | `authenticated` | `EXECUTE` | NO |
 | `public.set_content_featured` | `postgres` | `EXECUTE` | YES |
-| `public.set_event_page_content_updated_at` | `PUBLIC` | `EXECUTE` | NO |
 | `public.set_event_page_content_updated_at` | `postgres` | `EXECUTE` | YES |
 | `public.set_limit` | `anon` | `EXECUTE` | NO |
 | `public.set_limit` | `authenticated` | `EXECUTE` | NO |
@@ -1462,7 +1513,6 @@ source_files:
 | `public.set_limit` | `service_role` | `EXECUTE` | NO |
 | `public.set_participant_vouchers_delivered` | `authenticated` | `EXECUTE` | NO |
 | `public.set_participant_vouchers_delivered` | `postgres` | `EXECUTE` | YES |
-| `public.set_public_page_content_updated_at` | `PUBLIC` | `EXECUTE` | NO |
 | `public.set_public_page_content_updated_at` | `postgres` | `EXECUTE` | YES |
 | `public.show_limit` | `anon` | `EXECUTE` | NO |
 | `public.show_limit` | `authenticated` | `EXECUTE` | NO |
@@ -1514,13 +1564,13 @@ source_files:
 | `public.submit_photo_removal_request` | `postgres` | `EXECUTE` | YES |
 | `public.submit_photo_tag` | `authenticated` | `EXECUTE` | NO |
 | `public.submit_photo_tag` | `postgres` | `EXECUTE` | YES |
-| `public.sync_order_payment_sales_trigger` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sync_order_payment_sales_trigger` | `postgres` | `EXECUTE` | YES |
+| `public.sync_people_attendance_status_from_profile` | `postgres` | `EXECUTE` | YES |
 | `public.sync_ticket_lot_statuses` | `postgres` | `EXECUTE` | YES |
-| `public.sync_ticket_type_sold_quantity_trigger` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sync_ticket_type_sold_quantity_trigger` | `postgres` | `EXECUTE` | YES |
 | `public.update_my_public_profile` | `authenticated` | `EXECUTE` | NO |
 | `public.update_my_public_profile` | `postgres` | `EXECUTE` | YES |
+| `public.update_my_public_profile` | `service_role` | `EXECUTE` | NO |
 | `public.word_similarity` | `anon` | `EXECUTE` | NO |
 | `public.word_similarity` | `authenticated` | `EXECUTE` | NO |
 | `public.word_similarity` | `postgres` | `EXECUTE` | NO |

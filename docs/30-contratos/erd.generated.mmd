@@ -1,6 +1,6 @@
 %% status: generated
-%% last_verified: 2026-07-29
-%% last_verified_commit: 116799bbb9c622de23a3246ba82c7c5233618c8f
+%% last_verified: 2026-09-16
+%% last_verified_commit: 40907ed72e6c4edf5b2d80dafd8c2838a79f21fe
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -29,6 +29,16 @@ erDiagram
     uuid operator_user_id
     text notes
     jsonb metadata_json
+    timestamp_with_time_zone created_at
+  }
+  public_checkout_terms_acceptances {
+    uuid id
+    uuid order_id
+    uuid buyer_user_id
+    text terms_version
+    text privacy_version
+    timestamp_with_time_zone accepted_at
+    text accepted_via
     timestamp_with_time_zone created_at
   }
   public_cms_assets {
@@ -823,6 +833,7 @@ erDiagram
     uuid physical_vouchers_delivered_by
   }
   public_tickets ||--o{ public_checkin_events : "ticket_id → id"
+  public_orders ||--o{ public_checkout_terms_acceptances : "order_id → id"
   public_events ||--o{ public_cms_assets : "event_id → id"
   public_admin_users ||--o{ public_cms_assets : "updated_by_admin_id → id"
   public_events ||--o{ public_content_moderation_events : "event_id → id"
