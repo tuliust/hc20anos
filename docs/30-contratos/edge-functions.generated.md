@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 1e3521feaa1a9f76e06398ce39fc69e7aa782b49
+last_verified_commit: da9e7c8f7efaf7ddc0340783cf9d3847e513ca9a
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -67,4 +67,3 @@ source_files:
 - **Sinais de autenticação:** service role, assinatura Mercado Pago
 - **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`, `WHATSAPP_PROVIDER_TOKEN`, `WHATSAPP_PROVIDER_URL`, `WHATSAPP_TICKET_TEMPLATE`
 - **RPCs chamadas:** `fn_increment_sold`
-
