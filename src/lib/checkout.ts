@@ -22,7 +22,7 @@ export interface CheckoutCreateInput {
   buyer_phone?: string | null;
   product_code: "simple";
   participants: CheckoutParticipantInput[];
-  extras?: never[];
+  terms_accepted: true;
 }
 
 export interface CheckoutCreateResult {
@@ -30,7 +30,6 @@ export interface CheckoutCreateResult {
   public_token?: string | null;
   expires_at?: string | null;
   reused_preference?: boolean;
-  consent_required?: boolean;
 }
 
 function createIdempotencyKey() {
@@ -58,18 +57,24 @@ function checkoutErrorMessage(code?: string) {
   const messages: Record<string, string> = {
     authentication_required: "Sua sessão expirou. Entre novamente para continuar.",
     buyer_user_mismatch: "Não foi possível validar sua identidade para esta compra.",
+    buyer_name_required: "Informe o nome do comprador.",
+    buyer_email_invalid: "Informe um e-mail válido.",
+    terms_acceptance_required: "Aceite os Termos de Uso e a Política de Privacidade.",
     no_active_lot: "As vendas não estão abertas neste momento.",
     invalid_primary_product: "O ingresso não está disponível no lote vigente.",
-    unsupported_primary_product: "A categoria selecionada não pode ser comprada neste checkout.",
+    unsupported_primary_product: "O ingresso selecionado não está disponível.",
     alumni_registration_required: "Conclua seu cadastro de ex-aluno antes de comprar o ingresso.",
     exactly_one_alumni_required: "O pedido deve conter exatamente um ex-aluno vinculado à conta.",
     spouse_limit_exceeded: "É permitido incluir no máximo um cônjuge por pedido.",
     child_birth_date_required: "Informe a data de nascimento de cada filho.",
     child_birth_date_invalid: "Confira a data de nascimento informada para o filho.",
-    extras_not_supported: "O churrasco já está incluído; bebidas devem ser levadas por cada participante.",
     participant_limit_exceeded: "O pedido pode ter no máximo seis participantes.",
+    participant_name_required: "Informe o nome completo de todos os participantes.",
+    participant_type_invalid: "Há um participante inválido no pedido.",
+    participant_client_key_duplicate: "Não foi possível validar a lista de participantes. Atualize a página e tente novamente.",
     lot_capacity_exceeded: "Não há vagas suficientes para todos os participantes deste pedido.",
     checkout_idempotency_expired: "Esta tentativa de pagamento expirou. Inicie uma nova compra.",
+    checkout_environment_conflict: "A tentativa de pagamento pertence a outro ambiente. Inicie uma nova compra.",
     mercado_pago_not_configured: "O pagamento pelo Mercado Pago ainda não está configurado.",
     mercado_pago_preference_failed: "O Mercado Pago não conseguiu preparar o pagamento.",
     checkout_service_unavailable: "O serviço de pagamento está temporariamente indisponível.",
@@ -96,7 +101,7 @@ export async function createSecureCheckout(
         apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         "idempotency-key": idempotencyKey,
       },
-      body: JSON.stringify({ ...input, extras: [], idempotency_key: idempotencyKey }),
+      body: JSON.stringify({ ...input, idempotency_key: idempotencyKey }),
     });
   } catch {
     throw new Error("Não foi possível conectar ao serviço de pagamento. Verifique sua conexão e tente novamente.");
