@@ -1,12 +1,13 @@
 -- ================================================================
--- Self-cleaning checks for Individual and Convidado tickets.
--- Safe for the Supabase SQL Editor.
+-- Self-cleaning checks for the current single-ticket checkout.
+-- The authenticated alumni anchors the order; spouse and children are
+-- participants of the same `simple` product with age-based pricing.
 -- ================================================================
 
 set role postgres;
 
-drop table if exists pg_temp._three_ticket_checkout_results;
-create temporary table _three_ticket_checkout_results (
+drop table if exists pg_temp._single_ticket_checkout_results;
+create temporary table _single_ticket_checkout_results (
   scenario text primary key,
   expected_cents integer,
   actual_cents integer,
@@ -25,7 +26,6 @@ declare
   v_created_person boolean := false;
   v_created_profile boolean := false;
   v_simple_price integer;
-  v_guest_price integer;
   v_order record;
   v_participant_price integer;
   v_participant_count integer;
@@ -44,6 +44,9 @@ begin
     raise exception 'Test requires at least one auth.users row';
   end if;
 
+  perform set_config('request.jwt.claim.sub', v_user_id::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+
   select pr.id, pr.person_id
     into v_profile_id, v_person_id
   from public.profiles pr
@@ -55,13 +58,13 @@ begin
       full_name, class_year, class_group, profile_status,
       claimed_by_user_id, claimed_at, is_visible
     ) values (
-      'Ex-aluno Teste Individual', 2006, 'A', 'claimed',
+      'Ex-aluno Teste Checkout', 2006, 'A', 'claimed',
       v_user_id, now(), false
     ) returning id into v_person_id;
     v_created_person := true;
 
     insert into public.profiles (person_id, user_id, display_name)
-    values (v_person_id, v_user_id, 'Ex-aluno Teste Individual')
+    values (v_person_id, v_user_id, 'Ex-aluno Teste Checkout')
     returning id into v_profile_id;
     v_created_profile := true;
   end if;
@@ -83,30 +86,16 @@ begin
     and lp.is_active
   limit 1;
 
-  select lp.price_cents into v_guest_price
-  from public.ticket_types tt
-  join public.ticket_lot_prices lp on lp.ticket_type_id = tt.id
-  where tt.event_id = v_event_id
-    and tt.product_code = 'external_guest'
-    and tt.status = 'open'
-    and lp.lot_id = v_lot_id
-    and lp.is_active
-  limit 1;
-
-  if v_simple_price is null or v_guest_price is null then
-    raise exception 'Individual and guest prices must be active in the current lot';
+  if v_simple_price <> 12000 then
+    raise exception 'Simple ticket must cost 12000 cents in the current lot, found %', v_simple_price;
   end if;
 
-  delete from public.orders o
-  where o.buyer_email like 'three-ticket-checkout-%@example.com'
-    and o.payment_status <> 'approved';
-
-  -- Individual: the server binds the participant to the buyer's pre-registration.
+  -- Scenario 1: authenticated alumni only.
   select * into v_order
   from public.create_checkout_order(
     v_user_id,
-    'Comprador Individual Teste',
-    'three-ticket-checkout-individual@example.com',
+    'Comprador Ex-aluno Teste',
+    'single-ticket-checkout-alumni@example.com',
     '5599999999999',
     'simple',
     jsonb_build_array(
@@ -117,7 +106,7 @@ begin
       )
     ),
     '[]'::jsonb,
-    'three-individual-' || v_key
+    'single-alumni-' || v_key
   );
   v_created_order_ids := array_append(v_created_order_ids, v_order.order_id);
 
@@ -134,38 +123,32 @@ begin
       and op.person_id = v_person_id
       and op.user_id = v_user_id
   ) then
-    raise exception 'Individual participant was not bound to the pre-registered alumni';
+    raise exception 'Alumni participant was not bound to the authenticated pre-registered profile';
   end if;
 
-  insert into _three_ticket_checkout_results values (
-    'individual pre-registered alumni',
-    v_simple_price,
-    v_order.total_amount_cents,
-    v_participant_price,
-    1,
-    v_participant_count
+  insert into _single_ticket_checkout_results values (
+    'authenticated alumni', 12000, v_order.total_amount_cents,
+    v_participant_price, 1, v_participant_count
   );
 
-  -- Convidado: direct adult purchase, without sponsor or approval request.
+  -- Scenario 2: alumni + spouse + children aged 8, 10 and 13 on event date.
+  -- Expected: 120 + 120 + 0 + 60 + 120 = R$ 420.
   select * into v_order
   from public.create_checkout_order(
     v_user_id,
-    'Convidado Adulto Teste',
-    'three-ticket-checkout-guest@example.com',
+    'Comprador Família Teste',
+    'single-ticket-checkout-family@example.com',
     '5599999999999',
-    'external_guest',
+    'simple',
     jsonb_build_array(
-      jsonb_build_object(
-        'client_key', 'guest-' || v_key,
-        'participant_type', 'external_guest',
-        'full_name', 'Convidado Adulto Teste',
-        'email', 'three-ticket-checkout-guest@example.com',
-        'phone', '5599999999999',
-        'birth_date', '1990-01-01'
-      )
+      jsonb_build_object('client_key','alumni-family-' || v_key,'participant_type','alumni','full_name','Ex-aluno Teste'),
+      jsonb_build_object('client_key','spouse-' || v_key,'participant_type','spouse','full_name','Cônjuge Teste','email','spouse@example.com'),
+      jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26'),
+      jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
+      jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
     ),
     '[]'::jsonb,
-    'three-guest-' || v_key
+    'single-family-' || v_key
   );
   v_created_order_ids := array_append(v_created_order_ids, v_order.order_id);
 
@@ -174,39 +157,23 @@ begin
   from public.order_participants op
   where op.order_id = v_order.order_id;
 
-  if not exists (
-    select 1
-    from public.order_participants op
-    where op.order_id = v_order.order_id
-      and op.participant_type = 'external_guest'
-      and op.guest_approval_request_id is null
-      and op.sponsor_person_id is null
-      and op.birth_date = '1990-01-01'::date
-  ) then
-    raise exception 'Adult guest was not stored without the legacy approval flow';
-  end if;
-
-  insert into _three_ticket_checkout_results values (
-    'direct adult guest',
-    v_guest_price,
-    v_order.total_amount_cents,
-    v_participant_price,
-    1,
-    v_participant_count
+  insert into _single_ticket_checkout_results values (
+    'spouse and age-based children', 42000, v_order.total_amount_cents,
+    v_participant_price, 5, v_participant_count
   );
 
   if exists (
     select 1
-    from _three_ticket_checkout_results r
+    from _single_ticket_checkout_results r
     where r.expected_cents <> r.actual_cents
-       or r.participant_price_cents <> 0
+       or r.expected_cents <> r.participant_price_cents
        or r.expected_participants <> r.actual_participants
   ) then
-    raise exception 'Three-ticket checkout mismatch: %',
+    raise exception 'Single-ticket checkout mismatch: %',
       (select jsonb_agg(to_jsonb(r))
-       from _three_ticket_checkout_results r
+       from _single_ticket_checkout_results r
        where r.expected_cents <> r.actual_cents
-          or r.participant_price_cents <> 0
+          or r.expected_cents <> r.participant_price_cents
           or r.expected_participants <> r.actual_participants);
   end if;
 
@@ -233,11 +200,11 @@ select
   actual_participants,
   case
     when expected_cents = actual_cents
-     and participant_price_cents = 0
+     and expected_cents = participant_price_cents
      and expected_participants = actual_participants then 'PASS'
     else 'FAIL'
   end as result
-from _three_ticket_checkout_results
+from _single_ticket_checkout_results
 order by scenario;
 
-drop table if exists pg_temp._three_ticket_checkout_results;
+drop table if exists pg_temp._single_ticket_checkout_results;

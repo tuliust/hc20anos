@@ -14,14 +14,30 @@ with checks as (
         and p.proname in ('complete_profile_registration', 'complete_profile_registration_v2')
     )
   union all
-  select 'registration_v3_has_no_birth_year_dependency',
+  select 'registration_v3_requires_declared_birth_date',
     position(
-      'birth_year' in lower(
+      'if p_declared_birth_date is null' in lower(
         pg_get_functiondef(
           to_regprocedure('public.complete_profile_registration_v3(uuid,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,boolean,integer,boolean,boolean,boolean,boolean,boolean,boolean,boolean)')
         )
       )
-    ) = 0
+    ) > 0
+  union all
+  select 'registration_v3_uses_birth_year_as_optional_identity_guard',
+    position(
+      'v_person.birth_year is not null' in lower(
+        pg_get_functiondef(
+          to_regprocedure('public.complete_profile_registration_v3(uuid,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,boolean,integer,boolean,boolean,boolean,boolean,boolean,boolean,boolean)')
+        )
+      )
+    ) > 0
+    and position(
+      'extract(year from p_declared_birth_date)' in lower(
+        pg_get_functiondef(
+          to_regprocedure('public.complete_profile_registration_v3(uuid,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,boolean,integer,boolean,boolean,boolean,boolean,boolean,boolean,boolean)')
+        )
+      )
+    ) > 0
   union all
   select 'identity_evidence_links_claimant_person_and_profile',
     exists (

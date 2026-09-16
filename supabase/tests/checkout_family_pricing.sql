@@ -1,8 +1,6 @@
 -- ================================================================
--- Self-cleaning checks for the Família ticket.
---
--- The single configured family price includes the pre-registered alumni,
--- one spouse and every child in the order (up to the global limit of six).
+-- Self-cleaning checks for spouse/child pricing in the current `simple` ticket.
+-- There is no separate family product: each participant is priced individually.
 -- ================================================================
 
 set role postgres;
@@ -19,12 +17,10 @@ do $$
 declare
   v_user_id uuid;
   v_event_id uuid := '00000000-0000-0000-0000-000000000001'::uuid;
-  v_lot_id uuid;
   v_person_id uuid;
   v_profile_id uuid;
   v_created_person boolean := false;
   v_created_profile boolean := false;
-  v_family_price integer;
   v_order record;
   v_key text := gen_random_uuid()::text;
   v_created_order_ids uuid[] := array[]::uuid[];
@@ -41,6 +37,9 @@ begin
   if v_user_id is null then
     raise exception 'Test requires at least one auth.users row';
   end if;
+
+  perform set_config('request.jwt.claim.sub', v_user_id::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
 
   select pr.id, pr.person_id
     into v_profile_id, v_person_id
@@ -64,46 +63,21 @@ begin
     v_created_profile := true;
   end if;
 
-  select l.id into v_lot_id
-  from public.get_current_ticket_lot(v_event_id, now()) l
-  limit 1;
-  if v_lot_id is null then
-    raise exception 'No active ticket lot found';
-  end if;
-
-  select lp.price_cents into v_family_price
-  from public.ticket_types tt
-  join public.ticket_lot_prices lp on lp.ticket_type_id = tt.id
-  where tt.event_id = v_event_id
-    and tt.product_code = 'family_full'
-    and tt.status = 'open'
-    and lp.lot_id = v_lot_id
-    and lp.is_active
-  limit 1;
-
-  if v_family_price is null then
-    raise exception 'Family price is not configured for the active lot';
-  end if;
-
-  delete from public.orders o
-  where o.buyer_email like 'three-ticket-family-test-%@example.com'
-    and o.payment_status <> 'approved';
-
-  -- Scenario 1: minimum family composition.
+  -- Scenario 1: alumni + spouse + child aged 8: R$ 120 + 120 + 0.
   select * into v_order
   from public.create_checkout_order(
     v_user_id,
     'Comprador Família 1',
-    'three-ticket-family-test-1@example.com',
+    'single-ticket-family-test-1@example.com',
     '5599999999999',
-    'family_full',
+    'simple',
     jsonb_build_array(
-      jsonb_build_object('client_key','alumni-1','participant_type','alumni','full_name','Ex-aluno Teste'),
-      jsonb_build_object('client_key','spouse-1','participant_type','spouse','full_name','Cônjuge Teste','email','spouse1@example.com'),
-      jsonb_build_object('client_key','child-1','participant_type','child','full_name','Filho Teste','birth_date','2016-10-24')
+      jsonb_build_object('client_key','alumni-1-' || v_key,'participant_type','alumni','full_name','Ex-aluno Teste'),
+      jsonb_build_object('client_key','spouse-1-' || v_key,'participant_type','spouse','full_name','Cônjuge Teste','email','spouse1@example.com'),
+      jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26')
     ),
     '[]'::jsonb,
-    'three-family-1-' || v_key
+    'single-family-1-' || v_key
   );
   v_created_order_ids := array_append(v_created_order_ids, v_order.order_id);
 
@@ -113,26 +87,27 @@ begin
   where op.order_id = v_order.order_id;
 
   insert into _checkout_family_results values (
-    'minimum family', v_family_price, v_order.total_amount_cents, v_participant_price
+    'child aged 8 is free', 24000, v_order.total_amount_cents, v_participant_price
   );
 
-  -- Scenario 2: spouse and three children remain within the same family price.
+  -- Scenario 2: alumni + spouse + children aged 10, 12 and 13.
+  -- R$ 120 + 120 + 60 + 60 + 120 = R$ 480.
   select * into v_order
   from public.create_checkout_order(
     v_user_id,
     'Comprador Família 2',
-    'three-ticket-family-test-2@example.com',
+    'single-ticket-family-test-2@example.com',
     '5599999999999',
-    'family_full',
+    'simple',
     jsonb_build_array(
-      jsonb_build_object('client_key','alumni-2','participant_type','alumni','full_name','Ex-aluno Teste'),
-      jsonb_build_object('client_key','spouse-2','participant_type','spouse','full_name','Cônjuge Teste','email','spouse2@example.com'),
-      jsonb_build_object('client_key','child-2a','participant_type','child','full_name','Filho A','birth_date','2016-10-24'),
-      jsonb_build_object('client_key','child-2b','participant_type','child','full_name','Filho B','birth_date','2012-10-24'),
-      jsonb_build_object('client_key','child-2c','participant_type','child','full_name','Filho C','birth_date','2006-10-24')
+      jsonb_build_object('client_key','alumni-2-' || v_key,'participant_type','alumni','full_name','Ex-aluno Teste'),
+      jsonb_build_object('client_key','spouse-2-' || v_key,'participant_type','spouse','full_name','Cônjuge Teste','email','spouse2@example.com'),
+      jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
+      jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
+      jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
     ),
     '[]'::jsonb,
-    'three-family-2-' || v_key
+    'single-family-2-' || v_key
   );
   v_created_order_ids := array_append(v_created_order_ids, v_order.order_id);
 
@@ -142,20 +117,20 @@ begin
   where op.order_id = v_order.order_id;
 
   insert into _checkout_family_results values (
-    'family with three children', v_family_price, v_order.total_amount_cents, v_participant_price
+    'age bands 10 12 and 13', 48000, v_order.total_amount_cents, v_participant_price
   );
 
   if exists (
     select 1
     from _checkout_family_results r
     where r.expected_cents <> r.actual_cents
-       or r.participant_price_cents <> 0
+       or r.expected_cents <> r.participant_price_cents
   ) then
-    raise exception 'Family checkout mismatch: %',
+    raise exception 'Age-based family checkout mismatch: %',
       (select jsonb_agg(to_jsonb(r))
        from _checkout_family_results r
        where r.expected_cents <> r.actual_cents
-          or r.participant_price_cents <> 0);
+          or r.expected_cents <> r.participant_price_cents);
   end if;
 
   delete from public.orders o where o.id = any(v_created_order_ids);
@@ -178,7 +153,7 @@ select
   actual_cents,
   participant_price_cents,
   case
-    when expected_cents = actual_cents and participant_price_cents = 0 then 'PASS'
+    when expected_cents = actual_cents and expected_cents = participant_price_cents then 'PASS'
     else 'FAIL'
   end as result
 from _checkout_family_results
