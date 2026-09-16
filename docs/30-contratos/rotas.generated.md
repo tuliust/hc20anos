@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: b783e952b8c505c033d22bd7e830dbb5f8b762ce
+last_verified_commit: f7f4e2c737688fa1b3ee5cde306ec66fe1f2ca88
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
@@ -105,4 +105,3 @@ O rewrite da Vercel entrega a SPA para acessos diretos. A resolução funcional 
 - regras condicionais introduzidas por novos transforms devem ser adicionadas ao gerador;
 - a existência de uma rota não comprova autorização server-side;
 - links externos e âncoras não entram neste inventário.
-
