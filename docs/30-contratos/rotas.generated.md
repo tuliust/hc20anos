@@ -105,3 +105,4 @@ O rewrite da Vercel entrega a SPA para acessos diretos. A resolução funcional 
 - regras condicionais introduzidas por novos transforms devem ser adicionadas ao gerador;
 - a existência de uma rota não comprova autorização server-side;
 - links externos e âncoras não entram neste inventário.
+
