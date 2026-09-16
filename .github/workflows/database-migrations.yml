@@ -1,3 +1,4 @@
+# Mantém contratos gerados sincronizados com as migrations validadas no CI.
 name: Database migration safety
 
 on:
@@ -14,10 +15,16 @@ on:
       - "scripts/repair-supabase-migration-history.ps1"
       - "build/profileClaimIdentityTransform.mjs"
       - "src/lib/profileClaimIdentity.ts"
+      - "src/lib/database.generated.ts"
       - "tests/e2e/profile-claim-*.ts"
       - "playwright.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "docs/30-contratos/banco.generated.md"
+      - "docs/30-contratos/RPCs.generated.md"
+      - "docs/30-contratos/RLS.generated.md"
+      - "docs/30-contratos/erd.generated.mmd"
+      - "docs/30-contratos/database.types.generated.ts"
       - ".github/workflows/database-migrations.yml"
   pull_request:
     paths:
@@ -30,10 +37,16 @@ on:
       - "scripts/repair-supabase-migration-history.ps1"
       - "build/profileClaimIdentityTransform.mjs"
       - "src/lib/profileClaimIdentity.ts"
+      - "src/lib/database.generated.ts"
       - "tests/e2e/profile-claim-*.ts"
       - "playwright.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "docs/30-contratos/banco.generated.md"
+      - "docs/30-contratos/RPCs.generated.md"
+      - "docs/30-contratos/RLS.generated.md"
+      - "docs/30-contratos/erd.generated.mmd"
+      - "docs/30-contratos/database.types.generated.ts"
       - ".github/workflows/database-migrations.yml"
   workflow_dispatch:
 
@@ -181,6 +194,42 @@ jobs:
       - name: Audit generated database documentation
         run: npm run audit:docs
 
+      - name: Publish database contracts to same-repository pull request
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          contract_files=(
+            docs/30-contratos/banco.generated.md
+            docs/30-contratos/RPCs.generated.md
+            docs/30-contratos/RLS.generated.md
+            docs/30-contratos/erd.generated.mmd
+            docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
+          if [ -z "$changes" ]; then
+            echo "Contratos do banco já estão atualizados."
+            exit 0
+          fi
+
+          echo "$changes"
+          git add -- "${contract_files[@]}"
+          git diff --cached --binary -- "${contract_files[@]}" > /tmp/database-contracts.patch
+          git restore --source=HEAD --staged --worktree -- "${contract_files[@]}" 2>/dev/null || true
+          git clean -f -- "${contract_files[@]}"
+          git fetch origin "$HEAD_REF"
+          git checkout -B "$HEAD_REF" "origin/$HEAD_REF"
+          git apply /tmp/database-contracts.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${contract_files[@]}"
+          git commit -m "docs: atualizar contratos gerados do banco"
+          git push origin "HEAD:$HEAD_REF"
+
       - name: Require updated database contracts in pull requests
         if: github.event_name == 'pull_request'
         shell: bash
@@ -190,11 +239,12 @@ jobs:
             docs/30-contratos/RPCs.generated.md \
             docs/30-contratos/RLS.generated.md \
             docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts)"
+            docs/30-contratos/database.types.generated.ts \
+            src/lib/database.generated.ts)"
           if [ -n "$changes" ]; then
             echo "Contratos do banco desatualizados ou ausentes:"
             echo "$changes"
-            git diff -- docs/30-contratos || true
+            git diff -- docs/30-contratos src/lib/database.generated.ts || true
             exit 1
           fi
 
@@ -202,12 +252,15 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
-          changes="$(git status --porcelain --untracked-files=all -- \
-            docs/30-contratos/banco.generated.md \
-            docs/30-contratos/RPCs.generated.md \
-            docs/30-contratos/RLS.generated.md \
-            docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts)"
+          contract_files=(
+            docs/30-contratos/banco.generated.md
+            docs/30-contratos/RPCs.generated.md
+            docs/30-contratos/RLS.generated.md
+            docs/30-contratos/erd.generated.mmd
+            docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
+          )
+          changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
           if [ -z "$changes" ]; then
             echo "Contratos do banco já estão atualizados."
             exit 0
@@ -216,12 +269,7 @@ jobs:
           echo "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            docs/30-contratos/banco.generated.md \
-            docs/30-contratos/RPCs.generated.md \
-            docs/30-contratos/RLS.generated.md \
-            docs/30-contratos/erd.generated.mmd \
-            docs/30-contratos/database.types.generated.ts
+          git add -- "${contract_files[@]}"
           git commit -m "docs: atualizar contratos gerados do banco"
           git push
 
@@ -245,5 +293,6 @@ jobs:
             docs/30-contratos/RLS.generated.md
             docs/30-contratos/erd.generated.mmd
             docs/30-contratos/database.types.generated.ts
+            src/lib/database.generated.ts
           if-no-files-found: warn
           retention-days: 14

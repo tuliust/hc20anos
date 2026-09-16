@@ -1,3 +1,7 @@
+-- Legacy external-guest approval structures remain for history/operations,
+-- but the user-facing flow is retired. Neither anon nor authenticated may
+-- invoke its RPCs after the single-ticket consolidation.
+
 with checks as (
   select 'guest_request_rpc_exists' as check_name,
     case when to_regprocedure('public.create_guest_approval_request(uuid,text,text,text,text)') is not null then 'PASS' else 'FAIL' end as result
@@ -23,8 +27,14 @@ with checks as (
   select 'anon_cannot_create_guest_request',
     case when not has_function_privilege('anon','public.create_guest_approval_request(uuid,text,text,text,text)','EXECUTE') then 'PASS' else 'FAIL' end
   union all
-  select 'authenticated_can_create_guest_request',
-    case when has_function_privilege('authenticated','public.create_guest_approval_request(uuid,text,text,text,text)','EXECUTE') then 'PASS' else 'FAIL' end
+  select 'authenticated_cannot_create_guest_request',
+    case when not has_function_privilege('authenticated','public.create_guest_approval_request(uuid,text,text,text,text)','EXECUTE') then 'PASS' else 'FAIL' end
+  union all
+  select 'authenticated_cannot_list_guest_requests',
+    case when not has_function_privilege('authenticated','public.get_my_guest_approval_requests()','EXECUTE') then 'PASS' else 'FAIL' end
+  union all
+  select 'authenticated_cannot_search_guest_sponsors',
+    case when not has_function_privilege('authenticated','public.search_external_guest_sponsors(text)','EXECUTE') then 'PASS' else 'FAIL' end
   union all
   select 'legacy_guest_defer_trigger_removed',
     case when not exists(

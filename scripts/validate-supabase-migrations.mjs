@@ -10,7 +10,9 @@ const migrationsDir = path.join(projectRoot, 'supabase', 'migrations')
 
 const validFilenamePattern = /^(\d{14})_([a-z0-9][a-z0-9_]*)\.sql$/
 const destructiveAllowance = /--\s*migration-audit:\s*allow-destructive\b/i
-const destructiveSqlPattern = /\b(?:delete\s+from|truncate(?:\s+table)?|drop\s+table)\b/gi
+// TRUNCATE só é destrutivo quando seguido de uma relação. A forma anterior
+// também casava com `REVOKE ..., TRUNCATE, ...`, que apenas revoga privilégio.
+const destructiveSqlPattern = /\b(?:delete\s+from|drop\s+table|truncate\s+(?:table\s+)?(?:public\.)?[a-z_"][a-z0-9_"]*)\b/gi
 const demoEventUuidPattern = /00000000-0000-0000-0000-000000000001/gi
 const backupReferencePattern = /(?:to_regclass\s*\(\s*'public\.([a-z0-9_]*backup[a-z0-9_]*)'\s*\)|public\.([a-z0-9_]*backup[a-z0-9_]*))/gi
 const backupCreationPattern = /create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-z0-9_]*backup[a-z0-9_]*)/gi

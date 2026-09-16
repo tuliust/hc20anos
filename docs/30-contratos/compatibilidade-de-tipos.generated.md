@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-07-29
-last_verified_commit: f1a6958b285c3d386e7cb891a7671856b17fdfd4
+last_verified: 2026-09-16
+last_verified_commit: 40907ed72e6c4edf5b2d80dafd8c2838a79f21fe
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -24,20 +24,20 @@ A substituição direta é insegura. A migração deve separar o contrato bruto 
 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---|---|---|---|
-| Tabelas | 46 | 30 | 20 | 4 |
-| Views | 6 | 2 | 4 | 0 |
+| Tabelas | 47 | 30 | 21 | 4 |
+| Views | 9 | 2 | 7 | 0 |
 | Funções/RPCs | 95 | 7 | 88 | 0 |
 | Enums | 11 | 9 | 2 | 0 |
 
 ## Objetos ausentes no mapa manual
 
-### Tabelas (20)
+### Tabelas (21)
 
-`checkin_events`, `cms_assets`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
+`checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
 
-### Views (4)
+### Views (7)
 
-`public_alumni_directory_status`, `public_curiosity_profile_stats`, `public_profile_cards`, `public_school_questionnaire_option_stats`
+`public_alumni_directory_status`, `public_attendance_intents`, `public_curiosity_profile_stats`, `public_people_directory`, `public_profile_bios`, `public_profile_cards`, `public_school_questionnaire_option_stats`
 
 ### Funções e RPCs (88)
 

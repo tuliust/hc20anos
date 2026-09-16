@@ -1,7 +1,6 @@
 -- ================================================================
--- Consolidated checkout database validation for the three-ticket model.
--- Run in Supabase SQL Editor using "Run without RLS".
--- Creates and removes its own test records.
+-- Consolidated checkout database validation for the current single-ticket model.
+-- Run against disposable/local Supabase. Creates and removes its own records.
 -- ================================================================
 
 create temporary table if not exists _checkout_e2e_results (
@@ -14,7 +13,7 @@ truncate table _checkout_e2e_results;
 
 do $$
 declare
-  v_user_id uuid;
+  v_user_id uuid := '22222222-2222-4222-8222-222222222222'::uuid;
   v_person_id uuid;
   v_profile_id uuid;
   v_created_person boolean := false;
@@ -32,13 +31,25 @@ declare
   v_notification_count integer;
   v_extra_total integer;
   v_participant_count integer;
+  v_participant_total integer;
   v_preference_id text;
   v_error text;
 begin
-  select u.id into v_user_id from auth.users u order by u.created_at limit 1;
-  if v_user_id is null then
-    raise exception 'Test requires at least one auth.users row';
+  if not exists (select 1 from auth.users where id = v_user_id) then
+    raise exception 'Deterministic authenticated fixture user is missing';
   end if;
+
+  perform set_config('request.jwt.claim.sub', v_user_id::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+      'sub', v_user_id::text,
+      'role', 'authenticated',
+      'email', 'authenticated-tests@local.invalid'
+    )::text,
+    true
+  );
 
   select pr.id, pr.person_id
     into v_profile_id, v_person_id
@@ -63,22 +74,23 @@ begin
   end if;
 
   begin
-    -- Six participants: alumni, spouse and four children, all included
-    -- in the single configured Família price.
+    -- Six participants at the global limit: alumni, spouse and four children.
+    -- Ages on 26/09/2026: 8 (free), 10 (half), 12 (half), 13 (full).
+    -- Expected total: 120 + 120 + 0 + 60 + 60 + 120 = R$ 480.
     select * into v_order
     from public.create_checkout_order(
       v_user_id,
       'Teste E2E Checkout',
       'checkout-e2e@example.com',
       '5599999999999',
-      'family_full',
+      'simple',
       jsonb_build_array(
-        jsonb_build_object('client_key','alumni','participant_type','alumni','full_name','Ex-aluno E2E'),
-        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
-        jsonb_build_object('client_key','child-1','participant_type','child','full_name','Filho 1','birth_date','2016-10-24'),
-        jsonb_build_object('client_key','child-2','participant_type','child','full_name','Filho 2','birth_date','2017-10-24'),
-        jsonb_build_object('client_key','child-3','participant_type','child','full_name','Filho 3','birth_date','2018-10-24'),
-        jsonb_build_object('client_key','child-4','participant_type','child','full_name','Filho 4','birth_date','2019-10-24')
+        jsonb_build_object('client_key','alumni-' || v_key,'participant_type','alumni','full_name','Ex-aluno E2E'),
+        jsonb_build_object('client_key','spouse-' || v_key,'participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
+        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26'),
+        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
+        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
+        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
       ),
       '[]'::jsonb,
       'checkout-e2e-main-' || v_key
@@ -87,12 +99,18 @@ begin
     v_order_id := v_order.order_id;
     v_total_amount_cents := v_order.total_amount_cents;
 
-    select count(*)::integer into v_participant_count
+    select count(*)::integer, coalesce(sum(op.unit_price_cents),0)::integer
+      into v_participant_count, v_participant_total
     from public.order_participants op where op.order_id = v_order_id;
 
     insert into _checkout_e2e_results values (
       'six_participants', '6', v_participant_count::text,
       case when v_participant_count = 6 then 'PASS' else 'FAIL' end
+    );
+
+    insert into _checkout_e2e_results values (
+      'age_based_total', '48000', v_total_amount_cents::text,
+      case when v_total_amount_cents = 48000 and v_participant_total = 48000 then 'PASS' else 'FAIL' end
     );
 
     select coalesce(sum(pe.total_price_cents),0)::integer into v_extra_total
@@ -105,7 +123,7 @@ begin
 
     insert into _checkout_e2e_results
     select
-      'single_family_price',
+      'subtotal_matches_total',
       o.subtotal_amount_cents::text,
       o.total_amount_cents::text,
       case
@@ -123,14 +141,14 @@ begin
       'Teste E2E Checkout',
       'checkout-e2e@example.com',
       '5599999999999',
-      'family_full',
+      'simple',
       jsonb_build_array(
-        jsonb_build_object('client_key','alumni','participant_type','alumni','full_name','Ex-aluno E2E'),
-        jsonb_build_object('client_key','spouse','participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
-        jsonb_build_object('client_key','child-1','participant_type','child','full_name','Filho 1','birth_date','2016-10-24'),
-        jsonb_build_object('client_key','child-2','participant_type','child','full_name','Filho 2','birth_date','2017-10-24'),
-        jsonb_build_object('client_key','child-3','participant_type','child','full_name','Filho 3','birth_date','2018-10-24'),
-        jsonb_build_object('client_key','child-4','participant_type','child','full_name','Filho 4','birth_date','2019-10-24')
+        jsonb_build_object('client_key','alumni-' || v_key,'participant_type','alumni','full_name','Ex-aluno E2E'),
+        jsonb_build_object('client_key','spouse-' || v_key,'participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
+        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26'),
+        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
+        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
+        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
       ),
       '[]'::jsonb,
       'checkout-e2e-main-' || v_key
@@ -204,7 +222,7 @@ begin
       case when v_notification_count = 6 then 'PASS' else 'FAIL' end
     );
 
-    -- Expiration of an unpaid Individual reservation.
+    -- Expiration of an unpaid single-ticket reservation.
     select * into v_expiring_order
     from public.create_checkout_order(
       v_user_id,
@@ -213,7 +231,7 @@ begin
       '5599999999999',
       'simple',
       jsonb_build_array(
-        jsonb_build_object('client_key','alumni-exp','participant_type','alumni','full_name','Ex-aluno Expiração')
+        jsonb_build_object('client_key','alumni-exp-' || v_key,'participant_type','alumni','full_name','Ex-aluno Expiração')
       ),
       '[]'::jsonb,
       'checkout-e2e-expiration-' || v_key

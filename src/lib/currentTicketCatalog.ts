@@ -2,10 +2,7 @@ import { supabase } from "./supabase";
 
 export const DEFAULT_TICKET_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
-export type TicketCatalogProductCode =
-  | "simple"
-  | "family_full"
-  | "external_guest";
+export type TicketCatalogProductCode = "simple";
 
 export interface CurrentTicketCatalogItem {
   lot_id: string;
@@ -28,34 +25,28 @@ export interface CurrentTicketCatalogItem {
   sold_quantity: number;
 }
 
-const PRODUCT_CODES = new Set<TicketCatalogProductCode>([
-  "simple",
-  "family_full",
-  "external_guest",
-]);
-
 function normalizeRow(value: unknown): CurrentTicketCatalogItem | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
-  const productCode = String(row.product_code ?? "") as TicketCatalogProductCode;
+  const productCode = String(row.product_code ?? "");
   const ticketTypeId = String(row.ticket_type_id ?? row.id ?? "");
   const lotId = String(row.lot_id ?? "");
   const priceCents = Number(row.price_cents);
 
-  if (!PRODUCT_CODES.has(productCode) || !ticketTypeId || !lotId || !Number.isFinite(priceCents)) {
+  if (productCode !== "simple" || !ticketTypeId || !lotId || !Number.isFinite(priceCents)) {
     return null;
   }
 
   return {
     lot_id: lotId,
     lot_code: String(row.lot_code ?? ""),
-    lot_name: String(row.lot_name ?? "Lote vigente"),
+    lot_name: String(row.lot_name ?? "Lote único"),
     lot_starts_at: typeof row.lot_starts_at === "string" ? row.lot_starts_at : null,
     lot_ends_at: typeof row.lot_ends_at === "string" ? row.lot_ends_at : null,
     lot_capacity: Number.isFinite(Number(row.lot_capacity)) ? Number(row.lot_capacity) : null,
     ticket_type_id: ticketTypeId,
-    product_code: productCode,
-    product_name: String(row.product_name ?? row.name ?? productCode),
+    product_code: "simple",
+    product_name: String(row.product_name ?? row.name ?? "Ingresso"),
     description: typeof row.description === "string" ? row.description : null,
     participant_type: typeof row.participant_type === "string" ? row.participant_type : null,
     package_kind: typeof row.package_kind === "string" ? row.package_kind : null,

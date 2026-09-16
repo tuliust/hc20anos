@@ -1,8 +1,7 @@
 import { supabase } from "./supabase";
 import type { RpcRow } from "./rpc.types";
 
-export type CheckoutParticipantType = "alumni" | "spouse" | "child" | "external_guest";
-export type CheckoutExtraType = "drinks" | "barbecue";
+export type CheckoutParticipantType = "alumni" | "spouse" | "child";
 export type CheckoutStatusRow = RpcRow<"get_checkout_status_by_token">;
 
 export interface CheckoutParticipantInput {
@@ -15,23 +14,15 @@ export interface CheckoutParticipantInput {
   relationship_to_alumni?: string | null;
   person_id?: string | null;
   user_id?: string | null;
-  sponsor_person_id?: string | null;
-  sponsor_user_id?: string | null;
-}
-
-export interface CheckoutExtraInput {
-  participant_key: string;
-  extra_type: CheckoutExtraType;
-  quantity: number;
 }
 
 export interface CheckoutCreateInput {
   buyer_name: string;
   buyer_email: string;
   buyer_phone?: string | null;
-  product_code: "simple" | "family_full" | "external_guest";
+  product_code: "simple";
   participants: CheckoutParticipantInput[];
-  extras?: CheckoutExtraInput[];
+  terms_accepted: true;
 }
 
 export interface CheckoutCreateResult {
@@ -50,7 +41,6 @@ function createIdempotencyKey() {
 
 function unwrapCheckoutPayload(value: any): any {
   let payload = value;
-
   for (let attempt = 0; attempt < 2 && typeof payload === "string"; attempt += 1) {
     try {
       payload = JSON.parse(payload);
@@ -58,7 +48,6 @@ function unwrapCheckoutPayload(value: any): any {
       return {};
     }
   }
-
   if (payload?.data && typeof payload.data === "object") return payload.data;
   if (payload?.result && typeof payload.result === "object") return payload.result;
   return payload && typeof payload === "object" ? payload : {};
@@ -67,28 +56,30 @@ function unwrapCheckoutPayload(value: any): any {
 function checkoutErrorMessage(code?: string) {
   const messages: Record<string, string> = {
     authentication_required: "Sua sessão expirou. Entre novamente para continuar.",
-    no_active_lot: "Não há lote de ingressos disponível neste momento.",
-    invalid_primary_product: "O ingresso selecionado não está disponível no lote vigente.",
-    unsupported_primary_product: "A categoria selecionada não pode ser comprada neste checkout.",
-    alumni_registration_required: "Os ingressos Individual e Família são exclusivos para ex-aluno pré-cadastrado e vinculado à conta.",
-    exactly_one_alumni_required: "Os ingressos Individual e Família são exclusivos para ex-aluno pré-cadastrado e vinculado à conta.",
-    simple_package_invalid_composition: "O ingresso Individual deve conter somente o ex-aluno pré-cadastrado.",
-    family_full_invalid_composition: "O ingresso Família exige um ex-aluno pré-cadastrado, um cônjuge e pelo menos um filho.",
-    external_guest_package_invalid_composition: "O ingresso Convidado deve conter somente um participante adulto.",
+    buyer_user_mismatch: "Não foi possível validar sua identidade para esta compra.",
+    buyer_name_required: "Informe o nome do comprador.",
+    buyer_email_invalid: "Informe um e-mail válido.",
+    terms_acceptance_required: "Aceite os Termos de Uso e a Política de Privacidade.",
+    no_active_lot: "As vendas não estão abertas neste momento.",
+    invalid_primary_product: "O ingresso não está disponível no lote vigente.",
+    unsupported_primary_product: "O ingresso selecionado não está disponível.",
+    alumni_registration_required: "Conclua seu cadastro de ex-aluno antes de comprar o ingresso.",
+    exactly_one_alumni_required: "O pedido deve conter exatamente um ex-aluno vinculado à conta.",
+    spouse_limit_exceeded: "É permitido incluir no máximo um cônjuge por pedido.",
     child_birth_date_required: "Informe a data de nascimento de cada filho.",
-    child_birth_date_invalid: "A data de nascimento informada é inválida ou não atende à regra etária do ingresso.",
-    external_guest_data_required: "Informe nome, e-mail, WhatsApp e data de nascimento do convidado.",
-    external_guest_birth_date_invalid: "A data de nascimento do convidado é inválida.",
-    external_guest_must_be_adult: "O ingresso Convidado é exclusivo para participantes com 18 anos ou mais na data do evento.",
-    extras_not_supported: "Itens adicionais não fazem parte do modelo atual de ingressos.",
-    invalid_extra: "Itens adicionais não fazem parte do modelo atual de ingressos.",
+    child_birth_date_invalid: "Confira a data de nascimento informada para o filho.",
     participant_limit_exceeded: "O pedido pode ter no máximo seis participantes.",
+    participant_name_required: "Informe o nome completo de todos os participantes.",
+    participant_type_invalid: "Há um participante inválido no pedido.",
+    participant_client_key_duplicate: "Não foi possível validar a lista de participantes. Atualize a página e tente novamente.",
+    lot_capacity_exceeded: "Não há vagas suficientes para todos os participantes deste pedido.",
+    checkout_idempotency_expired: "Esta tentativa de pagamento expirou. Inicie uma nova compra.",
+    checkout_environment_conflict: "A tentativa de pagamento pertence a outro ambiente. Inicie uma nova compra.",
     mercado_pago_not_configured: "O pagamento pelo Mercado Pago ainda não está configurado.",
     mercado_pago_preference_failed: "O Mercado Pago não conseguiu preparar o pagamento.",
     checkout_service_unavailable: "O serviço de pagamento está temporariamente indisponível.",
-    invalid_checkout_response: "Não foi possível obter o link de pagamento do Mercado Pago.",
+    invalid_checkout_response: "Não foi possível obter o link de pagamento.",
   };
-
   return messages[code ?? ""] ?? code ?? "Não foi possível iniciar o pagamento.";
 }
 
@@ -100,16 +91,21 @@ export async function createSecureCheckout(
   const session = sessionData.session;
   if (!session) throw new Error(checkoutErrorMessage("authentication_required"));
 
-  const response = await fetch("/api/checkout-create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-      "idempotency-key": idempotencyKey,
-    },
-    body: JSON.stringify({ ...input, idempotency_key: idempotencyKey }),
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/checkout-create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify({ ...input, idempotency_key: idempotencyKey }),
+    });
+  } catch {
+    throw new Error("Não foi possível conectar ao serviço de pagamento. Verifique sua conexão e tente novamente.");
+  }
 
   const rawData = await response.json().catch(() => ({}));
   const data = unwrapCheckoutPayload(rawData) as Partial<CheckoutCreateResult> & {
@@ -118,13 +114,11 @@ export async function createSecureCheckout(
     sandbox_init_point?: string;
   };
 
-  if (!response.ok) {
-    throw new Error(checkoutErrorMessage(data.error));
-  }
+  if (!response.ok) throw new Error(checkoutErrorMessage(data.error));
 
   const checkoutUrl = data.checkout_url ?? data.init_point ?? data.sandbox_init_point;
   if (!checkoutUrl) {
-    console.error("[Checkout] Resposta sem URL do Mercado Pago", {
+    console.error("[Checkout] Resposta sem URL de pagamento", {
       status: response.status,
       payloadKeys: Object.keys(data),
     });

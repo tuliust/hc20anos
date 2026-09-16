@@ -1,5 +1,5 @@
 -- ================================================================
--- Contract checks for the three-ticket product model.
+-- Contract checks for the current single-ticket product model.
 -- ================================================================
 
 set role postgres;
@@ -10,27 +10,28 @@ declare
   v_codes text[];
   v_names text[];
   v_current_lot_id uuid;
+  v_active_price_count integer;
+  v_active_price integer;
   v_checkout_definition text;
-  v_admin_definition text;
 begin
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)
     into v_codes, v_names
   from public.get_public_ticket_catalog(v_event_id, now()) c;
 
-  if v_codes is distinct from array['external_guest', 'family_full', 'simple']::text[] then
-    raise exception 'Public catalog must contain exactly three products: %', v_codes;
+  if v_codes is distinct from array['simple']::text[] then
+    raise exception 'Public catalog must contain only the simple product: %', v_codes;
   end if;
 
-  if v_names is distinct from array['Convidado', 'Família', 'Individual']::text[] then
-    raise exception 'Public ticket names do not match the approved copy: %', v_names;
+  if v_names is distinct from array['Ingresso']::text[] then
+    raise exception 'Public ticket name does not match the approved copy: %', v_names;
   end if;
 
   if exists (
     select 1
     from public.ticket_types tt
     where tt.event_id = v_event_id
-      and tt.product_code in ('family_single_parent', 'additional_child', 'extra_drinks', 'extra_barbecue')
+      and coalesce(tt.product_code, '') <> 'simple'
       and tt.status <> 'closed'
   ) then
     raise exception 'Deprecated products remain open';
@@ -40,34 +41,50 @@ begin
   from public.get_current_ticket_lot(v_event_id, now()) l
   limit 1;
 
-  if v_current_lot_id is not null and exists (
+  if v_current_lot_id is null then
+    raise exception 'Current single lot is missing';
+  end if;
+
+  select count(*), max(lp.price_cents)
+    into v_active_price_count, v_active_price
+  from public.ticket_lot_prices lp
+  join public.ticket_types tt on tt.id = lp.ticket_type_id
+  where lp.lot_id = v_current_lot_id
+    and lp.is_active
+    and tt.status = 'open';
+
+  if v_active_price_count <> 1 or v_active_price <> 12000 then
+    raise exception 'Current lot must expose one active R$ 120 simple price: count %, price %', v_active_price_count, v_active_price;
+  end if;
+
+  if exists (
     select 1
     from public.ticket_lot_prices lp
     join public.ticket_types tt on tt.id = lp.ticket_type_id
     where lp.lot_id = v_current_lot_id
       and lp.is_active
-      and tt.product_code not in ('simple', 'family_full', 'external_guest')
+      and tt.product_code <> 'simple'
   ) then
     raise exception 'Deprecated product price remains active in the current lot';
   end if;
 
-  select pg_get_functiondef(
+  select lower(pg_get_functiondef(
     'public.create_checkout_order(uuid,text,text,text,text,jsonb,jsonb,text)'::regprocedure
-  ) into v_checkout_definition;
+  )) into v_checkout_definition;
 
-  if position('p_product_code not in (''simple'', ''family_full'', ''external_guest'')' in v_checkout_definition) = 0 then
-    raise exception 'Checkout does not enforce the three primary products';
+  if position('p_product_code <> ''simple''' in v_checkout_definition) = 0 then
+    raise exception 'Checkout does not restrict the primary product to simple';
   end if;
-  if position('v_total := v_product.current_price_cents' in v_checkout_definition) = 0 then
-    raise exception 'Checkout does not use a single configured product price';
+  if position('if v_age<=8 then v_unit_price:=0' in v_checkout_definition) = 0
+     or position('elsif v_age<=12 then v_unit_price:=v_base_price/2' in v_checkout_definition) = 0 then
+    raise exception 'Checkout does not enforce current child age bands';
+  end if;
+  if position('extras_not_supported' in v_checkout_definition) = 0 then
+    raise exception 'Checkout does not reject legacy extras';
   end if;
 
-  select pg_get_functiondef(
-    'public.admin_get_ticket_lots(uuid)'::regprocedure
-  ) into v_admin_definition;
-
-  if position('tt.product_code in (''simple'', ''family_full'', ''external_guest'')' in v_admin_definition) = 0 then
-    raise exception 'Admin lot catalog is not restricted to the three products';
+  if has_function_privilege('authenticated','public.create_guest_approval_request(uuid,text,text,text,text)','EXECUTE') then
+    raise exception 'Legacy external guest approval flow is still executable by authenticated users';
   end if;
 
   if exists (
@@ -77,9 +94,9 @@ begin
       and t.tgname = 'order_participants_guest_buyer_authorization'
       and not t.tgisinternal
   ) then
-    raise exception 'Legacy guest approval trigger is still installed';
+    raise exception 'Legacy guest buyer authorization trigger is still installed';
   end if;
 end;
 $$;
 
-select 'PASS' as three_ticket_product_model;
+select 'PASS' as single_ticket_product_model;

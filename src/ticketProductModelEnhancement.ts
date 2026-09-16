@@ -1,7 +1,5 @@
 const TITLE_BY_CODE: Record<string, string> = {
-  simple: "Individual",
-  family_full: "Família",
-  external_guest: "Convidado",
+  simple: "Ingresso",
 };
 
 let scheduled = false;
