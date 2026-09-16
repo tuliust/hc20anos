@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 1e3521feaa1a9f76e06398ce39fc69e7aa782b49
+last_verified_commit: da9e7c8f7efaf7ddc0340783cf9d3847e513ca9a
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -60,4 +60,3 @@ source_files:
 | `WHATSAPP_TICKET_TEMPLATE` | server-side | `supabase/functions/server/index.ts` |
 
 Valores e secrets são deliberadamente omitidos.
-
