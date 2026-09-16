@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 40907ed72e6c4edf5b2d80dafd8c2838a79f21fe
+last_verified_commit: 0c561f48bb8485f50304a62abc8f571ab55a6142
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -98,11 +98,11 @@ source_files:
 | `public.gtrgm_picksplit` | `internal, internal` | `internal` | não | `immutable` | `=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin` |
 | `public.gtrgm_same` | `gtrgm, gtrgm, internal` | `internal` | não | `immutable` | `=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin` |
 | `public.gtrgm_union` | `internal, internal` | `gtrgm` | não | `immutable` | `=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin` |
-| `public.has_admin_role` | `required_role admin_role, uid uuid` | `boolean` | sim | `stable` | `—` |
+| `public.has_admin_role` | `required_role admin_role, uid uuid` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.has_structured_faq_items` | `p_event_id uuid` | `boolean` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
-| `public.is_admin` | `uid uuid` | `boolean` | sim | `stable` | `—` |
-| `public.is_admin_panel_user` | `uid uuid` | `boolean` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
-| `public.is_superadmin` | `uid uuid` | `boolean` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
+| `public.is_admin` | `uid uuid` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
+| `public.is_admin_panel_user` | `uid uuid` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
+| `public.is_superadmin` | `uid uuid` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.moderate_content_item` | `p_entity_type text, p_entity_id uuid, p_status text, p_notes text` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.move_faq_category_items` | `p_source_category_id uuid, p_target_category_id uuid, p_admin_id uuid` | `integer` | não | `volatile` | `=X/postgres,postgres=X/postgres,authenticated=X/postgres` |
 | `public.normalize_profile_answer` | `value text` | `text` | não | `immutable` | `—` |
