@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 40907ed72e6c4edf5b2d80dafd8c2838a79f21fe
+last_verified_commit: 0c561f48bb8485f50304a62abc8f571ab55a6142
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -72,12 +72,12 @@ source_files:
 |---|---|---|---|---|---|---|
 | `public.admin_users` | `admin_users_admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.admin_users` | `admin_users_self_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
-| `public.admin_users` | `admin_users_superadmin_all` | PERMISSIVE | `public` | `ALL` | `has_admin_role('superadmin'::admin_role)` | `—` |
+| `public.admin_users` | `admin_users_superadmin_all` | PERMISSIVE | `authenticated` | `ALL` | `has_admin_role('superadmin'::admin_role)` | `—` |
 | `public.admin_users` | `admin_users_superadmin_write` | PERMISSIVE | `authenticated` | `ALL` | `is_superadmin()` | `is_superadmin()` |
 | `public.audit_logs` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.audit_logs` | `audit_logs_admin_panel_insert` | PERMISSIVE | `authenticated` | `INSERT` | `—` | `is_admin_panel_user()` |
 | `public.audit_logs` | `audit_logs_admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
-| `public.audit_logs` | `audit_logs_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.audit_logs` | `audit_logs_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.audit_logs` | `audit_logs_service_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `true` |
 | `public.cms_assets` | `cms_assets_manage_admins` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.cms_assets` | `cms_assets_select_active` | PERMISSIVE | `public` | `SELECT` | `(is_active = true)` | `—` |
@@ -86,14 +86,14 @@ source_files:
 | `public.content_moderation_settings` | `content_moderation_settings_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` |
 | `public.event_archive_settings` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.event_archive_settings` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.event_archive_settings` | `event_archive_settings_admin_all` | PERMISSIVE | `public` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.event_archive_settings` | `event_archive_settings_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.event_archive_settings` | `event_archive_settings_public_read` | PERMISSIVE | `public` | `SELECT` | `true` | `—` |
 | `public.event_page_content` | `event_page_content_manage_admins` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.event_page_content` | `event_page_content_select_public` | PERMISSIVE | `public` | `SELECT` | `true` | `—` |
 | `public.events` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.events` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.events` | `events_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
-| `public.events` | `events_admin_write` | PERMISSIVE | `public` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.events` | `events_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
+| `public.events` | `events_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.events` | `events_public_read` | PERMISSIVE | `public` | `SELECT` | `(event_status = 'published'::event_status)` | `—` |
 | `public.faq_categories` | `faq_categories_admin_insert` | PERMISSIVE | `authenticated` | `INSERT` | `—` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.faq_categories` | `faq_categories_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
@@ -113,85 +113,85 @@ source_files:
 | `public.home_page_content` | `home_page_content_public_read` | PERMISSIVE | `public` | `SELECT` | `true` | `—` |
 | `public.memories` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.memories` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.memories` | `memories_admin_delete` | PERMISSIVE | `public` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.memories` | `memories_moderator_read` | PERMISSIVE | `public` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.memories` | `memories_moderator_update` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.memories` | `memories_admin_delete` | PERMISSIVE | `authenticated` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
+| `public.memories` | `memories_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
+| `public.memories` | `memories_moderator_update` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.memories` | `memories_owner_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
 | `public.order_participants` | `order_participants_owner_read` | PERMISSIVE | `authenticated` | `SELECT` | `((user_id = auth.uid()) OR (sponsor_user_id = auth.uid()) OR (EXISTS ( SELECT 1<br>   FROM orders o<br>  WHERE ((o.id = order_participants.order_id) AND (o.buyer_user_id = auth.uid())))))` | `—` |
 | `public.orders` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.orders` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.orders` | `orders_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.orders` | `orders_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.orders` | `orders_owner_read` | PERMISSIVE | `public` | `SELECT` | `((buyer_email = (( SELECT users.email<br>   FROM auth.users<br>  WHERE (users.id = auth.uid())))::text) OR (person_id IN ( SELECT people.id<br>   FROM people<br>  WHERE (people.claimed_by_user_id = auth.uid()))))` | `—` |
 | `public.participant_extras` | `participant_extras_owner_read` | PERMISSIVE | `authenticated` | `SELECT` | `((EXISTS ( SELECT 1<br>   FROM orders o<br>  WHERE ((o.id = participant_extras.order_id) AND (o.buyer_user_id = auth.uid())))) OR (EXISTS ( SELECT 1<br>   FROM order_participants op<br>  WHERE ((op.id = participant_extras.order_participant_id) AND ((op.user_id = auth.uid()) OR (op.sponsor_user_id = auth.uid()))))))` | `—` |
 | `public.payment_events` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
-| `public.payment_events` | `payment_events_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.payment_events` | `payment_events_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.payment_preferences` | `payment_preferences_owner_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM orders o<br>  WHERE ((o.id = payment_preferences.order_id) AND (o.buyer_user_id = auth.uid()))))` | `—` |
 | `public.people` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.people` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.people` | `people_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.people` | `people_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.people` | `people_owner_read` | PERMISSIVE | `public` | `SELECT` | `(claimed_by_user_id = auth.uid())` | `—` |
 | `public.people` | `people_public_read` | PERMISSIVE | `public` | `SELECT` | `(is_visible = true)` | `—` |
 | `public.photo_comments` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_comments` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.photo_comments` | `photo_comments_admin_delete` | PERMISSIVE | `public` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.photo_comments` | `photo_comments_moderator_read` | PERMISSIVE | `public` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
-| `public.photo_comments` | `photo_comments_moderator_update` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.photo_comments` | `photo_comments_admin_delete` | PERMISSIVE | `authenticated` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
+| `public.photo_comments` | `photo_comments_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
+| `public.photo_comments` | `photo_comments_moderator_update` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_comments` | `photo_comments_owner_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
 | `public.photo_comments` | `photo_comments_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = 'approved'::text)` | `—` |
 | `public.photo_likes` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
-| `public.photo_likes` | `photo_likes_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `is_admin()` |
+| `public.photo_likes` | `photo_likes_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `is_admin()` |
 | `public.photo_likes` | `photo_likes_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (user_id = auth.uid()))` |
 | `public.photo_likes` | `photo_likes_owner_delete` | PERMISSIVE | `public` | `DELETE` | `(user_id = auth.uid())` | `—` |
 | `public.photo_likes` | `photo_likes_public_read` | PERMISSIVE | `public` | `SELECT` | `true` | `—` |
 | `public.photo_removal_requests` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_removal_requests` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.photo_removal_requests` | `removal_requests_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.photo_removal_requests` | `removal_requests_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.photo_removal_requests` | `removal_requests_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
-| `public.photo_removal_requests` | `removal_requests_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.photo_removal_requests` | `removal_requests_moderator_write` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_removal_requests` | `removal_requests_owner_read` | PERMISSIVE | `public` | `SELECT` | `(requester_user_id = auth.uid())` | `—` |
 | `public.photo_tags` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_tags` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.photo_tags` | `photo_tags_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.photo_tags` | `photo_tags_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.photo_tags` | `photo_tags_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
-| `public.photo_tags` | `photo_tags_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.photo_tags` | `photo_tags_moderator_write` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photo_tags` | `photo_tags_owner_read` | PERMISSIVE | `public` | `SELECT` | `(created_by_user_id = auth.uid())` | `—` |
 | `public.photo_tags` | `photo_tags_public_read` | PERMISSIVE | `public` | `SELECT` | `((status = 'approved'::tag_status) AND (EXISTS ( SELECT 1<br>   FROM photos<br>  WHERE ((photos.id = photo_tags.photo_id) AND (photos.status = 'approved'::photo_status)))))` | `—` |
 | `public.photos` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photos` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.photos` | `photos_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.photos` | `photos_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.photos` | `photos_moderator_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
-| `public.photos` | `photos_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.photos` | `photos_moderator_write` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.photos` | `photos_owner_read` | PERMISSIVE | `public` | `SELECT` | `(uploaded_by_user_id = auth.uid())` | `—` |
 | `public.photos` | `photos_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = 'approved'::photo_status)` | `—` |
 | `public.poll_options` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.poll_options` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.poll_options` | `poll_options_admin_all` | PERMISSIVE | `public` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.poll_options` | `poll_options_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.poll_options` | `poll_options_public_read` | PERMISSIVE | `public` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM polls<br>  WHERE ((polls.id = poll_options.poll_id) AND (polls.status = ANY (ARRAY['open'::text, 'closed'::text])))))` | `—` |
 | `public.poll_votes` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.poll_votes` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.poll_votes` | `poll_votes_admin_read` | PERMISSIVE | `public` | `SELECT` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
+| `public.poll_votes` | `poll_votes_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
 | `public.poll_votes` | `poll_votes_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (user_id = auth.uid()))` |
 | `public.poll_votes` | `poll_votes_owner_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
 | `public.polls` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.polls` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.polls` | `polls_admin_all` | PERMISSIVE | `public` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.polls` | `polls_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.polls` | `polls_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = ANY (ARRAY['open'::text, 'closed'::text]))` | `—` |
 | `public.profile_claim_answers` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.profile_claim_answers` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.profile_claim_answers` | `claim_answers_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.profile_claim_answers` | `claim_answers_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.profile_claim_answers` | `claim_answers_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `(EXISTS ( SELECT 1<br>   FROM profile_claims<br>  WHERE ((profile_claims.id = profile_claim_answers.claim_id) AND (profile_claims.requester_user_id = auth.uid()))))` |
 | `public.profile_claim_answers` | `claim_answers_owner_read` | PERMISSIVE | `public` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM profile_claims<br>  WHERE ((profile_claims.id = profile_claim_answers.claim_id) AND (profile_claims.requester_user_id = auth.uid()))))` | `—` |
 | `public.profile_claim_disputes` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.profile_claim_disputes` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.profile_claim_disputes` | `disputes_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.profile_claim_disputes` | `disputes_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.profile_claim_disputes` | `disputes_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (requester_user_id = auth.uid()))` |
-| `public.profile_claim_disputes` | `disputes_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.profile_claim_disputes` | `disputes_moderator_write` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.profile_claim_disputes` | `disputes_owner_read` | PERMISSIVE | `public` | `SELECT` | `(requester_user_id = auth.uid())` | `—` |
 | `public.profile_claims` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.profile_claims` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.profile_claims` | `claims_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
+| `public.profile_claims` | `claims_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
 | `public.profile_claims` | `claims_auth_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `((auth.uid() IS NOT NULL) AND (requester_user_id = auth.uid()))` |
-| `public.profile_claims` | `claims_moderator_write` | PERMISSIVE | `public` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.profile_claims` | `claims_moderator_write` | PERMISSIVE | `authenticated` | `UPDATE` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('moderator'::admin_role) OR has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.profile_claims` | `claims_owner_read` | PERMISSIVE | `public` | `SELECT` | `(requester_user_id = auth.uid())` | `—` |
 | `public.profile_school_questionnaire_answers` | `profile_school_questionnaire_answers_admin_manage` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.profile_school_questionnaire_answers` | `profile_school_questionnaire_answers_insert_own` | PERMISSIVE | `authenticated` | `INSERT` | `—` | `(EXISTS ( SELECT 1<br>   FROM profiles p<br>  WHERE ((p.id = profile_school_questionnaire_answers.profile_id) AND (p.user_id = auth.uid()) AND (p.person_id = profile_school_questionnaire_answers.person_id))))` |
@@ -199,7 +199,7 @@ source_files:
 | `public.profile_school_questionnaire_answers` | `profile_school_questionnaire_answers_update_own` | PERMISSIVE | `authenticated` | `UPDATE` | `(EXISTS ( SELECT 1<br>   FROM profiles p<br>  WHERE ((p.id = profile_school_questionnaire_answers.profile_id) AND (p.user_id = auth.uid()))))` | `(EXISTS ( SELECT 1<br>   FROM profiles p<br>  WHERE ((p.id = profile_school_questionnaire_answers.profile_id) AND (p.user_id = auth.uid()) AND (p.person_id = profile_school_questionnaire_answers.person_id))))` |
 | `public.profiles` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.profiles` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.profiles` | `profiles_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
+| `public.profiles` | `profiles_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.profiles` | `profiles_anon_attendance_read` | PERMISSIVE | `anon` | `SELECT` | `((show_confirmed_status = true) AND (EXISTS ( SELECT 1<br>   FROM people p<br>  WHERE ((p.id = profiles.person_id) AND (p.is_visible = true)))))` | `—` |
 | `public.profiles` | `profiles_owner_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `(user_id = auth.uid())` |
 | `public.profiles` | `profiles_owner_select` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
@@ -213,14 +213,14 @@ source_files:
 | `public.ticket_transfers` | `ticket_transfers_parties_read` | PERMISSIVE | `authenticated` | `SELECT` | `((from_user_id = auth.uid()) OR (to_user_id = auth.uid()) OR (lower(to_email) = lower(COALESCE((auth.jwt() ->> 'email'::text), ''::text))))` | `—` |
 | `public.ticket_types` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.ticket_types` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.ticket_types` | `ticket_types_admin_read` | PERMISSIVE | `public` | `SELECT` | `is_admin()` | `—` |
-| `public.ticket_types` | `ticket_types_admin_write` | PERMISSIVE | `public` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
+| `public.ticket_types` | `ticket_types_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin()` | `—` |
+| `public.ticket_types` | `ticket_types_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` |
 | `public.ticket_types` | `ticket_types_public_read` | PERMISSIVE | `public` | `SELECT` | `(status = ANY (ARRAY['open'::ticket_status, 'sold_out'::ticket_status]))` | `—` |
 | `public.tickets` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.tickets` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
-| `public.tickets` | `tickets_admin_all` | PERMISSIVE | `public` | `ALL` | `is_admin()` | `—` |
-| `public.tickets` | `tickets_checkin_read` | PERMISSIVE | `public` | `SELECT` | `has_admin_role('checkin_staff'::admin_role)` | `—` |
-| `public.tickets` | `tickets_checkin_update` | PERMISSIVE | `public` | `UPDATE` | `has_admin_role('checkin_staff'::admin_role)` | `has_admin_role('checkin_staff'::admin_role)` |
+| `public.tickets` | `tickets_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
+| `public.tickets` | `tickets_checkin_read` | PERMISSIVE | `authenticated` | `SELECT` | `has_admin_role('checkin_staff'::admin_role)` | `—` |
+| `public.tickets` | `tickets_checkin_update` | PERMISSIVE | `authenticated` | `UPDATE` | `has_admin_role('checkin_staff'::admin_role)` | `has_admin_role('checkin_staff'::admin_role)` |
 | `public.tickets` | `tickets_owner_read` | PERMISSIVE | `public` | `SELECT` | `((attendee_email = (( SELECT users.email<br>   FROM auth.users<br>  WHERE (users.id = auth.uid())))::text) OR (person_id IN ( SELECT people.id<br>   FROM people<br>  WHERE (people.claimed_by_user_id = auth.uid()))))` | `—` |
 
 ## Grants de tabelas
@@ -1436,22 +1436,22 @@ source_files:
 | `public.gtrgm_union` | `authenticated` | `EXECUTE` | NO |
 | `public.gtrgm_union` | `postgres` | `EXECUTE` | NO |
 | `public.gtrgm_union` | `service_role` | `EXECUTE` | NO |
-| `public.has_admin_role` | `PUBLIC` | `EXECUTE` | NO |
+| `public.has_admin_role` | `authenticated` | `EXECUTE` | NO |
 | `public.has_admin_role` | `postgres` | `EXECUTE` | YES |
+| `public.has_admin_role` | `service_role` | `EXECUTE` | NO |
 | `public.has_structured_faq_items` | `PUBLIC` | `EXECUTE` | NO |
 | `public.has_structured_faq_items` | `anon` | `EXECUTE` | NO |
 | `public.has_structured_faq_items` | `authenticated` | `EXECUTE` | NO |
 | `public.has_structured_faq_items` | `postgres` | `EXECUTE` | YES |
-| `public.is_admin` | `PUBLIC` | `EXECUTE` | NO |
+| `public.is_admin` | `authenticated` | `EXECUTE` | NO |
 | `public.is_admin` | `postgres` | `EXECUTE` | YES |
-| `public.is_admin_panel_user` | `PUBLIC` | `EXECUTE` | NO |
-| `public.is_admin_panel_user` | `anon` | `EXECUTE` | NO |
+| `public.is_admin` | `service_role` | `EXECUTE` | NO |
 | `public.is_admin_panel_user` | `authenticated` | `EXECUTE` | NO |
 | `public.is_admin_panel_user` | `postgres` | `EXECUTE` | YES |
-| `public.is_superadmin` | `PUBLIC` | `EXECUTE` | NO |
-| `public.is_superadmin` | `anon` | `EXECUTE` | NO |
+| `public.is_admin_panel_user` | `service_role` | `EXECUTE` | NO |
 | `public.is_superadmin` | `authenticated` | `EXECUTE` | NO |
 | `public.is_superadmin` | `postgres` | `EXECUTE` | YES |
+| `public.is_superadmin` | `service_role` | `EXECUTE` | NO |
 | `public.moderate_content_item` | `authenticated` | `EXECUTE` | NO |
 | `public.moderate_content_item` | `postgres` | `EXECUTE` | YES |
 | `public.move_faq_category_items` | `PUBLIC` | `EXECUTE` | NO |
