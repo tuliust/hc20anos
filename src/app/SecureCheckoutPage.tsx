@@ -290,7 +290,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         buyer_phone: buyer.phone.trim(),
         product_code: "simple",
         participants: cleanParticipants,
-        extras: [],
+        terms_accepted: true,
       };
       const result = await createSecureCheckout(payload);
       window.location.assign(result.checkout_url);
@@ -423,7 +423,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
         <button type="button" disabled={busy || catalogLoading || !currentProduct} onClick={submit} className="mt-6 flex w-full items-center justify-center gap-3 bg-[#2d6a4f] px-6 py-4 font-bold uppercase tracking-[0.13em] text-white disabled:cursor-not-allowed disabled:opacity-50">
           {busy ? <RefreshCw size={18} className="animate-spin" /> : <Shield size={18} />} {busy ? "Preparando pagamento..." : "Continuar para pagamento"}
         </button>
-        <p className="mt-3 text-center text-xs text-[#7a9a7a]">Antes do Mercado Pago, o sistema exibirá uma confirmação final do pedido e registrará o aceite dos termos.</p>
+        <p className="mt-3 text-center text-xs text-[#7a9a7a]">O aceite dos termos é registrado com o pedido antes do redirecionamento seguro para o Mercado Pago.</p>
       </div>
     </div>
   );
