@@ -112,6 +112,7 @@ jobs:
           git push
 
       - name: Upload generated contracts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: static-contracts-${{ github.sha }}
