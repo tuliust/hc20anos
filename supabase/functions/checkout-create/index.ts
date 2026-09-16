@@ -1,6 +1,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SITE_URL = (Deno.env.get("SITE_URL") ?? "https://hc20anos.com.br").replace(/\/$/, "");
+const TERMS_VERSION = "2026-07-21";
+const PRIVACY_VERSION = "2026-07-21";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key",
@@ -10,7 +12,7 @@ const corsHeaders = {
 
 const CLIENT_CODES = new Set([
   "authentication_required","buyer_user_mismatch","buyer_name_required","buyer_email_invalid",
-  "idempotency_key_required","participants_must_be_array","participant_limit_exceeded",
+  "terms_acceptance_required","idempotency_key_required","participants_must_be_array","participant_limit_exceeded",
   "participant_client_key_invalid","participant_client_key_duplicate","participant_type_invalid",
   "participant_name_required","exactly_one_alumni_required","spouse_limit_exceeded",
   "child_birth_date_required","child_birth_date_invalid","unsupported_primary_product",
@@ -36,12 +38,15 @@ type RequestBody = {
   buyer_phone?: string | null;
   product_code: "simple";
   participants: Participant[];
-  extras?: unknown[];
+  terms_accepted?: boolean;
   idempotency_key: string;
 };
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
 }
 
 function env() {
@@ -63,19 +68,15 @@ function returnUrl(status: string, token: string) {
   return `${SITE_URL}/?${params.toString()}`;
 }
 
-function consentUrl(url: string, token: string) {
-  return `${functionBaseUrl(url)}/checkout-consent?token=${encodeURIComponent(token)}`;
-}
-
 function validate(body: RequestBody) {
   if (!body || typeof body !== "object") throw new Error("invalid_payload");
   if (!body.buyer_name?.trim()) throw new Error("buyer_name_required");
   if (!/^\S+@\S+\.\S+$/.test(body.buyer_email ?? "")) throw new Error("buyer_email_invalid");
+  if (body.terms_accepted !== true) throw new Error("terms_acceptance_required");
   if (!body.idempotency_key?.trim() || body.idempotency_key.length > 160) throw new Error("idempotency_key_required");
   if (body.product_code !== "simple") throw new Error("unsupported_primary_product");
   if (!Array.isArray(body.participants)) throw new Error("participants_must_be_array");
   if (body.participants.length < 1 || body.participants.length > 6) throw new Error("participant_limit_exceeded");
-  if (Array.isArray(body.extras) && body.extras.length) throw new Error("extras_not_supported");
 
   const keys = new Set<string>();
   let alumni = 0;
@@ -85,7 +86,7 @@ function validate(body: RequestBody) {
     if (!key) throw new Error("participant_client_key_invalid");
     if (keys.has(key)) throw new Error("participant_client_key_duplicate");
     keys.add(key);
-    if (!["alumni","spouse","child"].includes(p.participant_type)) throw new Error("participant_type_invalid");
+    if (!["alumni", "spouse", "child"].includes(p.participant_type)) throw new Error("participant_type_invalid");
     if (!p.full_name?.trim()) throw new Error("participant_name_required");
     if (p.participant_type === "alumni") alumni += 1;
     if (p.participant_type === "spouse") spouses += 1;
@@ -115,8 +116,10 @@ async function clients(request: Request) {
   });
   const { data, error } = await userDb.auth.getUser();
   if (error || !data.user) throw new Error("authentication_required");
-  const serviceDb = createClient(cfg.url, cfg.service, { auth: { persistSession: false, autoRefreshToken: false } });
-  return { ...cfg, authorization, user: data.user, userDb, serviceDb };
+  const serviceDb = createClient(cfg.url, cfg.service, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return { ...cfg, user: data.user, userDb, serviceDb };
 }
 
 function usablePreference(row: any) {
@@ -126,7 +129,30 @@ function usablePreference(row: any) {
   return Number.isFinite(expires) && expires > Date.now();
 }
 
-async function createPreference(params: { accessToken: string; environment: "test" | "production"; url: string; order: any; participants: Participant[] }) {
+async function recordTermsAcceptance(serviceDb: any, orderId: string, buyerUserId: string) {
+  const { error } = await serviceDb
+    .from("checkout_terms_acceptances")
+    .upsert({
+      order_id: orderId,
+      buyer_user_id: buyerUserId,
+      terms_version: TERMS_VERSION,
+      privacy_version: PRIVACY_VERSION,
+      accepted_at: new Date().toISOString(),
+      accepted_via: "authenticated_checkout",
+    }, { onConflict: "order_id" });
+  if (error) {
+    console.error("[checkout-create] terms acceptance write failed", error);
+    throw new Error("terms_acceptance_write_failed");
+  }
+}
+
+async function createPreference(params: {
+  accessToken: string;
+  environment: "test" | "production";
+  url: string;
+  order: any;
+  participants: Participant[];
+}) {
   const { accessToken, environment, url, order, participants } = params;
   const now = new Date();
   const preferenceBody = {
@@ -184,9 +210,15 @@ Deno.serve(async request => {
   try {
     const ctx = await clients(request);
     if (request.method === "GET") {
-      return json({ environment: ctx.mpEnv, checkout_mode: ctx.mpEnv === "test" ? "sandbox" : "production", provider_configured: Boolean(Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")), consent_gate: true });
+      return json({
+        environment: ctx.mpEnv,
+        checkout_mode: ctx.mpEnv === "test" ? "sandbox" : "production",
+        provider_configured: Boolean(Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")),
+        terms_audit: true,
+      });
     }
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
     const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")?.trim();
     if (!accessToken) return json({ error: "mercado_pago_not_configured" }, 503);
 
@@ -208,6 +240,7 @@ Deno.serve(async request => {
       const code = errorCode(orderError) ?? "checkout_validation_failed";
       return json({ error: code }, CLIENT_CODES.has(code) ? 400 : 500);
     }
+
     const summary = Array.isArray(rows) ? rows[0] : rows;
     if (!summary?.order_id) return json({ error: "order_creation_failed" }, 500);
 
@@ -222,7 +255,8 @@ Deno.serve(async request => {
       return json({ error: "checkout_idempotency_expired" }, 409);
     }
 
-    const publicConsentUrl = consentUrl(ctx.url, order.public_token);
+    await recordTermsAcceptance(ctx.serviceDb, order.id, ctx.user.id);
+
     const { data: existing, error: prefReadError } = await ctx.serviceDb
       .from("payment_preferences")
       .select("order_id,checkout_url,expires_at,environment,provider_preference_id")
@@ -230,13 +264,30 @@ Deno.serve(async request => {
       .eq("status", "active")
       .maybeSingle();
     if (prefReadError) throw prefReadError;
+
     if (existing) {
       if (existing.environment !== ctx.mpEnv) return json({ error: "checkout_environment_conflict" }, 409);
-      if (usablePreference(existing)) return json({ checkout_url: publicConsentUrl, public_token: order.public_token, expires_at: existing.expires_at, reused_preference: true, consent_required: true });
-      await ctx.serviceDb.from("payment_preferences").update({ status: "expired" }).eq("order_id", order.id).eq("status", "active");
+      if (usablePreference(existing)) {
+        return json({
+          checkout_url: existing.checkout_url,
+          public_token: order.public_token,
+          expires_at: existing.expires_at,
+          reused_preference: true,
+        });
+      }
+      await ctx.serviceDb.from("payment_preferences")
+        .update({ status: "expired" })
+        .eq("order_id", order.id)
+        .eq("status", "active");
     }
 
-    const preference = await createPreference({ accessToken, environment: ctx.mpEnv, url: ctx.url, order, participants: body.participants });
+    const preference = await createPreference({
+      accessToken,
+      environment: ctx.mpEnv,
+      url: ctx.url,
+      order,
+      participants: body.participants,
+    });
     const checkoutUrl = ctx.mpEnv === "test" ? preference.sandbox_init_point : preference.init_point;
     if (!checkoutUrl) throw new Error("mercado_pago_checkout_url_missing");
 
@@ -252,9 +303,17 @@ Deno.serve(async request => {
     if (insertError) {
       if ((insertError as any).code === "23505") {
         const { data: concurrent } = await ctx.serviceDb.from("payment_preferences")
-          .select("checkout_url,expires_at,environment").eq("order_id", order.id).eq("status", "active").maybeSingle();
+          .select("checkout_url,expires_at,environment")
+          .eq("order_id", order.id)
+          .eq("status", "active")
+          .maybeSingle();
         if (concurrent && concurrent.environment === ctx.mpEnv && usablePreference(concurrent)) {
-          return json({ checkout_url: publicConsentUrl, public_token: order.public_token, expires_at: concurrent.expires_at, reused_preference: true, consent_required: true });
+          return json({
+            checkout_url: concurrent.checkout_url,
+            public_token: order.public_token,
+            expires_at: concurrent.expires_at,
+            reused_preference: true,
+          });
         }
       }
       throw insertError;
@@ -266,13 +325,26 @@ Deno.serve(async request => {
     }).eq("id", order.id);
     if (updateError) throw updateError;
 
-    return json({ checkout_url: publicConsentUrl, public_token: order.public_token, expires_at: order.expires_at, reused_preference: false, consent_required: true }, 201);
+    return json({
+      checkout_url: checkoutUrl,
+      public_token: order.public_token,
+      expires_at: order.expires_at,
+      reused_preference: false,
+    }, 201);
   } catch (error) {
     console.error("[checkout-create] unexpected error", error);
     const code = errorCode(error);
-    if (code) return json({ error: code }, code === "authentication_required" || code === "buyer_user_mismatch" ? 401 : 400);
+    if (code) {
+      return json({ error: code }, code === "authentication_required" || code === "buyer_user_mismatch" ? 401 : 400);
+    }
     const message = error instanceof Error ? error.message : "internal_error";
-    if (["mercado_pago_preference_failed","mercado_pago_checkout_url_missing","mercado_pago_environment_invalid","server_configuration_missing"].includes(message)) return json({ error: message }, 503);
+    if ([
+      "mercado_pago_preference_failed",
+      "mercado_pago_checkout_url_missing",
+      "mercado_pago_environment_invalid",
+      "server_configuration_missing",
+      "terms_acceptance_write_failed",
+    ].includes(message)) return json({ error: message }, 503);
     return json({ error: "internal_error" }, 500);
   }
 });
