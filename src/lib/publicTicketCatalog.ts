@@ -1,14 +1,9 @@
 import type { DbTicketType } from "./commerce.types";
 
-export const PUBLIC_TICKET_PRODUCT_CODES = [
-  "simple",
-  "family_full",
-  "external_guest",
-] as const;
-
+export const PUBLIC_TICKET_PRODUCT_CODES = ["simple"] as const;
 export type PublicTicketProductCode = typeof PUBLIC_TICKET_PRODUCT_CODES[number];
 
-type PublicTicketGroup = "individual" | "family" | "guest";
+type PublicTicketGroup = "individual";
 
 export interface PublicTicketCardModel {
   ticketType: DbTicketType;
@@ -46,20 +41,12 @@ function normalize(value: string | null | undefined): string {
     .toLocaleLowerCase("pt-BR");
 }
 
-function inferProductCodeFromName(ticket: DbTicketType): PublicTicketProductCode | "" {
-  const name = normalize(ticket.name);
-  if (name.includes("convidado")) return "external_guest";
-  if (name.includes("familia") || name.includes("casal")) return "family_full";
-  if (name.includes("individual") || name.includes("ex-aluno") || name.includes("ex aluno")) return "simple";
-  return "";
-}
-
-function productCode(ticket: DbTicketType): string {
+function productCode(ticket: DbTicketType): PublicTicketProductCode | "" {
   const explicitCode = String(metadata(ticket).product_code ?? "").trim();
-  if (PUBLIC_TICKET_PRODUCT_CODES.includes(explicitCode as PublicTicketProductCode)) {
-    return explicitCode;
-  }
-  return inferProductCodeFromName(ticket);
+  if (explicitCode === "simple") return "simple";
+  const name = normalize(ticket.name);
+  if (name.includes("ingresso") || name.includes("individual") || name.includes("ex-aluno") || name.includes("ex aluno")) return "simple";
+  return "";
 }
 
 function activePrice(ticket: DbTicketType): number {
@@ -74,81 +61,42 @@ function withActiveCatalogMetadata(ticket: DbTicketType): DbTicketType {
   const row = metadata(ticket);
   const lotCode = row.active_lot_code ?? row.current_lot_code ?? row.lot_code ?? null;
   const lotName = row.active_lot_name ?? row.current_lot_name ?? row.lot_name ?? null;
-
   if (!resolvedLotCode && lotCode) resolvedLotCode = lotCode;
   if (!resolvedLotName && lotName) resolvedLotName = lotName;
-
-  return {
-    ...ticket,
-    price_cents: activePrice(ticket),
-  };
+  return { ...ticket, price_cents: activePrice(ticket) };
 }
 
 export function isCheckoutExtra(_ticket: DbTicketType): boolean {
   return false;
 }
 
-export function isFamilyTicket(ticket: DbTicketType): boolean {
-  return productCode(ticket) === "family_full";
-}
-
-export function canShowAdditionalChild(_ticket: DbTicketType): boolean {
+export function isFamilyTicket(_ticket: DbTicketType): boolean {
   return false;
 }
 
-export function toPublicTicketCard(ticket: DbTicketType): PublicTicketCardModel | null {
-  const code = productCode(ticket);
-
-  if (code === "simple") {
-    return { ticketType: ticket, displayName: "Individual", group: "individual", sortOrder: 10 };
-  }
-
-  if (code === "family_full") {
-    return { ticketType: ticket, displayName: "Família", group: "family", sortOrder: 20 };
-  }
-
-  if (code === "external_guest") {
-    return { ticketType: ticket, displayName: "Convidado", group: "guest", sortOrder: 30 };
-  }
-
-  return null;
+export function canShowAdditionalChild(_ticket: DbTicketType): boolean {
+  return true;
 }
 
-function groupPublicCards(candidates: PublicTicketCardModel[]): PublicTicketCardModel[] {
-  const byGroup = new Map<PublicTicketGroup, PublicTicketCardModel>();
-
-  for (const model of candidates) {
-    const current = byGroup.get(model.group);
-    if (!current || (model.ticketType.status === "open" && current.ticketType.status !== "open")) {
-      byGroup.set(model.group, model);
-    }
-  }
-
-  return Array.from(byGroup.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+export function toPublicTicketCard(ticket: DbTicketType): PublicTicketCardModel | null {
+  if (productCode(ticket) !== "simple") return null;
+  return { ticketType: ticket, displayName: "Ingresso", group: "individual", sortOrder: 10 };
 }
 
 export function selectPublicTicketCards(ticketTypes: DbTicketType[]): PublicTicketCardModel[] {
   resolvedLotCode = null;
   resolvedLotName = null;
-
-  const mappedCandidates = ticketTypes
+  const mapped = ticketTypes
     .map(withActiveCatalogMetadata)
     .map(toPublicTicketCard)
     .filter((model): model is PublicTicketCardModel => Boolean(model));
-
-  const openCandidates = mappedCandidates.filter((model) => model.ticketType.status === "open");
-  return groupPublicCards(openCandidates.length > 0 ? openCandidates : mappedCandidates);
+  const open = mapped.filter((model) => model.ticketType.status === "open");
+  return (open.length ? open : mapped).slice(0, 1);
 }
 
 export function formatLotLabel(lotCode?: string | null, lotName?: string | null): string {
   const code = String(resolvedLotCode ?? lotCode ?? "").toLowerCase();
-  const codeMatch = code.match(/^lot_(\d+)$/);
-  if (codeMatch) return `LOTE ${codeMatch[1]}`;
-
-  const name = String(resolvedLotName ?? lotName ?? "");
-  const nameMatch = name.match(/(\d+)/);
-  if (nameMatch) return `LOTE ${nameMatch[1]}`;
-
-  if (code === "initial") return "LOTE 1";
-  return "LOTE 1";
+  const name = String(resolvedLotName ?? lotName ?? "").trim();
+  if (code === "single" || normalize(name).includes("unico")) return "LOTE ÚNICO";
+  return name ? name.toLocaleUpperCase("pt-BR") : "LOTE ÚNICO";
 }
