@@ -36,6 +36,10 @@ function normalize(value: string | null | undefined) {
     .toLocaleLowerCase("pt-BR");
 }
 
+function setText(element: HTMLElement | null, text: string) {
+  if (element && element.textContent !== text) element.textContent = text;
+}
+
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
 }
@@ -230,12 +234,9 @@ function updateOverview(block: HTMLElement, summary: HomeSummary) {
     const item = content[index];
     if (!item) return;
     const [kicker, title, text] = item;
-    const eyebrow = card.querySelector<HTMLElement>("[data-home-ticket-overview-kicker]");
-    const heading = card.querySelector<HTMLElement>("h3");
-    const copy = card.querySelector<HTMLElement>("[data-home-ticket-overview-copy]");
-    if (eyebrow) eyebrow.textContent = kicker;
-    if (heading) heading.textContent = title;
-    if (copy) copy.textContent = text;
+    setText(card.querySelector<HTMLElement>("[data-home-ticket-overview-kicker]"), kicker);
+    setText(card.querySelector<HTMLElement>("h3"), title);
+    setText(card.querySelector<HTMLElement>("[data-home-ticket-overview-copy]"), text);
   });
 }
 
@@ -248,7 +249,7 @@ function updateHomeHeading(catalog: HTMLElement) {
     const text = normalize(item.textContent);
     return text.includes("ingresso unico") && (text.includes("r$ 120") || text.includes("por pessoa"));
   });
-  if (heading) heading.textContent = "Garanta sua presença";
+  if (heading) setText(heading, "Garanta sua presença");
 }
 
 function ensureHomeOverview(catalog: HTMLElement, summary: HomeSummary) {
@@ -257,7 +258,6 @@ function ensureHomeOverview(catalog: HTMLElement, summary: HomeSummary) {
     existing?.remove();
     return;
   }
-
   updateHomeHeading(catalog);
   if (existing?.isConnected) {
     updateOverview(existing, summary);
@@ -288,7 +288,6 @@ function moveSecurityPanelAboveCatalog(catalog: HTMLElement) {
 function enhanceCard(card: HTMLElement, row: CatalogRow | null, isHome: boolean) {
   const heading = card.querySelector<HTMLElement>("h2");
   if (!heading) return;
-
   let subtitle = card.querySelector<HTMLParagraphElement>(`p[${SUBTITLE_ATTRIBUTE}]`);
   if (!subtitle) {
     subtitle = document.createElement("p");
@@ -298,21 +297,21 @@ function enhanceCard(card: HTMLElement, row: CatalogRow | null, isHome: boolean)
   subtitle.className = "text-sm text-[#7a9a7a]";
 
   if (isHome) {
-    heading.textContent = "Garanta seu ingresso";
-    subtitle.textContent = "Compra segura pelo Mercado Pago.";
+    setText(heading, "Garanta seu ingresso");
+    if (normalize(subtitle.textContent) !== normalize("Compra segura pelo Mercado Pago.")) subtitle.textContent = "Compra segura pelo Mercado Pago.";
     Array.from(card.children).forEach(child => {
       if (!(child instanceof HTMLElement)) return;
       if (child === card.firstElementChild || child.tagName === "BUTTON") return;
       if (child === subtitle || child.contains(subtitle)) return;
-      if (/^r\$/i.test(normalize(child.textContent)) || String(child.className).includes("h-px")) {
-        child.dataset.homeTicketRedundant = "true";
-      }
+      if (/^r\$/i.test(normalize(child.textContent)) || String(child.className).includes("h-px")) child.dataset.homeTicketRedundant = "true";
     });
     const button = Array.from(card.querySelectorAll<HTMLButtonElement>("button"))
       .find(item => normalize(item.textContent).includes("comprar"));
-    if (button && !button.disabled) button.textContent = "Comprar agora";
+    if (button && !button.disabled && normalize(button.textContent) !== "comprar agora") button.textContent = "Comprar agora";
   } else {
-    subtitle.textContent = row?.description?.trim() || FALLBACK_DESCRIPTION;
+    const description = row?.description?.trim() || FALLBACK_DESCRIPTION;
+    if (normalize(subtitle.textContent) !== normalize(description)) subtitle.textContent = description;
+    if (String(row?.product_code ?? "") === "simple" && normalize(heading.textContent).includes("ex-aluno")) setText(heading, "Ingresso");
   }
 }
 
@@ -321,18 +320,13 @@ async function enhanceTicketLayout() {
   const path = currentPath();
   if (path !== "/" && path !== "/ingressos") return;
   injectStyles();
-
   const catalog = document.querySelector<HTMLElement>("[data-public-ticket-catalog='true']");
   if (!catalog) return;
   const rows = await loadRows();
   const simple = simpleRow(rows);
-
   if (path === "/") ensureHomeOverview(catalog, homeSummary(rows));
   else moveSecurityPanelAboveCatalog(catalog);
-
-  catalog.querySelectorAll<HTMLElement>("article[data-ticket-product-code]").forEach(card => {
-    enhanceCard(card, simple, path === "/");
-  });
+  catalog.querySelectorAll<HTMLElement>("article[data-ticket-product-code]").forEach(card => enhanceCard(card, simple, path === "/"));
 }
 
 function scheduleEnhancement() {
