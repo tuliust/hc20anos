@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 63fdf032b9131bc371e432c429c3515c68416ab1
+last_verified_commit: b7d442af9c7c6ee9e8562028462752d6968c44e2
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -932,6 +932,7 @@ source_files:
 | `public.payment_preferences` | `payment_preferences_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['active'::text, 'expired'::text, 'cancelled'::text, 'replaced'::text]))` |
 | `public.people` | `people_birth_year_check` | `CHECK` | `CHECK (birth_year IS NULL OR birth_year >= 1900 AND birth_year <= EXTRACT(year FROM now())::integer)` |
 | `public.people` | `people_claimed_by_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (claimed_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.people` | `people_external_visibility_check` | `CHECK` | `CHECK (person_type <> 'external'::text OR is_visible = false)` |
 | `public.people` | `people_gender_check` | `CHECK` | `CHECK (gender IS NULL OR (gender = ANY (ARRAY['male'::text, 'female'::text])))` |
 | `public.people` | `people_person_type_check` | `CHECK` | `CHECK (person_type = ANY (ARRAY['alumni'::text, 'external'::text]))` |
 | `public.people` | `people_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
