@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 50e085952ff8062d0f2dc696316db20ca9a6a525
+last_verified_commit: 63fdf032b9131bc371e432c429c3515c68416ab1
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1474,6 +1474,9 @@ source_files:
 | `public.record_content_moderation` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `service_role` | `EXECUTE` | NO |
+| `public.register_external_user_profile` | `authenticated` | `EXECUTE` | NO |
+| `public.register_external_user_profile` | `postgres` | `EXECUTE` | YES |
+| `public.register_external_user_profile` | `service_role` | `EXECUTE` | NO |
 | `public.reject_photo_removal_request` | `authenticated` | `EXECUTE` | NO |
 | `public.reject_photo_removal_request` | `postgres` | `EXECUTE` | YES |
 | `public.reject_ticket_transfer` | `authenticated` | `EXECUTE` | NO |

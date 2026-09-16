@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 50e085952ff8062d0f2dc696316db20ca9a6a525
+last_verified_commit: 63fdf032b9131bc371e432c429c3515c68416ab1
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -512,6 +512,7 @@ source_files:
 | `public.people` | 17 | `contact_whatsapp` | `text` | YES | `—` |
 | `public.people` | 18 | `display_name` | `text` | YES | `—` |
 | `public.people` | 19 | `gender` | `text` | YES | `—` |
+| `public.people` | 20 | `person_type` | `text` | NO | `'alumni'::text` |
 | `public.photo_comments` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.photo_comments` | 2 | `photo_id` | `uuid` | NO | `—` |
 | `public.photo_comments` | 3 | `user_id` | `uuid` | YES | `—` |
@@ -893,7 +894,7 @@ source_files:
 | `public.notification_jobs` | `notification_jobs_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'sent'::text, 'failed'::text, 'cancelled'::text]))` |
 | `public.notification_jobs` | `notification_jobs_ticket_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE` |
 | `public.order_participants` | `order_participants_check` | `CHECK` | `CHECK (participant_type <> 'child'::text OR birth_date IS NOT NULL)` |
-| `public.order_participants` | `order_participants_external_guest_contact_check` | `CHECK` | `CHECK (participant_type <> 'external_guest'::text OR email IS NOT NULL AND phone IS NOT NULL AND birth_date IS NOT NULL)` |
+| `public.order_participants` | `order_participants_external_guest_contact_check` | `CHECK` | `CHECK (participant_type <> 'external_guest'::text OR email IS NOT NULL AND phone IS NOT NULL)` |
 | `public.order_participants` | `order_participants_guest_approval_request_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (guest_approval_request_id) REFERENCES guest_approval_requests(id) ON DELETE SET NULL` |
 | `public.order_participants` | `order_participants_order_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE` |
 | `public.order_participants` | `order_participants_participant_type_check` | `CHECK` | `CHECK (participant_type = ANY (ARRAY['alumni'::text, 'spouse'::text, 'child'::text, 'external_guest'::text]))` |
@@ -932,6 +933,7 @@ source_files:
 | `public.people` | `people_birth_year_check` | `CHECK` | `CHECK (birth_year IS NULL OR birth_year >= 1900 AND birth_year <= EXTRACT(year FROM now())::integer)` |
 | `public.people` | `people_claimed_by_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (claimed_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.people` | `people_gender_check` | `CHECK` | `CHECK (gender IS NULL OR (gender = ANY (ARRAY['male'::text, 'female'::text])))` |
+| `public.people` | `people_person_type_check` | `CHECK` | `CHECK (person_type = ANY (ARRAY['alumni'::text, 'external'::text]))` |
 | `public.people` | `people_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.people` | `people_verification_status_check` | `CHECK` | `CHECK (verification_status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'verified'::text, 'failed'::text, 'manual_review'::text]))` |
 | `public.photo_comments` | `photo_comments_approved_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (approved_by_admin_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
