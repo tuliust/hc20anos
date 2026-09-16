@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-08-09
-last_verified_commit: 2b1ba03e46ffda8f0e684c93d72ab75cb134ed99
+last_verified: 2026-09-16
+last_verified_commit: db5d7fab2a8f1c40b669812029823b7a50fbd7c2
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -49,13 +49,13 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:187` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:193` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:197` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
-| `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:269` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
+| `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:271` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:143` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:612` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:144` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
-| `create_checkout_order` | `supabase/functions/checkout-create/index.ts:335` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
+| `create_checkout_order` | `supabase/functions/checkout-create/index.ts:228` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
-| `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:166` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
+| `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:168` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
 | `export_checkin_report` | `src/app/OperationsReportingPanel.tsx:17` | `ExportCheckinReportArgs` | `ExportCheckinReportReturns` |
 | `fn_increment_sold` | `supabase/functions/server/index.ts:344` | `FnIncrementSoldArgs` | `FnIncrementSoldReturns` |
 | `get_admin_orders` | `src/lib/services.ts:1027` | `GetAdminOrdersArgs` | `GetAdminOrdersReturns` |
@@ -64,10 +64,10 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_checkin_dashboard` | `src/app/OperationsPage.tsx:35` | `GetCheckinDashboardArgs` | `GetCheckinDashboardReturns` |
 | `get_checkin_dashboard` | `src/app/OperationsPage.tsx:75` | `GetCheckinDashboardArgs` | `GetCheckinDashboardReturns` |
 | `get_checkin_operation_metrics` | `src/app/OperationsReportingPanel.tsx:15` | `GetCheckinOperationMetricsArgs` | `GetCheckinOperationMetricsReturns` |
-| `get_checkout_status_by_token` | `src/lib/checkout.ts:143` | `GetCheckoutStatusByTokenArgs` | `GetCheckoutStatusByTokenReturns` |
+| `get_checkout_status_by_token` | `src/lib/checkout.ts:137` | `GetCheckoutStatusByTokenArgs` | `GetCheckoutStatusByTokenReturns` |
 | `get_current_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:136` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:119` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_current_ticket_catalog` | `src/lib/currentTicketCatalog.ts:80` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
+| `get_current_ticket_catalog` | `src/lib/currentTicketCatalog.ts:71` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:88` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_event_reports` | `src/lib/services.ts:1314` | `GetEventReportsArgs` | `GetEventReportsReturns` |
@@ -77,7 +77,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_public_memories` | `src/lib/services.ts:1594` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
 | `get_public_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:130` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:112` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
-| `get_public_ticket_catalog` | `src/lib/currentTicketCatalog.ts:74` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
+| `get_public_ticket_catalog` | `src/lib/currentTicketCatalog.ts:65` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:82` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `has_structured_faq_items` | `src/lib/faq.ts:201` | `HasStructuredFaqItemsArgs` | `HasStructuredFaqItemsReturns` |
 | `moderate_content_item` | `src/lib/services.ts:1104` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
@@ -86,7 +86,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `moderate_content_item` | `src/lib/services.ts:1625` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
-| `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:253` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
+| `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:255` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
 | `reject_photo_removal_request` | `src/lib/services.ts:1850` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
