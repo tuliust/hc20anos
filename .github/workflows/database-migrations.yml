@@ -1,3 +1,4 @@
+# Mantém contratos gerados sincronizados com as migrations validadas no CI.
 name: Database migration safety
 
 on:
