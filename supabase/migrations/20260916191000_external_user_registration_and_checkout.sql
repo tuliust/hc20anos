@@ -69,14 +69,14 @@ begin
     raise exception 'external_email_mismatch' using errcode = '42501';
   end if;
 
-  select pr.*, pe.person_type, pr.person_id
-    into v_profile, v_existing_type, v_person_id
+  select pr.person_id, pe.person_type
+    into v_person_id, v_existing_type
   from public.profiles pr
   join public.people pe on pe.id = pr.person_id
   where pr.user_id = v_uid
   limit 1;
 
-  if v_profile.id is not null then
+  if v_person_id is not null then
     if coalesce(v_existing_type, 'alumni') <> 'external' then
       raise exception 'external_registration_conflicts_with_alumni_profile' using errcode = 'P0001';
     end if;
@@ -104,7 +104,7 @@ begin
            allow_photo_tags = false,
            show_confirmed_status = false,
            updated_at = now()
-     where id = v_profile.id
+     where user_id = v_uid
      returning * into v_profile;
 
     return v_profile;
