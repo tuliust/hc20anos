@@ -174,7 +174,9 @@ jobs:
           test -z "$changes" || { echo "$changes"; exit 1; }
       - name: Publish Phase 1 evidence to main
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
         run: |
+          set -euo pipefail
           files=(src/lib/rpc.generated.ts docs/30-contratos/RPCs-consumidas.generated.md docs/30-contratos/fase-1-ambiente-e-seguranca.generated.md)
           changes="$(git status --porcelain --untracked-files=all -- "${files[@]}")"
           if [ -z "$changes" ]; then exit 0; fi
@@ -183,7 +185,10 @@ jobs:
           git add "${files[@]}"
           git commit -m "docs: atualizar evidência da fase 1"
           for attempt in 1 2 3; do
-            git push && exit 0
+            if git push; then exit 0; fi
+            echo "Push concorrente detectado; limpando artefatos locais antes do rebase ${attempt}."
+            git reset --hard HEAD
+            git clean -fd
             git pull --rebase origin main
           done
           exit 1
