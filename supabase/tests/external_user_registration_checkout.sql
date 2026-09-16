@@ -163,4 +163,57 @@ begin
 end
 $$;
 
+do $$
+declare
+  v_person_id uuid;
+  v_person_type text;
+  v_is_visible boolean;
+  v_visibility_blocked boolean := false;
+begin
+  select pe.id into strict v_person_id
+  from public.people pe
+  where pe.claimed_by_user_id = '99999999-9999-4999-8999-999999999999'::uuid;
+
+  perform set_config('request.jwt.claim.sub', '66666666-6666-4666-8666-666666666666', true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+      'sub', '66666666-6666-4666-8666-666666666666',
+      'role', 'authenticated',
+      'email', 'admin-tests@local.invalid'
+    )::text,
+    true
+  );
+
+  perform public.admin_clear_person_profile(v_person_id);
+
+  select pe.person_type, pe.is_visible
+    into strict v_person_type, v_is_visible
+  from public.people pe
+  where pe.id = v_person_id;
+
+  if v_person_type <> 'external' then
+    raise exception 'FAIL: admin cleanup changed external person_type to %', v_person_type;
+  end if;
+  if v_is_visible then
+    raise exception 'FAIL: admin cleanup exposed an external user in the alumni directory';
+  end if;
+
+  begin
+    update public.people
+    set is_visible = true
+    where id = v_person_id;
+  exception when check_violation then
+    v_visibility_blocked := true;
+  end;
+
+  if not v_visibility_blocked then
+    raise exception 'FAIL: database allowed an external user to become publicly visible';
+  end if;
+
+  raise notice 'PASS: external privacy survives admin cleanup and direct visibility updates';
+end
+$$;
+
 rollback;
