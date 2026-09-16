@@ -7,6 +7,7 @@ import { buyerOrdersSharedRouteTransform } from './build/buyerOrdersSharedRouteT
 import { profileClaimIdentityTransform } from './build/profileClaimIdentityTransform.mjs'
 import { profileClaimProfileAiTransform } from './build/profileClaimProfileAiTransform.mjs'
 import { photoUploadYearInputTransform } from './build/photoUploadYearInputTransform.mjs'
+import { productionReadinessTransform } from './build/productionReadinessTransform.mjs'
 
 function figmaAssetResolver() {
   return {
@@ -28,6 +29,7 @@ export default defineConfig({
     profileClaimIdentityTransform(),
     profileClaimProfileAiTransform(),
     photoUploadYearInputTransform(),
+    productionReadinessTransform(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
