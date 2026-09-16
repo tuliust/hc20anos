@@ -56,7 +56,7 @@ test.describe("catálogo e checkout", () => {
       buyer_email: "claimant@example.com",
       buyer_phone: "84999999999",
       product_code: "simple",
-      extras: [],
+      terms_accepted: true,
       participants: [
         expect.objectContaining({
           participant_type: "alumni",
@@ -68,6 +68,7 @@ test.describe("catálogo e checkout", () => {
       ],
     });
     expect(body.idempotency_key).toBe(headers["idempotency-key"]);
+    expect(body).not.toHaveProperty("extras");
     expect(body).not.toHaveProperty("price_cents");
     expect(body).not.toHaveProperty("total_amount_cents");
     expect(body).not.toHaveProperty("ticket_type_id");
@@ -95,6 +96,7 @@ test.describe("catálogo e checkout", () => {
     await page.getByRole("button", { name: "Continuar para pagamento", exact: true }).click();
     await expect.poll(() => api.calls.length, { timeout: 20_000 }).toBe(1);
 
+    expect(api.calls[0].body.terms_accepted).toBe(true);
     const participants = api.calls[0].body.participants as Array<Record<string, unknown>>;
     expect(participants).toHaveLength(3);
     expect(participants.map(item => item.participant_type)).toEqual(["alumni", "spouse", "child"]);
