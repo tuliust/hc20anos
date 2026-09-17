@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import "./ContactResearchPage.css";
 
 type ResearchStatus = "pending" | "located" | "no_contact";
 type ClassGroup = "A" | "B" | "C" | "D";
+type ResearchSource = "manual" | "device_contact_picker";
 
 type DirectoryRow = {
   person_id: string;
@@ -14,7 +15,7 @@ type DirectoryRow = {
   email: string | null;
   notes: string | null;
   research_status: ResearchStatus;
-  source: "manual" | "device_contact_picker";
+  source: ResearchSource;
   updated_by: string | null;
   updated_at: string | null;
 };
@@ -65,9 +66,6 @@ function rowDraft(row: DirectoryRow): Draft {
 }
 
 export function ContactResearchPage() {
-  const [sessionReady, setSessionReady] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [rows, setRows] = useState<DirectoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -76,61 +74,27 @@ export function ContactResearchPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | ResearchStatus>("all");
   const [editing, setEditing] = useState<DirectoryRow | null>(null);
   const [draft, setDraft] = useState<Draft>({ whatsapp: "", instagram: "", email: "", notes: "" });
+  const [draftSource, setDraftSource] = useState<ResearchSource>("manual");
   const [saving, setSaving] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginBusy, setLoginBusy] = useState(false);
-  const [loginError, setLoginError] = useState("");
 
   async function loadDirectory() {
     setLoading(true);
     setError("");
     const { data, error: rpcError } = await db.rpc("get_contact_research_directory");
+
     if (rpcError) {
-      if (String(rpcError.message || "").includes("contact_research_not_authorized")) {
-        setAuthorized(false);
-      } else {
-        setError("Não foi possível carregar o mutirão. Tente novamente.");
-      }
       setRows([]);
+      setError("Não foi possível carregar o mutirão. Tente novamente.");
       setLoading(false);
       return;
     }
 
-    setAuthorized(true);
     setRows((data ?? []) as DirectoryRow[]);
     setLoading(false);
   }
 
   useEffect(() => {
-    let active = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      const hasSession = Boolean(data.session);
-      setSignedIn(hasSession);
-      setSessionReady(true);
-      if (hasSession) void loadDirectory();
-      else setLoading(false);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return;
-      const hasSession = Boolean(nextSession);
-      setSignedIn(hasSession);
-      setSessionReady(true);
-      if (hasSession) void loadDirectory();
-      else {
-        setAuthorized(null);
-        setRows([]);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
+    void loadDirectory();
   }, []);
 
   const summary = useMemo(() => {
@@ -146,21 +110,25 @@ export function ContactResearchPage() {
   const groupSummary = useMemo(() => {
     const result = new Map<ClassGroup, { total: number; done: number }>();
     for (const group of GROUPS) result.set(group, { total: 0, done: 0 });
+
     for (const row of rows) {
       const item = result.get(row.class_group);
       if (!item) continue;
       item.total += 1;
       if (row.research_status !== "pending") item.done += 1;
     }
+
     return result;
   }, [rows]);
 
   const filteredRows = useMemo(() => {
     const normalized = normalizeSearch(query);
+
     return rows.filter((row) => {
       if (row.class_group !== activeGroup) return false;
       if (statusFilter !== "all" && row.research_status !== statusFilter) return false;
       if (!normalized) return true;
+
       return normalizeSearch(row.full_name).includes(normalized)
         || normalizeSearch(row.whatsapp ?? "").includes(normalized)
         || normalizeSearch(row.instagram ?? "").includes(normalized)
@@ -168,21 +136,10 @@ export function ContactResearchPage() {
     });
   }, [rows, activeGroup, statusFilter, query]);
 
-  async function handleLogin(event: FormEvent) {
-    event.preventDefault();
-    setLoginBusy(true);
-    setLoginError("");
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    if (authError) setLoginError("E-mail ou senha inválidos.");
-    setLoginBusy(false);
-  }
-
   function openEditor(row: DirectoryRow) {
     setEditing(row);
     setDraft(rowDraft(row));
+    setDraftSource(row.source ?? "manual");
     setError("");
   }
 
@@ -191,8 +148,9 @@ export function ContactResearchPage() {
     setEditing(null);
   }
 
-  async function saveEditing(options?: { noContact?: boolean; source?: "manual" | "device_contact_picker" }) {
+  async function saveEditing(options?: { noContact?: boolean }) {
     if (!editing) return;
+
     setSaving(true);
     setError("");
 
@@ -202,7 +160,7 @@ export function ContactResearchPage() {
       p_instagram: draft.instagram,
       p_email: draft.email,
       p_notes: draft.notes,
-      p_source: options?.source ?? "manual",
+      p_source: draftSource,
       p_mark_no_contact: Boolean(options?.noContact),
     });
 
@@ -215,6 +173,7 @@ export function ContactResearchPage() {
     const saved = Array.isArray(data) ? data[0] : data;
     const nextStatus = (saved?.status ?? (options?.noContact ? "no_contact" : "pending")) as ResearchStatus;
     const updatedAt = saved?.updated_at ?? new Date().toISOString();
+
     setRows((current) => current.map((row) => row.person_id === editing.person_id ? {
       ...row,
       whatsapp: saved?.whatsapp ?? null,
@@ -222,31 +181,33 @@ export function ContactResearchPage() {
       email: saved?.email ?? null,
       notes: saved?.notes ?? null,
       research_status: nextStatus,
-      source: saved?.source ?? options?.source ?? "manual",
-      updated_by: saved?.updated_by ?? row.updated_by,
+      source: saved?.source ?? draftSource,
+      updated_by: saved?.updated_by ?? null,
       updated_at: updatedAt,
     } : row));
+
     setEditing(null);
     setSaving(false);
   }
 
   function goToNextPending() {
-    const groupRows = rows.filter((row) => row.class_group === activeGroup);
-    const pending = groupRows.find((row) => row.research_status === "pending");
+    const pending = rows.find((row) => row.class_group === activeGroup && row.research_status === "pending");
     if (pending) {
       openEditor(pending);
       return;
     }
+
     const nextGroup = GROUPS.find((group) => rows.some((row) => row.class_group === group && row.research_status === "pending"));
-    if (nextGroup) {
-      setActiveGroup(nextGroup);
-      const next = rows.find((row) => row.class_group === nextGroup && row.research_status === "pending");
-      if (next) setTimeout(() => openEditor(next), 0);
-    }
+    if (!nextGroup) return;
+
+    setActiveGroup(nextGroup);
+    const next = rows.find((row) => row.class_group === nextGroup && row.research_status === "pending");
+    if (next) setTimeout(() => openEditor(next), 0);
   }
 
   async function pickDeviceContact() {
     if (!editing) return;
+
     const nav = navigator as any;
     if (!nav.contacts?.select) {
       setError("Seu navegador não permite importar contatos diretamente. Preencha os campos manualmente.");
@@ -257,11 +218,13 @@ export function ContactResearchPage() {
       const selected = await nav.contacts.select(["name", "tel", "email"], { multiple: false });
       const contact = selected?.[0];
       if (!contact) return;
+
       setDraft((current) => ({
         ...current,
         whatsapp: contact.tel?.[0] ?? current.whatsapp,
         email: contact.email?.[0] ?? current.email,
       }));
+      setDraftSource("device_contact_picker");
       setError("");
     } catch (pickError) {
       if ((pickError as Error)?.name !== "AbortError") {
@@ -270,32 +233,15 @@ export function ContactResearchPage() {
     }
   }
 
-  if (!sessionReady || loading) {
+  if (loading) {
     return <main className="contact-research-shell"><div className="contact-research-state">Carregando mutirão de contatos…</div></main>;
   }
 
-  if (!signedIn) {
-    return <main className="contact-research-shell contact-research-login-shell">
-      <section className="contact-research-login-card">
-        <span className="contact-research-kicker">HC 2006 · 20 anos</span>
-        <h1>Mutirão de contatos</h1>
-        <p>Área privada para localizar WhatsApp, Instagram e e-mail dos ex-alunos.</p>
-        <form onSubmit={handleLogin} className="contact-research-login-form">
-          <label>E-mail<input type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} autoComplete="email" required /></label>
-          <label>Senha<input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} autoComplete="current-password" required /></label>
-          {loginError && <div className="contact-research-error">{loginError}</div>}
-          <button type="submit" disabled={loginBusy}>{loginBusy ? "Entrando…" : "Entrar"}</button>
-        </form>
-        <a href="/">Voltar ao site</a>
-      </section>
-    </main>;
-  }
-
-  if (authorized === false) {
+  if (error && rows.length === 0) {
     return <main className="contact-research-shell"><div className="contact-research-state">
-      <h1>Acesso não autorizado</h1>
-      <p>Sua conta está autenticada, mas ainda não foi adicionada ao mutirão.</p>
-      <button type="button" onClick={() => void supabase.auth.signOut()}>Sair</button>
+      <h1>Não foi possível abrir o mutirão</h1>
+      <p>{error}</p>
+      <button type="button" onClick={() => void loadDirectory()}>Tentar novamente</button>
     </div></main>;
   }
 
@@ -306,7 +252,6 @@ export function ContactResearchPage() {
         <h1>Mutirão de contatos</h1>
         <p>Localize os colegas e ajude a completar a lista do reencontro.</p>
       </div>
-      <button className="contact-research-ghost" type="button" onClick={() => void supabase.auth.signOut()}>Sair</button>
     </header>
 
     <section className="contact-research-summary" aria-label="Resumo do mutirão">
@@ -390,15 +335,15 @@ export function ContactResearchPage() {
         <p className="contact-research-picker-help">Quando suportado pelo navegador, você escolhe apenas um contato. A aplicação não recebe sua agenda inteira.</p>
 
         <div className="contact-research-fields">
-          <label>WhatsApp<input value={draft.whatsapp} onChange={(event) => setDraft({ ...draft, whatsapp: event.target.value })} inputMode="tel" placeholder="(84) 99999-9999" /></label>
-          <label>Instagram<input value={draft.instagram} onChange={(event) => setDraft({ ...draft, instagram: event.target.value })} placeholder="@usuario" autoCapitalize="none" /></label>
-          <label>E-mail<input value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
-          <label>Observação<textarea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
+          <label>WhatsApp<input value={draft.whatsapp} onChange={(event) => { setDraft({ ...draft, whatsapp: event.target.value }); setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
+          <label>Instagram<input value={draft.instagram} onChange={(event) => { setDraft({ ...draft, instagram: event.target.value }); setDraftSource("manual"); }} placeholder="@usuario" autoCapitalize="none" /></label>
+          <label>E-mail<input value={draft.email} onChange={(event) => { setDraft({ ...draft, email: event.target.value }); setDraftSource("manual"); }} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
+          <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
         </div>
 
         <div className="contact-research-editor-actions">
           <button className="contact-research-no-contact" type="button" disabled={saving} onClick={() => void saveEditing({ noContact: true })}>Marcar sem contato</button>
-          <button className="contact-research-save" type="button" disabled={saving} onClick={() => void saveEditing({ source: editing.source === "device_contact_picker" ? "device_contact_picker" : "manual" })}>{saving ? "Salvando…" : "Salvar"}</button>
+          <button className="contact-research-save" type="button" disabled={saving} onClick={() => void saveEditing()}>{saving ? "Salvando…" : "Salvar"}</button>
         </div>
       </section>
     </div>}
