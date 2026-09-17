@@ -89,3 +89,4 @@ source_files:
 | `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:149` |
 
 Este contrato cobre apenas códigos literais detectáveis estaticamente. Mensagens dinâmicas, erros SQL e respostas de provedores exigem geradores específicos.
+
