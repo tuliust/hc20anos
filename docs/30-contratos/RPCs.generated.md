@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 2ff22924ffbeaa36986c27da5ae37c0918fd8c51
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -35,6 +35,7 @@ source_files:
 | `public.assert_content_moderation_transition` | `p_entity_type text, p_previous_status text, p_new_status text` | `boolean` | não | `immutable` | `postgres=X/postgres` |
 | `public.audit_sensitive_row_change` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.calculate_refund_quote` | `p_order_id uuid` | `TABLE(order_id uuid, gross_amount_cents integer, non_recoverable_fee_cents integer, refund_amount_cents integer, policy_label text, policy_notice text, refund_deadline timestamp with time zone, eligible boolean, ineligibility_reason text)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
+| `public.can_manage_contact_research` | `—` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.cancel_guest_approval_request` | `p_request_id uuid` | `void` | sim | `volatile` | `postgres=X/postgres` |
 | `public.cancel_ticket_transfer` | `p_transfer_id uuid` | `void` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.claim_notification_jobs` | `p_limit integer, p_worker_id text` | `SETOF notification_jobs` | sim | `volatile` | `postgres=X/postgres,service_role=X/postgres` |
@@ -74,6 +75,7 @@ source_files:
 | `public.get_checkin_dashboard` | `p_search text` | `TABLE(ticket_id uuid, attendee_name text, attendee_email text, qr_code text, ticket_status text, checked_in boolean, checked_in_at timestamp with time zone, order_id uuid, extras jsonb)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.get_checkin_operation_metrics` | `—` | `TABLE(total_tickets bigint, active_tickets bigint, checked_in_tickets bigint, pending_tickets bigint, invalid_tickets bigint, checkin_rate numeric, vouchers_required bigint, vouchers_delivered bigint, last_checkin_at timestamp with time zone)` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.get_checkout_status_by_token` | `p_public_token uuid` | `TABLE(order_id uuid, payment_status text, payment_status_detail text, reservation_status text, expires_at timestamp with time zone, paid_at timestamp with time zone, total_amount_cents integer, currency_id text, ticket_count bigint)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
+| `public.get_contact_research_directory` | `—` | `TABLE(person_id uuid, full_name text, class_group text, whatsapp text, instagram text, email text, notes text, research_status text, source text, updated_by uuid, updated_at timestamp with time zone)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.get_current_ticket_catalog` | `p_event_id uuid, p_at timestamp with time zone` | `TABLE(lot_id uuid, lot_code text, lot_name text, lot_starts_at timestamp with time zone, lot_ends_at timestamp with time zone, ticket_type_id uuid, product_code text, product_name text, description text, participant_type text, package_kind text, included_people_count integer, metadata_json jsonb, price_cents integer)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
 | `public.get_current_ticket_lot` | `p_event_id uuid, p_at timestamp with time zone` | `ticket_lots` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
 | `public.get_event_reports` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
@@ -130,6 +132,7 @@ source_files:
 | `public.run_commerce_automation` | `p_now timestamp with time zone` | `jsonb` | sim | `volatile` | `postgres=X/postgres` |
 | `public.sanitize_content_row` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.sanitize_plain_text` | `p_value text, p_max_length integer` | `text` | não | `immutable` | `—` |
+| `public.save_contact_research` | `p_person_id uuid, p_whatsapp text, p_instagram text, p_email text, p_notes text, p_source text, p_mark_no_contact boolean` | `alumni_contact_research` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.search_external_guest_sponsors` | `p_search text` | `TABLE(person_id uuid, full_name text, class_group text, avatar_url text, approved_guests integer, available_slots integer)` | sim | `stable` | `postgres=X/postgres` |
 | `public.set_cms_assets_updated_at` | `—` | `trigger` | não | `volatile` | `postgres=X/postgres` |
 | `public.set_content_featured` | `p_entity_type text, p_entity_id uuid, p_featured boolean, p_notes text` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |

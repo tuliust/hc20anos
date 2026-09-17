@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 2ff22924ffbeaa36986c27da5ae37c0918fd8c51
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -79,6 +79,16 @@ source_files:
 | `public.admin_users` | 5 | `display_name` | `text` | YES | `—` |
 | `public.admin_users` | 6 | `email` | `text` | YES | `—` |
 | `public.admin_users` | 7 | `updated_at` | `timestamp with time zone` | NO | `now()` |
+| `public.alumni_contact_research` | 1 | `person_id` | `uuid` | NO | `—` |
+| `public.alumni_contact_research` | 2 | `whatsapp` | `text` | YES | `—` |
+| `public.alumni_contact_research` | 3 | `instagram` | `text` | YES | `—` |
+| `public.alumni_contact_research` | 4 | `email` | `text` | YES | `—` |
+| `public.alumni_contact_research` | 5 | `notes` | `text` | YES | `—` |
+| `public.alumni_contact_research` | 6 | `status` | `text` | NO | `'pending'::text` |
+| `public.alumni_contact_research` | 7 | `source` | `text` | NO | `'manual'::text` |
+| `public.alumni_contact_research` | 8 | `updated_by` | `uuid` | NO | `—` |
+| `public.alumni_contact_research` | 9 | `created_at` | `timestamp with time zone` | NO | `now()` |
+| `public.alumni_contact_research` | 10 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.audit_logs` | 1 | `id` | `uuid` | NO | `uuid_generate_v4()` |
 | `public.audit_logs` | 2 | `user_id` | `uuid` | YES | `—` |
 | `public.audit_logs` | 3 | `action` | `text` | NO | `—` |
@@ -115,6 +125,11 @@ source_files:
 | `public.cms_assets` | 12 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.cms_assets` | 13 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.cms_assets` | 14 | `updated_by_admin_id` | `uuid` | YES | `—` |
+| `public.contact_collectors` | 1 | `user_id` | `uuid` | NO | `—` |
+| `public.contact_collectors` | 2 | `is_active` | `boolean` | NO | `true` |
+| `public.contact_collectors` | 3 | `created_by` | `uuid` | YES | `—` |
+| `public.contact_collectors` | 4 | `created_at` | `timestamp with time zone` | NO | `now()` |
+| `public.contact_collectors` | 5 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.content_moderation_events` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.content_moderation_events` | 2 | `event_id` | `uuid` | YES | `—` |
 | `public.content_moderation_events` | 3 | `entity_type` | `text` | NO | `—` |
@@ -819,6 +834,11 @@ source_files:
 | `public.admin_users` | `admin_users_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.admin_users` | `admin_users_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE` |
 | `public.admin_users` | `admin_users_user_id_key` | `UNIQUE` | `UNIQUE (user_id)` |
+| `public.alumni_contact_research` | `alumni_contact_research_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE` |
+| `public.alumni_contact_research` | `alumni_contact_research_pkey` | `PRIMARY KEY` | `PRIMARY KEY (person_id)` |
+| `public.alumni_contact_research` | `alumni_contact_research_source_check` | `CHECK` | `CHECK (source = ANY (ARRAY['manual'::text, 'device_contact_picker'::text]))` |
+| `public.alumni_contact_research` | `alumni_contact_research_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'located'::text, 'no_contact'::text]))` |
+| `public.alumni_contact_research` | `alumni_contact_research_updated_by_fkey` | `FOREIGN KEY` | `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE RESTRICT` |
 | `public.audit_logs` | `audit_logs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.audit_logs` | `audit_logs_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.checkin_events` | `checkin_events_action_check` | `CHECK` | `CHECK (action = ANY (ARRAY['check_in'::text, 'undo_check_in'::text, 'deliver_vouchers'::text, 'undo_vouchers'::text]))` |
@@ -834,6 +854,9 @@ source_files:
 | `public.cms_assets` | `cms_assets_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `public.cms_assets` | `cms_assets_unique_key` | `UNIQUE` | `UNIQUE (event_id, asset_key)` |
 | `public.cms_assets` | `cms_assets_updated_by_admin_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (updated_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL` |
+| `public.contact_collectors` | `contact_collectors_created_by_fkey` | `FOREIGN KEY` | `FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.contact_collectors` | `contact_collectors_pkey` | `PRIMARY KEY` | `PRIMARY KEY (user_id)` |
+| `public.contact_collectors` | `contact_collectors_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE` |
 | `public.content_moderation_events` | `content_moderation_events_actor_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.content_moderation_events` | `content_moderation_events_entity_type_check` | `CHECK` | `CHECK (entity_type = ANY (ARRAY['photo'::text, 'photo_tag'::text, 'photo_comment'::text, 'memory'::text, 'photo_removal_request'::text]))` |
 | `public.content_moderation_events` | `content_moderation_events_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
@@ -1085,6 +1108,8 @@ source_files:
 |---|---|---|
 | `public.admin_users` | `admin_users_pkey` | `CREATE UNIQUE INDEX admin_users_pkey ON public.admin_users USING btree (id)` |
 | `public.admin_users` | `admin_users_user_id_key` | `CREATE UNIQUE INDEX admin_users_user_id_key ON public.admin_users USING btree (user_id)` |
+| `public.alumni_contact_research` | `alumni_contact_research_pkey` | `CREATE UNIQUE INDEX alumni_contact_research_pkey ON public.alumni_contact_research USING btree (person_id)` |
+| `public.alumni_contact_research` | `alumni_contact_research_status_idx` | `CREATE INDEX alumni_contact_research_status_idx ON public.alumni_contact_research USING btree (status)` |
 | `public.audit_logs` | `audit_logs_pkey` | `CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)` |
 | `public.audit_logs` | `idx_audit_logs_created_at` | `CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at DESC)` |
 | `public.audit_logs` | `idx_audit_logs_entity` | `CREATE INDEX idx_audit_logs_entity ON public.audit_logs USING btree (entity_type, entity_id)` |
@@ -1098,6 +1123,7 @@ source_files:
 | `public.cms_assets` | `cms_assets_event_active_idx` | `CREATE INDEX cms_assets_event_active_idx ON public.cms_assets USING btree (event_id, is_active, sort_order, asset_key)` |
 | `public.cms_assets` | `cms_assets_pkey` | `CREATE UNIQUE INDEX cms_assets_pkey ON public.cms_assets USING btree (id)` |
 | `public.cms_assets` | `cms_assets_unique_key` | `CREATE UNIQUE INDEX cms_assets_unique_key ON public.cms_assets USING btree (event_id, asset_key)` |
+| `public.contact_collectors` | `contact_collectors_pkey` | `CREATE UNIQUE INDEX contact_collectors_pkey ON public.contact_collectors USING btree (user_id)` |
 | `public.content_moderation_events` | `content_moderation_events_entity_idx` | `CREATE INDEX content_moderation_events_entity_idx ON public.content_moderation_events USING btree (entity_type, entity_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_event_idx` | `CREATE INDEX content_moderation_events_event_idx ON public.content_moderation_events USING btree (event_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_pkey` | `CREATE UNIQUE INDEX content_moderation_events_pkey ON public.content_moderation_events USING btree (id)` |
