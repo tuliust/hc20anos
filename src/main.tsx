@@ -5,6 +5,7 @@ import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
+import { ContactResearchPage } from './app/ContactResearchPage';
 import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
 import { OperationsRouteGuard } from './app/OperationsRouteGuard';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
@@ -85,9 +86,11 @@ import './footerLogoEnhancements.css';
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
+const contactResearchRoutes = new Set(['/buscar']);
 const legacyGuestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
 const isOperationsRoute = operationsRoutes.has(normalizedPath);
-const isStandaloneRoute = isOperationsRoute;
+const isContactResearchRoute = contactResearchRoutes.has(normalizedPath);
+const isStandaloneRoute = isOperationsRoute || isContactResearchRoute;
 
 if (legacyGuestApprovalRoutes.has(normalizedPath)) {
   window.location.replace('/ingressos');
@@ -155,7 +158,7 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isOperationsRoute ? <OperationsRouteGuard /> : <>
+    {isContactResearchRoute ? <ContactResearchPage /> : isOperationsRoute ? <OperationsRouteGuard /> : <>
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />

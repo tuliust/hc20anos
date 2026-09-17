@@ -144,6 +144,7 @@ async function generate() {
   const protectedAdmin = parsePageArray(app, "PROTECTED_ADMIN");
   const legacyRoutes = parseLegacyRoutes(app);
   const operationsRoutes = parseStringSet(main, "operationsRoutes");
+  const contactResearchRoutes = parseStringSet(main, "contactResearchRoutes");
   const legacyRedirects = parseStringSet(main, "legacyGuestApprovalRoutes");
   const redirectDestination = main.match(/legacyGuestApprovalRoutes\.has\([^)]*\)[\s\S]*?window\.location\.replace\(["'`]([^"'`]+)["'`]\)/)?.[1];
   if (!redirectDestination) throw new Error("Destino dos redirects legados não encontrado");
@@ -179,12 +180,20 @@ async function generate() {
     ];
   });
 
-  const standaloneRows = operationsRoutes.map(routePath => [
-    code(routePath),
-    "OperationsPage + OperationsReportingPanel",
-    "administrativo/operacional",
-    "mount standalone em src/main.tsx",
-  ]);
+  const standaloneRows = [
+    ...operationsRoutes.map(routePath => [
+      code(routePath),
+      "OperationsPage + OperationsReportingPanel",
+      "administrativo/operacional",
+      "mount standalone em src/main.tsx",
+    ]),
+    ...contactResearchRoutes.map(routePath => [
+      code(routePath),
+      "ContactResearchPage",
+      "público",
+      "mount standalone em src/main.tsx",
+    ]),
+  ];
 
   const redirectRows = legacyRedirects.map(routePath => [
     code(routePath),
@@ -233,7 +242,7 @@ async function generate() {
     "",
     ...table(["Caminho", "Componentes", "Acesso", "Montagem"], standaloneRows),
     "",
-    "As rotas standalone são interceptadas antes de `App.tsx` e, portanto, prevalecem sobre o fallback genérico `/admin/*`.",
+    "As rotas standalone são interceptadas antes de `App.tsx`. Isso inclui as rotas operacionais e a página pública `/buscar`.",
     "",
     "## Redirecionamentos legados",
     "",
