@@ -49,8 +49,22 @@ function findFieldContainer(root: HTMLElement, labelText: string) {
 function setQuestionnaireStatus(section: HTMLElement, message: string, tone: "muted" | "success" | "error" = "muted") {
   const status = section.querySelector<HTMLElement>("[data-edit-profile-questionnaire-status]");
   if (!status) return;
-  status.textContent = message;
+  if (status.textContent !== message) status.textContent = message;
   status.dataset.tone = tone;
+}
+
+function normalizeAutosaveStatus(section: HTMLElement) {
+  const status = section.querySelector<HTMLElement>("[data-edit-profile-questionnaire-status]");
+  if (!status) return;
+
+  const text = status.textContent?.trim() ?? "";
+  if (text === "Salvando respostas..." || text === "Salvando respostas automaticamente...") {
+    setQuestionnaireStatus(section, "Salvando...");
+    return;
+  }
+  if (text === "Respostas salvas com sucesso.") {
+    setQuestionnaireStatus(section, "Respostas salvas automaticamente.", "success");
+  }
 }
 
 function clickSaveWhenReady(section: HTMLElement) {
@@ -70,7 +84,7 @@ function clickSaveWhenReady(section: HTMLElement) {
 
 function scheduleAutosave(section: HTMLElement) {
   if (autosaveTimer !== null) window.clearTimeout(autosaveTimer);
-  setQuestionnaireStatus(section, "Salvando respostas automaticamente...");
+  setQuestionnaireStatus(section, "Salvando...");
   autosaveTimer = window.setTimeout(() => {
     autosaveTimer = null;
     clickSaveWhenReady(section);
@@ -94,14 +108,16 @@ function ensureQuestionnaireAutosave(root: HTMLElement) {
     button.dataset.hcAutosaveBound = "true";
     button.addEventListener("click", () => scheduleAutosave(section));
   });
+
+  normalizeAutosaveStatus(section);
 }
 
 function syncAiProxy(source: HTMLButtonElement, proxy: HTMLButtonElement) {
   proxy.disabled = source.disabled;
   proxy.textContent = source.disabled
-    ? (source.textContent?.trim() || "Gerando perfil...")
-    : "Gerar perfil com IA";
-  proxy.setAttribute("aria-label", "Gerar perfil com IA");
+    ? (source.textContent?.trim() || "Gerando Perfil...")
+    : "Gerar Perfil com IA";
+  proxy.setAttribute("aria-label", "Gerar Perfil com IA");
 }
 
 function ensureAiActionBelowBio(root: HTMLElement) {
