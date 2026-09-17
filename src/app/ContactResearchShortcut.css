@@ -1,0 +1,272 @@
+.contact-research-ios-setup {
+  margin: 0 auto 18px;
+  max-width: 1180px;
+  border: 1px solid rgba(189, 151, 72, 0.34);
+  border-radius: 16px;
+  background: rgba(255, 252, 244, 0.96);
+  box-shadow: 0 10px 30px rgba(13, 52, 35, 0.06);
+  overflow: hidden;
+}
+
+.contact-research-ios-setup summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  color: var(--hc-green-900, #103d2b);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.contact-research-ios-setup summary::-webkit-details-marker {
+  display: none;
+}
+
+.contact-research-ios-setup summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--hc-gold, #b58a36);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.contact-research-ios-setup[open] summary::after {
+  content: "−";
+}
+
+.contact-research-ios-setup summary span {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--hc-green-800, #174f35);
+  color: #fff;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.contact-research-ios-setup-body {
+  padding: 0 16px 18px;
+  border-top: 1px solid rgba(23, 79, 53, 0.1);
+  color: #34433b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.contact-research-ios-setup-body ol {
+  margin: 12px 0 14px;
+  padding-left: 22px;
+}
+
+.contact-research-ios-setup-body li + li {
+  margin-top: 7px;
+}
+
+.contact-research-shortcut-url {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(23, 79, 53, 0.16);
+  border-radius: 10px;
+  background: #f3f0e7;
+  color: #18392b;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.contact-research-ios-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.contact-research-ios-actions button,
+.contact-research-ios-actions a {
+  appearance: none;
+  border: 1px solid var(--hc-green-800, #174f35);
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: var(--hc-green-800, #174f35);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.contact-research-ios-actions a {
+  background: transparent;
+  color: var(--hc-green-800, #174f35);
+}
+
+.contact-research-ios-note {
+  margin: 12px 0 0;
+  color: #647168;
+  font-size: 12px;
+}
+
+.contact-research-shortcut-banner {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 16px;
+  border: 1px solid rgba(189, 151, 72, 0.5);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fffaf0, #f4eee0);
+  box-shadow: 0 12px 34px rgba(13, 52, 35, 0.09);
+}
+
+.contact-research-shortcut-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contact-research-shortcut-heading span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--hc-gold-dark, #8f6a24);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.contact-research-shortcut-heading h2 {
+  margin: 0;
+  color: var(--hc-green-900, #103d2b);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(20px, 4.5vw, 27px);
+}
+
+.contact-research-shortcut-heading > button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(23, 79, 53, 0.08);
+  color: var(--hc-green-900, #103d2b);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.contact-research-shortcut-data {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+.contact-research-shortcut-data span {
+  min-width: 180px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #263a30;
+  overflow-wrap: anywhere;
+}
+
+.contact-research-shortcut-data strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #7b846f;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.contact-research-shortcut-banner > p {
+  margin: 10px 0;
+  color: #536058;
+  font-size: 13px;
+}
+
+.contact-research-shortcut-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.contact-research-shortcut-candidates button {
+  appearance: none;
+  text-align: left;
+  padding: 11px 12px;
+  border: 1px solid rgba(23, 79, 53, 0.18);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--hc-green-900, #103d2b);
+  cursor: pointer;
+}
+
+.contact-research-shortcut-candidates button:hover,
+.contact-research-shortcut-candidates button:focus-visible {
+  border-color: var(--hc-gold, #b58a36);
+  outline: none;
+}
+
+.contact-research-shortcut-candidates strong,
+.contact-research-shortcut-candidates span {
+  display: block;
+}
+
+.contact-research-shortcut-candidates strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.contact-research-shortcut-candidates span {
+  margin-top: 3px;
+  color: #788279;
+  font-size: 11px;
+}
+
+.contact-research-shortcut-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--hc-gold, #b58a36);
+  border-radius: 8px;
+  background: #fff7df;
+  color: #594b29;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .contact-research-ios-setup,
+  .contact-research-shortcut-banner {
+    margin-left: 12px;
+    margin-right: 12px;
+    border-radius: 14px;
+  }
+
+  .contact-research-ios-setup summary {
+    align-items: flex-start;
+  }
+
+  .contact-research-ios-actions {
+    flex-direction: column;
+  }
+
+  .contact-research-ios-actions button,
+  .contact-research-ios-actions a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .contact-research-shortcut-data {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .contact-research-shortcut-data span {
+    min-width: 0;
+  }
+
+  .contact-research-shortcut-candidates {
+    grid-template-columns: 1fr;
+  }
+}
