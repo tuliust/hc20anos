@@ -27,3 +27,4 @@ source_files:
 - **Sinais de autenticação:** same-origin, rate limit, Vercel OIDC
 - **Variáveis:** `AI_GATEWAY_API_KEY`, `OPENAI_API_KEY`, `OPENAI_PROFILE_MODEL`, `VERCEL_OIDC_TOKEN`
 - **RPCs chamadas:** nenhuma
+
