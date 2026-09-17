@@ -44,8 +44,6 @@ source_files:
 - arquivos em `src/lib/` tendem a combinar queries, adaptadores e tipos de domínio; exigem revisão antes de trocar aliases.
 - componentes e páginas devem migrar depois dos services, evitando acoplamento direto ao formato bruto de tabelas.
 - módulos de FAQ formam um grupo funcional próprio e podem ser migrados em conjunto.
-- perfis e conteúdo público devem ser migrados depois dos services.
-- fotos, memórias e enquetes devem ser migradas antes de checkout e pedidos.
 - enhancements precisam ser validados contra o bundle transformado, porque podem injetar imports ou formas adicionais.
 - augmentações de módulo devem ser eliminadas ou substituídas por tipos de domínio explícitos antes de remover o arquivo manual.
 
