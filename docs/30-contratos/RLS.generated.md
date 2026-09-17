@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 63cc2e7818044ac2e82a6929c12674bc397d6c14
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1471,6 +1471,7 @@ source_files:
 | `public.prevent_faq_category_delete_with_active_items` | `postgres` | `EXECUTE` | YES |
 | `public.profile_claim_penultimate_surname` | `PUBLIC` | `EXECUTE` | NO |
 | `public.profile_claim_penultimate_surname` | `postgres` | `EXECUTE` | YES |
+| `public.promote_external_hc2006_alumni` | `postgres` | `EXECUTE` | YES |
 | `public.record_content_moderation` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `service_role` | `EXECUTE` | NO |

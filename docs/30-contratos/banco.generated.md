@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 63cc2e7818044ac2e82a6929c12674bc397d6c14
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1307,6 +1307,7 @@ source_files:
 | `public.profile_claims` | `trg_profile_claims_updated_at` | `CREATE TRIGGER trg_profile_claims_updated_at BEFORE UPDATE ON profile_claims FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
 | `public.profiles` | `trg_profiles_sync_attendance_status` | `CREATE TRIGGER trg_profiles_sync_attendance_status AFTER INSERT OR UPDATE OF intends_to_attend, show_confirmed_status ON profiles FOR EACH ROW EXECUTE FUNCTION sync_people_attendance_status_from_profile()` |
 | `public.profiles` | `trg_profiles_updated_at` | `CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
+| `public.profiles` | `trg_promote_external_hc2006_alumni` | `CREATE TRIGGER trg_promote_external_hc2006_alumni BEFORE INSERT OR UPDATE OF studied_at_hc, class_year, class_group ON profiles FOR EACH ROW EXECUTE FUNCTION promote_external_hc2006_alumni()` |
 | `public.public_page_content` | `trg_public_page_content_updated_at` | `CREATE TRIGGER trg_public_page_content_updated_at BEFORE UPDATE ON public_page_content FOR EACH ROW EXECUTE FUNCTION set_public_page_content_updated_at()` |
 | `public.refund_requests` | `audit_refund_requests_change` | `CREATE TRIGGER audit_refund_requests_change AFTER INSERT OR DELETE OR UPDATE ON refund_requests FOR EACH ROW EXECUTE FUNCTION audit_sensitive_row_change()` |
 | `public.ticket_lots` | `a_ticket_lots_normalize_capacity` | `CREATE TRIGGER a_ticket_lots_normalize_capacity BEFORE INSERT OR UPDATE OF capacity ON ticket_lots FOR EACH ROW EXECUTE FUNCTION normalize_ticket_lot_capacity()` |
