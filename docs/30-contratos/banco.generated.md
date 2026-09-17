@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: 66eb45ff6747ebcc7b94a73f1b0d85717b01a4c7
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -130,6 +130,8 @@ source_files:
 | `public.contact_collectors` | 3 | `created_by` | `uuid` | YES | `—` |
 | `public.contact_collectors` | 4 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.contact_collectors` | 5 | `updated_at` | `timestamp with time zone` | NO | `now()` |
+| `public.contact_research_roster` | 1 | `person_id` | `uuid` | NO | `—` |
+| `public.contact_research_roster` | 2 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.content_moderation_events` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.content_moderation_events` | 2 | `event_id` | `uuid` | YES | `—` |
 | `public.content_moderation_events` | 3 | `entity_type` | `text` | NO | `—` |
@@ -836,7 +838,7 @@ source_files:
 | `public.admin_users` | `admin_users_user_id_key` | `UNIQUE` | `UNIQUE (user_id)` |
 | `public.alumni_contact_research` | `alumni_contact_research_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE` |
 | `public.alumni_contact_research` | `alumni_contact_research_pkey` | `PRIMARY KEY` | `PRIMARY KEY (person_id)` |
-| `public.alumni_contact_research` | `alumni_contact_research_source_check` | `CHECK` | `CHECK (source = ANY (ARRAY['manual'::text, 'device_contact_picker'::text]))` |
+| `public.alumni_contact_research` | `alumni_contact_research_source_check` | `CHECK` | `CHECK (source = ANY (ARRAY['manual'::text, 'device_contact_picker'::text, 'ios_shortcut'::text]))` |
 | `public.alumni_contact_research` | `alumni_contact_research_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'located'::text, 'no_contact'::text]))` |
 | `public.alumni_contact_research` | `alumni_contact_research_updated_by_fkey` | `FOREIGN KEY` | `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE RESTRICT` |
 | `public.audit_logs` | `audit_logs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
@@ -857,6 +859,8 @@ source_files:
 | `public.contact_collectors` | `contact_collectors_created_by_fkey` | `FOREIGN KEY` | `FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.contact_collectors` | `contact_collectors_pkey` | `PRIMARY KEY` | `PRIMARY KEY (user_id)` |
 | `public.contact_collectors` | `contact_collectors_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE` |
+| `public.contact_research_roster` | `contact_research_roster_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE` |
+| `public.contact_research_roster` | `contact_research_roster_pkey` | `PRIMARY KEY` | `PRIMARY KEY (person_id)` |
 | `public.content_moderation_events` | `content_moderation_events_actor_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
 | `public.content_moderation_events` | `content_moderation_events_entity_type_check` | `CHECK` | `CHECK (entity_type = ANY (ARRAY['photo'::text, 'photo_tag'::text, 'photo_comment'::text, 'memory'::text, 'photo_removal_request'::text]))` |
 | `public.content_moderation_events` | `content_moderation_events_event_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE` |
@@ -1124,6 +1128,7 @@ source_files:
 | `public.cms_assets` | `cms_assets_pkey` | `CREATE UNIQUE INDEX cms_assets_pkey ON public.cms_assets USING btree (id)` |
 | `public.cms_assets` | `cms_assets_unique_key` | `CREATE UNIQUE INDEX cms_assets_unique_key ON public.cms_assets USING btree (event_id, asset_key)` |
 | `public.contact_collectors` | `contact_collectors_pkey` | `CREATE UNIQUE INDEX contact_collectors_pkey ON public.contact_collectors USING btree (user_id)` |
+| `public.contact_research_roster` | `contact_research_roster_pkey` | `CREATE UNIQUE INDEX contact_research_roster_pkey ON public.contact_research_roster USING btree (person_id)` |
 | `public.content_moderation_events` | `content_moderation_events_entity_idx` | `CREATE INDEX content_moderation_events_entity_idx ON public.content_moderation_events USING btree (entity_type, entity_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_event_idx` | `CREATE INDEX content_moderation_events_event_idx ON public.content_moderation_events USING btree (event_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_pkey` | `CREATE UNIQUE INDEX content_moderation_events_pkey ON public.content_moderation_events USING btree (id)` |

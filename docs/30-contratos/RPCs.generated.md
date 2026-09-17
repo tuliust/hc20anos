@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: 66eb45ff6747ebcc7b94a73f1b0d85717b01a4c7
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -75,7 +75,7 @@ source_files:
 | `public.get_checkin_dashboard` | `p_search text` | `TABLE(ticket_id uuid, attendee_name text, attendee_email text, qr_code text, ticket_status text, checked_in boolean, checked_in_at timestamp with time zone, order_id uuid, extras jsonb)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.get_checkin_operation_metrics` | `—` | `TABLE(total_tickets bigint, active_tickets bigint, checked_in_tickets bigint, pending_tickets bigint, invalid_tickets bigint, checkin_rate numeric, vouchers_required bigint, vouchers_delivered bigint, last_checkin_at timestamp with time zone)` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.get_checkout_status_by_token` | `p_public_token uuid` | `TABLE(order_id uuid, payment_status text, payment_status_detail text, reservation_status text, expires_at timestamp with time zone, paid_at timestamp with time zone, total_amount_cents integer, currency_id text, ticket_count bigint)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
-| `public.get_contact_research_directory` | `—` | `TABLE(person_id uuid, full_name text, class_group text, whatsapp text, instagram text, email text, notes text, research_status text, source text, updated_by uuid, updated_at timestamp with time zone)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres` |
+| `public.get_contact_research_directory` | `—` | `TABLE(person_id uuid, full_name text, class_group text, whatsapp text, instagram text, email text, notes text, research_status text, source text, updated_by uuid, updated_at timestamp with time zone)` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres` |
 | `public.get_current_ticket_catalog` | `p_event_id uuid, p_at timestamp with time zone` | `TABLE(lot_id uuid, lot_code text, lot_name text, lot_starts_at timestamp with time zone, lot_ends_at timestamp with time zone, ticket_type_id uuid, product_code text, product_name text, description text, participant_type text, package_kind text, included_people_count integer, metadata_json jsonb, price_cents integer)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
 | `public.get_current_ticket_lot` | `p_event_id uuid, p_at timestamp with time zone` | `ticket_lots` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
 | `public.get_event_reports` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |

@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: 66eb45ff6747ebcc7b94a73f1b0d85717b01a4c7
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -25,6 +25,7 @@ source_files:
 | `public.checkout_terms_acceptances` | sim | não |
 | `public.cms_assets` | sim | não |
 | `public.contact_collectors` | sim | não |
+| `public.contact_research_roster` | sim | não |
 | `public.content_moderation_events` | sim | não |
 | `public.content_moderation_settings` | sim | não |
 | `public.event_archive_settings` | sim | não |
@@ -86,6 +87,7 @@ source_files:
 | `public.cms_assets` | `cms_assets_select_active` | PERMISSIVE | `public` | `SELECT` | `(is_active = true)` | `—` |
 | `public.contact_collectors` | `contact_collectors_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users a<br>  WHERE ((a.user_id = auth.uid()) AND (a.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users a<br>  WHERE ((a.user_id = auth.uid()) AND (a.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.contact_collectors` | `contact_collectors_authorized_read` | PERMISSIVE | `authenticated` | `SELECT` | `can_manage_contact_research()` | `—` |
+| `public.contact_research_roster` | `contact_research_roster_public_read` | PERMISSIVE | `anon,authenticated` | `SELECT` | `true` | `—` |
 | `public.content_moderation_events` | `content_moderation_events_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE (au.user_id = auth.uid())))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` |
@@ -346,6 +348,22 @@ source_files:
 | `public.contact_collectors` | `service_role` | `REFERENCES` | NO |
 | `public.contact_collectors` | `service_role` | `TRIGGER` | NO |
 | `public.contact_collectors` | `service_role` | `TRUNCATE` | NO |
+| `public.contact_research_roster` | `anon` | `REFERENCES` | NO |
+| `public.contact_research_roster` | `anon` | `TRIGGER` | NO |
+| `public.contact_research_roster` | `anon` | `TRUNCATE` | NO |
+| `public.contact_research_roster` | `authenticated` | `REFERENCES` | NO |
+| `public.contact_research_roster` | `authenticated` | `TRIGGER` | NO |
+| `public.contact_research_roster` | `authenticated` | `TRUNCATE` | NO |
+| `public.contact_research_roster` | `postgres` | `DELETE` | YES |
+| `public.contact_research_roster` | `postgres` | `INSERT` | YES |
+| `public.contact_research_roster` | `postgres` | `REFERENCES` | YES |
+| `public.contact_research_roster` | `postgres` | `SELECT` | YES |
+| `public.contact_research_roster` | `postgres` | `TRIGGER` | YES |
+| `public.contact_research_roster` | `postgres` | `TRUNCATE` | YES |
+| `public.contact_research_roster` | `postgres` | `UPDATE` | YES |
+| `public.contact_research_roster` | `service_role` | `REFERENCES` | NO |
+| `public.contact_research_roster` | `service_role` | `TRIGGER` | NO |
+| `public.contact_research_roster` | `service_role` | `TRUNCATE` | NO |
 | `public.content_moderation_events` | `authenticated` | `SELECT` | NO |
 | `public.content_moderation_events` | `postgres` | `DELETE` | YES |
 | `public.content_moderation_events` | `postgres` | `INSERT` | YES |

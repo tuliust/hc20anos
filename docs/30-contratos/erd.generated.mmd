@@ -1,6 +1,6 @@
 %% status: generated
 %% last_verified: 2026-09-17
-%% last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+%% last_verified_commit: 66eb45ff6747ebcc7b94a73f1b0d85717b01a4c7
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -75,6 +75,10 @@ erDiagram
     uuid created_by
     timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
+  }
+  public_contact_research_roster {
+    uuid person_id
+    timestamp_with_time_zone created_at
   }
   public_content_moderation_events {
     uuid id
@@ -861,6 +865,7 @@ erDiagram
   public_orders ||--o{ public_checkout_terms_acceptances : "order_id → id"
   public_events ||--o{ public_cms_assets : "event_id → id"
   public_admin_users ||--o{ public_cms_assets : "updated_by_admin_id → id"
+  public_people ||--o{ public_contact_research_roster : "person_id → id"
   public_events ||--o{ public_content_moderation_events : "event_id → id"
   public_events ||--o{ public_content_moderation_settings : "event_id → id"
   public_events ||--o{ public_event_archive_settings : "event_id → id"
