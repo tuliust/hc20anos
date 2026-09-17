@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 5b779dc6f449c6ad38dcdecb21aaee0eef7a1336
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 62 |
-| Ocorrências literais | 77 |
+| RPCs distintas | 64 |
+| Ocorrências literais | 79 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -65,6 +65,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_checkin_dashboard` | `src/app/OperationsPage.tsx:75` | `GetCheckinDashboardArgs` | `GetCheckinDashboardReturns` |
 | `get_checkin_operation_metrics` | `src/app/OperationsReportingPanel.tsx:15` | `GetCheckinOperationMetricsArgs` | `GetCheckinOperationMetricsReturns` |
 | `get_checkout_status_by_token` | `src/lib/checkout.ts:137` | `GetCheckoutStatusByTokenArgs` | `GetCheckoutStatusByTokenReturns` |
+| `get_contact_research_directory` | `src/app/ContactResearchPage.tsx:83` | `GetContactResearchDirectoryArgs` | `GetContactResearchDirectoryReturns` |
 | `get_current_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:136` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:119` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_current_ticket_catalog` | `src/lib/currentTicketCatalog.ts:71` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
@@ -99,6 +100,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `restore_refunded_order_inventory` | `supabase/functions/refund-processor/index.ts:71` | `RestoreRefundedOrderInventoryArgs` | `RestoreRefundedOrderInventoryReturns` |
 | `retry_order_payment` | `src/app/BuyerCommerceActions.tsx:68` | `RetryOrderPaymentArgs` | `RetryOrderPaymentReturns` |
 | `review_refund_request` | `src/app/OperationsPage.tsx:103` | `ReviewRefundRequestArgs` | `ReviewRefundRequestReturns` |
+| `save_contact_research` | `src/app/ContactResearchPage.tsx:157` | `SaveContactResearchArgs` | `SaveContactResearchReturns` |
 | `search_external_guest_sponsors` | `src/app/GuestApprovalPage.tsx:36` | `SearchExternalGuestSponsorsArgs` | `SearchExternalGuestSponsorsReturns` |
 | `set_content_featured` | `src/lib/services.ts:1580` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
 | `set_content_featured` | `src/lib/services.ts:1631` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
