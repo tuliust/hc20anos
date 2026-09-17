@@ -114,6 +114,7 @@ source_files:
 | `public.prepare_photo_removal` | `p_request_id uuid, p_notes text` | `TABLE(request_id uuid, photo_id uuid, storage_path text)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.prevent_faq_category_delete_with_active_items` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.profile_claim_penultimate_surname` | `value text` | `text` | não | `stable` | `—` |
+| `public.promote_external_hc2006_alumni` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.record_content_moderation` | `p_event_id uuid, p_entity_type text, p_entity_id uuid, p_previous_status text, p_new_status text, p_action text, p_notes text, p_metadata jsonb` | `uuid` | sim | `volatile` | `postgres=X/postgres` |
 | `public.refresh_ticket_type_sold_quantity` | `p_event_id uuid` | `integer` | sim | `volatile` | `postgres=X/postgres,service_role=X/postgres` |
 | `public.register_external_user_profile` | `p_full_name text, p_contact_email text, p_contact_whatsapp text, p_current_city text, p_profession text` | `profiles` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
