@@ -37,7 +37,7 @@ async function installCatalogFixture(page: Page) {
   }
 }
 
-test("Home usa nome e preço do lote único", async ({ page }) => {
+test("Home usa nome, preço e CTA padronizados do lote único", async ({ page }) => {
   await installHomeFixtures(page);
   await installCatalogFixture(page);
 
@@ -47,8 +47,14 @@ test("Home usa nome e preço do lote único", async ({ page }) => {
   const catalog = page.locator("[data-public-ticket-catalog-home='true']");
   await expect(catalog).toBeVisible();
   await expect(catalog.locator("article")).toHaveCount(1);
-  await expect(catalog).toContainText("LOTE ÚNICO");
-  await expect(catalog).toContainText("R$ 120,00");
+
+  const card = catalog.locator("article").first();
+  await expect(card.getByText("LOTE ÚNICO", { exact: true })).toBeVisible();
+  await expect(card.getByRole("heading", { name: "Ingresso", exact: true })).toBeVisible();
+  await expect(card.getByText("Compra segura pelo Mercado Pago.", { exact: true })).toBeVisible();
+  await expect(card.getByText("R$ 120,00", { exact: true })).toBeVisible();
+  await expect(card.getByText("Disponível", { exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Comprar agora", exact: true })).toBeVisible();
   await expect(catalog).not.toContainText("Família");
   await expect(catalog).not.toContainText("Convidado");
 });
