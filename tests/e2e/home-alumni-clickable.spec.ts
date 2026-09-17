@@ -62,3 +62,20 @@ test("pessoa do card Turmas abre o perfil com filtro da turma", async ({ page })
   await expect(modal).toBeVisible({ timeout: 20_000 });
   await expect(modal).toContainText(personName!);
 });
+
+test("pessoa de Quem confirmou presença abre o perfil com filtro de confirmados", async ({ page }) => {
+  await openHome(page);
+
+  const person = page.locator("[data-home-confirmed-grid] [data-home-alumni-person]").first();
+  await expect(person).toBeVisible();
+  const personName = await person.getAttribute("data-home-alumni-person");
+  expect(personName).toBeTruthy();
+
+  await person.click();
+
+  await expect(page).toHaveURL(/\/ex-alunos\?presenca=confirmed&pessoa=/);
+  await expect(page.locator("[data-ex-alumni-attendance-filter-applied='confirmed']")).toBeVisible({ timeout: 20_000 });
+  const modal = page.locator("[data-modal-root='true']");
+  await expect(modal).toBeVisible({ timeout: 20_000 });
+  await expect(modal).toContainText(personName!);
+});
