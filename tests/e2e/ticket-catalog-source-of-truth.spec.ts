@@ -24,14 +24,14 @@ const catalogRows = [
   },
 ];
 
-async function installCatalogFixture(page: Page) {
+async function installCatalogFixture(page: Page, rows = catalogRows) {
   for (const endpoint of ["get_public_ticket_catalog", "get_current_ticket_catalog"]) {
     await page.route(`**/rest/v1/rpc/${endpoint}`, async route => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        headers: { "Content-Range": "0-0/1" },
-        body: JSON.stringify(catalogRows),
+        headers: { "Content-Range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}` },
+        body: JSON.stringify(rows),
       });
     });
   }
@@ -57,6 +57,24 @@ test("Home usa nome, preço e CTA padronizados do lote único", async ({ page })
   await expect(card.getByRole("button", { name: "Comprar agora", exact: true })).toBeVisible();
   await expect(catalog).not.toContainText("Família");
   await expect(catalog).not.toContainText("Convidado");
+});
+
+test("Home preserva o rótulo do lote ativo fornecido pelo catálogo", async ({ page }) => {
+  await installHomeFixtures(page);
+  const renamedLotRows = catalogRows.map(row => ({ ...row, lot_code: "reencontro", lot_name: "Lote Reencontro" }));
+  await installCatalogFixture(page, renamedLotRows);
+
+  await page.goto("/");
+  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
+
+  const homeCatalog = page.locator("[data-public-ticket-catalog-home='true']");
+  await expect(homeCatalog).toContainText("LOTE REENCONTRO");
+  await expect(page.locator("[data-home-ticket-amenities]")).toContainText("Lote Reencontro");
+
+  await page.goto("/ingressos");
+  const ticketsCatalog = page.locator("[data-public-ticket-catalog='true']");
+  await expect(ticketsCatalog).toBeVisible({ timeout: 20_000 });
+  await expect(ticketsCatalog).toContainText("LOTE REENCONTRO");
 });
 
 test("Home e página de ingressos exibem o mesmo catálogo", async ({ page }) => {
