@@ -169,7 +169,9 @@ const PROFILE_BIO_INSTRUCTIONS = `Você escreve perfis curtos para o site privad
 
 Regras obrigatórias:
 - escreva em português do Brasil;
-- use terceira pessoa e um tom nostálgico, natural e respeitoso;
+- escreva sempre em primeira pessoa, como se a própria pessoa estivesse se apresentando;
+- não use o nome da pessoa no texto e não descreva a pessoa em terceira pessoa;
+- use um tom nostálgico, natural e respeitoso;
 - produza de 2 a 4 frases, com no máximo 500 caracteres;
 - use somente os dados fornecidos e não invente fatos;
 - não mencione que o texto foi gerado por IA;
