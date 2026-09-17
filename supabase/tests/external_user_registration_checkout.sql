@@ -68,7 +68,8 @@ declare
   v_profile public.profiles%rowtype;
   v_order public.orders%rowtype;
   v_participant public.order_participants%rowtype;
-  v_rejected boolean := false;
+  v_companion_order public.orders%rowtype;
+  v_companion_count integer;
 begin
   select pe.* into strict v_person
   from public.people pe
@@ -118,38 +119,64 @@ begin
     raise exception 'FAIL: external participant contact data is incomplete';
   end if;
 
-  begin
-    perform * from public.create_checkout_order(
-      '99999999-9999-4999-8999-999999999999'::uuid,
-      'Usuário Externo Teste',
-      'external-tests@local.invalid',
-      '(84) 99999-0000',
-      'simple',
-      jsonb_build_array(
-        jsonb_build_object(
-          'client_key', 'external-primary-2',
-          'participant_type', 'alumni',
-          'full_name', 'Usuário Externo Teste'
-        ),
-        jsonb_build_object(
-          'client_key', 'external-spouse',
-          'participant_type', 'spouse',
-          'full_name', 'Acompanhante não permitido'
-        )
+  perform * from public.create_checkout_order(
+    '99999999-9999-4999-8999-999999999999'::uuid,
+    'Usuário Externo Teste',
+    'external-tests@local.invalid',
+    '(84) 99999-0000',
+    'simple',
+    jsonb_build_array(
+      jsonb_build_object(
+        'client_key', 'external-primary-2',
+        'participant_type', 'alumni',
+        'full_name', 'Usuário Externo Teste'
       ),
-      '[]'::jsonb,
-      'external-user-invalid-companion'
-    );
-  exception when others then
-    if position('external_single_ticket_required' in sqlerrm) > 0 then
-      v_rejected := true;
-    else
-      raise;
-    end if;
-  end;
+      jsonb_build_object(
+        'client_key', 'external-spouse',
+        'participant_type', 'spouse',
+        'full_name', 'Acompanhante Permitido'
+      )
+    ),
+    '[]'::jsonb,
+    'external-user-companion-order'
+  );
 
-  if not v_rejected then
-    raise exception 'FAIL: external user checkout accepted companions';
+  select o.* into strict v_companion_order
+  from public.orders o 
+  where o.buyer_user_id = '99999999-9999-4999-8999-999999999999'::uuid
+    and o.checkout_idempotency_key = 'external-user-companion-order';
+
+  if v_companion_order.total_amount_cents <> 24000 or v_companion_order.quantity <> 2 then
+    raise exception 'FAIL: external checkout with companion expected two full-price tickets, got total=% quantity=%', w_companion_order.total_amount_cents, v_companion_order.quantity;
+  end if;
+
+  select count(*)::integer into v_companion_count
+  from public.order_participants op
+  where op.order_id = v_companion_order.id;
+
+  if v_companion_count <> 2 then
+    raise exception 'FAIL: external checkout with companion expected two participants, got %', w_companion_count;
+  end if;
+
+  if not exists (
+    select 1
+    from public.order_participants op
+    where op.order_id = v_companion_order.id
+      and op.participant_type = 'external_guest'
+      and op.user_id = '99999999-9999-4999-8999-99999999999'::uuid
+      and op.person_id = v_person.id
+  ) then
+    raise exception 'FAIL: external checkout with companion lost primary account/person linkage';
+  end if;
+
+  if not exists (
+    select 1
+    from public.order_participants op
+    where op.order_id = v_companion_order.id
+      and op.participant_type = 'spouse'
+      and op.full_name = 'Acompanhante Permitido'
+  ) then
+    raise exception 'FAIL: external checkout did not persist the companion';
   end if;
 
   if has_function_privilege('anon', 'public.register_external_user_profile(text,text,text,text,text)', 'EXECUTE') then
