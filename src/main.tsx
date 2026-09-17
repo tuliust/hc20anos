@@ -54,6 +54,7 @@ import { installTicketProductModelEnhancement } from './ticketProductModelEnhanc
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
 import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
+import { installEventStage4Enhancements } from './eventStage4Enhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
 import { installCuriositiesSummaryEnhancements } from './curiositiesSummaryEnhancements';
 import { installCuriositiesPollMobileEnhancements } from './curiositiesPollMobileEnhancements';
@@ -66,6 +67,7 @@ import './mobile-a11y.css';
 import './mobileHeroRefinements.css';
 import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
+import './eventStage4Enhancements.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
 import './editProfileQuestionnaireBioEnhancement.css';
@@ -131,6 +133,7 @@ if (!isStandaloneRoute) {
   installPostEventClosedMessageEnhancements();
   installTimelineSequentialActivation();
   installEventProgramEnhancements();
+  installEventStage4Enhancements();
   installAdminEventAttractionImages();
   installCuriositiesSummaryEnhancements();
   installCuriositiesPollMobileEnhancements();
