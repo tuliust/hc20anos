@@ -8,7 +8,7 @@ const STYLE_ID = "hc-external-profile-context-style";
 
 type ExternalProfileContext = {
   studiedAtHc: boolean;
-  graduationYear: number | null;
+  classYear: number | null;
   classGroup: string | null;
   relationshipToClass: string | null;
 };
@@ -82,9 +82,14 @@ function readPending(): ExternalProfileContext | null {
   try {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ExternalProfileContext;
+    const parsed = JSON.parse(raw) as ExternalProfileContext & { graduationYear?: number | null };
     if (typeof parsed?.studiedAtHc !== "boolean") return null;
-    return parsed;
+    return {
+      studiedAtHc: parsed.studiedAtHc,
+      classYear: parsed.classYear ?? parsed.graduationYear ?? null,
+      classGroup: parsed.classGroup ?? null,
+      relationshipToClass: parsed.relationshipToClass ?? null,
+    };
   } catch {
     return null;
   }
@@ -129,14 +134,14 @@ function createContextSection() {
 
   const year = document.createElement("input");
   year.type = "number";
-  year.name = "hcGraduationYear";
+  year.name = "classYear";
   year.min = "1950";
   year.max = "2100";
   year.placeholder = "Ex.: 2006";
 
   const classGroup = document.createElement("input");
   classGroup.type = "text";
-  classGroup.name = "hcClassGroup";
+  classGroup.name = "classGroup";
   classGroup.maxLength = 40;
   classGroup.placeholder = "Ex.: A, B, C, D ou não lembro";
 
@@ -171,7 +176,7 @@ function createContextSection() {
   const pending = readPending();
   if (pending) {
     studied.value = pending.studiedAtHc ? "yes" : "no";
-    year.value = pending.graduationYear ? String(pending.graduationYear) : "";
+    year.value = pending.classYear ? String(pending.classYear) : "";
     classGroup.value = pending.classGroup ?? "";
     relationship.value = pending.relationshipToClass ?? "";
   }
@@ -190,15 +195,15 @@ function mountContextFields(form: HTMLElement) {
 
 function readContext(form: HTMLElement): { value: ExternalProfileContext | null; error: string | null } {
   const studiedValue = form.querySelector<HTMLSelectElement>('select[name="studiedAtHc"]')?.value ?? "";
-  const yearRaw = form.querySelector<HTMLInputElement>('input[name="hcGraduationYear"]')?.value.trim() ?? "";
-  const classGroup = form.querySelector<HTMLInputElement>('input[name="hcClassGroup"]')?.value.trim() ?? "";
+  const yearRaw = form.querySelector<HTMLInputElement>('input[name="classYear"]')?.value.trim() ?? "";
+  const classGroup = form.querySelector<HTMLInputElement>('input[name="classGroup"]')?.value.trim() ?? "";
   const relationship = form.querySelector<HTMLTextAreaElement>('textarea[name="relationshipToClass"]')?.value.trim() ?? "";
 
   if (!studiedValue) return { value: null, error: "Informe se você estudou no HC." };
 
   if (studiedValue === "yes") {
-    const graduationYear = Number(yearRaw);
-    if (!Number.isInteger(graduationYear) || graduationYear < 1950 || graduationYear > 2100) {
+    const classYear = Number(yearRaw);
+    if (!Number.isInteger(classYear) || classYear < 1950 || classYear > 2100) {
       return { value: null, error: "Informe o ano em que você se formou no HC." };
     }
     if (!classGroup) return { value: null, error: "Informe qual era a sua sala no HC." };
@@ -206,7 +211,7 @@ function readContext(form: HTMLElement): { value: ExternalProfileContext | null;
     return {
       value: {
         studiedAtHc: true,
-        graduationYear,
+        classYear,
         classGroup: classGroup.slice(0, 40),
         relationshipToClass: null,
       },
@@ -221,7 +226,7 @@ function readContext(form: HTMLElement): { value: ExternalProfileContext | null;
   return {
     value: {
       studiedAtHc: false,
-      graduationYear: null,
+      classYear: null,
       classGroup: null,
       relationshipToClass: relationship.slice(0, 240),
     },
@@ -253,14 +258,14 @@ async function flushPendingContext() {
     const payload = pending.studiedAtHc
       ? {
           studied_at_hc: true,
-          hc_graduation_year: pending.graduationYear,
-          hc_class_group: pending.classGroup,
+          class_year: pending.classYear,
+          class_group: pending.classGroup,
           relationship_to_class: null,
         }
       : {
           studied_at_hc: false,
-          hc_graduation_year: null,
-          hc_class_group: null,
+          class_year: null,
+          class_group: null,
           relationship_to_class: pending.relationshipToClass,
         };
 
