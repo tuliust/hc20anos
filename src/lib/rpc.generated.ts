@@ -224,8 +224,8 @@ export type HasStructuredFaqItemsReturns = RpcReturns<"has_structured_faq_items"
 export type HasStructuredFaqItemsRow = RpcRow<"has_structured_faq_items">;
 
 export type ModerateContentItemArgs = RpcArgs<"moderate_content_item">;
-export type ModerateContentReturns = RpcReturns<"moderate_content_item">;
-export type ModerateContentRow = RpcRow<"moderate_content_item">;
+export type ModerateContentItemReturns = RpcReturns<"moderate_content_item">;
+export type ModerateContentItemRow = RpcRow<"moderate_content_item">;
 
 export type MoveFaqCategoryItemsArgs = RpcArgs<"move_faq_category_items">;
 export type MoveFaqCategoryItemsReturns = RpcReturns<"move_faq_category_items">;
