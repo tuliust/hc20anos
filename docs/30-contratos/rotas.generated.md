@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 0cd971017f62376caef880888c9ee92b8f4471a0
+last_verified_commit: aec14450aa0dee867fc7b5fdcdc46ff6137edeac
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
@@ -67,8 +67,9 @@ A aplicação usa estado interno de página, `window.location`, History API e mo
 |---|---|---|---|
 | `/admin/operacao` | OperationsPage + OperationsReportingPanel | administrativo/operacional | mount standalone em src/main.tsx |
 | `/admin/checkin` | OperationsPage + OperationsReportingPanel | administrativo/operacional | mount standalone em src/main.tsx |
+| `/buscar` | ContactResearchPage | público | mount standalone em src/main.tsx |
 
-As rotas standalone são interceptadas antes de `App.tsx` e, portanto, prevalecem sobre o fallback genérico `/admin/*`.
+As rotas standalone são interceptadas antes de `App.tsx`. Isso inclui as rotas operacionais e a página pública `/buscar`.
 
 ## Redirecionamentos legados
 
@@ -105,4 +106,3 @@ O rewrite da Vercel entrega a SPA para acessos diretos. A resolução funcional 
 - regras condicionais introduzidas por novos transforms devem ser adicionadas ao gerador;
 - a existência de uma rota não comprova autorização server-side;
 - links externos e âncoras não entram neste inventário.
-
