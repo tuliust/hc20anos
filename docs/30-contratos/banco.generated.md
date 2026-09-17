@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 3f4b50a014c8a6b3b6fea5fe68d629adae0bced6
+last_verified_commit: d739d63243ab33542c563db0cd3c452f549f5972
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -678,8 +678,8 @@ source_files:
 | `public.profiles` | 26 | `children_count` | `integer` | YES | `—` |
 | `public.profiles` | 27 | `intends_to_attend` | `boolean` | YES | `—` |
 | `public.profiles` | 28 | `studied_at_hc` | `boolean` | YES | `—` |
-| `public.profiles` | 29 | `hc_graduation_year` | `integer` | YES | `—` |
-| `public.profiles` | 30 | `hc_class_group` | `text` | YES | `—` |
+| `public.profiles` | 29 | `class_year` | `integer` | YES | `—` |
+| `public.profiles` | 30 | `class_group` | `text` | YES | `—` |
 | `public.profiles` | 31 | `relationship_to_class` | `text` | YES | `—` |
 | `public.public_page_content` | 1 | `event_id` | `uuid` | NO | `—` |
 | `public.public_page_content` | 2 | `page_slug` | `text` | NO | `—` |
@@ -1010,8 +1010,8 @@ source_files:
 | `public.profile_school_questionnaire_answers` | `profile_school_questionnaire_answers_unique` | `UNIQUE` | `UNIQUE (profile_id, question_id)` |
 | `public.profiles` | `profiles_children_consistency_check` | `CHECK` | `CHECK (has_children = true OR children_count IS NULL)` |
 | `public.profiles` | `profiles_children_count_check` | `CHECK` | `CHECK (children_count IS NULL OR children_count >= 0)` |
-| `public.profiles` | `profiles_hc_class_group_length_check` | `CHECK` | `CHECK (hc_class_group IS NULL OR char_length(btrim(hc_class_group)) >= 1 AND char_length(btrim(hc_class_group)) <= 40)` |
-| `public.profiles` | `profiles_hc_graduation_year_check` | `CHECK` | `CHECK (hc_graduation_year IS NULL OR hc_graduation_year >= 1950 AND hc_graduation_year <= 2100)` |
+| `public.profiles` | `profiles_class_group_length_check` | `CHECK` | `CHECK (class_group IS NULL OR char_length(btrim(class_group)) >= 1 AND char_length(btrim(class_group)) <= 40)` |
+| `public.profiles` | `profiles_class_year_check` | `CHECK` | `CHECK (class_year IS NULL OR class_year >= 1950 AND class_year <= 2100)` |
 | `public.profiles` | `profiles_person_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE` |
 | `public.profiles` | `profiles_person_id_key` | `UNIQUE` | `UNIQUE (person_id)` |
 | `public.profiles` | `profiles_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
