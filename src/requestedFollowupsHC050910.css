@@ -1,0 +1,15 @@
+/* HC-05 — Data / Horário / Local continuam destacados, mas sem caixas pretas sólidas. */
+[data-hc-event-info-card="true"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* HC-09 — o enhancement legado marcava acompanhantes do usuário externo como ocultos. */
+html[data-hc-hc09-external="true"] button[data-hc-external-hidden="true"] {
+  display: flex !important;
+}
+
+html[data-hc-hc09-external="true"] span[data-hc-external-hidden="true"] {
+  display: inline !important;
+}
