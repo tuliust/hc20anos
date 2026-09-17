@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c3e31e7f73d3fbe1773f04639d0adac0519729f7
+last_verified_commit: a39e62d035111be58eda6ea7755dd7def20323b0
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -32,7 +32,7 @@ source_files:
 | `email_configuration_missing` | `supabase/functions/notification-worker/index.ts:113` |
 | `event_id_required` | `supabase/functions/photo-storage/index.ts:157` |
 | `exactly_one_alumni_required` | `supabase/functions/checkout-create/index.ts:99` |
-| `forbidden_origin` | `api/generate-profile-bio.ts:237` |
+| `forbidden_origin` | `api/generate-profile-bio.ts:239` |
 | `idempotency_key_required` | `supabase/functions/checkout-create/index.ts:76` |
 | `image_required` | `supabase/functions/photo-storage/index.ts:136`<br>`supabase/functions/photo-storage/index.ts:213` |
 | `internal` | `supabase/functions/server/index.ts:366` |
@@ -40,10 +40,10 @@ source_files:
 | `invalid_action` | `supabase/functions/photo-storage/index.ts:290` |
 | `invalid_asset_target` | `supabase/functions/photo-storage/index.ts:217` |
 | `invalid_checkout_response` | `api/checkout-create.ts:96` |
-| `invalid_openai_response` | `api/generate-profile-bio.ts:338` |
+| `invalid_openai_response` | `api/generate-profile-bio.ts:340` |
 | `invalid_payload` | `supabase/functions/checkout-create/index.ts:72` |
 | `invalid_photo_tags` | `supabase/functions/photo-storage/index.ts:153`<br>`supabase/functions/photo-storage/index.ts:93`<br>`supabase/functions/photo-storage/index.ts:95` |
-| `invalid_request` | `api/generate-profile-bio.ts:246` |
+| `invalid_request` | `api/generate-profile-bio.ts:248` |
 | `invalid_signature` | `supabase/functions/payment-webhook/index.ts:129`<br>`supabase/functions/server/index.ts:250` |
 | `invalid_transaction_amount` | `supabase/functions/payment-webhook/index.ts:192` |
 | `mercado_pago_checkout_url_missing` | `supabase/functions/checkout-create/index.ts:292` |
@@ -51,11 +51,11 @@ source_files:
 | `mercado_pago_not_configured` | `supabase/functions/checkout-create/index.ts:223` |
 | `mercado_pago_preference_failed` | `supabase/functions/checkout-create/index.ts:203` |
 | `mercado_pago_refund_failed` | `supabase/functions/refund-processor/index.ts:60` |
-| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:233`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:183`<br>`supabase/functions/payment-webhook/index.ts:122`<br>`supabase/functions/photo-storage/index.ts:283`<br>`supabase/functions/refund-processor/index.ts:15` |
+| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:183`<br>`supabase/functions/payment-webhook/index.ts:122`<br>`supabase/functions/photo-storage/index.ts:283`<br>`supabase/functions/refund-processor/index.ts:15` |
 | `missing_or_invalid_external_reference` | `supabase/functions/payment-webhook/index.ts:188` |
-| `openai_not_configured` | `api/generate-profile-bio.ts:272` |
-| `openai_request_failed` | `api/generate-profile-bio.ts:310`<br>`api/generate-profile-bio.ts:326` |
-| `openai_service_unavailable` | `api/generate-profile-bio.ts:344` |
+| `openai_not_configured` | `api/generate-profile-bio.ts:274` |
+| `openai_request_failed` | `api/generate-profile-bio.ts:312`<br>`api/generate-profile-bio.ts:328` |
+| `openai_service_unavailable` | `api/generate-profile-bio.ts:346` |
 | `order_creation_failed` | `supabase/functions/checkout-create/index.ts:245` |
 | `order_not_found_after_creation` | `supabase/functions/checkout-create/index.ts:252` |
 | `participant_client_key_duplicate` | `supabase/functions/checkout-create/index.ts:87` |
@@ -67,7 +67,7 @@ source_files:
 | `payment_id_mismatch` | `supabase/functions/payment-webhook/index.ts:184` |
 | `payment_id_missing` | `supabase/functions/refund-processor/index.ts:42` |
 | `photo_authorization_required` | `supabase/functions/photo-storage/index.ts:138` |
-| `rate_limit_exceeded` | `api/generate-profile-bio.ts:241` |
+| `rate_limit_exceeded` | `api/generate-profile-bio.ts:243` |
 | `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:115` |
 | `recipient_phone_invalid` | `supabase/functions/notification-worker/index.ts:37` |
 | `refund_not_approved` | `supabase/functions/refund-processor/index.ts:38` |
