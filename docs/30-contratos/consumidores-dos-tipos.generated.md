@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: ab5a7494cb760a5d9a6f29d345011a4aafe18ead
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -44,6 +44,8 @@ source_files:
 - arquivos em `src/lib/` tendem a combinar queries, adaptadores e tipos de domínio; exigem revisão antes de trocar aliases.
 - componentes e páginas devem migrar depois dos services, evitando acoplamento direto ao formato bruto de tabelas.
 - módulos de FAQ formam um grupo funcional próprio e podem ser migrados em conjunto.
+- perfis e conteúdo público devem ser migrados depois dos services.
+- fotos, memórias e enquetes devem ser migradas antes de checkout e pedidos.
 - enhancements precisam ser validados contra o bundle transformado, porque podem injetar imports ou formas adicionais.
 - augmentações de módulo devem ser eliminadas ou substituídas por tipos de domínio explícitos antes de remover o arquivo manual.
 
@@ -65,4 +67,3 @@ source_files:
 - um import sem `type` pode ser removido do JavaScript pelo compilador, mas é classificado conservadoramente;
 - o relatório não prova que todos os símbolos importados são efetivamente usados;
 - transforms podem introduzir consumidores somente no bundle final.
-
