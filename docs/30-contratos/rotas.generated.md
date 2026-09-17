@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 5b779dc6f449c6ad38dcdecb21aaee0eef7a1336
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
@@ -67,8 +67,9 @@ A aplicação usa estado interno de página, `window.location`, History API e mo
 |---|---|---|---|
 | `/admin/operacao` | OperationsPage + OperationsReportingPanel | administrativo/operacional | mount standalone em src/main.tsx |
 | `/admin/checkin` | OperationsPage + OperationsReportingPanel | administrativo/operacional | mount standalone em src/main.tsx |
+| `/buscar` | ContactResearchPage | público | mount standalone em src/main.tsx |
 
-As rotas standalone são interceptadas antes de `App.tsx` e, portanto, prevalecem sobre o fallback genérico `/admin/*`.
+As rotas standalone são interceptadas antes de `App.tsx`. Isso inclui as rotas operacionais e a página pública `/buscar`.
 
 ## Redirecionamentos legados
 
