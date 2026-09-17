@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e0ee56c99c167d17ab39dca95eb824de6d81feb5
+last_verified_commit: a39e62d035111be58eda6ea7755dd7def20323b0
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -89,4 +89,3 @@ source_files:
 | `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:149` |
 
 Este contrato cobre apenas códigos literais detectáveis estaticamente. Mensagens dinâmicas, erros SQL e respostas de provedores exigem geradores específicos.
-
