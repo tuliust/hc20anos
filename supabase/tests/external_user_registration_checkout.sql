@@ -142,12 +142,12 @@ begin
   );
 
   select o.* into strict v_companion_order
-  from public.orders o 
+  from public.orders o
   where o.buyer_user_id = '99999999-9999-4999-8999-999999999999'::uuid
     and o.checkout_idempotency_key = 'external-user-companion-order';
 
   if v_companion_order.total_amount_cents <> 24000 or v_companion_order.quantity <> 2 then
-    raise exception 'FAIL: external checkout with companion expected two full-price tickets, got total=% quantity=%', w_companion_order.total_amount_cents, v_companion_order.quantity;
+    raise exception 'FAIL: external checkout with companion expected two full-price tickets, got total=% quantity=%', v_companion_order.total_amount_cents, v_companion_order.quantity;
   end if;
 
   select count(*)::integer into v_companion_count
@@ -155,7 +155,7 @@ begin
   where op.order_id = v_companion_order.id;
 
   if v_companion_count <> 2 then
-    raise exception 'FAIL: external checkout with companion expected two participants, got %', w_companion_count;
+    raise exception 'FAIL: external checkout with companion expected two participants, got %', v_companion_count;
   end if;
 
   if not exists (
@@ -163,7 +163,7 @@ begin
     from public.order_participants op
     where op.order_id = v_companion_order.id
       and op.participant_type = 'external_guest'
-      and op.user_id = '99999999-9999-4999-8999-99999999999'::uuid
+      and op.user_id = '99999999-9999-4999-8999-999999999999'::uuid
       and op.person_id = v_person.id
   ) then
     raise exception 'FAIL: external checkout with companion lost primary account/person linkage';
