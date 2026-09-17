@@ -145,26 +145,42 @@ function injectStyles() {
     [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] {
       min-height: 0 !important;
       display: grid !important;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto minmax(14rem, auto);
       align-items: center;
       gap: 1.5rem;
-      padding: 1.5rem 1.75rem !important;
+      padding: 1.6rem 1.75rem !important;
+      border-color: rgba(13,26,15,.32) !important;
+      background: #f6f5f0 !important;
+      box-shadow: 0 12px 28px rgba(13,26,15,.12);
     }
     [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > div:first-child {
       min-height: 0 !important;
     }
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > div:first-child > div:first-child > p:first-child {
+      color: #173c2a !important;
+    }
     [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] h2 {
       margin-top: .45rem !important;
+      color: #0d1a0f !important;
       font-size: 1.65rem !important;
     }
     [data-public-ticket-catalog-home="true"] [${SUBTITLE_ATTRIBUTE}] {
       min-height: 0 !important;
       margin-top: .45rem !important;
-      color: #8ab89a !important;
+      color: #294634 !important;
       line-height: 1.45;
     }
     [data-public-ticket-catalog-home="true"] [data-home-ticket-redundant="true"] {
       display: none !important;
+    }
+    [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > p {
+      min-width: 9rem;
+      margin: 0 !important;
+      color: #0d1a0f !important;
+      font-size: 2rem !important;
+      line-height: 1.05 !important;
+      text-align: right;
+      white-space: nowrap;
     }
     [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > button {
       width: auto !important;
@@ -172,8 +188,8 @@ function injectStyles() {
       min-height: 3.75rem;
       margin-top: 0 !important;
       padding: 1rem 1.75rem !important;
-      background: #c9a84c !important;
-      color: #0d1a0f !important;
+      background: #2d6a4f !important;
+      color: #f0ebe0 !important;
       font-weight: 900 !important;
       box-shadow: 0 8px 24px rgba(13,26,15,.18);
     }
@@ -186,6 +202,10 @@ function injectStyles() {
       [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] {
         grid-template-columns: 1fr;
         gap: 1rem;
+      }
+      [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > p {
+        min-width: 0;
+        text-align: left;
       }
       [data-public-ticket-catalog-home="true"] article[data-ticket-product-code] > button {
         width: 100% !important;
@@ -297,13 +317,14 @@ function enhanceCard(card: HTMLElement, row: CatalogRow | null, isHome: boolean)
   subtitle.className = "text-sm text-[#7a9a7a]";
 
   if (isHome) {
-    setText(heading, "Garanta seu ingresso");
+    setText(heading, "Ingresso");
+    const lotLabel = card.querySelector<HTMLElement>("div:first-child > div:first-child > p:first-child");
+    setText(lotLabel, "LOTE ÚNICO");
     if (normalize(subtitle.textContent) !== normalize("Compra segura pelo Mercado Pago.")) subtitle.textContent = "Compra segura pelo Mercado Pago.";
     Array.from(card.children).forEach(child => {
       if (!(child instanceof HTMLElement)) return;
-      if (child === card.firstElementChild || child.tagName === "BUTTON") return;
-      if (child === subtitle || child.contains(subtitle)) return;
-      if (/^r\$/i.test(normalize(child.textContent)) || String(child.className).includes("h-px")) child.dataset.homeTicketRedundant = "true";
+      if (String(child.className).includes("h-px")) child.dataset.homeTicketRedundant = "true";
+      else child.removeAttribute("data-home-ticket-redundant");
     });
     const button = Array.from(card.querySelectorAll<HTMLButtonElement>("button"))
       .find(item => normalize(item.textContent).includes("comprar"));
