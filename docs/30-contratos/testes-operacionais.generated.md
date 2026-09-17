@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: 4432ca471a601911dfb828b782af9b2791235dca
 generation_command: GitHub Actions / Operations functional tests
 source_files:
   - playwright.config.ts
