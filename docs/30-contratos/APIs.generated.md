@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
+last_verified_commit: ab5a7494cb760a5d9a6f29d345011a4aafe18ead
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -27,4 +27,3 @@ source_files:
 - **Sinais de autenticação:** same-origin, rate limit, Vercel OIDC
 - **Variáveis:** `AI_GATEWAY_API_KEY`, `OPENAI_API_KEY`, `OPENAI_PROFILE_MODEL`, `VERCEL_OIDC_TOKEN`
 - **RPCs chamadas:** nenhuma
-
