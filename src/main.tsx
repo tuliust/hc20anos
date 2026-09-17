@@ -23,6 +23,7 @@ import { installEditProfileAiButtonEnhancement } from './editProfileAiButtonEnha
 import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installEditProfileQuestionnaireBioEnhancement } from './editProfileQuestionnaireBioEnhancement';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installExternalUserFlowEnhancements } from './externalUserFlowEnhancements';
 import { installFooterLogoEnhancements } from './footerLogoEnhancements';
 import { installHeaderMenuEnhancements } from './headerMenuEnhancements';
 import { installHistoryContentEnhancements } from './historyContentEnhancements';
@@ -105,6 +106,7 @@ if (!isStandaloneRoute) {
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
   installClaimProfileVisualEnhancements();
+  installExternalUserFlowEnhancements();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installEditProfileQuestionnaireBioEnhancement();

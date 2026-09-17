@@ -179,6 +179,52 @@ Regras obrigatórias:
 - relacionamento e filhos podem ser mencionados naturalmente, mas somente quando tiverem sido informados;
 - quando uma pergunta não tiver resposta, simplesmente ignore esse tema.`;
 
+function supportsReasoningEffort(model: string) {
+  return /(^|\/)gpt-5|(^|\/)o[134]/i.test(model);
+}
+
+function createAiBody(model: string, promptData: unknown, maxOutputTokens: number) {
+  const body: Record<string, unknown> = {
+    model,
+    store: false,
+    input: [
+      {
+        role: "developer",
+        content: [{ type: "input_text", text: PROFILE_BIO_INSTRUCTIONS }],
+      },
+      {
+        role: "user",
+        content: [{
+          type: "input_text",
+          text: `Crie o perfil a partir destes dados:\n${JSON.stringify(promptData)}`,
+        }],
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "school_reunion_profile_bio",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            bio: { type: "string" },
+          },
+          required: ["bio"],
+          additionalProperties: false,
+        },
+      },
+    },
+    max_output_tokens: maxOutputTokens,
+  };
+
+  // GPT-5 usa o mesmo orçamento para raciocínio e resposta. O endpoint estava
+  // terminando como `incomplete` antes de emitir o JSON da mini bio. Mantemos
+  // raciocínio mínimo porque a tarefa é curta e determinística.
+  if (supportsReasoningEffort(model)) body.reasoning = { effort: "minimal" };
+  return body;
+}
+
 export default async function handler(request: any, response: any) {
   response.setHeader("Cache-Control", "no-store");
 
@@ -239,49 +285,21 @@ export default async function handler(request: any, response: any) {
     })),
   };
 
-  try {
+  const requestAi = async (maxOutputTokens: number) => {
     const upstream = await fetch(responsesUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        store: false,
-        input: [
-          {
-            role: "developer",
-            content: [{ type: "input_text", text: PROFILE_BIO_INSTRUCTIONS }],
-          },
-          {
-            role: "user",
-            content: [{
-              type: "input_text",
-              text: `Crie o perfil a partir destes dados:\n${JSON.stringify(promptData)}`,
-            }],
-          },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "school_reunion_profile_bio",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                bio: { type: "string" },
-              },
-              required: ["bio"],
-              additionalProperties: false,
-            },
-          },
-        },
-        max_output_tokens: 600,
-      }),
+      body: JSON.stringify(createAiBody(model, promptData, maxOutputTokens)),
     });
-
     const payload = await upstream.json().catch(() => ({}));
+    return { upstream, payload };
+  };
+
+  try {
+    let { upstream, payload } = await requestAi(1200);
 
     if (!upstream.ok) {
       console.error("[api/generate-profile-bio] AI request failed", {
@@ -292,12 +310,30 @@ export default async function handler(request: any, response: any) {
       return response.status(502).json({ error: "openai_request_failed" });
     }
 
-    const bio = parseGeneratedBio(payload);
+    let bio = parseGeneratedBio(payload);
+    if (!bio && payload?.status === "incomplete") {
+      console.warn("[api/generate-profile-bio] Retrying incomplete AI response", {
+        provider: useGateway ? "vercel-ai-gateway" : "openai",
+        reason: payload?.incomplete_details?.reason ?? null,
+      });
+      ({ upstream, payload } = await requestAi(2400));
+      if (!upstream.ok) {
+        console.error("[api/generate-profile-bio] AI retry failed", {
+          provider: useGateway ? "vercel-ai-gateway" : "openai",
+          status: upstream.status,
+          requestId: upstream.headers.get("x-request-id"),
+        });
+        return response.status(502).json({ error: "openai_request_failed" });
+      }
+      bio = parseGeneratedBio(payload);
+    }
+
     if (!bio) {
       console.error("[api/generate-profile-bio] AI response did not contain a valid bio", {
         provider: useGateway ? "vercel-ai-gateway" : "openai",
         requestId: upstream.headers.get("x-request-id"),
         status: payload?.status,
+        incompleteReason: payload?.incomplete_details?.reason ?? null,
       });
       return response.status(502).json({ error: "invalid_openai_response" });
     }

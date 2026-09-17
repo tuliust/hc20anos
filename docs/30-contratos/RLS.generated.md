@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-16
-last_verified_commit: 50e085952ff8062d0f2dc696316db20ca9a6a525
+last_verified_commit: b7d442af9c7c6ee9e8562028462752d6968c44e2
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -130,7 +130,7 @@ source_files:
 | `public.people` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.people` | `people_admin_all` | PERMISSIVE | `authenticated` | `ALL` | `is_admin()` | `—` |
 | `public.people` | `people_owner_read` | PERMISSIVE | `public` | `SELECT` | `(claimed_by_user_id = auth.uid())` | `—` |
-| `public.people` | `people_public_read` | PERMISSIVE | `public` | `SELECT` | `(is_visible = true)` | `—` |
+| `public.people` | `people_public_read` | PERMISSIVE | `public` | `SELECT` | `((is_visible = true) AND (person_type = 'alumni'::text))` | `—` |
 | `public.photo_comments` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.photo_comments` | `admin_panel_write` | PERMISSIVE | `authenticated` | `ALL` | `is_admin_panel_user()` | `is_admin_panel_user()` |
 | `public.photo_comments` | `photo_comments_admin_delete` | PERMISSIVE | `authenticated` | `DELETE` | `(has_admin_role('admin'::admin_role) OR has_admin_role('superadmin'::admin_role))` | `—` |
@@ -1474,6 +1474,9 @@ source_files:
 | `public.record_content_moderation` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `postgres` | `EXECUTE` | YES |
 | `public.refresh_ticket_type_sold_quantity` | `service_role` | `EXECUTE` | NO |
+| `public.register_external_user_profile` | `authenticated` | `EXECUTE` | NO |
+| `public.register_external_user_profile` | `postgres` | `EXECUTE` | YES |
+| `public.register_external_user_profile` | `service_role` | `EXECUTE` | NO |
 | `public.reject_photo_removal_request` | `authenticated` | `EXECUTE` | NO |
 | `public.reject_photo_removal_request` | `postgres` | `EXECUTE` | YES |
 | `public.reject_ticket_transfer` | `authenticated` | `EXECUTE` | NO |

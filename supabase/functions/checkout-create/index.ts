@@ -64,8 +64,8 @@ function functionBaseUrl(url: string) {
 }
 
 function returnUrl(status: string, token: string) {
-  const params = new URLSearchParams({ checkout: status, token });
-  return `${SITE_URL}/?${params.toString()}`;
+  const params = new URLSearchParams({ payment_result: status, token });
+  return `${SITE_URL}/meus-pedidos?${params.toString()}`;
 }
 
 function validate(body: RequestBody) {
