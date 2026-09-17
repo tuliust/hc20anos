@@ -1,6 +1,6 @@
 %% status: generated
 %% last_verified: 2026-09-17
-%% last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+%% last_verified_commit: 2ff22924ffbeaa36986c27da5ae37c0918fd8c51
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -11,6 +11,18 @@ erDiagram
     timestamp_with_time_zone created_at
     text display_name
     text email
+    timestamp_with_time_zone updated_at
+  }
+  public_alumni_contact_research {
+    uuid person_id
+    text whatsapp
+    text instagram
+    text email
+    text notes
+    text status
+    text source
+    uuid updated_by
+    timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
   }
   public_audit_logs {
@@ -56,6 +68,13 @@ erDiagram
     timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
     uuid updated_by_admin_id
+  }
+  public_contact_collectors {
+    uuid user_id
+    boolean is_active
+    uuid created_by
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
   }
   public_content_moderation_events {
     uuid id
@@ -837,6 +856,7 @@ erDiagram
     timestamp_with_time_zone physical_vouchers_delivered_at
     uuid physical_vouchers_delivered_by
   }
+  public_people ||--o{ public_alumni_contact_research : "person_id → id"
   public_tickets ||--o{ public_checkin_events : "ticket_id → id"
   public_orders ||--o{ public_checkout_terms_acceptances : "order_id → id"
   public_events ||--o{ public_cms_assets : "event_id → id"
