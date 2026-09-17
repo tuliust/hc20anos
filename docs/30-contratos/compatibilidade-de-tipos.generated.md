@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 63cc2e7818044ac2e82a6929c12674bc397d6c14
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -110,4 +110,3 @@ Mapeamentos com `Row: any`: `payment_events`.
 - não interpreta aliases condicionais ou generics complexos;
 - tipos de domínio sem correspondência direta são preservados;
 - diferenças exigem análise funcional antes de correção.
-

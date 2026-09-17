@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: 5b779dc6f449c6ad38dcdecb21aaee0eef7a1336
 generation_command: npm run docs:generate-type-consumers
 source_files:
   - src/
@@ -65,4 +65,3 @@ source_files:
 - um import sem `type` pode ser removido do JavaScript pelo compilador, mas é classificado conservadoramente;
 - o relatório não prova que todos os símbolos importados são efetivamente usados;
 - transforms podem introduzir consumidores somente no bundle final.
-
