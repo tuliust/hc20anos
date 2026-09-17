@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 63cc2e7818044ac2e82a6929c12674bc397d6c14
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -19,10 +19,12 @@ source_files:
 | Tabela | RLS habilitada | RLS forçada |
 |---|---|---|
 | `public.admin_users` | sim | não |
+| `public.alumni_contact_research` | sim | não |
 | `public.audit_logs` | sim | não |
 | `public.checkin_events` | sim | não |
 | `public.checkout_terms_acceptances` | sim | não |
 | `public.cms_assets` | sim | não |
+| `public.contact_collectors` | sim | não |
 | `public.content_moderation_events` | sim | não |
 | `public.content_moderation_settings` | sim | não |
 | `public.event_archive_settings` | sim | não |
@@ -74,6 +76,7 @@ source_files:
 | `public.admin_users` | `admin_users_self_read` | PERMISSIVE | `public` | `SELECT` | `(user_id = auth.uid())` | `—` |
 | `public.admin_users` | `admin_users_superadmin_all` | PERMISSIVE | `authenticated` | `ALL` | `has_admin_role('superadmin'::admin_role)` | `—` |
 | `public.admin_users` | `admin_users_superadmin_write` | PERMISSIVE | `authenticated` | `ALL` | `is_superadmin()` | `is_superadmin()` |
+| `public.alumni_contact_research` | `alumni_contact_research_authorized_all` | PERMISSIVE | `authenticated` | `ALL` | `can_manage_contact_research()` | `can_manage_contact_research()` |
 | `public.audit_logs` | `admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
 | `public.audit_logs` | `audit_logs_admin_panel_insert` | PERMISSIVE | `authenticated` | `INSERT` | `—` | `is_admin_panel_user()` |
 | `public.audit_logs` | `audit_logs_admin_panel_select` | PERMISSIVE | `authenticated` | `SELECT` | `is_admin_panel_user()` | `—` |
@@ -81,6 +84,8 @@ source_files:
 | `public.audit_logs` | `audit_logs_service_insert` | PERMISSIVE | `public` | `INSERT` | `—` | `true` |
 | `public.cms_assets` | `cms_assets_manage_admins` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
 | `public.cms_assets` | `cms_assets_select_active` | PERMISSIVE | `public` | `SELECT` | `(is_active = true)` | `—` |
+| `public.contact_collectors` | `contact_collectors_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users a<br>  WHERE ((a.user_id = auth.uid()) AND (a.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users a<br>  WHERE ((a.user_id = auth.uid()) AND (a.role = ANY (ARRAY['superadmin'::admin_role, 'admin'::admin_role])))))` |
+| `public.contact_collectors` | `contact_collectors_authorized_read` | PERMISSIVE | `authenticated` | `SELECT` | `can_manage_contact_research()` | `—` |
 | `public.content_moderation_events` | `content_moderation_events_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['moderator'::admin_role, 'admin'::admin_role, 'superadmin'::admin_role])))))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_read` | PERMISSIVE | `authenticated` | `SELECT` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE (au.user_id = auth.uid())))` | `—` |
 | `public.content_moderation_settings` | `content_moderation_settings_admin_write` | PERMISSIVE | `authenticated` | `ALL` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` | `(EXISTS ( SELECT 1<br>   FROM admin_users au<br>  WHERE ((au.user_id = auth.uid()) AND (au.role = ANY (ARRAY['admin'::admin_role, 'superadmin'::admin_role])))))` |
@@ -251,6 +256,22 @@ source_files:
 | `public.admin_users` | `service_role` | `TRIGGER` | NO |
 | `public.admin_users` | `service_role` | `TRUNCATE` | NO |
 | `public.admin_users` | `service_role` | `UPDATE` | NO |
+| `public.alumni_contact_research` | `anon` | `REFERENCES` | NO |
+| `public.alumni_contact_research` | `anon` | `TRIGGER` | NO |
+| `public.alumni_contact_research` | `anon` | `TRUNCATE` | NO |
+| `public.alumni_contact_research` | `authenticated` | `REFERENCES` | NO |
+| `public.alumni_contact_research` | `authenticated` | `TRIGGER` | NO |
+| `public.alumni_contact_research` | `authenticated` | `TRUNCATE` | NO |
+| `public.alumni_contact_research` | `postgres` | `DELETE` | YES |
+| `public.alumni_contact_research` | `postgres` | `INSERT` | YES |
+| `public.alumni_contact_research` | `postgres` | `REFERENCES` | YES |
+| `public.alumni_contact_research` | `postgres` | `SELECT` | YES |
+| `public.alumni_contact_research` | `postgres` | `TRIGGER` | YES |
+| `public.alumni_contact_research` | `postgres` | `TRUNCATE` | YES |
+| `public.alumni_contact_research` | `postgres` | `UPDATE` | YES |
+| `public.alumni_contact_research` | `service_role` | `REFERENCES` | NO |
+| `public.alumni_contact_research` | `service_role` | `TRIGGER` | NO |
+| `public.alumni_contact_research` | `service_role` | `TRUNCATE` | NO |
 | `public.audit_logs` | `anon` | `REFERENCES` | NO |
 | `public.audit_logs` | `anon` | `TRIGGER` | NO |
 | `public.audit_logs` | `anon` | `TRUNCATE` | NO |
@@ -309,6 +330,22 @@ source_files:
 | `public.cms_assets` | `service_role` | `REFERENCES` | NO |
 | `public.cms_assets` | `service_role` | `TRIGGER` | NO |
 | `public.cms_assets` | `service_role` | `TRUNCATE` | NO |
+| `public.contact_collectors` | `anon` | `REFERENCES` | NO |
+| `public.contact_collectors` | `anon` | `TRIGGER` | NO |
+| `public.contact_collectors` | `anon` | `TRUNCATE` | NO |
+| `public.contact_collectors` | `authenticated` | `REFERENCES` | NO |
+| `public.contact_collectors` | `authenticated` | `TRIGGER` | NO |
+| `public.contact_collectors` | `authenticated` | `TRUNCATE` | NO |
+| `public.contact_collectors` | `postgres` | `DELETE` | YES |
+| `public.contact_collectors` | `postgres` | `INSERT` | YES |
+| `public.contact_collectors` | `postgres` | `REFERENCES` | YES |
+| `public.contact_collectors` | `postgres` | `SELECT` | YES |
+| `public.contact_collectors` | `postgres` | `TRIGGER` | YES |
+| `public.contact_collectors` | `postgres` | `TRUNCATE` | YES |
+| `public.contact_collectors` | `postgres` | `UPDATE` | YES |
+| `public.contact_collectors` | `service_role` | `REFERENCES` | NO |
+| `public.contact_collectors` | `service_role` | `TRIGGER` | NO |
+| `public.contact_collectors` | `service_role` | `TRUNCATE` | NO |
 | `public.content_moderation_events` | `authenticated` | `SELECT` | NO |
 | `public.content_moderation_events` | `postgres` | `DELETE` | YES |
 | `public.content_moderation_events` | `postgres` | `INSERT` | YES |
@@ -1281,6 +1318,9 @@ source_files:
 | `public.audit_sensitive_row_change` | `postgres` | `EXECUTE` | YES |
 | `public.calculate_refund_quote` | `authenticated` | `EXECUTE` | NO |
 | `public.calculate_refund_quote` | `postgres` | `EXECUTE` | YES |
+| `public.can_manage_contact_research` | `authenticated` | `EXECUTE` | NO |
+| `public.can_manage_contact_research` | `postgres` | `EXECUTE` | YES |
+| `public.can_manage_contact_research` | `service_role` | `EXECUTE` | NO |
 | `public.cancel_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.cancel_ticket_transfer` | `authenticated` | `EXECUTE` | NO |
 | `public.cancel_ticket_transfer` | `postgres` | `EXECUTE` | YES |
@@ -1351,6 +1391,10 @@ source_files:
 | `public.get_checkout_status_by_token` | `anon` | `EXECUTE` | NO |
 | `public.get_checkout_status_by_token` | `authenticated` | `EXECUTE` | NO |
 | `public.get_checkout_status_by_token` | `postgres` | `EXECUTE` | YES |
+| `public.get_contact_research_directory` | `anon` | `EXECUTE` | NO |
+| `public.get_contact_research_directory` | `authenticated` | `EXECUTE` | NO |
+| `public.get_contact_research_directory` | `postgres` | `EXECUTE` | YES |
+| `public.get_contact_research_directory` | `service_role` | `EXECUTE` | NO |
 | `public.get_current_ticket_catalog` | `PUBLIC` | `EXECUTE` | NO |
 | `public.get_current_ticket_catalog` | `anon` | `EXECUTE` | NO |
 | `public.get_current_ticket_catalog` | `authenticated` | `EXECUTE` | NO |
@@ -1506,6 +1550,10 @@ source_files:
 | `public.sanitize_content_row` | `postgres` | `EXECUTE` | YES |
 | `public.sanitize_plain_text` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sanitize_plain_text` | `postgres` | `EXECUTE` | YES |
+| `public.save_contact_research` | `anon` | `EXECUTE` | NO |
+| `public.save_contact_research` | `authenticated` | `EXECUTE` | NO |
+| `public.save_contact_research` | `postgres` | `EXECUTE` | YES |
+| `public.save_contact_research` | `service_role` | `EXECUTE` | NO |
 | `public.search_external_guest_sponsors` | `postgres` | `EXECUTE` | YES |
 | `public.set_cms_assets_updated_at` | `postgres` | `EXECUTE` | YES |
 | `public.set_content_featured` | `authenticated` | `EXECUTE` | NO |
