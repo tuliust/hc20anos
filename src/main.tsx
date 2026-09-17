@@ -49,6 +49,7 @@ import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancemen
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
 import { installProfileAndMemoryUiFollowups } from './profileAndMemoryUiFollowups';
 import { installProfileModalBioEnhancement } from './profileModalBioEnhancement';
+import { installRequestedFollowupsHC050910 } from './requestedFollowupsHC050910';
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
 import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
@@ -68,6 +69,7 @@ import './mobileHeroRefinements.css';
 import './eventPageLayout.css';
 import './eventProgramEnhancements.css';
 import './eventStage4Enhancements.css';
+import './requestedFollowupsHC050910.css';
 import './homeMobileRefinements.css';
 import './editProfileEnhancements.css';
 import './editProfileQuestionnaireBioEnhancement.css';
@@ -112,6 +114,7 @@ if (!isStandaloneRoute) {
   installClaimProfileVisualEnhancements();
   installExternalUserFlowEnhancements();
   installExternalUserProfileContextEnhancement();
+  installRequestedFollowupsHC050910();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installEditProfileQuestionnaireBioEnhancement();
