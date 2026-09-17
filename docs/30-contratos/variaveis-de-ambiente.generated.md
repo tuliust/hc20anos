@@ -60,3 +60,4 @@ source_files:
 | `WHATSAPP_TICKET_TEMPLATE` | server-side | `supabase/functions/server/index.ts` |
 
 Valores e secrets são deliberadamente omitidos.
+
