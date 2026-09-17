@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import "./ContactResearchPage.css";
+import "./ContactResearchShortcut.css";
 
 type ResearchStatus = "pending" | "located" | "no_contact";
 type ClassGroup = "A" | "B" | "C" | "D";
-type ResearchSource = "manual" | "device_contact_picker";
+type ResearchSource = "manual" | "device_contact_picker" | "ios_shortcut";
 
 type DirectoryRow = {
   person_id: string;
@@ -27,15 +28,98 @@ type Draft = {
   notes: string;
 };
 
+type ImportedContact = {
+  name: string;
+  phone: string;
+  email: string;
+};
+
+type RankedCandidate = {
+  row: DirectoryRow;
+  score: number;
+};
+
 const db = supabase as any;
 const GROUPS: ClassGroup[] = ["A", "B", "C", "D"];
+const NAME_PARTICLES = new Set(["de", "da", "do", "das", "dos", "e"]);
+const IOS_SHORTCUT_URL = "https://hc20anos.com.br/buscar#source=ios-shortcut&name=[Nome]&phone=[Telefone]&email=[E-mail]";
 
 function normalizeSearch(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/[^a-z0-9@+]+/g, " ")
     .trim();
+}
+
+function nameTokens(value: string) {
+  return normalizeSearch(value)
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => !NAME_PARTICLES.has(token));
+}
+
+function scoreName(importedName: string, rosterName: string) {
+  const imported = normalizeSearch(importedName);
+  const roster = normalizeSearch(rosterName);
+  if (!imported || !roster) return 0;
+  if (imported === roster) return 100;
+  if (imported.includes(roster) || roster.includes(imported)) return 88;
+
+  const importedTokens = nameTokens(importedName);
+  const rosterTokens = nameTokens(rosterName);
+  if (!importedTokens.length || !rosterTokens.length) return 0;
+
+  const common = importedTokens.filter((token) => rosterTokens.includes(token));
+  if (!common.length) return 0;
+
+  let score = (common.length / Math.max(importedTokens.length, rosterTokens.length)) * 70;
+  if (importedTokens[0] === rosterTokens[0]) score += 15;
+  if (importedTokens[importedTokens.length - 1] === rosterTokens[rosterTokens.length - 1]) score += 15;
+  return Math.min(100, Math.round(score));
+}
+
+function rankImportedContact(imported: ImportedContact, rows: DirectoryRow[]): RankedCandidate[] {
+  return rows
+    .map((row) => ({ row, score: scoreName(imported.name, row.full_name) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.row.full_name.localeCompare(b.row.full_name, "pt-BR"))
+    .slice(0, 5);
+}
+
+function cleanImportedPhone(rawValue: string) {
+  const raw = rawValue ?? "";
+  if (/^\s+\d/.test(raw)) return `+${raw.trim()}`;
+  return raw.trim();
+}
+
+function paramsToImportedContact(params: URLSearchParams): ImportedContact | null {
+  if (params.get("source") !== "ios-shortcut") return null;
+
+  const name = (params.get("name") ?? "").trim();
+  const phone = cleanImportedPhone(params.get("phone") ?? "");
+  const email = (params.get("email") ?? "").trim();
+  if (!name && !phone && !email) return null;
+  return { name, phone, email };
+}
+
+function parseShortcutImport(): ImportedContact | null {
+  if (typeof window === "undefined") return null;
+
+  const hash = window.location.hash.replace(/^#/, "");
+  const fromHash = hash ? paramsToImportedContact(new URLSearchParams(hash)) : null;
+  if (fromHash) return fromHash;
+
+  return paramsToImportedContact(new URLSearchParams(window.location.search));
+}
+
+function clearShortcutPayloadFromAddressBar() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  ["source", "name", "phone", "email"].forEach((key) => url.searchParams.delete(key));
+  url.hash = "";
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
 }
 
 function statusLabel(status: ResearchStatus) {
@@ -76,6 +160,9 @@ export function ContactResearchPage() {
   const [draft, setDraft] = useState<Draft>({ whatsapp: "", instagram: "", email: "", notes: "" });
   const [draftSource, setDraftSource] = useState<ResearchSource>("manual");
   const [saving, setSaving] = useState(false);
+  const [shortcutImport, setShortcutImport] = useState<ImportedContact | null>(() => parseShortcutImport());
+  const [shortcutProcessed, setShortcutProcessed] = useState(false);
+  const [shortcutCopied, setShortcutCopied] = useState(false);
 
   async function loadDirectory() {
     setLoading(true);
@@ -96,6 +183,10 @@ export function ContactResearchPage() {
   useEffect(() => {
     void loadDirectory();
   }, []);
+
+  useEffect(() => {
+    if (shortcutImport) clearShortcutPayloadFromAddressBar();
+  }, [shortcutImport]);
 
   const summary = useMemo(() => {
     const base = { total: rows.length, located: 0, noContact: 0, pending: 0 };
@@ -136,12 +227,37 @@ export function ContactResearchPage() {
     });
   }, [rows, activeGroup, statusFilter, query]);
 
-  function openEditor(row: DirectoryRow) {
+  const shortcutCandidates = useMemo(
+    () => shortcutImport ? rankImportedContact(shortcutImport, rows) : [],
+    [shortcutImport, rows],
+  );
+
+  function openEditor(row: DirectoryRow, imported?: ImportedContact) {
+    const base = rowDraft(row);
     setEditing(row);
-    setDraft(rowDraft(row));
-    setDraftSource(row.source ?? "manual");
+    setActiveGroup(row.class_group);
+    setDraft(imported ? {
+      ...base,
+      whatsapp: imported.phone || base.whatsapp,
+      email: imported.email || base.email,
+    } : base);
+    setDraftSource(imported ? "ios_shortcut" : (row.source ?? "manual"));
     setError("");
   }
+
+  useEffect(() => {
+    if (shortcutProcessed || !shortcutImport || !rows.length) return;
+
+    const ranked = rankImportedContact(shortcutImport, rows);
+    const top = ranked[0];
+    const second = ranked[1];
+    const confident = top && top.score >= 80 && (!second || top.score - second.score >= 10);
+
+    if (confident) openEditor(top.row, shortcutImport);
+    else if (shortcutImport.name) setQuery(shortcutImport.name.split(/\s+/)[0] ?? "");
+
+    setShortcutProcessed(true);
+  }, [rows, shortcutImport, shortcutProcessed]);
 
   function closeEditor() {
     if (saving) return;
@@ -154,13 +270,14 @@ export function ContactResearchPage() {
     setSaving(true);
     setError("");
 
+    const sourceBeingSaved = draftSource;
     const { data, error: rpcError } = await db.rpc("save_contact_research", {
       p_person_id: editing.person_id,
       p_whatsapp: draft.whatsapp,
       p_instagram: draft.instagram,
       p_email: draft.email,
       p_notes: draft.notes,
-      p_source: draftSource,
+      p_source: sourceBeingSaved,
       p_mark_no_contact: Boolean(options?.noContact),
     });
 
@@ -181,11 +298,12 @@ export function ContactResearchPage() {
       email: saved?.email ?? null,
       notes: saved?.notes ?? null,
       research_status: nextStatus,
-      source: saved?.source ?? draftSource,
+      source: saved?.source ?? sourceBeingSaved,
       updated_by: saved?.updated_by ?? null,
       updated_at: updatedAt,
     } : row));
 
+    if (sourceBeingSaved === "ios_shortcut") setShortcutImport(null);
     setEditing(null);
     setSaving(false);
   }
@@ -210,7 +328,7 @@ export function ContactResearchPage() {
 
     const nav = navigator as any;
     if (!nav.contacts?.select) {
-      setError("Seu navegador não permite importar contatos diretamente. Preencha os campos manualmente.");
+      setError("Neste navegador a agenda não pode ser aberta diretamente. No iPhone, use o Atalho HC 2006 descrito nesta página.");
       return;
     }
 
@@ -230,6 +348,16 @@ export function ContactResearchPage() {
       if ((pickError as Error)?.name !== "AbortError") {
         setError("Não foi possível abrir a agenda neste navegador.");
       }
+    }
+  }
+
+  async function copyShortcutTemplate() {
+    try {
+      await navigator.clipboard.writeText(IOS_SHORTCUT_URL);
+      setShortcutCopied(true);
+      window.setTimeout(() => setShortcutCopied(false), 2200);
+    } catch {
+      setError("Não foi possível copiar automaticamente. Selecione e copie o modelo de URL abaixo.");
     }
   }
 
@@ -260,6 +388,49 @@ export function ContactResearchPage() {
       <div><strong>{summary.pending}</strong><span>pendentes</span></div>
       <div><strong>{summary.noContact}</strong><span>sem contato</span></div>
     </section>
+
+    <details className="contact-research-ios-setup">
+      <summary><span>iPhone</span> Configurar “Enviar para HC 2006”</summary>
+      <div className="contact-research-ios-setup-body">
+        <p>O Safari não abre a agenda diretamente, mas o app Atalhos pode receber um cartão compartilhado pelo app Contatos e enviar somente nome, telefone e e-mail para esta página.</p>
+        <ol>
+          <li>No app <strong>Atalhos</strong>, crie um atalho chamado <strong>Enviar para HC 2006</strong> e ative <strong>Mostrar na Folha de Compartilhamento</strong>.</li>
+          <li>Defina a entrada aceita como <strong>Contatos</strong>.</li>
+          <li>Obtenha do contato recebido os detalhes <strong>Nome</strong>, <strong>Números de Telefone</strong> e <strong>Endereços de E-mail</strong>. Para telefone e e-mail, use o primeiro item ou adicione “Escolher da Lista”.</li>
+          <li>Adicione a ação <strong>URL</strong> e monte o endereço abaixo usando as variáveis mágicas correspondentes.</li>
+          <li>Finalize com <strong>Abrir URLs</strong>. Depois, no app Contatos: <strong>Compartilhar Contato → Enviar para HC 2006</strong>.</li>
+        </ol>
+        <code className="contact-research-shortcut-url">{IOS_SHORTCUT_URL}</code>
+        <div className="contact-research-ios-actions">
+          <button type="button" onClick={() => void copyShortcutTemplate()}>{shortcutCopied ? "Modelo copiado" : "Copiar modelo de URL"}</button>
+          <a href="shortcuts://create-shortcut">Abrir editor de Atalhos</a>
+        </div>
+        <p className="contact-research-ios-note">Os dados viajam no fragmento <code>#</code> do endereço: eles não fazem parte da requisição HTTP ao servidor. Nada é salvo até você confirmar no editor.</p>
+      </div>
+    </details>
+
+    {shortcutImport && !editing && <section className="contact-research-shortcut-banner" aria-live="polite">
+      <div className="contact-research-shortcut-heading">
+        <div>
+          <span>Recebido do iPhone</span>
+          <h2>{shortcutImport.name || "Contato sem nome"}</h2>
+        </div>
+        <button type="button" onClick={() => setShortcutImport(null)} aria-label="Descartar contato recebido">×</button>
+      </div>
+      <div className="contact-research-shortcut-data">
+        {shortcutImport.phone && <span><strong>Telefone</strong>{shortcutImport.phone}</span>}
+        {shortcutImport.email && <span><strong>E-mail</strong>{shortcutImport.email}</span>}
+      </div>
+      {shortcutCandidates.length > 0 ? <>
+        <p>Confirme a pessoa correspondente na lista HC 2006:</p>
+        <div className="contact-research-shortcut-candidates">
+          {shortcutCandidates.map(({ row, score }) => <button type="button" key={row.person_id} onClick={() => openEditor(row, shortcutImport)}>
+            <strong>{row.full_name}</strong>
+            <span>Turma {row.class_group}{score >= 80 ? " · correspondência forte" : ""}</span>
+          </button>)}
+        </div>
+      </> : <p>Nenhum nome parecido foi encontrado. Use a busca abaixo e abra manualmente a pessoa correta; o contato recebido permanecerá disponível até ser descartado.</p>}
+    </section>}
 
     <section className="contact-research-toolbar">
       <div className="contact-research-tabs" role="tablist" aria-label="Turmas">
@@ -308,7 +479,7 @@ export function ContactResearchPage() {
         <table className="contact-research-table">
           <thead><tr><th>Nome</th><th>WhatsApp</th><th>Instagram</th><th>E-mail</th><th>Observação</th><th>Status</th></tr></thead>
           <tbody>
-            {filteredRows.map((row) => <tr key={row.person_id} onClick={() => openEditor(row)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") openEditor(row); }}>
+            {filteredRows.map((row) => <tr key={row.person_id} onClick={() => openEditor(row, shortcutImport ?? undefined)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") openEditor(row, shortcutImport ?? undefined); }}>
               <td data-label="Nome"><strong>{row.full_name}</strong>{row.updated_at && <small>Atualizado {formatUpdatedAt(row.updated_at)}</small>}</td>
               <td data-label="WhatsApp">{row.whatsapp || "—"}</td>
               <td data-label="Instagram">{row.instagram || "—"}</td>
@@ -329,16 +500,20 @@ export function ContactResearchPage() {
           <button type="button" aria-label="Fechar" onClick={closeEditor}>×</button>
         </div>
 
+        {draftSource === "ios_shortcut" && <div className="contact-research-shortcut-notice">
+          Dados recebidos do Atalho do iPhone. Confira telefone e e-mail antes de salvar.
+        </div>}
+
         <button className="contact-research-contact-picker" type="button" onClick={() => void pickDeviceContact()}>
           Importar da agenda do celular
         </button>
-        <p className="contact-research-picker-help">Quando suportado pelo navegador, você escolhe apenas um contato. A aplicação não recebe sua agenda inteira.</p>
+        <p className="contact-research-picker-help">No Android compatível, a agenda abre aqui. No iPhone, compartilhe o contato pelo atalho “Enviar para HC 2006”.</p>
 
         <div className="contact-research-fields">
-          <label>WhatsApp<input value={draft.whatsapp} onChange={(event) => { setDraft({ ...draft, whatsapp: event.target.value }); setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
-          <label>Instagram<input value={draft.instagram} onChange={(event) => { setDraft({ ...draft, instagram: event.target.value }); setDraftSource("manual"); }} placeholder="@usuario" autoCapitalize="none" /></label>
-          <label>E-mail<input value={draft.email} onChange={(event) => { setDraft({ ...draft, email: event.target.value }); setDraftSource("manual"); }} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
-          <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
+          <label>WhatsApp<input value={draft.whatsapp} onChange={(event) => { setDraft({ ...draft, whatsapp: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
+          <label>Instagram<input value={draft.instagram} onChange={(event) => { setDraft({ ...draft, instagram: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} placeholder="@usuario" autoCapitalize="none" /></label>
+          <label>E-mail<input value={draft.email} onChange={(event) => { setDraft({ ...draft, email: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
+          <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
         </div>
 
         <div className="contact-research-editor-actions">
