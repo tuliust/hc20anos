@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 3f4b50a014c8a6b3b6fea5fe68d629adae0bced6
+last_verified_commit: d739d63243ab33542c563db0cd3c452f549f5972
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -71,6 +71,7 @@ Mapeamentos com `Row: any`: `payment_events`.
 |---|---|---|---|
 | `events` | `DbEvent` | `event_timezone` | — |
 | `people` | `DbPerson` | `person_type` | — |
+| `profiles` | `DbProfile` | `class_group`, `class_year`, `relationship_to_class`, `studied_at_hc` | — |
 | `ticket_types` | `DbTicketType` | `included_people_count`, `metadata_json`, `package_kind`, `participant_type`, `product_code` | — |
 | `orders` | `DbOrder` | `approved_inventory_applied_at`, `buyer_user_id`, `cancelled_at`, `checkout_idempotency_key`, `currency_id`, `extras_amount_cents`, `installments`, `lot_id`, `payment_environment`, `payment_provider_merchant_order_id`, `payment_status_detail`, `payment_type`, `public_token`, `refunded_at`, `reservation_released_at`, `reservation_status`, `subtotal_amount_cents` | — |
 | `tickets` | `DbTicket` | `cancellation_reason`, `cancelled_at`, `order_participant_id`, `physical_vouchers_delivered_at`, `physical_vouchers_delivered_by`, `qr_token`, `status`, `transferred_from_ticket_id` | — |
