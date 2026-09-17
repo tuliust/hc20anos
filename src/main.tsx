@@ -24,6 +24,7 @@ import { installEditProfileEnhancements } from './editProfileEnhancements';
 import { installEditProfileQuestionnaireBioEnhancement } from './editProfileQuestionnaireBioEnhancement';
 import { installEditProfileRequestedChangesEnhancement } from './editProfileRequestedChangesEnhancement';
 import { installExAlumniEnhancements } from './exAlumniEnhancements';
+import { installExternalAlumniIntegrationEnhancement } from './externalAlumniIntegrationEnhancement';
 import { installExternalUserFlowEnhancements } from './externalUserFlowEnhancements';
 import { installExternalUserProfileContextEnhancement } from './externalUserProfileContextEnhancement';
 import { installFooterLogoEnhancements } from './footerLogoEnhancements';
@@ -114,6 +115,7 @@ if (!isStandaloneRoute) {
   installClaimProfileVisualEnhancements();
   installExternalUserFlowEnhancements();
   installExternalUserProfileContextEnhancement();
+  installExternalAlumniIntegrationEnhancement();
   installRequestedFollowupsHC050910();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
