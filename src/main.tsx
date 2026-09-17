@@ -46,6 +46,7 @@ import { installNeutralCmsDefaults } from './lib/neutralCmsDefaults';
 import { installMobileEnhancements } from './mobileEnhancements';
 import { installMobileHeroRefinements } from './mobileHeroRefinements';
 import { installMobileNavigationAndDirectoryEnhancements } from './mobileNavigationAndDirectoryEnhancements';
+import { installPasswordVisibilityEnhancement } from './passwordVisibilityEnhancement';
 import { installPhotoUploadModalEnhancement } from './photoUploadModalEnhancement';
 import { installPostEventClosedMessageEnhancements } from './postEventClosedMessageEnhancements';
 import { installProfileAndMemoryUiFollowups } from './profileAndMemoryUiFollowups';
@@ -117,6 +118,7 @@ if (!isStandaloneRoute) {
   installExternalUserProfileContextEnhancement();
   installExternalAlumniIntegrationEnhancement();
   installRequestedFollowupsHC050910();
+  installPasswordVisibilityEnhancement();
   installClassmatesDirectoryNavigation();
   installEditProfileEnhancements();
   installEditProfileQuestionnaireBioEnhancement();
