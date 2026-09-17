@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: e52f667e5fe7d1b086f6bd19645ed9f438cb0a6d
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -24,24 +24,24 @@ A substituição direta é insegura. A migração deve separar o contrato bruto 
 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---|---|---|---|
-| Tabelas | 47 | 30 | 21 | 4 |
+| Tabelas | 49 | 30 | 23 | 4 |
 | Views | 9 | 2 | 7 | 0 |
-| Funções/RPCs | 96 | 7 | 89 | 0 |
+| Funções/RPCs | 99 | 7 | 92 | 0 |
 | Enums | 11 | 9 | 2 | 0 |
 
 ## Objetos ausentes no mapa manual
 
-### Tabelas (21)
+### Tabelas (23)
 
-`checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
+`alumni_contact_research`, `checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `contact_collectors`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
 
 ### Views (7)
 
 `public_alumni_directory_status`, `public_attendance_intents`, `public_curiosity_profile_stats`, `public_people_directory`, `public_profile_bios`, `public_profile_cards`, `public_school_questionnaire_option_stats`
 
-### Funções e RPCs (89)
+### Funções e RPCs (92)
 
-`accept_ticket_transfer`, `admin_archive_ticket_lot`, `admin_can_manage_people`, `admin_clear_person_profile`, `admin_delete_person_profile`, `admin_get_person_details`, `admin_get_profile_claim_disputes_with_identity`, `admin_get_ticket_lots`, `admin_import_people`, `admin_update_person_and_profile`, `admin_update_refund_policy`, `admin_upsert_ticket_lot`, `age_on_date`, `age_on_event_date`, `apply_mercado_pago_payment`, `assert_content_moderation_transition`, `calculate_refund_quote`, `cancel_guest_approval_request`, `cancel_ticket_transfer`, `claim_notification_jobs`, `cleanup_security_operational_data`, `complete_notification_job`, `complete_photo_removal`, `complete_profile_registration_v3`, `content_actor_name`, `count_approved_external_guests`, `create_checkout_order`, `create_guest_approval_request`, `create_uploaded_photo`, `current_security_role`, `decide_guest_approval_request`, `enforce_rate_limit`, `expire_checkout_reservations`, `expire_guest_approval_requests`, `expire_ticket_transfers`, `export_checkin_report`, `get_admin_commerce_report`, `get_admin_orders`, `get_admin_orders_mercado_pago_base`, `get_admin_refund_requests`, `get_admin_security_audit`, `get_checkin_activity`, `get_checkin_dashboard`, `get_checkin_operation_metrics`, `get_checkout_status_by_token`, `get_current_ticket_catalog`, `get_current_ticket_lot`, `get_event_reports_mercado_pago_base`, `get_my_commerce_orders`, `get_my_guest_approval_requests`, `get_my_ticket_transfers`, `get_public_memories`, `get_public_ticket_catalog`, `has_admin_role`, `is_admin_panel_user`, `is_superadmin`, `moderate_content_item`, `normalize_profile_answer`, `normalize_profile_identity_text`, `perform_ticket_checkin`, `prepare_photo_removal`, `profile_claim_penultimate_surname`, `record_content_moderation`, `refresh_ticket_type_sold_quantity`, `register_external_user_profile`, `reject_photo_removal_request`, `reject_ticket_transfer`, `release_expired_ticket_reservations`, `request_order_refund`, `request_ticket_resend`, `request_ticket_transfer`, `respond_guest_approval_request`, `restore_refunded_order_inventory`, `retry_order_payment`, `review_refund_request`, `run_commerce_automation`, `sanitize_plain_text`, `search_external_guest_sponsors`, `set_content_featured`, `set_participant_vouchers_delivered`, `show_limit`, `show_trgm`, `submit_memory`, `submit_photo_comment`, `submit_photo_removal_request`, `submit_photo_tag`, `sync_ticket_lot_statuses`, `update_my_public_profile`, `write_security_audit`
+`accept_ticket_transfer`, `admin_archive_ticket_lot`, `admin_can_manage_people`, `admin_clear_person_profile`, `admin_delete_person_profile`, `admin_get_person_details`, `admin_get_profile_claim_disputes_with_identity`, `admin_get_ticket_lots`, `admin_import_people`, `admin_update_person_and_profile`, `admin_update_refund_policy`, `admin_upsert_ticket_lot`, `age_on_date`, `age_on_event_date`, `apply_mercado_pago_payment`, `assert_content_moderation_transition`, `calculate_refund_quote`, `can_manage_contact_research`, `cancel_guest_approval_request`, `cancel_ticket_transfer`, `claim_notification_jobs`, `cleanup_security_operational_data`, `complete_notification_job`, `complete_photo_removal`, `complete_profile_registration_v3`, `content_actor_name`, `count_approved_external_guests`, `create_checkout_order`, `create_guest_approval_request`, `create_uploaded_photo`, `current_security_role`, `decide_guest_approval_request`, `enforce_rate_limit`, `expire_checkout_reservations`, `expire_guest_approval_requests`, `expire_ticket_transfers`, `export_checkin_report`, `get_admin_commerce_report`, `get_admin_orders`, `get_admin_orders_mercado_pago_base`, `get_admin_refund_requests`, `get_admin_security_audit`, `get_checkin_activity`, `get_checkin_dashboard`, `get_checkin_operation_metrics`, `get_checkout_status_by_token`, `get_contact_research_directory`, `get_current_ticket_catalog`, `get_current_ticket_lot`, `get_event_reports_mercado_pago_base`, `get_my_commerce_orders`, `get_my_guest_approval_requests`, `get_my_ticket_transfers`, `get_public_memories`, `get_public_ticket_catalog`, `has_admin_role`, `is_admin_panel_user`, `is_superadmin`, `moderate_content_item`, `normalize_profile_answer`, `normalize_profile_identity_text`, `perform_ticket_checkin`, `prepare_photo_removal`, `profile_claim_penultimate_surname`, `record_content_moderation`, `refresh_ticket_type_sold_quantity`, `register_external_user_profile`, `reject_photo_removal_request`, `reject_ticket_transfer`, `release_expired_ticket_reservations`, `request_order_refund`, `request_ticket_resend`, `request_ticket_transfer`, `respond_guest_approval_request`, `restore_refunded_order_inventory`, `retry_order_payment`, `review_refund_request`, `run_commerce_automation`, `sanitize_plain_text`, `save_contact_research`, `search_external_guest_sponsors`, `set_content_featured`, `set_participant_vouchers_delivered`, `show_limit`, `show_trgm`, `submit_memory`, `submit_photo_comment`, `submit_photo_removal_request`, `submit_photo_tag`, `sync_ticket_lot_statuses`, `update_my_public_profile`, `write_security_audit`
 
 ### Enums (2)
 
