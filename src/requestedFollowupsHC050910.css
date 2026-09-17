@@ -13,3 +13,43 @@ html[data-hc-hc09-external="true"] button[data-hc-external-hidden="true"] {
 html[data-hc-hc09-external="true"] span[data-hc-external-hidden="true"] {
   display: inline !important;
 }
+
+/* Todos os campos de senha recebem controle de visibilidade acessível. */
+[data-hc-password-visibility="true"] {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+[data-hc-password-visibility="true"] > input {
+  width: 100%;
+  padding-right: 3.25rem !important;
+}
+
+[data-hc-password-toggle="true"] {
+  position: absolute;
+  z-index: 2;
+  right: .8rem;
+  top: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #8ab89a;
+  cursor: pointer;
+}
+
+[data-hc-password-toggle="true"]:hover,
+[data-hc-password-toggle="true"]:focus-visible {
+  color: #c9a84c;
+  outline: none;
+}
+
+[data-hc-password-toggle="true"] svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
