@@ -1,8 +1,8 @@
 ---
 status: canonical
 owner: tuliust
-last_verified: 2026-07-26
-last_verified_commit: c6966d9e73253c93c6ac719bc94a6a659f9dead4
+last_verified: 2026-09-17
+last_verified_commit: pending
 source_files:
   - api/generate-profile-bio.ts
   - src/lib/profileBioAi.ts
@@ -62,12 +62,18 @@ Antes do envio ao modelo:
 
 O contrato solicita texto em português do Brasil com características como:
 
-- terceira pessoa;
+- primeira pessoa, como se o próprio participante estivesse se apresentando;
+- sem usar o nome da pessoa no texto;
 - duas a quatro frases;
 - até 500 caracteres;
-- tom natural e respeitoso;
+- tom natural, nostálgico e respeitoso;
 - apenas fatos presentes na entrada;
 - ausência de dados de contato ou informação sensível.
+
+Exemplo de direção de escrita:
+
+- evitar: `Pedro Sampaio, jornalista de Porto Alegre, sempre gostou de se comunicar...`;
+- preferir: `Sou jornalista em Porto Alegre. Sempre gostei de me comunicar...`.
 
 A resposta é estruturada por schema JSON para reduzir ambiguidades.
 
@@ -103,6 +109,8 @@ Para proteção mais forte, migrar o contador para armazenamento compartilhado o
 
 O prompt deve instruir o modelo a:
 
+- escrever em primeira pessoa;
+- não usar o nome da pessoa na mini bio;
 - não inventar;
 - não completar lacunas com suposições;
 - não mencionar que é uma IA;
@@ -160,7 +168,7 @@ npm run build
 Cenários mínimos:
 
 - entrada válida gera texto dentro do limite;
-- saída permanece em terceira pessoa;
+- saída permanece em primeira pessoa e não usa o nome da pessoa;
 - dado ausente não é inventado;
 - contatos presentes na entrada não aparecem na saída;
 - payload excessivo é limitado ou rejeitado;
