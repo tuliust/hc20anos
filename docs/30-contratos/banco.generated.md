@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 2ff22924ffbeaa36986c27da5ae37c0918fd8c51
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -86,7 +86,7 @@ source_files:
 | `public.alumni_contact_research` | 5 | `notes` | `text` | YES | `—` |
 | `public.alumni_contact_research` | 6 | `status` | `text` | NO | `'pending'::text` |
 | `public.alumni_contact_research` | 7 | `source` | `text` | NO | `'manual'::text` |
-| `public.alumni_contact_research` | 8 | `updated_by` | `uuid` | NO | `—` |
+| `public.alumni_contact_research` | 8 | `updated_by` | `uuid` | YES | `—` |
 | `public.alumni_contact_research` | 9 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.alumni_contact_research` | 10 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.audit_logs` | 1 | `id` | `uuid` | NO | `uuid_generate_v4()` |

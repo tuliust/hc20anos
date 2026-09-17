@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-17
-last_verified_commit: 2ff22924ffbeaa36986c27da5ae37c0918fd8c51
+last_verified_commit: c2b95e4f832ffb93fe5de463780934f0b5d5b128
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1391,6 +1391,7 @@ source_files:
 | `public.get_checkout_status_by_token` | `anon` | `EXECUTE` | NO |
 | `public.get_checkout_status_by_token` | `authenticated` | `EXECUTE` | NO |
 | `public.get_checkout_status_by_token` | `postgres` | `EXECUTE` | YES |
+| `public.get_contact_research_directory` | `anon` | `EXECUTE` | NO |
 | `public.get_contact_research_directory` | `authenticated` | `EXECUTE` | NO |
 | `public.get_contact_research_directory` | `postgres` | `EXECUTE` | YES |
 | `public.get_contact_research_directory` | `service_role` | `EXECUTE` | NO |
@@ -1548,6 +1549,7 @@ source_files:
 | `public.sanitize_content_row` | `postgres` | `EXECUTE` | YES |
 | `public.sanitize_plain_text` | `PUBLIC` | `EXECUTE` | NO |
 | `public.sanitize_plain_text` | `postgres` | `EXECUTE` | YES |
+| `public.save_contact_research` | `anon` | `EXECUTE` | NO |
 | `public.save_contact_research` | `authenticated` | `EXECUTE` | NO |
 | `public.save_contact_research` | `postgres` | `EXECUTE` | YES |
 | `public.save_contact_research` | `service_role` | `EXECUTE` | NO |
