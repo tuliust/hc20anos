@@ -84,13 +84,17 @@ function simpleRow(rows: CatalogRow[]) {
   return rows.find(row => String(row.product_code ?? "") === "simple") ?? rows[0] ?? null;
 }
 
+function catalogLotTitle(row: CatalogRow | null | undefined) {
+  const lotName = String(row?.lot_name ?? row?.lot_code ?? "Lote único").trim() || "Lote único";
+  return normalize(lotName) === "single" ? "Lote único" : lotName;
+}
+
 function homeSummary(rows: CatalogRow[]): HomeSummary {
   const row = simpleRow(rows);
   const adultPrice = Number(row?.price_cents ?? 12_000);
   const halfPrice = Math.round(adultPrice / 2);
-  const lotName = String(row?.lot_name ?? row?.lot_code ?? "Lote único").trim() || "Lote único";
   return {
-    lotTitle: lotName.toLocaleLowerCase("pt-BR") === "single" ? "Lote único" : lotName,
+    lotTitle: catalogLotTitle(row),
     lotText: "Vendas abertas até o início do evento, enquanto houver disponibilidade.",
     includedText: "Churrasco à vontade incluído. Bebidas não estão incluídas: cada participante leva o que quiser beber.",
     valuesText: `Adultos e cônjuges: ${formatMoney(adultPrice)}. Crianças até 8 anos: grátis; de 9 a 12 anos: ${formatMoney(halfPrice)}; a partir de 13 anos: valor integral.`,
@@ -236,7 +240,7 @@ function createOverview(summary: HomeSummary) {
   block.setAttribute(OVERVIEW_ATTRIBUTE, "true");
   block.setAttribute("aria-label", "Resumo dos ingressos");
   block.append(
-    overviewCard("Disponibilidade", "Lote único", summary.lotText),
+    overviewCard("Disponibilidade", summary.lotTitle, summary.lotText),
     overviewCard("Evento", "O que está incluído", summary.includedText),
     overviewCard("Por participante", "Valores", summary.valuesText),
   );
@@ -246,7 +250,7 @@ function createOverview(summary: HomeSummary) {
 function updateOverview(block: HTMLElement, summary: HomeSummary) {
   const cards = Array.from(block.querySelectorAll<HTMLElement>("[data-home-ticket-overview-card]"));
   const content = [
-    ["Disponibilidade", "Lote único", summary.lotText],
+    ["Disponibilidade", summary.lotTitle, summary.lotText],
     ["Evento", "O que está incluído", summary.includedText],
     ["Por participante", "Valores", summary.valuesText],
   ];
@@ -319,7 +323,7 @@ function enhanceCard(card: HTMLElement, row: CatalogRow | null, isHome: boolean)
   if (isHome) {
     setText(heading, "Ingresso");
     const lotLabel = card.querySelector<HTMLElement>("div:first-child > div:first-child > p:first-child");
-    setText(lotLabel, "LOTE ÚNICO");
+    setText(lotLabel, catalogLotTitle(row).toLocaleUpperCase("pt-BR"));
     if (normalize(subtitle.textContent) !== normalize("Compra segura pelo Mercado Pago.")) subtitle.textContent = "Compra segura pelo Mercado Pago.";
     Array.from(card.children).forEach(child => {
       if (!(child instanceof HTMLElement)) return;
