@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-18
-last_verified_commit: a108649ae16f319e46b5d38e60afb8f695f580c1
+last_verified_commit: cf8961bbd3a4f89247227f7d4cb063d804f8d400
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -49,7 +49,7 @@ source_files:
 - **Arquivo:** `supabase/functions/photo-storage/index.ts`
 - **Métodos detectados:** `OPTIONS`, `POST`
 - **Sinais de autenticação:** Bearer Supabase, service role, anon key, admin_users
-- **Variáveis:** `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **Variáveis:** `SUPABASE_ANON_KEY`, `SUPABASE_PUBLIC_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `complete_photo_removal`, `create_uploaded_photo`, `prepare_photo_removal`
 
 ## `refund-processor`
