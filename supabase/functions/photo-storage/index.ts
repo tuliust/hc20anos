@@ -187,10 +187,27 @@ async function uploadAsset(request: Request) {
   if (uploadError) return json({ error: "storage_upload_failed", detail: uploadError.message }, 502);
 
   const { data: publicAsset } = serviceClient.storage.from(bucket).getPublicUrl(storagePath);
+  let publicUrl = publicAsset.publicUrl;
+
+  // In local Supabase, service clients use the internal Kong hostname.
+  // Only in that internal-local case do we allow an explicit public origin.
+  const generatedOrigin = new URL(publicUrl);
+  if (generatedOrigin.hostname === "kong") {
+    const explicit = Deno.env.get("SUPABASE_PUBLIC_URL")?.trim();
+    if (explicit) {
+      const origin = new URL(explicit);
+      if (!/^https?:$/.test(origin.protocol) || origin.hostname === "edge-runtime.supabase.com") {
+        throw new Error("invalid_public_storage_origin");
+      }
+      const encodedPath = storagePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
+      publicUrl = `${origin.origin}/storage/v1/object/public/${bucket}/${encodedPath}`;
+    }
+  }
+
   return json({
     storage: {
       path: storagePath,
-      public_url: publicAsset.publicUrl,
+      public_url: publicUrl,
       content_type: inspection.mimeType,
       size: bytes.length,
     },
