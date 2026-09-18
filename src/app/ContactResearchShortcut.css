@@ -1,3 +1,109 @@
+.contact-research-device-guide {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 18px;
+  border: 1px solid rgba(23, 79, 53, 0.12);
+  border-radius: 18px;
+  background: rgba(251, 248, 241, 0.96);
+  box-shadow: 0 10px 30px rgba(13, 52, 35, 0.06);
+}
+
+.contact-research-device-guide-head {
+  max-width: 760px;
+  margin-bottom: 15px;
+}
+
+.contact-research-device-guide-head > span {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--hc-gold-dark, #8f6a24);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.contact-research-device-guide-head h2 {
+  margin: 0;
+  color: var(--hc-green-900, #103d2b);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(23px, 3vw, 31px);
+  line-height: 1.08;
+}
+
+.contact-research-device-guide-head p {
+  margin: 8px 0 0;
+  color: #5f6a63;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.contact-research-device-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.contact-research-device-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(23, 79, 53, 0.12);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.contact-research-device-card.is-iphone {
+  border-color: rgba(189, 151, 72, 0.42);
+  background: linear-gradient(145deg, #fffdf8, #f8f1e2);
+}
+
+.contact-research-device-badge {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--hc-green-800, #174f35);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.contact-research-device-card h3 {
+  margin: 9px 0 8px;
+  color: var(--hc-green-900, #103d2b);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.contact-research-device-card ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #34433b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.contact-research-device-card li + li {
+  margin-top: 5px;
+}
+
+.contact-research-device-card > p {
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(23, 79, 53, 0.08);
+  color: #69736d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.contact-research-device-privacy {
+  margin: 13px 1px 0;
+  color: #657069;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .contact-research-ios-setup {
   margin: 0 auto 18px;
   max-width: 1180px;
@@ -236,6 +342,22 @@
 }
 
 @media (max-width: 720px) {
+  .contact-research-device-guide {
+    margin-left: 12px;
+    margin-right: 12px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .contact-research-device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-research-device-card {
+    padding: 13px;
+  }
+
+
   .contact-research-ios-setup,
   .contact-research-shortcut-banner {
     margin-left: 12px;

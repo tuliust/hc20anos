@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-18
-last_verified_commit: 92061ca00f4abd536e4cb8c282b55f15f639adf2
+last_verified_commit: d98a8222a5b12fbc441ccb8eafc38bb1946a3152
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -49,13 +49,13 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:187` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:193` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:197` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
-| `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
+| `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:271` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:143` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:612` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:144` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
 | `create_checkout_order` | `supabase/functions/checkout-create/index.ts:228` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
-| `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:114` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
+| `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:168` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
 | `export_checkin_report` | `src/app/OperationsReportingPanel.tsx:17` | `ExportCheckinReportArgs` | `ExportCheckinReportReturns` |
 | `fn_increment_sold` | `supabase/functions/server/index.ts:344` | `FnIncrementSoldArgs` | `FnIncrementSoldReturns` |
 | `get_admin_orders` | `src/lib/services.ts:1027` | `GetAdminOrdersArgs` | `GetAdminOrdersReturns` |
@@ -87,7 +87,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `moderate_content_item` | `src/lib/services.ts:1625` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
-| `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:224` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
+| `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:255` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
 | `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
 | `reject_photo_removal_request` | `src/lib/services.ts:1850` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
