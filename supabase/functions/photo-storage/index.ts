@@ -193,7 +193,7 @@ async function uploadAsset(request: Request) {
   // Only in that internal-local case do we allow an explicit public origin.
   const generatedOrigin = new URL(publicUrl);
   if (generatedOrigin.hostname === "kong") {
-    const explicit = Deno.env.get("SUPABASE_PUBLIC_URL")?.trim();
+    const explicit = Deno.env.get("PHOTO_STORAGE_PUBLIC_URL")?.trim();
     if (explicit) {
       const origin = new URL(explicit);
       if (!/^https?:$/.test(origin.protocol) || origin.hostname === "edge-runtime.supabase.com") {
