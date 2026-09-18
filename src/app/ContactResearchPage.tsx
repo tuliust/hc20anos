@@ -389,6 +389,54 @@ export function ContactResearchPage() {
       <div><strong>{summary.noContact}</strong><span>sem contato</span></div>
     </section>
 
+    <section className="contact-research-device-guide" aria-labelledby="contact-research-device-title">
+      <div className="contact-research-device-guide-head">
+        <span>Como colaborar</span>
+        <h2 id="contact-research-device-title">Escolha o jeito que funciona no seu dispositivo</h2>
+        <p>Você pode atualizar os contatos pelo Android, pelo iPhone ou pelo computador. Em todos os casos, nada é salvo sem você conferir e confirmar.</p>
+      </div>
+
+      <div className="contact-research-device-grid">
+        <article className="contact-research-device-card">
+          <span className="contact-research-device-badge">Android</span>
+          <h3>Importe direto da agenda</h3>
+          <ol>
+            <li>Abra o nome de um colega na lista.</li>
+            <li>Toque em <strong>Importar da agenda do celular</strong>.</li>
+            <li>Escolha a pessoa na sua agenda.</li>
+            <li>Confira telefone e e-mail e toque em <strong>Salvar</strong>.</li>
+          </ol>
+          <p>Funciona em navegadores Android compatíveis. Se a agenda não abrir, você ainda pode preencher os campos manualmente.</p>
+        </article>
+
+        <article className="contact-research-device-card is-iphone">
+          <span className="contact-research-device-badge">iPhone</span>
+          <h3>Compartilhe o contato pelo Atalho</h3>
+          <ol>
+            <li>Configure uma única vez o atalho <strong>Enviar para HC 2006</strong>.</li>
+            <li>No app Contatos, abra a pessoa e toque em <strong>Compartilhar Contato</strong>.</li>
+            <li>Escolha <strong>Enviar para HC 2006</strong>.</li>
+            <li>O site procura o nome, preenche telefone e e-mail e pede sua confirmação antes de salvar.</li>
+          </ol>
+          <p>O passo a passo para configurar o Atalho está logo abaixo.</p>
+        </article>
+
+        <article className="contact-research-device-card">
+          <span className="contact-research-device-badge">Computador</span>
+          <h3>Preencha manualmente</h3>
+          <ol>
+            <li>Procure o colega por nome ou turma.</li>
+            <li>Clique no nome para abrir o cadastro.</li>
+            <li>Digite ou cole WhatsApp, Instagram, e-mail e alguma observação útil.</li>
+            <li>Confira os dados e clique em <strong>Salvar</strong>.</li>
+          </ol>
+          <p>Você não precisa ter todos os dados: WhatsApp, Instagram ou e-mail já é suficiente para marcar o colega como localizado.</p>
+        </article>
+      </div>
+
+      <p className="contact-research-device-privacy">Em qualquer dispositivo: confira se o contato corresponde à pessoa certa antes de salvar. Os dados só entram no mutirão depois da sua confirmação.</p>
+    </section>
+
     <details className="contact-research-ios-setup">
       <summary><span>iPhone</span> Configurar “Enviar para HC 2006”</summary>
       <div className="contact-research-ios-setup-body">
