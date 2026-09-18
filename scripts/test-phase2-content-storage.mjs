@@ -284,9 +284,23 @@ try {
   const asset = await functionRequest(admin.token, "asset", assetForm);
   assert.equal(asset.response.status, 201, JSON.stringify(asset.payload));
   assert.match(asset.payload.storage.public_url, /cms-assets/);
+  assert.equal(new URL(asset.payload.storage.public_url).origin, new URL(apiUrl).origin);
   const assetDownload = await fetch(asset.payload.storage.public_url);
   assert.equal(assetDownload.ok, true);
   await service.storage.from("cms-assets").remove([asset.payload.storage.path]);
+
+  console.log("8. Avatar público usa a origem canônica do projeto");
+  const avatarForm = new FormData();
+  avatarForm.set("file", new File([PNG], "avatar.png", { type: "image/png" }));
+  avatarForm.set("target", "avatar");
+  avatarForm.set("scope", "phase2-avatar");
+  const avatar = await functionRequest(ordinary.token, "asset", avatarForm);
+  assert.equal(avatar.response.status, 201, JSON.stringify(avatar.payload));
+  assert.equal(new URL(avatar.payload.storage.public_url).origin, new URL(apiUrl).origin);
+  assert.match(avatar.payload.storage.path, new RegExp(`^${ordinaryId}/phase2-avatar-`));
+  const avatarDownload = await fetch(avatar.payload.storage.public_url);
+  assert.equal(avatarDownload.ok, true);
+  await service.storage.from("avatars").remove([avatar.payload.storage.path]);
 
   console.log("Phase 2 integration: PASS");
 } finally {
