@@ -104,7 +104,7 @@ jobs:
       - name: Serve photo-storage Edge Function
         shell: bash
         run: |
-          printf '%s\n' 'SUPABASE_PUBLIC_URL=http://127.0.0.1:54321' > phase2-functions.env
+          printf '%s\n' 'PHOTO_STORAGE_PUBLIC_URL=http://127.0.0.1:54321' > phase2-functions.env
           npx supabase functions serve photo-storage \
             --no-verify-jwt \
             --env-file phase2-functions.env \

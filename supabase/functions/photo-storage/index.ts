@@ -25,60 +25,6 @@ function requiredEnvironment() {
   return { url, anon, service };
 }
 
-function firstHeaderValue(value: string | null) {
-  return value?.split(",")[0]?.trim() || "";
-}
-
-function hostnameOf(value: string) {
-  try {
-    return new URL(`http://${value}`).hostname;
-  } catch {
-    return "";
-  }
-}
-
-function portOf(value: string) {
-  try {
-    return new URL(`http://${value}`).port;
-  } catch {
-    return "";
-  }
-}
-
-function publicSupabaseOrigin(request: Request) {
-  const explicit = Deno.env.get("SUPABASE_PUBLIC_URL")?.trim();
-  if (explicit && !/^https?:\/\/(kong|127\.0\.0\.1|localhost)(?::80)?(?:\/|$)/i.test(explicit)) {
-    return explicit.replace(/\/$/, "");
-  }
-
-  const forwardedHost = firstHeaderValue(request.headers.get("x-forwarded-host"));
-  const requestHost = firstHeaderValue(request.headers.get("host"));
-  if (forwardedHost) {
-    const forwardedProto = firstHeaderValue(request.headers.get("x-forwarded-proto")) || "https";
-    let publicHost = forwardedHost;
-    if (!portOf(publicHost)) {
-      const forwardedPort = firstHeaderValue(request.headers.get("x-forwarded-port"));
-      const requestPort = hostnameOf(requestHost) === hostnameOf(publicHost) ? portOf(requestHost) : "";
-      const port = forwardedPort || requestPort;
-      const isDefault = (forwardedProto === "https" && port === "443") || (forwardedProto === "http" && port === "80");
-      if (port && !isDefault) publicHost = `${publicHost}:${port}`;
-    }
-    return `${forwardedProto}://${publicHost}`.replace(/\/$/, "");
-  }
-
-  if (requestHost) {
-    const requestProto = firstHeaderValue(request.headers.get("x-forwarded-proto")) || new URL(request.url).protocol.replace(":", "");
-    return `${requestProto}://${requestHost}`.replace(/\/$/, "");
-  }
-
-  const configured = Deno.env.get("SUPABASE_URL")?.trim();
-  if (configured && !/^https?:\/\/(kong|127\.0\.0\.1|localhost)(:\d+)?(?:\/|$)/i.test(configured)) {
-    return configured.replace(/\/$/, "");
-  }
-
-  return new URL(request.url).origin;
-}
-
 function hex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes)).map(value => value.toString(16).padStart(2, "0")).join("");
 }
@@ -240,9 +186,32 @@ async function uploadAsset(request: Request) {
   });
   if (uploadError) return json({ error: "storage_upload_failed", detail: uploadError.message }, 502);
 
-  const encodedPath = storagePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
-  const publicUrl = `${publicSupabaseOrigin(request)}/storage/v1/object/public/${bucket}/${encodedPath}`;
-  return json({ storage: { path: storagePath, public_url: publicUrl, content_type: inspection.mimeType, size: bytes.length } }, 201);
+  const { data: publicAsset } = serviceClient.storage.from(bucket).getPublicUrl(storagePath);
+  let publicUrl = publicAsset.publicUrl;
+
+  // In local Supabase, service clients use the internal Kong hostname.
+  // Only in that internal-local case do we allow an explicit public origin.
+  const generatedOrigin = new URL(publicUrl);
+  if (generatedOrigin.hostname === "kong") {
+    const explicit = Deno.env.get("PHOTO_STORAGE_PUBLIC_URL")?.trim();
+    if (explicit) {
+      const origin = new URL(explicit);
+      if (!/^https?:$/.test(origin.protocol) || origin.hostname === "edge-runtime.supabase.com") {
+        throw new Error("invalid_public_storage_origin");
+      }
+      const encodedPath = storagePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
+      publicUrl = `${origin.origin}/storage/v1/object/public/${bucket}/${encodedPath}`;
+    }
+  }
+
+  return json({
+    storage: {
+      path: storagePath,
+      public_url: publicUrl,
+      content_type: inspection.mimeType,
+      size: bytes.length,
+    },
+  }, 201);
 }
 
 async function removePhoto(request: Request) {
