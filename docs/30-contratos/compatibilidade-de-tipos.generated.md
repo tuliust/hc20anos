@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-17
-last_verified_commit: 66eb45ff6747ebcc7b94a73f1b0d85717b01a4c7
+last_verified: 2026-09-18
+last_verified_commit: 5ad7de76c55f74cf9e21ca2061b8301f3fb57852
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -24,16 +24,16 @@ A substituição direta é insegura. A migração deve separar o contrato bruto 
 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---|---|---|---|
-| Tabelas | 49 | 30 | 23 | 4 |
+| Tabelas | 50 | 30 | 24 | 4 |
 | Views | 9 | 2 | 7 | 0 |
 | Funções/RPCs | 99 | 7 | 92 | 0 |
 | Enums | 11 | 9 | 2 | 0 |
 
 ## Objetos ausentes no mapa manual
 
-### Tabelas (23)
+### Tabelas (24)
 
-`alumni_contact_research`, `checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `contact_collectors`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
+`alumni_contact_research`, `checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `contact_collectors`, `contact_research_roster`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
 
 ### Views (7)
 
