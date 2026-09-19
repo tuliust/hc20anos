@@ -31,8 +31,11 @@ for (const viewport of viewports) {
     expect(overflow).toBeLessThanOrEqual(1);
 
     const headerBox = await page.locator("[data-public-header]").boundingBox();
+    const heroBox = await page.locator("[data-home-section='hero']").boundingBox();
     const menuBox = viewport.width < 768 ? await page.locator("[data-public-header-menu]").boundingBox() : null;
     expect(headerBox?.width).toBeLessThanOrEqual(viewport.width);
+    expect(heroBox?.x ?? 999).toBeLessThanOrEqual(1);
+    expect(Math.abs((heroBox?.width ?? 0) - viewport.width)).toBeLessThanOrEqual(1);
     if (menuBox) expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewport.width);
 
     await page.locator("[data-home-section='hero']").screenshot({ path: testInfo.outputPath(`${viewport.name}-hero.png`) });

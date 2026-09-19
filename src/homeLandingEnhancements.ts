@@ -4,7 +4,7 @@ import { getMyProfile } from "./lib/services";
 const HOME_PATH = "/";
 const HERO_SELECTOR = '[data-home-section="hero"]';
 const STYLE_ID = "hc-home-landing-enhancements-style";
-const ANONYMOUS_ATTENDANCE_KEY = "hc-attendance-confirmed";
+const LEGACY_ANONYMOUS_ATTENDANCE_KEY = "hc-attendance-confirmed";
 const USER_ATTENDANCE_KEY_PREFIX = "hc-attendance-confirmed:";
 const CONFIRMED_LABELS = new Set(["presenca marcada", "ja confirmado"]);
 
@@ -133,16 +133,23 @@ function applyTicketsAppearance(): void {
 }
 
 function persistConfirmedAttendance(): void {
-  writeStoredFlag(ANONYMOUS_ATTENDANCE_KEY, true);
   if (currentUserId) writeStoredFlag(userAttendanceKey(currentUserId), true);
 }
 
 function clearPersistedAttendance(): void {
-  writeStoredFlag(ANONYMOUS_ATTENDANCE_KEY, false);
   if (currentUserId) writeStoredFlag(userAttendanceKey(currentUserId), false);
 }
 
+function clearLegacyAnonymousAttendance(): void {
+  writeStoredFlag(LEGACY_ANONYMOUS_ATTENDANCE_KEY, false);
+}
+
 function syncConfirmedStateFromDom(button: HTMLButtonElement): void {
+  if (!currentUserId) {
+    attendanceConfirmed = false;
+    return;
+  }
+
   const label = normalize(button.textContent);
   const completedByExistingMount = button.dataset.homeHeroUserState === "attendance";
 
@@ -206,7 +213,8 @@ async function refreshAttendanceState(): Promise<void> {
     currentUserId = data.session?.user?.id ?? null;
 
     if (!currentUserId) {
-      attendanceConfirmed = readStoredFlag(ANONYMOUS_ATTENDANCE_KEY);
+      attendanceConfirmed = false;
+      clearLegacyAnonymousAttendance();
       scheduleEnhancement();
       return;
     }
@@ -220,13 +228,13 @@ async function refreshAttendanceState(): Promise<void> {
       else clearPersistedAttendance();
     } catch (error) {
       console.warn("[Home] Não foi possível atualizar o estado persistido de presença.", error);
-      attendanceConfirmed = readStoredFlag(userAttendanceKey(currentUserId))
-        || readStoredFlag(ANONYMOUS_ATTENDANCE_KEY);
+      attendanceConfirmed = readStoredFlag(userAttendanceKey(currentUserId));
     }
   } catch (error) {
     console.warn("[Home] Não foi possível ler a sessão para atualizar a presença.", error);
     currentUserId = null;
-    attendanceConfirmed = readStoredFlag(ANONYMOUS_ATTENDANCE_KEY);
+    attendanceConfirmed = false;
+    clearLegacyAnonymousAttendance();
   }
 
   scheduleEnhancement();
@@ -248,7 +256,11 @@ export function installHomeLandingEnhancements(): void {
   window.addEventListener("pushstate", scheduleEnhancement as EventListener);
   window.addEventListener("hc-hero-user-state-updated", () => void refreshAttendanceState());
   window.addEventListener("storage", event => {
-    if (event.key === ANONYMOUS_ATTENDANCE_KEY || event.key?.startsWith(USER_ATTENDANCE_KEY_PREFIX)) {
+    if (event.key === LEGACY_ANONYMOUS_ATTENDANCE_KEY) {
+      if (!currentUserId) clearLegacyAnonymousAttendance();
+      return;
+    }
+    if (event.key?.startsWith(USER_ATTENDANCE_KEY_PREFIX)) {
       void refreshAttendanceState();
     }
   });

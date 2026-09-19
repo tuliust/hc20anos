@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-18
-last_verified_commit: 92061ca00f4abd536e4cb8c282b55f15f639adf2
+last_verified: 2026-09-19
+last_verified_commit: b76a309033ea68c0e6cef50423da786aa67baa3c
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -42,7 +42,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_import_people` | `src/lib/services.ts:508` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
 | `admin_update_person_and_profile` | `src/lib/services.ts:564` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
-| `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:196` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
+| `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:219` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
 | `calculate_refund_quote` | `src/app/BuyerCommerceActions.tsx:37` | `CalculateRefundQuoteArgs` | `CalculateRefundQuoteReturns` |
 | `cancel_guest_approval_request` | `src/app/GuestApprovalPage.tsx:76` | `CancelGuestApprovalRequestArgs` | `CancelGuestApprovalRequestReturns` |
 | `cancel_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:91` | `CancelTicketTransferArgs` | `CancelTicketTransferReturns` |
