@@ -2,12 +2,16 @@
 
 html {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   background: #0d1a0f;
 }
 
 body {
   min-height: 100%;
+  max-width: 100%;
   margin: 0;
+  overflow-x: clip;
   background: #0d1a0f;
   color: #f0ebe0;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -15,6 +19,22 @@ body {
 
 #root {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+main,
+main > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
 }
 
 /* Home pública deve ocupar toda a largura da viewport.
