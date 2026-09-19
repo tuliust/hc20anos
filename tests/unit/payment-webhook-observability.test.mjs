@@ -22,6 +22,8 @@ test("payment-webhook permite reconciliação autenticada sem enfraquecer o webh
   assert.match(source, /async function authenticatedUser\(request: Request\)/);
   assert.match(source, /reconcile_payment_id/);
   assert.match(source, /buyer_user_id/);
+  assert.match(source, /admin_users/);
+  assert.match(source, /\["admin", "superadmin"\]/);
   assert.match(source, /return json\(request, \{ error: "forbidden" \}, 403\)/);
   assert.match(source, /applyProviderPayment\(db, reconciliationPaymentId, payment\)/);
   assert.match(source, /const signature = await validateSignature\(request, url, body\)/);
