@@ -44,7 +44,8 @@
     "phase2:check": "node scripts/apply-phase2-content-storage.mjs --check",
     "test:image-security": "node --experimental-strip-types --test tests/unit/image-upload-security.test.mts",
     "test:phase2:storage": "node scripts/test-phase2-content-storage.mjs",
-    "supabase:deploy:photo-storage": "supabase functions deploy photo-storage --no-verify-jwt --project-ref tjnqqsbwgjcdzcxykyif"
+    "supabase:deploy:photo-storage": "supabase functions deploy photo-storage --no-verify-jwt --project-ref tjnqqsbwgjcdzcxykyif",
+    "audit:protected-main": "node scripts/check-protected-main-workflows.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
