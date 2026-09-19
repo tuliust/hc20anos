@@ -248,39 +248,6 @@ jobs:
             exit 1
           fi
 
-      - name: Publish database contracts to main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          set -euo pipefail
-          contract_files=(
-            docs/30-contratos/banco.generated.md
-            docs/30-contratos/RPCs.generated.md
-            docs/30-contratos/RLS.generated.md
-            docs/30-contratos/erd.generated.mmd
-            docs/30-contratos/database.types.generated.ts
-            src/lib/database.generated.ts
-          )
-          changes="$(git status --porcelain --untracked-files=all -- "${contract_files[@]}")"
-          if [ -z "$changes" ]; then
-            echo "Contratos do banco já estão atualizados."
-            exit 0
-          fi
-
-          echo "$changes"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "${contract_files[@]}"
-          git commit -m "docs: atualizar contratos gerados do banco"
-          for attempt in 1 2 3; do
-            if git push; then exit 0; fi
-            echo "Push concorrente detectado; limpando artefatos locais antes do rebase ${attempt}."
-            git reset --hard HEAD
-            git clean -fd
-            git pull --rebase origin main
-          done
-          exit 1
-
       - name: Stop local Supabase stack
         if: always()
         run: npx supabase stop --no-backup

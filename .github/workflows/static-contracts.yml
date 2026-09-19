@@ -37,7 +37,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: static-contracts-${{ github.ref }}
@@ -86,30 +86,6 @@ jobs:
             git diff -- "${files[@]}" || true
             exit 1
           fi
-
-      - name: Publish generated contracts to main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          files=(
-            docs/30-contratos/APIs.generated.md
-            docs/30-contratos/edge-functions.generated.md
-            docs/30-contratos/variaveis-de-ambiente.generated.md
-            docs/30-contratos/codigos-de-erro.generated.md
-            docs/30-contratos/rotas.generated.md
-          )
-          changes="$(git status --porcelain --untracked-files=all -- "${files[@]}")"
-          if [ -z "$changes" ]; then
-            echo "Contratos estáticos e de rotas já estão atualizados."
-            exit 0
-          fi
-
-          echo "$changes"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${files[@]}"
-          git commit -m "docs: atualizar contratos estáticos e de rotas"
-          git push
 
       - name: Upload generated contracts
         if: always()

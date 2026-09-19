@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: functional-tests-${{ github.ref }}
@@ -147,34 +147,6 @@ jobs:
         if: always()
         continue-on-error: true
         run: npm run audit:docs
-
-      - name: Publish functional report to main
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          report="docs/30-contratos/testes-funcionais.generated.md"
-          changes="$(git status --porcelain --untracked-files=all -- "$report")"
-          if [ -z "$changes" ]; then
-            echo "Relatório funcional já está atualizado."
-            exit 0
-          fi
-
-          echo "$changes"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$report"
-          git commit -m "docs: atualizar evidência dos testes funcionais"
-
-          for attempt in 1 2 3; do
-            if git push; then
-              exit 0
-            fi
-            echo "Push concorrente detectado; rebase antes da tentativa ${attempt}."
-            git pull --rebase origin main
-          done
-
-          echo "Não foi possível publicar o relatório funcional."
-          exit 1
 
       - name: Upload Playwright diagnostics
         if: always()
