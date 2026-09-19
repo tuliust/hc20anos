@@ -39,14 +39,14 @@ test("HC-02 AI action is moved below Mini bio", async () => {
 
 test("HC-04 new profiles start with all six privacy controls enabled", async () => {
   const app = await source("src/app/App.tsx");
-  const migration = await source("supabase/migrations/20260917023000_profile_defaults_and_external_hc_context.sql");
+  const migration = await source("supabase/migrations/20260917052813_profile_defaults_and_external_hc_context.sql");
   assert.match(app, /showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: true, showInList: true, allowTagging: true/);
   assert.match(migration, /alter column show_social_links set default true/);
 });
 
 test("HC-14 external registration collects and persists HC relationship", async () => {
   const external = await source("src/externalUserProfileContextEnhancement.ts");
-  const migration = await source("supabase/migrations/20260917030400_finalize_external_hc_context_names.sql");
+  const migration = await source("supabase/migrations/20260917061255_finalize_external_hc_context_names.sql");
   assert.match(external, /Você estudou no HC\?/);
   assert.match(external, /Em que ano você se formou\?/);
   assert.match(external, /Qual era a sua sala\?/);
