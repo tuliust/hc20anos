@@ -40,7 +40,7 @@ source_files:
 
 - **Arquivo:** `supabase/functions/payment-webhook/index.ts`
 - **Métodos detectados:** `OPTIONS`, `POST`
-- **Sinais de autenticação:** *** service role, anon key, assinatura Mercado Pago, admin_users
+- **Sinais de autenticação:** Bearer Supabase, service role, anon key, assinatura Mercado Pago, admin_users
 - **Variáveis:** `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `apply_mercado_pago_payment`
 
