@@ -140,3 +140,29 @@ export async function getCheckoutStatus(publicToken: string): Promise<CheckoutSt
   if (error) throw error;
   return data?.[0] ?? null;
 }
+
+export async function reconcileMercadoPagoPayment(
+  paymentId: string,
+  publicToken?: string | null,
+): Promise<{ reconciled: boolean; result?: unknown }> {
+  const normalizedPaymentId = paymentId.trim();
+  if (!/^\d+$/.test(normalizedPaymentId)) throw new Error("payment_id_invalid");
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData.session;
+  if (!session) throw new Error("authentication_required");
+
+  const { data, error } = await supabase.functions.invoke("payment-webhook", {
+    body: {
+      reconcile_payment_id: normalizedPaymentId,
+      public_token: publicToken?.trim() || null,
+    },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) throw error;
+  if (!data?.reconciled) throw new Error(data?.error ?? "reconciliation_failed");
+  return data;
+}
