@@ -72,7 +72,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:63` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_event_reports` | `src/lib/services.ts:1314` | `GetEventReportsArgs` | `GetEventReportsReturns` |
-| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:354` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
+| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:382` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
 | `get_my_guest_approval_requests` | `src/app/GuestApprovalPage.tsx:37` | `GetMyGuestApprovalRequestsArgs` | `GetMyGuestApprovalRequestsReturns` |
 | `get_my_ticket_transfers` | `src/app/BuyerCommerceActions.tsx:80` | `GetMyTicketTransfersArgs` | `GetMyTicketTransfersReturns` |
 | `get_public_memories` | `src/lib/services.ts:1594` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
@@ -94,7 +94,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
 | `request_order_refund` | `src/app/BuyerCommerceActions.tsx:57` | `RequestOrderRefundArgs` | `RequestOrderRefundReturns` |
-| `request_ticket_resend` | `src/app/BuyerOrdersPage.tsx:383` | `RequestTicketResendArgs` | `RequestTicketResendReturns` |
+| `request_ticket_resend` | `src/app/BuyerOrdersPage.tsx:411` | `RequestTicketResendArgs` | `RequestTicketResendReturns` |
 | `request_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:26` | `RequestTicketTransferArgs` | `RequestTicketTransferReturns` |
 | `respond_guest_approval_request` | `src/app/GuestApprovalPage.tsx:69` | `RespondGuestApprovalRequestArgs` | `RespondGuestApprovalRequestReturns` |
 | `restore_refunded_order_inventory` | `supabase/functions/refund-processor/index.ts:71` | `RestoreRefundedOrderInventoryArgs` | `RestoreRefundedOrderInventoryReturns` |
