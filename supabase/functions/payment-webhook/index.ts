@@ -8,7 +8,7 @@ function corsHeaders(request: Request): HeadersInit {
   const requestOrigin = request.headers.get("Origin")?.replace(/\/$/, "");
   return {
     "Access-Control-Allow-Origin": requestOrigin === configuredOrigin ? requestOrigin : configuredOrigin,
-    "Access-Control-Allow-Headers": "content-type,x-signature,x-request-id",
+    "Access-Control-Allow-Headers": "authorization,apikey,content-type,x-client-info,x-signature,x-request-id",
     "Access-Control-Allow-Methods": "POST,OPTIONS",
     "Access-Control-Max-Age": "600",
     "Vary": "Origin",
@@ -28,6 +28,26 @@ function adminClient() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
+}
+
+function anonClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
+
+async function authenticatedUser(request: Request) {
+  const authorization = request.headers.get("authorization")?.trim() ?? "";
+  const token = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  if (!token) throw new Error("authentication_required");
+
+  const { data, error } = await anonClient().auth.getUser(token);
+  if (error || !data.user) throw new Error("authentication_required");
+  return data.user;
 }
 
 function parseSignature(value: string) {
@@ -140,12 +160,130 @@ function formatProcessingError(error: unknown) {
   return String(error ?? "unknown_error").slice(0, 1000);
 }
 
+async function fetchProviderPayment(paymentId: string) {
+  const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")?.trim();
+  if (!accessToken) throw new Error("missing_access_token");
+
+  const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!paymentResponse.ok) {
+    const detail = await paymentResponse.text();
+    throw new Error(`payment_fetch_${paymentResponse.status}:${detail.slice(0, 500)}`);
+  }
+
+  const payment = await paymentResponse.json();
+  if (String(payment.id) !== paymentId) throw new Error("payment_id_mismatch");
+  return payment;
+}
+
+function paymentOrderId(payment: any) {
+  const orderId = String(payment?.external_reference ?? "").trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
+    throw new Error("missing_or_invalid_external_reference");
+  }
+  return orderId;
+}
+
+async function applyProviderPayment(db: ReturnType<typeof adminClient>, paymentId: string, payment: any) {
+  const orderId = paymentOrderId(payment);
+  const transactionAmount = Number(payment.transaction_amount);
+  if (!Number.isFinite(transactionAmount) || transactionAmount < 0) throw new Error("invalid_transaction_amount");
+  const amountCents = Math.round(transactionAmount * 100);
+  const paidAt = payment.date_approved ? new Date(payment.date_approved).toISOString() : null;
+
+  const { data: result, error: applyError } = await db.rpc("apply_mercado_pago_payment", {
+    p_order_id: orderId,
+    p_payment_id: String(payment.id),
+    p_payment_status: String(payment.status ?? "pending"),
+    p_status_detail: payment.status_detail ? String(payment.status_detail) : null,
+    p_payment_method: payment.payment_method_id ? String(payment.payment_method_id) : null,
+    p_payment_type: payment.payment_type_id ? String(payment.payment_type_id) : null,
+    p_installments: Number.isInteger(payment.installments) ? payment.installments : null,
+    p_transaction_amount_cents: amountCents,
+    p_currency_id: String(payment.currency_id ?? ""),
+    p_preference_id: payment.preference_id ? String(payment.preference_id) : null,
+    p_paid_at: paidAt,
+  });
+  if (applyError) throw applyError;
+
+  return { orderId, result: result?.[0] ?? null };
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(request) });
   if (request.method !== "POST") return json(request, { error: "method_not_allowed" }, 405);
 
   const url = new URL(request.url);
   const body = await request.json().catch(() => ({}));
+  const db = adminClient();
+  const reconciliationPaymentId = normalizeDataId(body?.reconcile_payment_id);
+
+  if (reconciliationPaymentId) {
+    try {
+      const user = await authenticatedUser(request);
+      const payment = await fetchProviderPayment(reconciliationPaymentId);
+      const orderId = paymentOrderId(payment);
+
+      const { data: order, error: orderError } = await db
+        .from("orders")
+        .select("id,buyer_user_id,public_token")
+        .eq("id", orderId)
+        .single();
+      if (orderError || !order) throw new Error("order_not_found");
+      if (order.buyer_user_id !== user.id) {
+        const { data: admin } = await db
+          .from("admin_users")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "superadmin"])
+          .maybeSingle();
+        if (!admin) return json(request, { error: "forbidden" }, 403);
+      }
+
+      const suppliedToken = String(body?.public_token ?? "").trim();
+      if (suppliedToken && suppliedToken !== String(order.public_token)) {
+        return json(request, { error: "public_token_mismatch" }, 403);
+      }
+
+      const providerEventId = `reconcile:${reconciliationPaymentId}:${orderId}`;
+      const { data: eventRow, error: eventInsertError } = await db
+        .from("payment_events")
+        .insert({
+          provider: "mercadopago",
+          provider_event_id: providerEventId,
+          payment_id: reconciliationPaymentId,
+          order_id: orderId,
+          event_type: "authenticated_reconciliation",
+          payload_json: { source: "buyer_return", payment_id: reconciliationPaymentId },
+          signature_valid: null,
+          processing_status: "received",
+          attempt_count: 1,
+        })
+        .select("id")
+        .single();
+
+      if (eventInsertError && eventInsertError.code !== "23505") throw eventInsertError;
+
+      const applied = await applyProviderPayment(db, reconciliationPaymentId, payment);
+      if (eventRow?.id) {
+        await db.from("payment_events").update({
+          processing_status: "processed",
+          processing_error: null,
+          processed_at: new Date().toISOString(),
+        }).eq("id", eventRow.id);
+      }
+
+      return json(request, { reconciled: true, result: applied.result });
+    } catch (error) {
+      const message = formatProcessingError(error);
+      console.error("payment_reconciliation_failed", message);
+      if (message === "authentication_required") return json(request, { error: "authentication_required" }, 401);
+      if (message === "order_not_found") return json(request, { error: "order_not_found" }, 404);
+      return json(request, { error: "reconciliation_failed" }, 502);
+    }
+  }
+
   const signature = await validateSignature(request, url, body);
   if (!signature.valid) {
     console.warn("payment_webhook_invalid_signature", signature.reason);
@@ -156,7 +294,6 @@ Deno.serve(async (request) => {
   const eventType = String(body?.type ?? body?.action ?? "unknown");
   const action = String(body?.action ?? "");
   const providerEventId = [eventType, action, paymentId, signature.requestId].filter(Boolean).join(":");
-  const db = adminClient();
 
   const { data: eventRow, error: eventInsertError } = await db
     .from("payment_events")
@@ -186,59 +323,18 @@ Deno.serve(async (request) => {
     return json(request, { received: true, ignored: true });
   }
 
-  const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")?.trim();
-  if (!accessToken) {
-    await db.from("payment_events")
-      .update({ processing_status: "failed", processing_error: "missing_access_token" })
-      .eq("id", eventRow.id);
-    return json(request, { error: "temporary_processing_failure" }, 503);
-  }
-
   try {
-    const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!paymentResponse.ok) {
-      const detail = await paymentResponse.text();
-      throw new Error(`payment_fetch_${paymentResponse.status}:${detail.slice(0, 500)}`);
-    }
-
-    const payment = await paymentResponse.json();
-    if (String(payment.id) !== paymentId) throw new Error("payment_id_mismatch");
-
-    const orderId = String(payment.external_reference ?? "").trim();
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
-      throw new Error("missing_or_invalid_external_reference");
-    }
-
-    const transactionAmount = Number(payment.transaction_amount);
-    if (!Number.isFinite(transactionAmount) || transactionAmount < 0) throw new Error("invalid_transaction_amount");
-    const amountCents = Math.round(transactionAmount * 100);
-    const paidAt = payment.date_approved ? new Date(payment.date_approved).toISOString() : null;
-
-    const { data: result, error: applyError } = await db.rpc("apply_mercado_pago_payment", {
-      p_order_id: orderId,
-      p_payment_id: String(payment.id),
-      p_payment_status: String(payment.status ?? "pending"),
-      p_status_detail: payment.status_detail ? String(payment.status_detail) : null,
-      p_payment_method: payment.payment_method_id ? String(payment.payment_method_id) : null,
-      p_payment_type: payment.payment_type_id ? String(payment.payment_type_id) : null,
-      p_installments: Number.isInteger(payment.installments) ? payment.installments : null,
-      p_transaction_amount_cents: amountCents,
-      p_currency_id: String(payment.currency_id ?? ""),
-      p_preference_id: payment.preference_id ? String(payment.preference_id) : null,
-      p_paid_at: paidAt,
-    });
-    if (applyError) throw applyError;
+    const payment = await fetchProviderPayment(paymentId);
+    const applied = await applyProviderPayment(db, paymentId, payment);
 
     await db.from("payment_events").update({
-      order_id: orderId,
+      order_id: applied.orderId,
       processing_status: "processed",
       processing_error: null,
       processed_at: new Date().toISOString(),
     }).eq("id", eventRow.id);
 
-    return json(request, { received: true, result: result?.[0] ?? null });
+    return json(request, { received: true, result: applied.result });
   } catch (error) {
     const message = formatProcessingError(error);
     console.error("payment_webhook_failed", message);

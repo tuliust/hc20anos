@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-19
-last_verified_commit: fba2bc2489a35a178dfe41c0647866b15831dd80
+last_verified_commit: 6442258cdb0581eb3b8079fda15eb45d308474b7
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -40,8 +40,8 @@ source_files:
 
 - **Arquivo:** `supabase/functions/payment-webhook/index.ts`
 - **Métodos detectados:** `OPTIONS`, `POST`
-- **Sinais de autenticação:** service role, assinatura Mercado Pago
-- **Variáveis:** `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- **Sinais de autenticação:** Bearer Supabase, service role, anon key, assinatura Mercado Pago, admin_users
+- **Variáveis:** `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `apply_mercado_pago_payment`
 
 ## `photo-storage`

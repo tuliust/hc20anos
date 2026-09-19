@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-19
-last_verified_commit: 66c09b6d98c63952709923c11047c5aa8b68e427
+last_verified_commit: 6442258cdb0581eb3b8079fda15eb45d308474b7
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -42,7 +42,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_import_people` | `src/lib/services.ts:508` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
 | `admin_update_person_and_profile` | `src/lib/services.ts:564` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
-| `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:219` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
+| `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:195` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
 | `calculate_refund_quote` | `src/app/BuyerCommerceActions.tsx:37` | `CalculateRefundQuoteArgs` | `CalculateRefundQuoteReturns` |
 | `cancel_guest_approval_request` | `src/app/GuestApprovalPage.tsx:76` | `CancelGuestApprovalRequestArgs` | `CancelGuestApprovalRequestReturns` |
 | `cancel_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:91` | `CancelTicketTransferArgs` | `CancelTicketTransferReturns` |
@@ -72,7 +72,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:63` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_event_reports` | `src/lib/services.ts:1314` | `GetEventReportsArgs` | `GetEventReportsReturns` |
-| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:354` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
+| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:382` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
 | `get_my_guest_approval_requests` | `src/app/GuestApprovalPage.tsx:37` | `GetMyGuestApprovalRequestsArgs` | `GetMyGuestApprovalRequestsReturns` |
 | `get_my_ticket_transfers` | `src/app/BuyerCommerceActions.tsx:80` | `GetMyTicketTransfersArgs` | `GetMyTicketTransfersReturns` |
 | `get_public_memories` | `src/lib/services.ts:1594` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
@@ -94,7 +94,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
 | `request_order_refund` | `src/app/BuyerCommerceActions.tsx:57` | `RequestOrderRefundArgs` | `RequestOrderRefundReturns` |
-| `request_ticket_resend` | `src/app/BuyerOrdersPage.tsx:383` | `RequestTicketResendArgs` | `RequestTicketResendReturns` |
+| `request_ticket_resend` | `src/app/BuyerOrdersPage.tsx:411` | `RequestTicketResendArgs` | `RequestTicketResendReturns` |
 | `request_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:26` | `RequestTicketTransferArgs` | `RequestTicketTransferReturns` |
 | `respond_guest_approval_request` | `src/app/GuestApprovalPage.tsx:69` | `RespondGuestApprovalRequestArgs` | `RespondGuestApprovalRequestReturns` |
 | `restore_refunded_order_inventory` | `supabase/functions/refund-processor/index.ts:71` | `RestoreRefundedOrderInventoryArgs` | `RestoreRefundedOrderInventoryReturns` |
