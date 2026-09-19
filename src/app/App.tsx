@@ -2629,7 +2629,7 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
       <div className="mt-auto flex items-center gap-3">
         <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver pessoas anteriores"><ChevronLeft size={18} /></button>
         <div data-home-class-people className="grid min-w-0 flex-1 grid-cols-3 gap-2">
-          {visiblePeople.map(person => <div key={person.id} className="flex min-h-24 min-w-0 flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
+          {visiblePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center transition-colors hover:border-[#c9a84c]/60 focus:outline-none focus:border-[#c9a84c]"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
           {!visiblePeople.length && copy.class_empty_label && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">{copy.class_empty_label}</div>}
         </div>
         <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver próximas pessoas"><ChevronRight size={18} /></button>
@@ -2662,7 +2662,7 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
               : "grid-cols-6 sm:grid-cols-10";
   return preview.length ? (
     <div data-home-confirmed-grid data-count={count} data-avatar-size={avatarDimension} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
-      {preview.map(person => <div key={person.id} className="flex justify-center" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
+      {preview.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex cursor-pointer justify-center rounded-full outline-none transition-transform hover:scale-105 focus:ring-2 focus:ring-[#c9a84c]" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
     </div>
   ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
@@ -4397,6 +4397,32 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedName = params.get("pessoa")?.trim();
+    const requestedClass = params.get("turma")?.trim().toUpperCase();
+    const requestedPresence = params.get("presenca")?.trim().toLowerCase();
+
+    if (requestedClass && ["A", "B", "C", "D"].includes(requestedClass)) {
+      setClassFilter(requestedClass as AlumniClassFilter);
+    }
+    if (requestedPresence === "confirmed") {
+      setAttendanceFilter("confirmed");
+    }
+
+    if (!requestedName) return;
+    const normalizedRequested = normalizeLoose(requestedName);
+    const requestedPerson = people.find(person =>
+      normalizeLoose(person.full_name) === normalizedRequested
+      || normalizeLoose(person.display_name) === normalizedRequested
+    );
+
+    if (requestedPerson) {
+      setSearch("");
+      setSelectedPerson(requestedPerson);
+    }
+  }, [people]);
+
   const visiblePeople = people.filter(person => person.is_visible !== false);
   const statusMap = new Map<string, AlumniDirectoryStatusRow>(directoryRows.map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]));
   const shouldUseFallbackStatus = !loadingStatuses && directoryRows.length === 0;
@@ -5328,6 +5354,15 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
                   </button>
                   <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
                   {p.is_featured && <div className="absolute top-3 right-3 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1 flex items-center gap-1"><Star size={10} />Destaque</div>}
+                  {tags.length > 0 && (
+                    <div className="absolute bottom-11 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none" aria-label={`Pessoas marcadas: ${tags.join(", ")}`}>
+                      {tags.map(name => (
+                        <span key={name} className="max-w-full truncate bg-[#0a120a]/90 border border-[#c9a84c]/35 px-2 py-1 text-[9px] font-mono font-bold text-[#f0d783] shadow-sm">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                     <div className="flex items-center gap-2 text-[#f0ebe0] text-xs font-mono bg-[#0a120a]/80 px-2 py-1">
                       <Heart size={12} />{photoStats.likes_count}

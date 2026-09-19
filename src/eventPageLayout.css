@@ -47,8 +47,9 @@ main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [cl
   color: #587060 !important;
 }
 
-main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#f0ebe0]"] {
-  color: #ffffff !important;
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#f0ebe0]"],
+main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="text-[#fffaf0]"] {
+  color: #183c2a !important;
 }
 
 main > div > section[class*="min-h-[72vh]"] + section > div > div:last-child [class*="border-[#2d6a4f]"] {

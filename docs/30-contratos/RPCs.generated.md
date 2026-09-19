@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-18
-last_verified_commit: c04a1ef02b67ec6483fe8a7fe748d6b4a66dd4d2
+last_verified: 2026-09-19
+last_verified_commit: accda464614b334b578c10454578314328c2718f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -21,6 +21,7 @@ source_files:
 | `public.admin_can_manage_people` | `—` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_clear_person_profile` | `p_person_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_delete_person_profile` | `p_person_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
+| `public.admin_get_commerce_orders` | `p_event_id uuid, p_status text` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_get_person_details` | `p_person_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_get_profile_claim_disputes_with_identity` | `p_status text` | `TABLE(id uuid, person_id uuid, current_claimant_user_id uuid, requester_user_id uuid, requester_name text, requester_email text, requester_phone text, reason text, evidence_text text, status text, reviewed_by_admin_id uuid, reviewed_at timestamp with time zone, admin_notes text, created_at timestamp with time zone, updated_at timestamp with time zone, people jsonb, identity_verification jsonb)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_get_ticket_lots` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |

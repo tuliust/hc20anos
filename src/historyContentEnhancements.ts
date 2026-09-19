@@ -17,6 +17,11 @@ const PERSON_ALL_ATTRIBUTE = "data-mobile-history-person-all";
 const PERSON_DROPDOWN_ATTRIBUTE = "data-mobile-history-person-dropdown";
 const PERSON_ALL_OPTION_ATTRIBUTE = "data-mobile-history-person-all-option";
 
+type PhotoTagLike = {
+  tagged_name_snapshot?: string | null;
+  status?: string | null;
+};
+
 let approvedPhotosRequest: Promise<DbPhoto[]> | null = null;
 let enhancementScheduled = false;
 let selectedMobileYears = new Set<string>();
@@ -79,6 +84,16 @@ function getApprovedPhotoList() {
 
 function getPhotoSource(photo: DbPhoto) {
   return photo.thumbnail_url?.trim() || photo.image_url?.trim() || "";
+}
+
+function getApprovedPhotoTagNames(photo: DbPhoto) {
+  const tags = ((photo as DbPhoto & { photo_tags?: PhotoTagLike[] }).photo_tags ?? []);
+  return Array.from(new Set(
+    tags
+      .filter(tag => !tag.status || tag.status === "approved")
+      .map(tag => tag.tagged_name_snapshot?.trim() ?? "")
+      .filter(Boolean),
+  )).slice(0, 3);
 }
 
 function resolveSource(source: string) {
@@ -158,6 +173,20 @@ function createApprovedPhotoCard(photo: DbPhoto) {
     year.className = "absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1";
     year.textContent = String(photo.year_approx);
     card.appendChild(year);
+  }
+
+  const taggedNames = getApprovedPhotoTagNames(photo);
+  if (taggedNames.length) {
+    const tags = document.createElement("div");
+    tags.className = "absolute bottom-3 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none";
+    tags.setAttribute("aria-label", `Pessoas marcadas: ${taggedNames.join(", ")}`);
+    taggedNames.forEach(name => {
+      const badge = document.createElement("span");
+      badge.className = "max-w-full truncate bg-[#0a120a]/90 border border-[#c9a84c]/35 px-2 py-1 text-[9px] font-mono font-bold text-[#f0d783] shadow-sm";
+      badge.textContent = name;
+      tags.appendChild(badge);
+    });
+    card.appendChild(tags);
   }
 
   return card;
