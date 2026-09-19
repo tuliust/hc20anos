@@ -231,7 +231,15 @@ Deno.serve(async (request) => {
         .eq("id", orderId)
         .single();
       if (orderError || !order) throw new Error("order_not_found");
-      if (order.buyer_user_id !== user.id) return json(request, { error: "forbidden" }, 403);
+      if (order.buyer_user_id !== user.id) {
+        const { data: admin } = await db
+          .from("admin_users")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "superadmin"])
+          .maybeSingle();
+        if (!admin) return json(request, { error: "forbidden" }, 403);
+      }
 
       const suppliedToken = String(body?.public_token ?? "").trim();
       if (suppliedToken && suppliedToken !== String(order.public_token)) {
