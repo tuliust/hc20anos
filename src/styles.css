@@ -17,6 +17,23 @@ body {
   min-height: 100%;
 }
 
+/* Home pública deve ocupar toda a largura da viewport.
+   Os gutters pertencem aos containers internos, nunca à seção/hero. */
+main:has(> [data-home-loaded]),
+main > [data-home-loaded] {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+main > [data-home-loaded] > [data-home-section] {
+  width: 100%;
+  max-width: none;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 button,
 input,
 textarea,
