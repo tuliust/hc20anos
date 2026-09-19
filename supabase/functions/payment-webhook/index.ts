@@ -117,6 +117,29 @@ function isPaymentNotification(body: any) {
   return type === "payment" || action.startsWith("payment.");
 }
 
+function formatProcessingError(error: unknown) {
+  if (error instanceof Error) return error.message.slice(0, 1000);
+  if (typeof error === "string") return error.slice(0, 1000);
+
+  if (error && typeof error === "object") {
+    const value = error as Record<string, unknown>;
+    const fields = [
+      ["code", value.code],
+      ["message", value.message],
+      ["details", value.details],
+      ["hint", value.hint],
+      ["name", value.name],
+    ]
+      .filter(([, field]) => field !== null && field !== undefined && String(field).trim() !== "")
+      .map(([key, field]) => `${key}=${String(field).trim()}`);
+
+    if (fields.length) return fields.join(" | ").slice(0, 1000);
+    return "structured_error_without_diagnostic_fields";
+  }
+
+  return String(error ?? "unknown_error").slice(0, 1000);
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(request) });
   if (request.method !== "POST") return json(request, { error: "method_not_allowed" }, 405);
@@ -217,11 +240,11 @@ Deno.serve(async (request) => {
 
     return json(request, { received: true, result: result?.[0] ?? null });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("payment_webhook_failed", error);
+    const message = formatProcessingError(error);
+    console.error("payment_webhook_failed", message);
     await db.from("payment_events").update({
       processing_status: "failed",
-      processing_error: message.slice(0, 1000),
+      processing_error: message,
     }).eq("id", eventRow.id);
     return json(request, { error: "temporary_processing_failure" }, 503);
   }
