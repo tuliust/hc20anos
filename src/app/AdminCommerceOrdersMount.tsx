@@ -242,10 +242,10 @@ function AdminCommerceOrdersPanel() {
     setLoading(true);
     setError("");
     try {
-      const { data, error: rpcError } = await supabase.rpc("admin_get_commerce_orders", {
+      const { data, error: rpcError } = await (supabase as any).rpc("admin_get_commerce_orders", {
         p_event_id: DEFAULT_EVENT_ID,
         p_status: status === "all" ? null : status,
-      } as never);
+      });
       if (rpcError) throw rpcError;
       setOrders(Array.isArray(data) ? data as CommerceOrder[] : []);
     } catch (loadError) {
