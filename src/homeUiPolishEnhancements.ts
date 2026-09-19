@@ -70,12 +70,19 @@ function ensureProfileSubtitle() {
   const parent = metrics?.parentElement;
   if (!metrics || !parent) return;
 
+  const registeredCount = Number(metrics.dataset.registeredCount ?? "0");
+  const countLabel = Number.isFinite(registeredCount) ? Math.max(0, registeredCount) : 0;
+  const text = `De acordo com os ${countLabel} ex-alunos que já se cadastraram no site`;
+
   const existing = parent.querySelector<HTMLElement>(`[${PROFILE_SUBTITLE_ATTRIBUTE}]`);
-  if (existing) return;
+  if (existing) {
+    if (existing.textContent !== text) existing.textContent = text;
+    return;
+  }
 
   const subtitle = document.createElement("p");
   subtitle.setAttribute(PROFILE_SUBTITLE_ATTRIBUTE, "true");
-  subtitle.textContent = "De acordo com as pessoas cadastradas";
+  subtitle.textContent = text;
   parent.insertBefore(subtitle, metrics);
 }
 

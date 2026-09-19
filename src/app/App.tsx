@@ -96,7 +96,7 @@ interface AuthState {
 interface Alumni {
   id: string; name: string; nickname?: string; sala?: string;
   city?: string; profession?: string; avatarUrl?: string;
-  status: "unclaimed" | "claimed" | "confirmed";
+  status: "unclaimed" | "claimed" | "preconfirmed" | "confirmed";
 }
 
 interface TicketItem {
@@ -1095,7 +1095,7 @@ function displayNameForPerson(person: Pick<DbPerson, "full_name" | "display_name
 }
 
 // Mapeia DbPerson para Alumni, interface legada dos componentes visuais.
-function personToAlumni(p: DbPerson, displayName?: string | null): Alumni {
+function personToAlumni(p: DbPerson, displayName?: string | null, statusOverride?: Alumni["status"]): Alumni {
   const name = displayNameForPerson(p, displayName);
   return {
     id:         p.id,
@@ -1105,7 +1105,7 @@ function personToAlumni(p: DbPerson, displayName?: string | null): Alumni {
     city:       undefined,
     profession: undefined,
     avatarUrl:  p.avatar_url ?? undefined,
-    status:     p.profile_status as "unclaimed" | "claimed" | "confirmed",
+    status:     statusOverride ?? (p.profile_status as "unclaimed" | "claimed" | "confirmed"),
   };
 }
 
@@ -1136,8 +1136,9 @@ function Btn({ children, onClick, variant = "primary", size = "md", disabled = f
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
     unclaimed:    { label: "Não cadastrado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    claimed:      { label: "Cadastrado",     color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
-    confirmed:    { label: "Confirmado",       color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
+    claimed:      { label: "Cadastrado",      color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
+    preconfirmed: { label: "Pré-confirmado",  color: "bg-[#1a2e1a] text-[#c9a84c] border border-[#c9a84c]/30"     },
+    confirmed:    { label: "Confirmado",      color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
     available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
     "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
     "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
@@ -2668,14 +2669,33 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
 
 function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, navigate }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string>; content: HomePageContent; navigate: (page: Page) => void }) {
   const [seed, setSeed] = useState(1);
+  const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[] | null>(null);
   const alumni = useMemo(() => people.filter(person => person.class_year === 2006 && person.is_visible), [people]);
-  const confirmed = useMemo(() => alumni.filter(person => person.profile_status === "confirmed"), [alumni]);
-  const intending = useMemo(() => alumni.filter(person => attendanceIntentPersonIds.has(person.id)), [alumni, attendanceIntentPersonIds]);
+  const statusMap = useMemo(() => new Map<string, AlumniDirectoryStatusRow>(
+    (directoryRows ?? []).map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]),
+  ), [directoryRows]);
+  const confirmed = useMemo(() => alumni.filter(person => {
+    const row = statusMap.get(person.id);
+    return row ? row.has_approved_ticket === true : directoryRows === null && person.profile_status === "confirmed";
+  }), [alumni, directoryRows, statusMap]);
+  const intending = useMemo(() => alumni.filter(person => {
+    const row = statusMap.get(person.id);
+    if (row) return row.intends_to_attend === true && row.has_approved_ticket !== true;
+    return directoryRows === null && attendanceIntentPersonIds.has(person.id) && person.profile_status !== "confirmed";
+  }), [alumni, attendanceIntentPersonIds, directoryRows, statusMap]);
   const samplePeople = useMemo(() => getRotatingSample(alumni, 12, seed), [alumni, seed]);
   const confirmedPercent = alumni.length ? Math.round((confirmed.length / alumni.length) * 100) : 0;
   const extendedContent = getExtendedHomeContent(content);
   const copy = parseHomeJsonObject<HomeAlumniOverviewCopy>(extendedContent.home_alumni_overview_json, {});
   const confirmedPreviewLimit = parsePositiveInteger(extendedContent.confirmed_preview_limit, 30);
+
+  useEffect(() => {
+    let active = true;
+    getAlumniDirectoryStatuses(DEFAULT_EVENT_ID)
+      .then(rows => { if (active) setDirectoryRows(rows); })
+      .catch(() => { if (active) setDirectoryRows([]); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (alumni.length <= 1) return;
@@ -2859,7 +2879,7 @@ function HomeProfileMetrics({ configs, people, stats }: { configs: HomeProfileSt
   };
 
   return (
-    <div data-home-profile-metrics className="grid grid-cols-3 gap-3">
+    <div data-home-profile-metrics data-registered-count={registered} className="grid grid-cols-3 gap-3">
       {rows.map(row => (
         <div key={row.key} className="flex min-h-36 flex-col items-center justify-center border-l border-[#2d6a4f]/30 px-2 text-center first:border-l-0">
           <div className="mb-3 text-[#c9a84c]">{icons[row.key]}</div>
@@ -2961,6 +2981,11 @@ function HomeMapPersonAvatar({ person }: { person: PublicLocationRow }) {
 }
 
 function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; locations: LocationStat[] }) {
+  function openPerson(person: PublicLocationRow) {
+    const url = new URL("/ex-alunos", window.location.origin);
+    url.searchParams.set("pessoa", getPublicLocationDisplayName(person));
+    window.location.assign(`${url.pathname}${url.search}`);
+  }
   const [level, setLevel] = useState<HomeMapLevel>("world");
   const peopleByLevel = useMemo(() => {
     const groups: Record<HomeMapLevel, PublicLocationRow[]> = { world: [], brazil: [], rn: [], natal: [] };
@@ -3042,13 +3067,20 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
           {selectedPeople.length > 0 ? (
             <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
               {selectedPeople.map(person => (
-                <div key={person.person_id} className="flex items-center gap-3 border border-[#2d6a4f]/15 bg-[#141f14] p-2.5">
+                <button
+                  key={person.person_id}
+                  type="button"
+                  data-home-map-person={getPublicLocationDisplayName(person)}
+                  onClick={() => openPerson(person)}
+                  className="flex w-full min-w-0 items-center gap-3 border border-[#2d6a4f]/15 bg-[#141f14] p-2.5 text-left transition-colors hover:border-[#c9a84c]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
+                  aria-label={`Abrir perfil de ${getPublicLocationDisplayName(person)}`}
+                >
                   <HomeMapPersonAvatar person={person} />
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-[#f0ebe0]">{getPublicLocationDisplayName(person)}</p>
                     <p className="mt-0.5 truncate font-mono text-[9px] text-[#7a9a7a]">{getPublicLocationLabel(person)}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
@@ -4506,7 +4538,17 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
                 return (
                   <AlumniCard
                     key={person.id}
-                    alumni={personToAlumni(person, status.displayName)}
+                    alumni={personToAlumni(
+                      person,
+                      status.displayName,
+                      status.hasApprovedTicket
+                        ? "confirmed"
+                        : status.intendsToAttend
+                          ? "preconfirmed"
+                          : status.hasCompletedRegistration
+                            ? "claimed"
+                            : "unclaimed",
+                    )}
                     onOpen={() => setSelectedPerson(person)}
                     onClaim={() => navigate("claim-profile")}
                   />
@@ -6180,7 +6222,7 @@ function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode
       {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
       <div>
         <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-[#f0ebe0] text-sm break-words">{value}</p>
+        <p className="text-[#fffaf0] text-sm font-semibold leading-relaxed break-words">{value}</p>
       </div>
     </div>
   );

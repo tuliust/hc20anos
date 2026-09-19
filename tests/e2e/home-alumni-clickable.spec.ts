@@ -19,6 +19,34 @@ test("card Amostra da turma direciona para o diretório", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Ex-alunos" })).toBeVisible();
 });
 
+test("pessoa do Mapa da Turma abre o perfil em Ex-alunos", async ({ page }) => {
+  await openHome(page);
+
+  const mapPerson = page.locator("[data-home-map-person]").first();
+  await mapPerson.scrollIntoViewIfNeeded();
+  await expect(mapPerson).toBeVisible();
+  const personName = await mapPerson.getAttribute("data-home-map-person");
+  expect(personName).toBeTruthy();
+
+  await mapPerson.click();
+
+  await expect(page).toHaveURL(/\/ex-alunos\?pessoa=/);
+  const modal = page.locator("[data-modal-root='true']");
+  await expect(modal).toBeVisible({ timeout: 20_000 });
+  await expect(modal).toContainText(personName!);
+});
+
+test("Pré-confirmados exibem badge coerente com o filtro", async ({ page }) => {
+  await openHome(page);
+  await page.goto("/ex-alunos?presenca=preconfirmed");
+
+  await expect(page.locator("[data-ex-alumni-attendance-filter-applied='preconfirmed']")).toBeVisible({ timeout: 20_000 });
+  const cards = page.locator("main [role='button'][tabindex='0']").filter({ has: page.getByText("Pré-confirmado", { exact: true }) });
+  await expect(cards.first()).toBeVisible();
+  await expect(cards.first()).toContainText("Pré-confirmado");
+  await expect(cards.first()).not.toContainText("Confirmado");
+});
+
 test("pessoa da amostra abre o mesmo modal existente em Ex-alunos", async ({ page }) => {
   await openHome(page);
 

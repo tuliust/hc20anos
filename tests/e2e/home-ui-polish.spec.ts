@@ -9,7 +9,7 @@ test("Home: subtítulo do perfil, enquete legível e hover circular nos confirma
 
   const subtitle = page.locator("[data-home-profile-subtitle]");
   await expect(subtitle).toBeVisible();
-  await expect(subtitle).toHaveText("De acordo com as pessoas cadastradas");
+  await expect(subtitle).toHaveText("De acordo com os 6 ex-alunos que já se cadastraram no site");
 
   const pollOption = page.locator("[data-home-poll] button").first();
   await expect(pollOption).toBeVisible();
