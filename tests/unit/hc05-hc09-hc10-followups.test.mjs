@@ -5,8 +5,9 @@ import test from "node:test";
 const enhancement = readFileSync(new URL("../../src/requestedFollowupsHC050910.ts", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../../src/requestedFollowupsHC050910.css", import.meta.url), "utf8");
 const externalCopy = readFileSync(new URL("../../src/externalAlumniIntegrationEnhancement.ts", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../../supabase/migrations/20260917150000_external_checkout_companions_hc09.sql", import.meta.url), "utf8");
-const alumniMigration = readFileSync(new URL("../../supabase/migrations/20260917153000_promote_external_hc2006_alumni.sql", import.meta.url), "utf8");
+const homeLanding = readFileSync(new URL("../../src/homeLandingEnhancements.ts", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../../supabase/migrations/20260917160137_external_checkout_companions_hc09.sql", import.meta.url), "utf8");
+const alumniMigration = readFileSync(new URL("../../supabase/migrations/20260917160153_promote_external_hc2006_alumni.sql", import.meta.url), "utf8");
 
 test("HC-05 marca especificamente Data, Horário e Local e remove fundo sólido", () => {
   assert.match(enhancement, /new Set\(\["data", "horario", "local"\]\)/);
@@ -30,6 +31,11 @@ test("HC-10 força estado anônimo no logout e neutraliza troca entre usuários"
   assert.match(enhancement, /dataset\.hcAuthTransition = "true"/);
   assert.match(enhancement, /restoreHeroButtonsForAnonymousState\(\)/);
   assert.match(enhancement, /hc-hero-user-state-updated/);
+
+  assert.match(homeLanding, /LEGACY_ANONYMOUS_ATTENDANCE_KEY/);
+  assert.match(homeLanding, /if \(!currentUserId\) \{[\s\S]*attendanceConfirmed = false;[\s\S]*clearLegacyAnonymousAttendance\(\)/);
+  assert.doesNotMatch(homeLanding, /writeStoredFlag\(LEGACY_ANONYMOUS_ATTENDANCE_KEY, true\)/);
+  assert.doesNotMatch(homeLanding, /attendanceConfirmed = readStoredFlag\(LEGACY_ANONYMOUS_ATTENDANCE_KEY\)/);
 });
 
 test("todos os inputs de senha recebem controle de visualização acessível", () => {
