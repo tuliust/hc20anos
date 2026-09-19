@@ -4397,6 +4397,32 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedName = params.get("pessoa")?.trim();
+    const requestedClass = params.get("turma")?.trim().toUpperCase();
+    const requestedPresence = params.get("presenca")?.trim().toLowerCase();
+
+    if (requestedClass && ["A", "B", "C", "D"].includes(requestedClass)) {
+      setClassFilter(requestedClass as AlumniClassFilter);
+    }
+    if (requestedPresence === "confirmed") {
+      setAttendanceFilter("confirmed");
+    }
+
+    if (!requestedName) return;
+    const normalizedRequested = normalizeLoose(requestedName);
+    const requestedPerson = people.find(person =>
+      normalizeLoose(person.full_name) === normalizedRequested
+      || normalizeLoose(person.display_name) === normalizedRequested
+    );
+
+    if (requestedPerson) {
+      setSearch("");
+      setSelectedPerson(requestedPerson);
+    }
+  }, [people]);
+
   const visiblePeople = people.filter(person => person.is_visible !== false);
   const statusMap = new Map<string, AlumniDirectoryStatusRow>(directoryRows.map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]));
   const shouldUseFallbackStatus = !loadingStatuses && directoryRows.length === 0;
@@ -5328,6 +5354,15 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
                   </button>
                   <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
                   {p.is_featured && <div className="absolute top-3 right-3 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1 flex items-center gap-1"><Star size={10} />Destaque</div>}
+                  {tags.length > 0 && (
+                    <div className="absolute bottom-11 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none" aria-label={`Pessoas marcadas: ${tags.join(", ")}`}>
+                      {tags.map(name => (
+                        <span key={name} className="max-w-full truncate bg-[#0a120a]/90 border border-[#c9a84c]/35 px-2 py-1 text-[9px] font-mono font-bold text-[#f0d783] shadow-sm">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                     <div className="flex items-center gap-2 text-[#f0ebe0] text-xs font-mono bg-[#0a120a]/80 px-2 py-1">
                       <Heart size={12} />{photoStats.likes_count}
