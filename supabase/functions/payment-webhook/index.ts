@@ -160,19 +160,28 @@ function formatProcessingError(error: unknown) {
   return String(error ?? "unknown_error").slice(0, 1000);
 }
 
-async function fetchProviderPayment(paymentId: string) {
+function mercadoPagoAccessToken() {
   const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")?.trim();
   if (!accessToken) throw new Error("missing_access_token");
+  return accessToken;
+}
 
-  const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+async function fetchMercadoPagoJson(path: string, errorPrefix: string) {
+  const response = await fetch(`https://api.mercadopago.com${path}`, {
+    headers: { Authorization: `Bearer ${mercadoPagoAccessToken()}` },
   });
-  if (!paymentResponse.ok) {
-    const detail = await paymentResponse.text();
-    throw new Error(`payment_fetch_${paymentResponse.status}:${detail.slice(0, 500)}`);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`${errorPrefix}_${response.status}:${detail.slice(0, 500)}`);
   }
+  return await response.json();
+}
 
-  const payment = await paymentResponse.json();
+async function fetchProviderPayment(paymentId: string) {
+  const payment = await fetchMercadoPagoJson(
+    `/v1/payments/${encodeURIComponent(paymentId)}`,
+    "payment_fetch",
+  );
   if (String(payment.id) !== paymentId) throw new Error("payment_id_mismatch");
   return payment;
 }
@@ -185,12 +194,61 @@ function paymentOrderId(payment: any) {
   return orderId;
 }
 
+function merchantOrderContainsPayment(merchantOrder: any, paymentId: string) {
+  return Array.isArray(merchantOrder?.payments) &&
+    merchantOrder.payments.some((payment: any) => String(payment?.id ?? "") === paymentId);
+}
+
+function validateMerchantOrderForPayment(merchantOrder: any, orderId: string, paymentId: string) {
+  if (String(merchantOrder?.external_reference ?? "").trim() !== orderId) {
+    throw new Error("merchant_order_external_reference_mismatch");
+  }
+  if (!merchantOrderContainsPayment(merchantOrder, paymentId)) {
+    throw new Error("merchant_order_payment_mismatch");
+  }
+
+  const preferenceId = String(merchantOrder?.preference_id ?? "").trim();
+  if (!preferenceId) throw new Error("merchant_order_preference_required");
+  return preferenceId;
+}
+
+async function resolveProviderPreferenceId(paymentId: string, payment: any) {
+  const directPreferenceId = String(payment?.preference_id ?? "").trim();
+  if (directPreferenceId) return directPreferenceId;
+
+  const orderId = paymentOrderId(payment);
+  const merchantOrderId = String(payment?.order?.id ?? "").trim();
+
+  if (merchantOrderId) {
+    const merchantOrder = await fetchMercadoPagoJson(
+      `/merchant_orders/${encodeURIComponent(merchantOrderId)}`,
+      "merchant_order_fetch",
+    );
+    return validateMerchantOrderForPayment(merchantOrder, orderId, paymentId);
+  }
+
+  const search = await fetchMercadoPagoJson(
+    `/merchant_orders/search?external_reference=${encodeURIComponent(orderId)}&limit=50`,
+    "merchant_order_search",
+  );
+  const matches = (Array.isArray(search?.elements) ? search.elements : []).filter(
+    (merchantOrder: any) =>
+      String(merchantOrder?.external_reference ?? "").trim() === orderId &&
+      merchantOrderContainsPayment(merchantOrder, paymentId),
+  );
+
+  if (matches.length === 0) throw new Error("merchant_order_not_found_for_payment");
+  if (matches.length > 1) throw new Error("merchant_order_ambiguous_for_payment");
+  return validateMerchantOrderForPayment(matches[0], orderId, paymentId);
+}
+
 async function applyProviderPayment(db: ReturnType<typeof adminClient>, paymentId: string, payment: any) {
   const orderId = paymentOrderId(payment);
   const transactionAmount = Number(payment.transaction_amount);
   if (!Number.isFinite(transactionAmount) || transactionAmount < 0) throw new Error("invalid_transaction_amount");
   const amountCents = Math.round(transactionAmount * 100);
   const paidAt = payment.date_approved ? new Date(payment.date_approved).toISOString() : null;
+  const preferenceId = await resolveProviderPreferenceId(paymentId, payment);
 
   const { data: result, error: applyError } = await db.rpc("apply_mercado_pago_payment", {
     p_order_id: orderId,
@@ -202,7 +260,7 @@ async function applyProviderPayment(db: ReturnType<typeof adminClient>, paymentI
     p_installments: Number.isInteger(payment.installments) ? payment.installments : null,
     p_transaction_amount_cents: amountCents,
     p_currency_id: String(payment.currency_id ?? ""),
-    p_preference_id: payment.preference_id ? String(payment.preference_id) : null,
+    p_preference_id: preferenceId,
     p_paid_at: paidAt,
   });
   if (applyError) throw applyError;
