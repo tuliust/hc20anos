@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-19
-last_verified_commit: 83ee9fea1ac27c66d89b905bc6abf85374c08886
+last_verified_commit: fa083d23ae4e35b5298c6723bcc495669a99dc91
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 64 |
-| Ocorrências literais | 79 |
+| RPCs distintas | 65 |
+| Ocorrências literais | 80 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -35,6 +35,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_archive_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:323` | `AdminArchiveTicketLotArgs` | `AdminArchiveTicketLotReturns` |
 | `admin_clear_person_profile` | `src/adminParticipantMaintenance.ts:422` | `AdminClearPersonProfileArgs` | `AdminClearPersonProfileReturns` |
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
+| `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:245` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
 | `admin_get_person_details` | `src/lib/services.ts:551` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
 | `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:165` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
