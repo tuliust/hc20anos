@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-19
-last_verified_commit: fba2bc2489a35a178dfe41c0647866b15831dd80
+last_verified_commit: 4d93501e2d9f855dee135a38fe22f326cf0e99c3
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -41,7 +41,7 @@ source_files:
 | `PHOTO_STORAGE_PUBLIC_URL` | server-side | `supabase/functions/photo-storage/index.ts` |
 | `RESEND_API_KEY` | server-side | `supabase/functions/notification-worker/index.ts`<br>`supabase/functions/server/index.ts` |
 | `SITE_URL` | server-side | `supabase/functions/checkout-consent/index.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts` |
-| `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
+| `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
 | `SUPABASE_DB_CONTAINER` | server-side | `scripts/generate-database-contracts.mjs` |
 | `SUPABASE_FUNCTIONS_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/server/index.ts` |
 | `SUPABASE_SERVICE_ROLE_KEY` | server-side | `supabase/functions/checkout-consent/index.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts`<br>`supabase/functions/server/index.ts`<br>`supabase/functions/server/kv_store.tsx` |
