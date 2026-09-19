@@ -6222,7 +6222,7 @@ function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode
       {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
       <div>
         <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-[#f0ebe0] text-sm break-words">{value}</p>
+        <p className="text-[#fffaf0] text-sm font-semibold leading-relaxed break-words">{value}</p>
       </div>
     </div>
   );
