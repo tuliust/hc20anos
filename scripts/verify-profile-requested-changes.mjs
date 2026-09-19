@@ -5,7 +5,7 @@ const files = {
   api: new URL("../api/generate-profile-bio.ts", import.meta.url),
   edit: new URL("../src/editProfileRequestedChangesEnhancement.ts", import.meta.url),
   external: new URL("../src/externalUserProfileContextEnhancement.ts", import.meta.url),
-  migration: new URL("../supabase/migrations/20260917023000_profile_defaults_and_external_hc_context.sql", import.meta.url),
+  migration: new URL("../supabase/migrations/20260917052813_profile_defaults_and_external_hc_context.sql", import.meta.url),
 };
 
 const [api, edit, external, migration] = await Promise.all(
