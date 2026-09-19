@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { AdminCmsPanelsMount } from './app/AdminCmsPanelsMount';
 import { AdminOverviewDashboardMount } from './app/AdminOverviewDashboardMount';
+import { AdminCommerceOrdersMount } from './app/AdminCommerceOrdersMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
 import { ContactResearchPage } from './app/ContactResearchPage';
@@ -11,7 +12,6 @@ import { OperationsRouteGuard } from './app/OperationsRouteGuard';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
 import { installAdminLayoutEnhancements } from './adminLayoutEnhancements';
-import { installAdminOrdersRouteRemoval } from './adminOrdersRouteRemoval';
 import { installAdminParticipantMaintenance } from './adminParticipantMaintenance';
 import { installAdminReadResilience } from './adminReadResilience';
 import { installAdminReportsEnhancements } from './adminReportsEnhancements';
@@ -112,7 +112,6 @@ if (!isStandaloneRoute) {
   installHomeProfileMetricsEnhancements();
   installAdminLayoutEnhancements();
   installAdminReportsEnhancements();
-  installAdminOrdersRouteRemoval();
   installAdminParticipantMaintenance();
   installMemorySyncEnhancements();
   installAlumniAreaEnhancements();
@@ -162,6 +161,7 @@ createRoot(rootElement).render(
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />
+      <AdminCommerceOrdersMount />
       <AdminTicketLotsMount />
       <AdminTicketProductCopyMount />
       {normalizedPath === '/' && <HomeHeroUserStateMount />}
