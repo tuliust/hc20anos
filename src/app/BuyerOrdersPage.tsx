@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { reconcileMercadoPagoPayment } from "../lib/checkout";
 import { getTicketQrDataUrl } from "../lib/ticket-experience";
 import {
   AcceptTransfersPanel,
@@ -349,6 +350,33 @@ export function BuyerOrdersPage({ navigate }: { navigate: (page: BuyerOrdersDest
     if (!sessionData.session) {
       window.location.assign(`/entrar?next=${encodeURIComponent("/meus-pedidos")}`);
       return;
+    }
+
+    const returnParams = new URLSearchParams(window.location.search);
+    const paymentId = returnParams.get("payment_id") ?? returnParams.get("collection_id");
+    const publicToken = returnParams.get("token");
+    if (paymentId && /^\d+$/.test(paymentId)) {
+      try {
+        await reconcileMercadoPagoPayment(paymentId, publicToken);
+        setNotice("Pagamento conferido diretamente no Mercado Pago.");
+        for (const key of [
+          "payment_id",
+          "collection_id",
+          "collection_status",
+          "status",
+          "merchant_order_id",
+          "preference_id",
+          "payment_type",
+          "site_id",
+          "processing_mode",
+          "merchant_account_id",
+        ]) returnParams.delete(key);
+        const nextQuery = returnParams.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+      } catch (reconcileError) {
+        console.warn("[BuyerOrders] Payment reconciliation deferred", reconcileError);
+        setNotice("O pagamento foi concluído no Mercado Pago e ainda está sendo conciliado. Use Atualizar em instantes.");
+      }
     }
 
     const { data, error: ordersError } = await supabase.rpc("get_my_commerce_orders");
