@@ -4318,9 +4318,9 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   return (
     <>
       <PersonDetailModal
-        person={selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+        person={modalPerson}
+        onClose={closePersonModal}
+        onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
       />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -4388,6 +4388,34 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
+
+  const requestedPersonFromUrl = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPersonId = params.get("pessoa_id")?.trim();
+    const requestedName = params.get("pessoa")?.trim();
+    const normalizedRequested = normalizeLoose(requestedName);
+
+    return people.find(person => Boolean(requestedPersonId) && person.id === requestedPersonId)
+      ?? people.find(person =>
+        Boolean(normalizedRequested)
+        && (
+          normalizeLoose(person.full_name) === normalizedRequested
+          || normalizeLoose(person.display_name) === normalizedRequested
+          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
+        )
+      )
+      ?? null;
+  })();
+
+  const modalPerson = selectedPerson ?? requestedPersonFromUrl;
+
+  function closePersonModal() {
+    setSelectedPerson(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("pessoa_id");
+    url.searchParams.delete("pessoa");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
 
   useEffect(() => {
     let active = true;
