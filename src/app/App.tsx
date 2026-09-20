@@ -4318,9 +4318,9 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   return (
     <>
       <PersonDetailModal
-        person={modalPerson}
-        onClose={closePersonModal}
-        onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
       />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -4516,9 +4516,9 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   return (
     <>
       <PersonDetailModal
-        person={selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+        person={modalPerson}
+        onClose={closePersonModal}
+        onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
       />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
