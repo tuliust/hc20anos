@@ -34,6 +34,10 @@ Documentos `canonical` descrevem regras humanas vigentes. Arquivos `generated` r
 10. [`50-governanca/processo-de-atualizacao.md`](./50-governanca/processo-de-atualizacao.md) — fluxo de atualização e validação.
 11. [`archive/README.md`](./archive/README.md) — classificação dos registros históricos.
 
+## Estado operacional atual
+
+O snapshot vigente de implementação, produção e homologação está em [`30-contratos/estado-operacional-2026-09-20.md`](./30-contratos/estado-operacional-2026-09-20.md). Ele registra a proteção da `main`, o `PR gate` obrigatório, a reconciliação das migrations, os pedidos/ingressos/notificações observados e as homologações ainda pendentes.
+
 ## Domínios documentados
 
 | Domínio | Documento | Estado |
