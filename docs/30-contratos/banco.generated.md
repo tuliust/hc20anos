@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-20
-last_verified_commit: 91f76b936d8e521146f5c6afb49228053787cb4b
+last_verified_commit: aa3587ef8ea31784ab9f8ce67b84644c43fdf7e2
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1135,6 +1135,7 @@ source_files:
 | `public.cms_assets` | `cms_assets_unique_key` | `CREATE UNIQUE INDEX cms_assets_unique_key ON public.cms_assets USING btree (event_id, asset_key)` |
 | `public.contact_collectors` | `contact_collectors_pkey` | `CREATE UNIQUE INDEX contact_collectors_pkey ON public.contact_collectors USING btree (user_id)` |
 | `public.contact_research_roster` | `contact_research_roster_pkey` | `CREATE UNIQUE INDEX contact_research_roster_pkey ON public.contact_research_roster USING btree (person_id)` |
+| `public.content_moderation_events` | `content_moderation_events_actor_user_id_idx` | `CREATE INDEX content_moderation_events_actor_user_id_idx ON public.content_moderation_events USING btree (actor_user_id)` |
 | `public.content_moderation_events` | `content_moderation_events_entity_idx` | `CREATE INDEX content_moderation_events_entity_idx ON public.content_moderation_events USING btree (entity_type, entity_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_event_idx` | `CREATE INDEX content_moderation_events_event_idx ON public.content_moderation_events USING btree (event_id, created_at DESC)` |
 | `public.content_moderation_events` | `content_moderation_events_pkey` | `CREATE UNIQUE INDEX content_moderation_events_pkey ON public.content_moderation_events USING btree (id)` |
@@ -1147,6 +1148,7 @@ source_files:
 | `public.faq_categories` | `faq_categories_pkey` | `CREATE UNIQUE INDEX faq_categories_pkey ON public.faq_categories USING btree (id)` |
 | `public.faq_categories` | `idx_faq_categories_event_deleted` | `CREATE INDEX idx_faq_categories_event_deleted ON public.faq_categories USING btree (event_id, deleted_at)` |
 | `public.faq_categories` | `idx_faq_categories_event_visible_order` | `CREATE INDEX idx_faq_categories_event_visible_order ON public.faq_categories USING btree (event_id, is_visible, sort_order)` |
+| `public.faq_items` | `faq_items_category_id_idx` | `CREATE INDEX faq_items_category_id_idx ON public.faq_items USING btree (category_id)` |
 | `public.faq_items` | `faq_items_event_slug_key` | `CREATE UNIQUE INDEX faq_items_event_slug_key ON public.faq_items USING btree (event_id, slug)` |
 | `public.faq_items` | `faq_items_pkey` | `CREATE UNIQUE INDEX faq_items_pkey ON public.faq_items USING btree (id)` |
 | `public.faq_items` | `idx_faq_items_event_category_visible_order` | `CREATE INDEX idx_faq_items_event_category_visible_order ON public.faq_items USING btree (event_id, category_id, is_visible, sort_order)` |
@@ -1156,6 +1158,7 @@ source_files:
 | `public.guest_approval_requests` | `guest_approval_guest_status_idx` | `CREATE INDEX guest_approval_guest_status_idx ON public.guest_approval_requests USING btree (guest_user_id, status, created_at DESC)` |
 | `public.guest_approval_requests` | `guest_approval_open_request_unique` | `CREATE UNIQUE INDEX guest_approval_open_request_unique ON public.guest_approval_requests USING btree (event_id, guest_user_id, sponsor_person_id) WHERE (status = 'pending'::text)` |
 | `public.guest_approval_requests` | `guest_approval_requests_pkey` | `CREATE UNIQUE INDEX guest_approval_requests_pkey ON public.guest_approval_requests USING btree (id)` |
+| `public.guest_approval_requests` | `guest_approval_requests_sponsor_user_id_idx` | `CREATE INDEX guest_approval_requests_sponsor_user_id_idx ON public.guest_approval_requests USING btree (sponsor_user_id)` |
 | `public.guest_approval_requests` | `guest_approval_sponsor_status_idx` | `CREATE INDEX guest_approval_sponsor_status_idx ON public.guest_approval_requests USING btree (sponsor_person_id, status, created_at DESC)` |
 | `public.home_page_content` | `home_page_content_pkey` | `CREATE UNIQUE INDEX home_page_content_pkey ON public.home_page_content USING btree (event_id)` |
 | `public.memories` | `idx_memories_created_at` | `CREATE INDEX idx_memories_created_at ON public.memories USING btree (created_at DESC)` |
@@ -1221,9 +1224,11 @@ source_files:
 | `public.photo_removal_requests` | `idx_removal_requests_status` | `CREATE INDEX idx_removal_requests_status ON public.photo_removal_requests USING btree (status)` |
 | `public.photo_removal_requests` | `photo_removal_one_open_request_per_user` | `CREATE UNIQUE INDEX photo_removal_one_open_request_per_user ON public.photo_removal_requests USING btree (photo_id, requester_user_id) WHERE (status = ANY (ARRAY['pending'::removal_request_status, 'hidden_preventively'::removal_request_status]))` |
 | `public.photo_removal_requests` | `photo_removal_requests_pkey` | `CREATE UNIQUE INDEX photo_removal_requests_pkey ON public.photo_removal_requests USING btree (id)` |
+| `public.photo_removal_requests` | `photo_removal_requests_requester_user_id_idx` | `CREATE INDEX photo_removal_requests_requester_user_id_idx ON public.photo_removal_requests USING btree (requester_user_id)` |
 | `public.photo_tags` | `idx_photo_tags_person_id` | `CREATE INDEX idx_photo_tags_person_id ON public.photo_tags USING btree (person_id)` |
 | `public.photo_tags` | `idx_photo_tags_photo_id` | `CREATE INDEX idx_photo_tags_photo_id ON public.photo_tags USING btree (photo_id)` |
 | `public.photo_tags` | `idx_photo_tags_status` | `CREATE INDEX idx_photo_tags_status ON public.photo_tags USING btree (status)` |
+| `public.photo_tags` | `photo_tags_created_by_user_id_idx` | `CREATE INDEX photo_tags_created_by_user_id_idx ON public.photo_tags USING btree (created_by_user_id)` |
 | `public.photo_tags` | `photo_tags_photo_id_person_id_key` | `CREATE UNIQUE INDEX photo_tags_photo_id_person_id_key ON public.photo_tags USING btree (photo_id, person_id)` |
 | `public.photo_tags` | `photo_tags_pkey` | `CREATE UNIQUE INDEX photo_tags_pkey ON public.photo_tags USING btree (id)` |
 | `public.photos` | `idx_photos_event_id` | `CREATE INDEX idx_photos_event_id ON public.photos USING btree (event_id)` |
@@ -1273,6 +1278,7 @@ source_files:
 | `public.refund_requests` | `refund_requests_order_status_idx` | `CREATE INDEX refund_requests_order_status_idx ON public.refund_requests USING btree (order_id, status, requested_at DESC)` |
 | `public.refund_requests` | `refund_requests_pkey` | `CREATE UNIQUE INDEX refund_requests_pkey ON public.refund_requests USING btree (id)` |
 | `public.refund_requests` | `refund_requests_requested_by_user_id_idx` | `CREATE INDEX refund_requests_requested_by_user_id_idx ON public.refund_requests USING btree (requested_by_user_id)` |
+| `public.refund_requests` | `refund_requests_ticket_id_idx` | `CREATE INDEX refund_requests_ticket_id_idx ON public.refund_requests USING btree (ticket_id)` |
 | `public.security_audit_log` | `security_audit_log_actor_idx` | `CREATE INDEX security_audit_log_actor_idx ON public.security_audit_log USING btree (actor_user_id, created_at DESC)` |
 | `public.security_audit_log` | `security_audit_log_created_idx` | `CREATE INDEX security_audit_log_created_idx ON public.security_audit_log USING btree (created_at DESC)` |
 | `public.security_audit_log` | `security_audit_log_entity_idx` | `CREATE INDEX security_audit_log_entity_idx ON public.security_audit_log USING btree (entity_type, entity_id, created_at DESC)` |
@@ -1287,6 +1293,7 @@ source_files:
 | `public.ticket_transfers` | `ticket_transfers_from_user_id_idx` | `CREATE INDEX ticket_transfers_from_user_id_idx ON public.ticket_transfers USING btree (from_user_id)` |
 | `public.ticket_transfers` | `ticket_transfers_open_unique` | `CREATE UNIQUE INDEX ticket_transfers_open_unique ON public.ticket_transfers USING btree (ticket_id) WHERE (status = ANY (ARRAY['requested'::text, 'accepted'::text]))` |
 | `public.ticket_transfers` | `ticket_transfers_pkey` | `CREATE UNIQUE INDEX ticket_transfers_pkey ON public.ticket_transfers USING btree (id)` |
+| `public.ticket_transfers` | `ticket_transfers_to_user_id_idx` | `CREATE INDEX ticket_transfers_to_user_id_idx ON public.ticket_transfers USING btree (to_user_id)` |
 | `public.ticket_types` | `idx_ticket_types_event_id` | `CREATE INDEX idx_ticket_types_event_id ON public.ticket_types USING btree (event_id)` |
 | `public.ticket_types` | `idx_ticket_types_status` | `CREATE INDEX idx_ticket_types_status ON public.ticket_types USING btree (status)` |
 | `public.ticket_types` | `ticket_types_event_product_code_unique` | `CREATE UNIQUE INDEX ticket_types_event_product_code_unique ON public.ticket_types USING btree (event_id, product_code) WHERE (product_code IS NOT NULL)` |
@@ -1299,6 +1306,7 @@ source_files:
 | `public.tickets` | `idx_tickets_qr_code` | `CREATE INDEX idx_tickets_qr_code ON public.tickets USING btree (qr_code)` |
 | `public.tickets` | `tickets_checked_in_by_admin_id_idx` | `CREATE INDEX tickets_checked_in_by_admin_id_idx ON public.tickets USING btree (checked_in_by_admin_id)` |
 | `public.tickets` | `tickets_order_participant_unique` | `CREATE UNIQUE INDEX tickets_order_participant_unique ON public.tickets USING btree (order_participant_id) WHERE (order_participant_id IS NOT NULL)` |
+| `public.tickets` | `tickets_physical_vouchers_delivered_by_idx` | `CREATE INDEX tickets_physical_vouchers_delivered_by_idx ON public.tickets USING btree (physical_vouchers_delivered_by)` |
 | `public.tickets` | `tickets_pkey` | `CREATE UNIQUE INDEX tickets_pkey ON public.tickets USING btree (id)` |
 | `public.tickets` | `tickets_qr_code_key` | `CREATE UNIQUE INDEX tickets_qr_code_key ON public.tickets USING btree (qr_code)` |
 | `public.tickets` | `tickets_qr_token_hash_key` | `CREATE UNIQUE INDEX tickets_qr_token_hash_key ON public.tickets USING btree (qr_token_hash)` |
