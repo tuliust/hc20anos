@@ -9,6 +9,10 @@ with checks as (
   union all select 'checkin_action_rpc_exists', to_regprocedure('public.perform_ticket_checkin(uuid,boolean,text)') is not null
   union all select 'voucher_action_rpc_exists', to_regprocedure('public.set_participant_vouchers_delivered(uuid,boolean,text)') is not null
   union all select 'checkin_events_table_exists', to_regclass('public.checkin_events') is not null
+  union all select 'checkin_reuse_returns_already_checked_in',
+    position('if v_ticket.checked_in then' in pg_get_functiondef('public.perform_ticket_checkin(uuid,boolean,text)'::regprocedure)) > 0
+    and position('if v_ticket.checked_in then' in pg_get_functiondef('public.perform_ticket_checkin(uuid,boolean,text)'::regprocedure))
+      < position('if v_ticket.status <> ''active'' then' in pg_get_functiondef('public.perform_ticket_checkin(uuid,boolean,text)'::regprocedure))
   union all select 'anon_cannot_transfer', not has_function_privilege('anon','public.request_ticket_transfer(uuid,text,text,text)','EXECUTE')
   union all select 'anon_cannot_refund', not has_function_privilege('anon','public.request_order_refund(uuid,text)','EXECUTE')
   union all select 'authenticated_can_request_transfer', has_function_privilege('authenticated','public.request_ticket_transfer(uuid,text,text,text)','EXECUTE')
