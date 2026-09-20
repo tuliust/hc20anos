@@ -1,35 +1,46 @@
-name: Stable release
+name: Stable release v1.0.0 verification
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "package.json"
-      - "package-lock.json"
-      - ".nvmrc"
-      - "docs/30-contratos/release-v1.0.0.md"
-      - "docs/40-runbooks/procedimento-operacional-v1.0.0.md"
-      - ".github/workflows/release-stable.yml"
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: stable-release-v1.0.0
+  group: stable-release-v1.0.0-verification
   cancel-in-progress: false
 
 jobs:
-  release:
+  verify-release:
     if: github.repository == 'tuliust/hc20anos'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout exact main commit
+      - name: Checkout immutable v1.0.0 tag
         uses: actions/checkout@v4
         with:
+          ref: v1.0.0
           fetch-depth: 0
+
+      - name: Verify immutable tag and published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          checked_out_sha="$(git rev-parse HEAD)"
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.0" --jq '.object.sha')"
+          release_target="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v1.0.0" --jq '.target_commitish')"
+
+          test "$checked_out_sha" = "$tag_sha" || {
+            echo "Checkout/tag mismatch: checkout=$checked_out_sha tag=$tag_sha"
+            exit 1
+          }
+
+          test "$release_target" = "$tag_sha" || {
+            echo "Release/tag mismatch: release=$release_target tag=$tag_sha"
+            exit 1
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -63,28 +74,5 @@ jobs:
       - name: Audit documentation
         run: npm run audit:docs
 
-      - name: Build application
+      - name: Build immutable release
         run: npm run build
-
-      - name: Verify immutable v1.0.0 target
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          if tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.0" --jq '.object.sha' 2>/dev/null)"; then
-            test "$tag_sha" = "$GITHUB_SHA" || {
-              echo "v1.0.0 already exists on a different commit: $tag_sha"
-              exit 1
-            }
-          fi
-
-      - name: Create GitHub Release and tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            echo "GitHub Release v1.0.0 already exists."
-          else
-            gh release create v1.0.0 --title "HC 20 Anos v1.0.0" --target "$GITHUB_SHA" --notes-file docs/30-contratos/release-v1.0.0.md
-          fi
