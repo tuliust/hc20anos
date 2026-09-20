@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-20
-last_verified_commit: aa3587ef8ea31784ab9f8ce67b84644c43fdf7e2
+last_verified_commit: 902d636eef63806e864f20e572a9686d1196e096
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -18,7 +18,7 @@ source_files:
 |---|---|---|---|---|---|
 | `public.accept_ticket_transfer` | `p_transfer_id uuid` | `uuid` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.admin_archive_ticket_lot` | `p_lot_id uuid, p_event_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
-| `public.admin_can_manage_people` | `—` | `boolean` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
+| `public.admin_can_manage_people` | `—` | `boolean` | sim | `stable` | `postgres=X/postgres,service_role=X/postgres` |
 | `public.admin_clear_person_profile` | `p_person_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_delete_person_profile` | `p_person_id uuid` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_get_commerce_orders` | `p_event_id uuid, p_status text` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
@@ -52,7 +52,7 @@ source_files:
 | `public.current_security_role` | `—` | `text` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.decide_guest_approval_request` | `p_request_id uuid, p_decision text, p_decided_by_user_id uuid, p_notes text` | `guest_approval_requests` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enforce_hc20_commerce_capacity` | `—` | `trigger` | não | `volatile` | `—` |
-| `public.enforce_rate_limit` | `p_action text, p_limit integer, p_window_seconds integer, p_subject text` | `integer` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
+| `public.enforce_rate_limit` | `p_action text, p_limit integer, p_window_seconds integer, p_subject text` | `integer` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enqueue_guest_approval_whatsapp_job` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enqueue_order_status_notifications` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enqueue_ticket_whatsapp_notification` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
