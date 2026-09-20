@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-20
-last_verified_commit: aa3587ef8ea31784ab9f8ce67b84644c43fdf7e2
+last_verified_commit: 902d636eef63806e864f20e572a9686d1196e096
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1313,7 +1313,6 @@ source_files:
 | `public.admin_archive_ticket_lot` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_archive_ticket_lot` | `postgres` | `EXECUTE` | YES |
 | `public.admin_archive_ticket_lot` | `service_role` | `EXECUTE` | NO |
-| `public.admin_can_manage_people` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_can_manage_people` | `postgres` | `EXECUTE` | YES |
 | `public.admin_can_manage_people` | `service_role` | `EXECUTE` | NO |
 | `public.admin_clear_person_profile` | `authenticated` | `EXECUTE` | NO |
@@ -1389,7 +1388,6 @@ source_files:
 | `public.decide_guest_approval_request` | `postgres` | `EXECUTE` | YES |
 | `public.enforce_hc20_commerce_capacity` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enforce_hc20_commerce_capacity` | `postgres` | `EXECUTE` | YES |
-| `public.enforce_rate_limit` | `authenticated` | `EXECUTE` | NO |
 | `public.enforce_rate_limit` | `postgres` | `EXECUTE` | YES |
 | `public.enqueue_guest_approval_whatsapp_job` | `postgres` | `EXECUTE` | YES |
 | `public.enqueue_order_status_notifications` | `postgres` | `EXECUTE` | YES |
