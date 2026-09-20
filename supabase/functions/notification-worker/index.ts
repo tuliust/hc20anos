@@ -130,8 +130,8 @@ async function deliverEmail(job: any, payload: Record<string, unknown>) {
 function whatsappTemplate(eventType: string) {
   const base = baseEventType(eventType);
   const envName = base.startsWith("payment_") ? "WHATSAPP_TEMPLATE_PAYMENT"
-    : base.startsWith("ticket_") ? "WHATSAPP_TEMPLATE_TICKET"
     : base.startsWith("ticket_transfer_") ? "WHATSAPP_TEMPLATE_TRANSFER"
+    : base.startsWith("ticket_") ? "WHATSAPP_TEMPLATE_TICKET"
     : base.includes("refund") ? "WHATSAPP_TEMPLATE_REFUND"
     : base === "guest_approval_requested" ? "WHATSAPP_TEMPLATE_GUEST_REQUEST"
     : base.startsWith("guest_approval_") ? "WHATSAPP_TEMPLATE_GUEST_DECISION"
