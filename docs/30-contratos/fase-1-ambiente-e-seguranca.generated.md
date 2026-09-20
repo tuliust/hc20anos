@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-19
-last_verified_commit: 4182bf45b2cd349a257b6b376c87a178d66d07e8
+last_verified: 2026-09-20
+last_verified_commit: 5b9d68f243548b8b85ac89c90f85afa3e4eb6cbc
 generation_command: GitHub Actions / Phase 1 environment and security
 source_files:
   - supabase/migrations/
