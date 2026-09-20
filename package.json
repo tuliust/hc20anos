@@ -46,7 +46,9 @@
     "test:phase2:storage": "node scripts/test-phase2-content-storage.mjs",
     "supabase:deploy:photo-storage": "supabase functions deploy photo-storage --no-verify-jwt --project-ref tjnqqsbwgjcdzcxykyif",
     "audit:protected-main": "node scripts/check-protected-main-workflows.mjs",
-    "audit:reproducibility": "node scripts/check-reproducibility.mjs"
+    "audit:reproducibility": "node scripts/check-reproducibility.mjs",
+    "test:build-transforms": "node --test tests/unit/build-transform-utils.test.mjs",
+    "ci:verify": "npm run audit:reproducibility && npm run audit:migrations && npm run audit:docs && npm run docs:check-contracts && npm run docs:check-routes && npm run docs:check-type-compatibility && npm run docs:check-type-consumers && npm run docs:check-rpc-usage && npm run test:build-transforms && npm run build"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
