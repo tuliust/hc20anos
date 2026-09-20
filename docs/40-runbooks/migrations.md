@@ -1,7 +1,7 @@
 ---
 status: draft
 owner: tuliust
-last_verified: 2026-07-26
+last_verified: 2026-09-20
 last_verified_commit: a6fd273c8d7ca863ee672e428d728941559acc4a
 source_files:
   - supabase/migrations/
@@ -173,4 +173,8 @@ npx supabase stop --no-backup
 
 ## Estado de validação
 
-O replay e os comandos locais correspondem ao workflow atual. A aplicação remota ainda precisa ser formalizada e executada integralmente; por isso o documento permanece `draft`.
+Em 20/09/2026, o histórico remoto do Supabase `EventoHC` está reconciliado com o repositório em **133 / 133 migrations**. A sequência inclui `20260919104607_admin_commerce_order_details_20260919`, `20260920052932_whatsapp_notification_channel_guard` e `20260920054440_fix_checkin_reuse_validation`.
+
+O replay local e a validação de migrations continuam cobertos pelo CI. A aplicação remota já ocorreu para a sequência vigente, mas o repositório ainda não possui um comando canônico único e reproduzível para aplicar migrations remotas; por isso este runbook permanece `draft`.
+
+A contagem acima é um snapshot datado, não uma constante. A cada nova migration, a validação correta é comparar novamente repositório e histórico remoto, sem reaplicar SQL já registrado.
