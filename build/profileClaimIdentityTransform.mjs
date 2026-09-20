@@ -175,7 +175,7 @@ export function profileClaimIdentityTransform() {
     name: "profile-claim-identity-transform",
     enforce: "pre",
     transform(source, id) {
-      const normalizedId = id.replaceAll("\\", "/").split("?")[0];
+      const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
       if (normalizedId.endsWith("/src/lib/services.ts")) return { code: transformServices(source), map: null };
       return null;
