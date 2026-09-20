@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installHomeFixtures } from "./home-fixtures";
+import { installHomeFixtures, peopleFixture } from "./home-fixtures";
 
 async function openHome(page: import("@playwright/test").Page) {
   await installHomeFixtures(page);
@@ -7,6 +7,57 @@ async function openHome(page: import("@playwright/test").Page) {
   await expect(page.locator("[data-home-loaded]"), "Home deve concluir o carregamento").toBeVisible({ timeout: 20_000 });
   await expect(page.locator("[data-home-alumni-overview]"), "Seção de ex-alunos deve estar visível").toBeVisible();
 }
+
+test("shell público desktop ocupa toda a largura sem moldura lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openHome(page);
+
+  const geometry = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    const home = document.querySelector("[data-home-loaded]");
+    if (!(main instanceof HTMLElement) || !(home instanceof HTMLElement)) return null;
+    const mainBox = main.getBoundingClientRect();
+    const homeBox = home.getBoundingClientRect();
+    return {
+      viewport: document.documentElement.clientWidth,
+      mainLeft: mainBox.left,
+      mainRight: mainBox.right,
+      homeLeft: homeBox.left,
+      homeRight: homeBox.right,
+    };
+  });
+
+  expect(geometry).not.toBeNull();
+  expect(Math.abs(geometry!.mainLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry!.homeLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry!.mainRight - geometry!.viewport)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry!.homeRight - geometry!.viewport)).toBeLessThanOrEqual(1);
+});
+
+test("nome abreviado na Home abre o modal correto usando o ID estável", async ({ page }) => {
+  const people = structuredClone(peopleFixture);
+  people[0] = {
+    ...people[0],
+    full_name: "Maria Fernanda Souza de Oliveira",
+    display_name: "Maria Fernanda Souza de Oliveira",
+  };
+
+  await installHomeFixtures(page, { people });
+  await page.goto("/");
+  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("[data-home-alumni-overview]")).toBeVisible();
+
+  const person = page.locator(`[data-home-alumni-person-id="${people[0].id}"]`).first();
+  await expect(person).toBeVisible();
+  await expect(person).toHaveAttribute("data-home-alumni-person", "Maria Oliveira");
+
+  await person.click();
+
+  await expect(page).toHaveURL(new RegExp(`pessoa_id=${people[0].id}`));
+  const modal = page.locator("[data-modal-root='true']");
+  await expect(modal).toBeVisible({ timeout: 20_000 });
+  await expect(modal).toContainText("Maria Fernanda Souza de Oliveira");
+});
 
 test("card Amostra da turma direciona para o diretório", async ({ page }) => {
   await openHome(page);
@@ -84,7 +135,7 @@ test("pessoa do card Turmas abre o perfil com filtro da turma", async ({ page })
 
   await person.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?turma=[A-D]&pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?turma=[A-D]&pessoa_id=.*&pessoa=/);
   await expect(page.locator("[data-ex-alumni-class-filter-applied]")).toBeVisible({ timeout: 20_000 });
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
@@ -101,7 +152,7 @@ test("pessoa de Quem confirmou presença abre o perfil com filtro de confirmados
 
   await person.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?presenca=confirmed&pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?presenca=confirmed&pessoa_id=.*&pessoa=/);
   await expect(page.locator("[data-ex-alumni-attendance-filter-applied='confirmed']")).toBeVisible({ timeout: 20_000 });
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
