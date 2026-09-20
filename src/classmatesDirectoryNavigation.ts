@@ -133,10 +133,9 @@ function applyPendingClassFilter() {
   if (!isSelected) button.click();
 
   clearPendingClass();
-  if (window.location.search) {
-    window.history.replaceState({}, "", EX_ALUMNI_PATH);
-    window.dispatchEvent(new Event("pushstate"));
-  }
+  // Preserve explicit query parameters (turma, pessoa_id, pessoa, presenca).
+  // They are part of the directory deep link and are also used to open
+  // the selected profile modal after navigation.
 }
 
 function scheduleApply() {

@@ -2,6 +2,7 @@ const ALUMNI_AREA_PATHS = new Set(["/minha-area", "/alumni-area"]);
 const EX_ALUMNI_PATHS = new Set(["/ex-alunos", "/ex-alumni"]);
 const HOME_ALUMNI_ROOT_SELECTOR = "[data-home-alumni-overview]";
 const HOME_PERSON_ATTRIBUTE = "data-home-alumni-person";
+const HOME_PERSON_ID_ATTRIBUTE = "data-home-alumni-person-id";
 const HOME_CAPTURE_ATTRIBUTE = "data-home-alumni-profile-capture";
 const DIRECTORY_OPEN_ATTRIBUTE = "data-content-sync-person-opened";
 const ORDERS_ACTION_ATTRIBUTE = "data-alumni-area-orders-card-action";
@@ -93,6 +94,8 @@ function homePersonElement(target: Element, root: HTMLElement) {
 
 function openPersonDirectory(personName: string, person: HTMLElement, root: HTMLElement) {
   const url = new URL("/ex-alunos", window.location.origin);
+  const personId = person.getAttribute(HOME_PERSON_ID_ATTRIBUTE)?.trim();
+  if (personId) url.searchParams.set("pessoa_id", personId);
   url.searchParams.set("pessoa", personName);
 
   if (person.closest("[data-home-class-people]")) {

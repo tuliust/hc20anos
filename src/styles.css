@@ -117,6 +117,33 @@ canvas {
    natural da página. Cada componente mantém apenas o próprio container interno
    (max-w + px), sem um segundo gutter global aplicado por CSS. */
 
+/* Desktop: o shell da aplicação e o wrapper direto de cada página não podem
+   criar uma moldura lateral. Os recuos de conteúdo ficam somente nos
+   containers internos (max-w + px-*). */
+@media (min-width: 768px) {
+  html,
+  body,
+  #root,
+  #root > div,
+  #root > div > main {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #root > div > main > [data-home-loaded],
+  #root > div > main > div[class*="min-h-screen"],
+  #root > div > main > section {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
 /* Header: mantém o menu desktop legível sem estourar o layout. */
 header nav {
   gap: 1.25rem !important;

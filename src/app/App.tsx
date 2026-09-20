@@ -2629,7 +2629,7 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
       <div className="mt-auto flex items-center gap-3">
         <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver pessoas anteriores"><ChevronLeft size={18} /></button>
         <div data-home-class-people className="grid min-w-0 flex-1 grid-cols-3 gap-2">
-          {visiblePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center transition-colors hover:border-[#c9a84c]/60 focus:outline-none focus:border-[#c9a84c]"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
+          {visiblePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center transition-colors hover:border-[#c9a84c]/60 focus:outline-none focus:border-[#c9a84c]"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
           {!visiblePeople.length && copy.class_empty_label && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">{copy.class_empty_label}</div>}
         </div>
         <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver próximas pessoas"><ChevronRight size={18} /></button>
@@ -2662,7 +2662,7 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
               : "grid-cols-6 sm:grid-cols-10";
   return preview.length ? (
     <div data-home-confirmed-grid data-count={count} data-avatar-size={avatarDimension} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
-      {preview.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex cursor-pointer justify-center rounded-full outline-none transition-transform hover:scale-105 focus:ring-2 focus:ring-[#c9a84c]" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
+      {preview.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex cursor-pointer justify-center rounded-full outline-none transition-transform hover:scale-105 focus:ring-2 focus:ring-[#c9a84c]" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
     </div>
   ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
@@ -2708,7 +2708,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><SectionLabel>{copy.eyebrow || content.confirmed_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{copy.title || content.confirmed_title}</DisplayTitle></div>{copy.description && <p className="max-w-md text-sm leading-relaxed text-[#7a9a7a] md:text-right">{copy.description}</p>}</div>
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
-          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.sample_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{applyTextTemplate(copy.sample_title_template, { total: alumni.length })}</p></div><Users size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mt-auto grid grid-cols-4 gap-3 sm:grid-cols-6">{samplePeople.map(person => <div key={person.id} className="flex flex-col items-center gap-2 text-center"><AlumniAvatar person={person} /><p className="line-clamp-2 text-[10px] leading-tight text-[#7a9a7a]">{getHomeAlumniDisplayName(person)}</p></div>)}</div></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.sample_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{applyTextTemplate(copy.sample_title_template, { total: alumni.length })}</p></div><Users size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mt-auto grid grid-cols-4 gap-3 sm:grid-cols-6">{samplePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex cursor-pointer flex-col items-center gap-2 text-center outline-none focus:ring-2 focus:ring-[#c9a84c]"><AlumniAvatar person={person} /><p className="line-clamp-2 text-[10px] leading-tight text-[#7a9a7a]">{getHomeAlumniDisplayName(person)}</p></div>)}</div></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.presence_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.presence_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mb-5 grid grid-cols-2 gap-3"><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{confirmed.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.confirmed_label}</p></div><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{intending.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.intending_label}</p></div></div><div className="mt-auto"><div className="mb-2 flex items-center justify-between"><p className="text-xs text-[#7a9a7a]">{copy.progress_label}</p><p className="text-xs font-mono text-[#c9a84c]">{confirmedPercent}%</p></div><div className="h-2 overflow-hidden border border-[#2d6a4f]/25 bg-[#0d1a0f]"><div className="h-full bg-[#c9a84c]/80" style={{ width: `${confirmedPercent}%` }} /></div></div></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.classes_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.classes_title}</p></div><GraduationCap size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeClassTabsContent alumni={alumni} copy={copy} /></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.confirmed_grid_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.confirmed_grid_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeConfirmedPresenceGrid confirmed={confirmed} emptyLabel={copy.confirmed_empty_label} limit={confirmedPreviewLimit} /></div>
@@ -2983,6 +2983,7 @@ function HomeMapPersonAvatar({ person }: { person: PublicLocationRow }) {
 function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; locations: LocationStat[] }) {
   function openPerson(person: PublicLocationRow) {
     const url = new URL("/ex-alunos", window.location.origin);
+    url.searchParams.set("pessoa_id", person.person_id);
     url.searchParams.set("pessoa", getPublicLocationDisplayName(person));
     window.location.assign(`${url.pathname}${url.search}`);
   }
@@ -3071,6 +3072,7 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
                   key={person.person_id}
                   type="button"
                   data-home-map-person={getPublicLocationDisplayName(person)}
+                  data-home-map-person-id={person.person_id}
                   onClick={() => openPerson(person)}
                   className="flex w-full min-w-0 items-center gap-3 border border-[#2d6a4f]/15 bg-[#141f14] p-2.5 text-left transition-colors hover:border-[#c9a84c]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
                   aria-label={`Abrir perfil de ${getPublicLocationDisplayName(person)}`}
@@ -4387,6 +4389,34 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
 
+  const requestedPersonFromUrl = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPersonId = params.get("pessoa_id")?.trim();
+    const requestedName = params.get("pessoa")?.trim();
+    const normalizedRequested = normalizeLoose(requestedName);
+
+    return people.find(person => Boolean(requestedPersonId) && person.id === requestedPersonId)
+      ?? people.find(person =>
+        Boolean(normalizedRequested)
+        && (
+          normalizeLoose(person.full_name) === normalizedRequested
+          || normalizeLoose(person.display_name) === normalizedRequested
+          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
+        )
+      )
+      ?? null;
+  })();
+
+  const modalPerson = selectedPerson ?? requestedPersonFromUrl;
+
+  function closePersonModal() {
+    setSelectedPerson(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("pessoa_id");
+    url.searchParams.delete("pessoa");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
   useEffect(() => {
     let active = true;
     setLoadingStatuses(true);
@@ -4399,6 +4429,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const requestedPersonId = params.get("pessoa_id")?.trim();
     const requestedName = params.get("pessoa")?.trim();
     const requestedClass = params.get("turma")?.trim().toUpperCase();
     const requestedPresence = params.get("presenca")?.trim().toLowerCase();
@@ -4410,12 +4441,18 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       setAttendanceFilter("confirmed");
     }
 
-    if (!requestedName) return;
+    if (!requestedPersonId && !requestedName) return;
+
     const normalizedRequested = normalizeLoose(requestedName);
-    const requestedPerson = people.find(person =>
-      normalizeLoose(person.full_name) === normalizedRequested
-      || normalizeLoose(person.display_name) === normalizedRequested
-    );
+    const requestedPerson = people.find(person => requestedPersonId && person.id === requestedPersonId)
+      ?? people.find(person =>
+        Boolean(normalizedRequested)
+        && (
+          normalizeLoose(person.full_name) === normalizedRequested
+          || normalizeLoose(person.display_name) === normalizedRequested
+          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
+        )
+      );
 
     if (requestedPerson) {
       setSearch("");
@@ -4479,9 +4516,9 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   return (
     <>
       <PersonDetailModal
-        person={selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+        person={modalPerson}
+        onClose={closePersonModal}
+        onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
       />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
@@ -9914,7 +9951,7 @@ export default function App() {
   const isFullscreen = page === "admin" || page === "checkin";
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
