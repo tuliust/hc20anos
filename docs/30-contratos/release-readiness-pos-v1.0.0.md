@@ -35,6 +35,8 @@ A tag `v1.0.0` permanece a baseline estável publicada em 20/09/2026 e aponta pa
 
 Depois da criação da v1.0.0, a `main` recebeu rodadas incrementais de Supabase Advisors e segurança. Essas mudanças devem ser tratadas como evolução pós-release e precisam passar pelos mesmos gates antes de serem consideradas nova baseline operacional.
 
+O workflow `.github/workflows/release-stable.yml` deixou de reagir automaticamente a novos pushes em `main`. A v1.0.0 já está publicada e não deve ser recriada nem retargetada. O workflow agora é uma verificação manual da tag/release imutável e executa os checks a partir do próprio `v1.0.0`.
+
 O comando `npm run ci:verify` consolida a verificação reproduzível de:
 
 - toolchain e lockfile;
