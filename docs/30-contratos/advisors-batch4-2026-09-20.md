@@ -65,6 +65,10 @@ Após as migrations `20260920105202_advisor_batch4_restrict_internal_security_de
 
 A primeira validação remota passou. O replay integral das migrations identificou apenas o grant remoto excedente de `service_role` em `enforce_rate_limit(...)`; após a migration corretiva, seis checks de alinhamento remoto passaram e o teste da rodada passou a exigir explicitamente que esse helper não seja executável diretamente por `authenticated` nem por `service_role`.
 
+## Reprodutibilidade final
+
+O replay integral em banco local vazio reaplicou as **138 migrations**, executou toda a suíte SQL com sucesso e regenerou/publicou no próprio PR os contratos de banco e permissões correspondentes ao estado corrigido.
+
 ## Decisões preservadas
 
 Não foram alteradas as sete funções `SECURITY DEFINER` anônimas nesta rodada. Entre elas há contratos públicos deliberados, incluindo `/buscar`, catálogo, memórias/FAQ e consulta de checkout.
