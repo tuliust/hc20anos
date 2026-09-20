@@ -137,7 +137,7 @@ jobs:
           |---|---|---|
           | Build da aplicação | \`npm run build\` | \`${BUILD_OUTCOME}\` |
           | Instalação do Chromium | \`npx playwright install --with-deps chromium\` | \`${BROWSER_OUTCOME}\` |
-          | E2E de memórias e enquetes | \`npx playwright test tests/e2e/engagement-flow.spec.ts --workers=1\` | \`${E2E_OUTCOME:-skipped}\` |
+          | E2E de memórias, enquetes e navegação da Home | \`npx playwright test tests/e2e/engagement-flow.spec.ts tests/e2e/home-alumni-clickable.spec.ts --workers=1\` | \`${E2E_OUTCOME:-skipped}\` |
 
           ## Cobertura funcional
 
