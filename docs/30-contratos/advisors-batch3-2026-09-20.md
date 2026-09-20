@@ -86,6 +86,8 @@ A migration desta rodada foi tornada replay-safe: ela altera a policy quando já
 
 Isso faz o estado reproduzido do zero convergir para o estado remoto sem depender do drift histórico.
 
+O workflow de banco regenerou e publicou no próprio PR os contratos derivados de RLS, schema, tipos e ERD correspondentes a essa migration.
+
 ## Resultado remoto
 
 Depois da migration:
