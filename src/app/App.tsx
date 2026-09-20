@@ -2629,7 +2629,7 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
       <div className="mt-auto flex items-center gap-3">
         <button type="button" onClick={() => changePage(-1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver pessoas anteriores"><ChevronLeft size={18} /></button>
         <div data-home-class-people className="grid min-w-0 flex-1 grid-cols-3 gap-2">
-          {visiblePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center transition-colors hover:border-[#c9a84c]/60 focus:outline-none focus:border-[#c9a84c]"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
+          {visiblePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-2 border border-[#2d6a4f]/25 bg-[#0d1a0f] px-2 py-3 text-center transition-colors hover:border-[#c9a84c]/60 focus:outline-none focus:border-[#c9a84c]"><AlumniAvatar person={person} size="xs" /><p className="line-clamp-2 text-xs font-semibold leading-tight text-[#f0ebe0]">{getHomeAlumniDisplayName(person)}</p></div>)}
           {!visiblePeople.length && copy.class_empty_label && <div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] px-4 py-5 text-sm leading-relaxed text-[#7a9a7a]">{copy.class_empty_label}</div>}
         </div>
         <button type="button" onClick={() => changePage(1)} className="h-24 w-10 shrink-0 border border-[#2d6a4f]/30 text-[#c9a84c] hover:border-[#c9a84c]/60 transition-colors flex items-center justify-center" aria-label="Ver próximas pessoas"><ChevronRight size={18} /></button>
@@ -2662,7 +2662,7 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
               : "grid-cols-6 sm:grid-cols-10";
   return preview.length ? (
     <div data-home-confirmed-grid data-count={count} data-avatar-size={avatarDimension} className={`mx-auto mt-auto grid min-h-36 w-full place-content-center place-items-center gap-3 ${gridClass}`}>
-      {preview.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} role="button" tabIndex={0} className="flex cursor-pointer justify-center rounded-full outline-none transition-transform hover:scale-105 focus:ring-2 focus:ring-[#c9a84c]" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
+      {preview.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex cursor-pointer justify-center rounded-full outline-none transition-transform hover:scale-105 focus:ring-2 focus:ring-[#c9a84c]" title={getHomeAlumniDisplayName(person)}><AlumniAvatar person={person} dimension={avatarDimension} /></div>)}
     </div>
   ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
@@ -2983,6 +2983,7 @@ function HomeMapPersonAvatar({ person }: { person: PublicLocationRow }) {
 function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; locations: LocationStat[] }) {
   function openPerson(person: PublicLocationRow) {
     const url = new URL("/ex-alunos", window.location.origin);
+    url.searchParams.set("pessoa_id", person.person_id);
     url.searchParams.set("pessoa", getPublicLocationDisplayName(person));
     window.location.assign(`${url.pathname}${url.search}`);
   }
@@ -3071,6 +3072,7 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
                   key={person.person_id}
                   type="button"
                   data-home-map-person={getPublicLocationDisplayName(person)}
+                  data-home-map-person-id={person.person_id}
                   onClick={() => openPerson(person)}
                   className="flex w-full min-w-0 items-center gap-3 border border-[#2d6a4f]/15 bg-[#141f14] p-2.5 text-left transition-colors hover:border-[#c9a84c]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
                   aria-label={`Abrir perfil de ${getPublicLocationDisplayName(person)}`}
@@ -4399,6 +4401,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const requestedPersonId = params.get("pessoa_id")?.trim();
     const requestedName = params.get("pessoa")?.trim();
     const requestedClass = params.get("turma")?.trim().toUpperCase();
     const requestedPresence = params.get("presenca")?.trim().toLowerCase();
@@ -4410,12 +4413,18 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       setAttendanceFilter("confirmed");
     }
 
-    if (!requestedName) return;
+    if (!requestedPersonId && !requestedName) return;
+
     const normalizedRequested = normalizeLoose(requestedName);
-    const requestedPerson = people.find(person =>
-      normalizeLoose(person.full_name) === normalizedRequested
-      || normalizeLoose(person.display_name) === normalizedRequested
-    );
+    const requestedPerson = people.find(person => requestedPersonId && person.id === requestedPersonId)
+      ?? people.find(person =>
+        Boolean(normalizedRequested)
+        && (
+          normalizeLoose(person.full_name) === normalizedRequested
+          || normalizeLoose(person.display_name) === normalizedRequested
+          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
+        )
+      );
 
     if (requestedPerson) {
       setSearch("");
@@ -9914,7 +9923,7 @@ export default function App() {
   const isFullscreen = page === "admin" || page === "checkin";
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
