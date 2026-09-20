@@ -16,8 +16,8 @@ with checks as (
     )
 
   union all
-  select 'rate_limit_service_role_preserved',
-    has_function_privilege(
+  select 'rate_limit_service_role_not_direct',
+    not has_function_privilege(
       'service_role',
       'public.enforce_rate_limit(text,integer,integer,text)',
       'EXECUTE'
