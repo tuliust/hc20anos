@@ -28,7 +28,7 @@ export function photoUploadYearInputTransform() {
     name: "photo-upload-year-input-transform",
     enforce: "pre",
     transform(source, id) {
-      const normalizedId = id.replaceAll("\\", "/").split("?")[0];
+      const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
       return null;
     },
