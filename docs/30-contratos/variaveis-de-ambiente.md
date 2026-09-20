@@ -119,6 +119,9 @@ Quando as duas URLs de Functions estiverem ausentes, o código deriva de `SUPABA
 | `WHATSAPP_TEMPLATE_GUEST_DECISION` | legado | server-side | decisão de convidado |
 | `WHATSAPP_TEMPLATE_DEFAULT` | fallback | server-side | template genérico |
 
+
+O canal também possui um gate no banco em `public.notification_channel_settings`. A presença dos secrets não ativa o envio por si só: `whatsapp.enabled` deve continuar `false` até credenciais e templates estarem validados. A ativação deve ocorrer somente depois da inspeção de jobs históricos, para evitar reprocessamento automático.
+
 ## Edge Function — `refund-processor`
 
 | Variável | Obrigatória | Sensibilidade | Uso |
