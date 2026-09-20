@@ -40,7 +40,7 @@ O snapshot vigente de implementação, produção e homologação está em [`30-
 
 A primeira rodada incremental dos Supabase Advisors está registrada em [`30-contratos/advisors-2026-09-20.md`](./30-contratos/advisors-2026-09-20.md), incluindo métricas antes/depois, exceções públicas deliberadas e próximas rodadas.
 
-A baseline de release estável está em [`30-contratos/release-v1.0.0.md`](./30-contratos/release-v1.0.0.md), com evidências, pendências aceitas e critérios de rollback. O procedimento operacional mínimo está em [`40-runbooks/procedimento-operacional-v1.0.0.md`](./40-runbooks/procedimento-operacional-v1.0.0.md).
+A baseline de release estável está em [`30-contratos/release-v1.0.0.md`](./30-contratos/release-v1.0.0.md), com evidências, pendências aceitas e critérios de rollback. O estado de evolução posterior à tag está em [`30-contratos/release-readiness-pos-v1.0.0.md`](./30-contratos/release-readiness-pos-v1.0.0.md). O procedimento operacional mínimo está em [`40-runbooks/procedimento-operacional-v1.0.0.md`](./40-runbooks/procedimento-operacional-v1.0.0.md) e o fechamento manual está organizado em [`40-runbooks/checklist-homologacao-final.md`](./40-runbooks/checklist-homologacao-final.md). A estratégia de redução de dívida técnica está registrada em [`50-governanca/divida-tecnica-2026-09-20.md`](./50-governanca/divida-tecnica-2026-09-20.md).
 
 ## Domínios documentados
 
