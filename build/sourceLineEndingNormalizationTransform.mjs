@@ -1,3 +1,5 @@
+import { normalizeModuleId } from "./transformUtils.mjs";
+
 const TARGET_SUFFIXES = [
   "/src/app/App.tsx",
   "/src/lib/services.ts",
