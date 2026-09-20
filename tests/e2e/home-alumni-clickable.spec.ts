@@ -8,6 +8,12 @@ async function openHome(page: import("@playwright/test").Page) {
   await expect(page.locator("[data-home-alumni-overview]"), "Seção de ex-alunos deve estar visível").toBeVisible();
 }
 
+function fixtureFullName(personId: string) {
+  const person = peopleFixture.find(item => item.id === personId);
+  expect(person, `Pessoa de fixture deve existir: ${personId}`).toBeTruthy();
+  return person!.full_name;
+}
+
 test("shell público desktop ocupa toda a largura sem moldura lateral", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openHome(page);
@@ -76,15 +82,18 @@ test("pessoa do Mapa da Turma abre o perfil em Ex-alunos", async ({ page }) => {
   const mapPerson = page.locator("[data-home-map-person]").first();
   await mapPerson.scrollIntoViewIfNeeded();
   await expect(mapPerson).toBeVisible();
-  const personName = await mapPerson.getAttribute("data-home-map-person");
-  expect(personName).toBeTruthy();
+  const personId = await mapPerson.getAttribute("data-home-map-person-id");
+  expect(personId).toBeTruthy();
 
   await mapPerson.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?/);
+  const mapUrl = new URL(page.url());
+  expect(mapUrl.searchParams.get("pessoa_id")).toBe(personId);
+  expect(mapUrl.searchParams.get("pessoa")).toBeTruthy();
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
-  await expect(modal).toContainText(personName!);
+  await expect(modal).toContainText(fixtureFullName(personId!));
 });
 
 test("Pré-confirmados exibem badge coerente com o filtro", async ({ page }) => {
@@ -103,15 +112,18 @@ test("pessoa da amostra abre o mesmo modal existente em Ex-alunos", async ({ pag
 
   const person = page.locator("[data-home-alumni-card='sample'] [data-home-alumni-person]").first();
   await expect(person).toBeVisible();
-  const personName = await person.getAttribute("data-home-alumni-person");
-  expect(personName).toBeTruthy();
+  const personId = await person.getAttribute("data-home-alumni-person-id");
+  expect(personId).toBeTruthy();
 
   await person.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?/);
+  const sampleUrl = new URL(page.url());
+  expect(sampleUrl.searchParams.get("pessoa_id")).toBe(personId);
+  expect(sampleUrl.searchParams.get("pessoa")).toBeTruthy();
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
-  await expect(modal).toContainText(personName!);
+  await expect(modal).toContainText(fixtureFullName(personId!));
 });
 
 test("Confirmados e Pretendem ir ativam os filtros correspondentes", async ({ page }) => {
@@ -130,20 +142,22 @@ test("pessoa do card Turmas abre o perfil com filtro da turma", async ({ page })
 
   const person = page.locator("[data-home-class-people] [data-home-alumni-person]").first();
   await expect(person).toBeVisible();
-  const personName = await person.getAttribute("data-home-alumni-person");
-  expect(personName).toBeTruthy();
+  const personId = await person.getAttribute("data-home-alumni-person-id");
+  expect(personId).toBeTruthy();
 
   await person.click();
 
   await expect(page).toHaveURL(/\/ex-alunos\?/);
   const classUrl = new URL(page.url());
-  expect(classUrl.searchParams.get("turma")).toMatch(/^[A-D]$/);
-  expect(classUrl.searchParams.get("pessoa_id")).toBeTruthy();
+  const classGroup = classUrl.searchParams.get("turma");
+  expect(classGroup).toMatch(/^[A-D]$/);
+  expect(classUrl.searchParams.get("pessoa_id")).toBe(personId);
   expect(classUrl.searchParams.get("pessoa")).toBeTruthy();
-  await expect(page.locator("[data-ex-alumni-class-filter-applied]")).toBeVisible({ timeout: 20_000 });
+  const classButton = page.getByRole("button", { name: `Turma ${classGroup}`, exact: true });
+  await expect(classButton).toHaveClass(/bg-\[#c9a84c\]/);
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
-  await expect(modal).toContainText(personName!);
+  await expect(modal).toContainText(fixtureFullName(personId!));
 });
 
 test("pessoa de Quem confirmou presença abre o perfil com filtro de confirmados", async ({ page }) => {
@@ -151,18 +165,19 @@ test("pessoa de Quem confirmou presença abre o perfil com filtro de confirmados
 
   const person = page.locator("[data-home-confirmed-grid] [data-home-alumni-person]").first();
   await expect(person).toBeVisible();
-  const personName = await person.getAttribute("data-home-alumni-person");
-  expect(personName).toBeTruthy();
+  const personId = await person.getAttribute("data-home-alumni-person-id");
+  expect(personId).toBeTruthy();
 
   await person.click();
 
   await expect(page).toHaveURL(/\/ex-alunos\?/);
   const confirmedUrl = new URL(page.url());
   expect(confirmedUrl.searchParams.get("presenca")).toBe("confirmed");
-  expect(confirmedUrl.searchParams.get("pessoa_id")).toBeTruthy();
+  expect(confirmedUrl.searchParams.get("pessoa_id")).toBe(personId);
   expect(confirmedUrl.searchParams.get("pessoa")).toBeTruthy();
-  await expect(page.locator("[data-ex-alumni-attendance-filter-applied='confirmed']")).toBeVisible({ timeout: 20_000 });
+  const confirmedButton = page.getByRole("button", { name: /Confirmados Compraram o ingresso/i });
+  await expect(confirmedButton).toHaveClass(/bg-\[#2d6a4f\]/);
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
-  await expect(modal).toContainText(personName!);
+  await expect(modal).toContainText(fixtureFullName(personId!));
 });
