@@ -98,6 +98,15 @@ with checks as (
         and roles=array['authenticated'::name]
     )
   union all
+  select 'faq_manage_policy_replayable',
+    exists (
+      select 1 from pg_policies
+      where schemaname='public'
+        and tablename='faq_items'
+        and policyname='faq_items_manage_admins'
+        and roles=array['authenticated'::name]
+    )
+  union all
   select 'faq_category_fk_index',
     to_regclass('public.faq_items_category_id_idx') is not null
   union all
