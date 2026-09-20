@@ -1,7 +1,7 @@
 ---
 status: draft
 owner: tuliust
-last_verified: 2026-07-29
+last_verified: 2026-09-20
 source_files:
   - src/lib/checkout.ts
   - api/checkout-create.ts
@@ -22,7 +22,20 @@ source_files:
 
 ## Estado
 
-A Fase 3 está **preparada, mas não executada**. Este documento organiza a execução controlada prevista para o próximo ciclo. Nenhuma preferência, pagamento, webhook, transferência, cancelamento, reembolso ou notificação foi disparado durante a preparação.
+A implementação técnica da Fase 3 está **substancialmente concluída**, mas a homologação integrada permanece **parcial**.
+
+Evidência observada no Supabase em 20/09/2026:
+
+- 2 pedidos aprovados;
+- 3 participantes ativos nesses pedidos;
+- 3 ingressos emitidos;
+- 3 e-mails `ticket_issued` enviados, um por ingresso;
+- sem duplicidade de `idempotency_key` na fila;
+- RPC de check-in validada transacionalmente, incluindo operador, horário e bloqueio de reutilização.
+
+Isso não permite marcar a Fase 3 como homologada. Os pagamentos foram efetuados em 17/09/2026, enquanto os primeiros webhooks válidos correspondentes chegaram somente em 19/09/2026. O atraso permitiu que os pedidos passassem antes pelo fluxo local de expiração. Transferência, reembolso e check-in físico também não possuem evidência ponta a ponta suficiente.
+
+O workflow `Phase 3 financial readiness` continua sendo o procedimento controlado de preflight para novos ensaios. A evidência de produção já existente deve ser preservada, mas não substitui a execução ordenada dos cenários abaixo.
 
 ## Objetivo
 
