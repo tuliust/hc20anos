@@ -147,6 +147,23 @@ Erros típicos:
 - `whatsapp_template_missing:<VAR>`;
 - `whatsapp_provider_error_<status>`.
 
+## Ativação segura do WhatsApp
+
+O banco possui um gate operacional em `public.notification_channel_settings`. O registro `whatsapp` deve permanecer com `enabled=false` até que as credenciais e os templates necessários estejam configurados na Edge Function.
+
+Sequência obrigatória:
+
+1. configurar `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_VERSION` e idioma;
+2. configurar e validar os templates usados pelos eventos que serão liberados;
+3. confirmar que o worker publicado contém a integração esperada;
+4. verificar que não existem jobs antigos elegíveis para reenvio automático;
+5. somente então alterar o gate `whatsapp` para `enabled=true`;
+6. acompanhar os primeiros envios e os `provider_message_id`.
+
+Nunca habilitar o gate apenas para testar credenciais em produção. Enquanto o gate estiver desabilitado, os enfileiradores não criam novos jobs de WhatsApp e `claim_notification_jobs` não assume jobs existentes desse canal.
+
+Jobs históricos marcados com `payload_json.replay_requires_authorization=true` ficam cancelados. Eles só podem ser reabertos depois de autorização explícita e de nova checagem de duplicidade, estado do pedido/ingresso e destinatário.
+
 ## Etapa 6 — validar payload hidratado
 
 O worker pode buscar dados de ingresso, pedido e tipo de ingresso antes de enviar.
