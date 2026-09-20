@@ -8,7 +8,7 @@ export function productionReadinessTransform() {
     name: 'production-readiness-transform',
     enforce: 'pre',
     transform(source, id) {
-      const normalizedId = id.replace(/\\/g, '/');
+      const normalizedId = normalizeModuleId(id);
       let code = source;
 
       if (normalizedId.endsWith('/src/app/App.tsx')) {
