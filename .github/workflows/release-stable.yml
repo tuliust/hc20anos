@@ -1,0 +1,96 @@
+name: Stable release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - "docs/30-contratos/release-v1.0.0.md"
+      - "docs/40-runbooks/procedimento-operacional-v1.0.0.md"
+      - ".github/workflows/release-stable.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stable-release-v1.0.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'tuliust/hc20anos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify release version
+        shell: bash
+        run: |
+          test "$(node -p "require('./package.json').version")" = "1.0.0"
+          test "$(node -p "require('./package-lock.json').version")" = "1.0.0"
+
+      - name: Install frozen dependencies
+        run: npm ci
+
+      - name: Audit reproducibility
+        run: npm run audit:reproducibility
+
+      - name: Validate migrations
+        run: npm run audit:migrations
+
+      - name: Validate generated contracts
+        run: |
+          npm run docs:check-contracts
+          npm run docs:check-routes
+          npm run docs:check-type-compatibility
+          npm run docs:check-type-consumers
+          npm run docs:check-rpc-usage
+
+      - name: Audit documentation
+        run: npm run audit:docs
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create immutable v1.0.0 tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v1.0.0 >/dev/null 2>&1; then
+            remote_sha="$(git ls-remote --tags origin refs/tags/v1.0.0 | awk '{print $1}')"
+            test "$remote_sha" = "$GITHUB_SHA" || {
+              echo "v1.0.0 already exists on a different commit: $remote_sha"
+              exit 1
+            }
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a v1.0.0 "$GITHUB_SHA" -m "HC 20 Anos v1.0.0"
+            git push origin refs/tags/v1.0.0
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo "GitHub Release v1.0.0 already exists."
+          else
+            gh release create v1.0.0               --title "HC 20 Anos v1.0.0"               --target "$GITHUB_SHA"               --notes-file docs/30-contratos/release-v1.0.0.md
+          fi
