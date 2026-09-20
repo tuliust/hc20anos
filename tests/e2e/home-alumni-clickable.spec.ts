@@ -135,7 +135,11 @@ test("pessoa do card Turmas abre o perfil com filtro da turma", async ({ page })
 
   await person.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?turma=[A-D]&pessoa_id=.*&pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?/);
+  const classUrl = new URL(page.url());
+  expect(classUrl.searchParams.get("turma")).toMatch(/^[A-D]$/);
+  expect(classUrl.searchParams.get("pessoa_id")).toBeTruthy();
+  expect(classUrl.searchParams.get("pessoa")).toBeTruthy();
   await expect(page.locator("[data-ex-alumni-class-filter-applied]")).toBeVisible({ timeout: 20_000 });
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
@@ -152,7 +156,11 @@ test("pessoa de Quem confirmou presença abre o perfil com filtro de confirmados
 
   await person.click();
 
-  await expect(page).toHaveURL(/\/ex-alunos\?presenca=confirmed&pessoa_id=.*&pessoa=/);
+  await expect(page).toHaveURL(/\/ex-alunos\?/);
+  const confirmedUrl = new URL(page.url());
+  expect(confirmedUrl.searchParams.get("presenca")).toBe("confirmed");
+  expect(confirmedUrl.searchParams.get("pessoa_id")).toBeTruthy();
+  expect(confirmedUrl.searchParams.get("pessoa")).toBeTruthy();
   await expect(page.locator("[data-ex-alumni-attendance-filter-applied='confirmed']")).toBeVisible({ timeout: 20_000 });
   const modal = page.locator("[data-modal-root='true']");
   await expect(modal).toBeVisible({ timeout: 20_000 });
