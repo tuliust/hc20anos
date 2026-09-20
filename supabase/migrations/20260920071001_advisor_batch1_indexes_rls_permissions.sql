@@ -81,21 +81,56 @@ alter policy admin_panel_write
   using (public.is_admin_panel_user((select auth.uid())))
   with check (public.is_admin_panel_user((select auth.uid())));
 
-alter policy orders_owner_select
-  on public.orders
-  to authenticated
-  using (
-    buyer_email = (
-      select u.email::text
-      from auth.users u
-      where u.id = (select auth.uid())
-    )
-    or person_id in (
-      select p.id
-      from public.people p
-      where p.claimed_by_user_id = (select auth.uid())
-    )
-  );
+-- orders_owner_select exists in the remote database but was historically created
+-- outside the replayable migration chain. Reconstruct it when replaying from zero.
+do $do$
+begin
+  if exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'orders'
+      and policyname = 'orders_owner_select'
+  ) then
+    execute $sql$
+      alter policy orders_owner_select
+        on public.orders
+        to authenticated
+        using (
+          buyer_email = (
+            select u.email::text
+            from auth.users u
+            where u.id = (select auth.uid())
+          )
+          or person_id in (
+            select p.id
+            from public.people p
+            where p.claimed_by_user_id = (select auth.uid())
+          )
+        )
+    $sql$;
+  else
+    execute $sql$
+      create policy orders_owner_select
+        on public.orders
+        for select
+        to authenticated
+        using (
+          buyer_email = (
+            select u.email::text
+            from auth.users u
+            where u.id = (select auth.uid())
+          )
+          or person_id in (
+            select p.id
+            from public.people p
+            where p.claimed_by_user_id = (select auth.uid())
+          )
+        )
+    $sql$;
+  end if;
+end
+$do$;
 
 alter policy people_owner_read
   on public.people
