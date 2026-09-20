@@ -78,6 +78,14 @@ Em `content_moderation_settings`, a leitura administrativa já é coberta por `c
 
 Não houve tentativa de consolidar outras sobreposições cuja semântica de autorização ainda precisa de análise específica.
 
+## Reprodutibilidade
+
+O primeiro replay em banco local vazio identificou um drift histórico: `faq_items_manage_admins` existia no banco remoto, mas não tinha origem na cadeia versionada de migrations.
+
+A migration desta rodada foi tornada replay-safe: ela altera a policy quando já existe e a reconstrói quando está ausente. A busca pelas outras 15 policies tratadas confirmou origem versionada na cadeia anterior.
+
+Isso faz o estado reproduzido do zero convergir para o estado remoto sem depender do drift histórico.
+
 ## Resultado remoto
 
 Depois da migration:
