@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-20
-last_verified_commit: ee375a7fa53f166e25021a7a8eb4e708720f844f
+last_verified_commit: 91f76b936d8e521146f5c6afb49228053787cb4b
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1171,11 +1171,13 @@ source_files:
 | `public.notification_jobs` | `notification_jobs_pending_idx` | `CREATE INDEX notification_jobs_pending_idx ON public.notification_jobs USING btree (status, next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]))` |
 | `public.notification_jobs` | `notification_jobs_pkey` | `CREATE UNIQUE INDEX notification_jobs_pkey ON public.notification_jobs USING btree (id)` |
 | `public.notification_jobs` | `notification_jobs_ticket_id_idx` | `CREATE INDEX notification_jobs_ticket_id_idx ON public.notification_jobs USING btree (ticket_id)` |
+| `public.order_participants` | `order_participants_guest_approval_request_id_idx` | `CREATE INDEX order_participants_guest_approval_request_id_idx ON public.order_participants USING btree (guest_approval_request_id)` |
 | `public.order_participants` | `order_participants_order_client_key_unique` | `CREATE UNIQUE INDEX order_participants_order_client_key_unique ON public.order_participants USING btree (order_id, client_key) WHERE (client_key IS NOT NULL)` |
 | `public.order_participants` | `order_participants_order_idx` | `CREATE INDEX order_participants_order_idx ON public.order_participants USING btree (order_id, created_at)` |
 | `public.order_participants` | `order_participants_person_id_idx` | `CREATE INDEX order_participants_person_id_idx ON public.order_participants USING btree (person_id)` |
 | `public.order_participants` | `order_participants_pkey` | `CREATE UNIQUE INDEX order_participants_pkey ON public.order_participants USING btree (id)` |
 | `public.order_participants` | `order_participants_sponsor_idx` | `CREATE INDEX order_participants_sponsor_idx ON public.order_participants USING btree (sponsor_person_id, participant_type, status)` |
+| `public.order_participants` | `order_participants_sponsor_user_id_idx` | `CREATE INDEX order_participants_sponsor_user_id_idx ON public.order_participants USING btree (sponsor_user_id)` |
 | `public.order_participants` | `order_participants_user_idx` | `CREATE INDEX order_participants_user_idx ON public.order_participants USING btree (user_id, created_at DESC)` |
 | `public.orders` | `idx_orders_buyer_email` | `CREATE INDEX idx_orders_buyer_email ON public.orders USING btree (buyer_email)` |
 | `public.orders` | `idx_orders_mp_order_id` | `CREATE INDEX idx_orders_mp_order_id ON public.orders USING btree (payment_provider_order_id)` |
@@ -1249,9 +1251,11 @@ source_files:
 | `public.profile_claims` | `idx_profile_claims_requester_user_id` | `CREATE INDEX idx_profile_claims_requester_user_id ON public.profile_claims USING btree (requester_user_id)` |
 | `public.profile_claims` | `idx_profile_claims_status` | `CREATE INDEX idx_profile_claims_status ON public.profile_claims USING btree (status)` |
 | `public.profile_claims` | `profile_claims_pkey` | `CREATE UNIQUE INDEX profile_claims_pkey ON public.profile_claims USING btree (id)` |
+| `public.profile_identity_verifications` | `profile_identity_verifications_claimant_user_id_idx` | `CREATE INDEX profile_identity_verifications_claimant_user_id_idx ON public.profile_identity_verifications USING btree (claimant_user_id)` |
 | `public.profile_identity_verifications` | `profile_identity_verifications_person_created_idx` | `CREATE INDEX profile_identity_verifications_person_created_idx ON public.profile_identity_verifications USING btree (person_id, created_at DESC)` |
 | `public.profile_identity_verifications` | `profile_identity_verifications_person_id_claimant_user_id_key` | `CREATE UNIQUE INDEX profile_identity_verifications_person_id_claimant_user_id_key ON public.profile_identity_verifications USING btree (person_id, claimant_user_id)` |
 | `public.profile_identity_verifications` | `profile_identity_verifications_pkey` | `CREATE UNIQUE INDEX profile_identity_verifications_pkey ON public.profile_identity_verifications USING btree (id)` |
+| `public.profile_identity_verifications` | `profile_identity_verifications_profile_id_idx` | `CREATE INDEX profile_identity_verifications_profile_id_idx ON public.profile_identity_verifications USING btree (profile_id)` |
 | `public.profile_school_questionnaire_answers` | `idx_profile_school_questionnaire_answers_event` | `CREATE INDEX idx_profile_school_questionnaire_answers_event ON public.profile_school_questionnaire_answers USING btree (event_id)` |
 | `public.profile_school_questionnaire_answers` | `idx_profile_school_questionnaire_answers_person` | `CREATE INDEX idx_profile_school_questionnaire_answers_person ON public.profile_school_questionnaire_answers USING btree (person_id)` |
 | `public.profile_school_questionnaire_answers` | `idx_profile_school_questionnaire_answers_question` | `CREATE INDEX idx_profile_school_questionnaire_answers_question ON public.profile_school_questionnaire_answers USING btree (question_id)` |
@@ -1268,6 +1272,7 @@ source_files:
 | `public.refund_policy` | `refund_policy_pkey` | `CREATE UNIQUE INDEX refund_policy_pkey ON public.refund_policy USING btree (id)` |
 | `public.refund_requests` | `refund_requests_order_status_idx` | `CREATE INDEX refund_requests_order_status_idx ON public.refund_requests USING btree (order_id, status, requested_at DESC)` |
 | `public.refund_requests` | `refund_requests_pkey` | `CREATE UNIQUE INDEX refund_requests_pkey ON public.refund_requests USING btree (id)` |
+| `public.refund_requests` | `refund_requests_requested_by_user_id_idx` | `CREATE INDEX refund_requests_requested_by_user_id_idx ON public.refund_requests USING btree (requested_by_user_id)` |
 | `public.security_audit_log` | `security_audit_log_actor_idx` | `CREATE INDEX security_audit_log_actor_idx ON public.security_audit_log USING btree (actor_user_id, created_at DESC)` |
 | `public.security_audit_log` | `security_audit_log_created_idx` | `CREATE INDEX security_audit_log_created_idx ON public.security_audit_log USING btree (created_at DESC)` |
 | `public.security_audit_log` | `security_audit_log_entity_idx` | `CREATE INDEX security_audit_log_entity_idx ON public.security_audit_log USING btree (entity_type, entity_id, created_at DESC)` |
@@ -1279,6 +1284,7 @@ source_files:
 | `public.ticket_lots` | `ticket_lots_event_id_code_key` | `CREATE UNIQUE INDEX ticket_lots_event_id_code_key ON public.ticket_lots USING btree (event_id, code)` |
 | `public.ticket_lots` | `ticket_lots_event_id_sort_order_key` | `CREATE UNIQUE INDEX ticket_lots_event_id_sort_order_key ON public.ticket_lots USING btree (event_id, sort_order)` |
 | `public.ticket_lots` | `ticket_lots_pkey` | `CREATE UNIQUE INDEX ticket_lots_pkey ON public.ticket_lots USING btree (id)` |
+| `public.ticket_transfers` | `ticket_transfers_from_user_id_idx` | `CREATE INDEX ticket_transfers_from_user_id_idx ON public.ticket_transfers USING btree (from_user_id)` |
 | `public.ticket_transfers` | `ticket_transfers_open_unique` | `CREATE UNIQUE INDEX ticket_transfers_open_unique ON public.ticket_transfers USING btree (ticket_id) WHERE (status = ANY (ARRAY['requested'::text, 'accepted'::text]))` |
 | `public.ticket_transfers` | `ticket_transfers_pkey` | `CREATE UNIQUE INDEX ticket_transfers_pkey ON public.ticket_transfers USING btree (id)` |
 | `public.ticket_types` | `idx_ticket_types_event_id` | `CREATE INDEX idx_ticket_types_event_id ON public.ticket_types USING btree (event_id)` |
@@ -1291,12 +1297,14 @@ source_files:
 | `public.tickets` | `idx_tickets_order_id` | `CREATE INDEX idx_tickets_order_id ON public.tickets USING btree (order_id)` |
 | `public.tickets` | `idx_tickets_person_id` | `CREATE INDEX idx_tickets_person_id ON public.tickets USING btree (person_id)` |
 | `public.tickets` | `idx_tickets_qr_code` | `CREATE INDEX idx_tickets_qr_code ON public.tickets USING btree (qr_code)` |
+| `public.tickets` | `tickets_checked_in_by_admin_id_idx` | `CREATE INDEX tickets_checked_in_by_admin_id_idx ON public.tickets USING btree (checked_in_by_admin_id)` |
 | `public.tickets` | `tickets_order_participant_unique` | `CREATE UNIQUE INDEX tickets_order_participant_unique ON public.tickets USING btree (order_participant_id) WHERE (order_participant_id IS NOT NULL)` |
 | `public.tickets` | `tickets_pkey` | `CREATE UNIQUE INDEX tickets_pkey ON public.tickets USING btree (id)` |
 | `public.tickets` | `tickets_qr_code_key` | `CREATE UNIQUE INDEX tickets_qr_code_key ON public.tickets USING btree (qr_code)` |
 | `public.tickets` | `tickets_qr_token_hash_key` | `CREATE UNIQUE INDEX tickets_qr_token_hash_key ON public.tickets USING btree (qr_token_hash)` |
 | `public.tickets` | `tickets_qr_token_unique` | `CREATE UNIQUE INDEX tickets_qr_token_unique ON public.tickets USING btree (qr_token) WHERE (qr_token IS NOT NULL)` |
 | `public.tickets` | `tickets_ticket_type_id_idx` | `CREATE INDEX tickets_ticket_type_id_idx ON public.tickets USING btree (ticket_type_id)` |
+| `public.tickets` | `tickets_transferred_from_ticket_id_idx` | `CREATE INDEX tickets_transferred_from_ticket_id_idx ON public.tickets USING btree (transferred_from_ticket_id)` |
 
 ## Views
 
