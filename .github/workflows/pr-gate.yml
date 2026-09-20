@@ -30,17 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit reproducibility
-        run: npm run audit:reproducibility
-
       - name: Enforce protected-main workflow policy
         run: npm run audit:protected-main
 
-      - name: Validate migrations
-        run: npm run audit:migrations
-
-      - name: Audit documentation
-        run: npm run audit:docs
-
-      - name: Build application
-        run: npm run build
+      - name: Run reproducible CI verification
+        run: npm run ci:verify
