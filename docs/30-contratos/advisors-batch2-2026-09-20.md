@@ -98,6 +98,10 @@ A validação remota confirmou:
 - a policy pública canônica de FAQ continua presente;
 - as duas RPCs de `/buscar` continuam disponíveis para `anon`.
 
+## Contratos gerados
+
+O replay completo das migrations em banco local vazio regenerou os contratos de banco e publicou os artefatos atualizados no próprio PR. Esse passo confirma que a nova migration é reproduzível a partir da cadeia versionada, e não apenas aplicável ao banco remoto já existente.
+
 ## Próximas rodadas
 
 Permanecem para análise gradual:
