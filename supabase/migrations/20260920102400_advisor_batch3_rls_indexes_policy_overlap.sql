@@ -191,35 +191,84 @@ alter policy cms_assets_manage_admins
     )
   );
 
-alter policy faq_items_manage_admins
-  on public.faq_items
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.admin_users au
-      where au.user_id = (select auth.uid())
-        and au.role = any (
-          array[
-            'superadmin'::public.admin_role,
-            'admin'::public.admin_role
-          ]
+-- faq_items_manage_admins exists remotely but was historically absent from
+-- the replayable migration chain. Reconstruct it when replaying from zero.
+do $do$
+begin
+  if exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'faq_items'
+      and policyname = 'faq_items_manage_admins'
+  ) then
+    execute $sql$
+      alter policy faq_items_manage_admins
+        on public.faq_items
+        to authenticated
+        using (
+          exists (
+            select 1
+            from public.admin_users au
+            where au.user_id = (select auth.uid())
+              and au.role = any (
+                array[
+                  'superadmin'::public.admin_role,
+                  'admin'::public.admin_role
+                ]
+              )
+          )
         )
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.admin_users au
-      where au.user_id = (select auth.uid())
-        and au.role = any (
-          array[
-            'superadmin'::public.admin_role,
-            'admin'::public.admin_role
-          ]
+        with check (
+          exists (
+            select 1
+            from public.admin_users au
+            where au.user_id = (select auth.uid())
+              and au.role = any (
+                array[
+                  'superadmin'::public.admin_role,
+                  'admin'::public.admin_role
+                ]
+              )
+          )
         )
-    )
-  );
+    $sql$;
+  else
+    execute $sql$
+      create policy faq_items_manage_admins
+        on public.faq_items
+        for all
+        to authenticated
+        using (
+          exists (
+            select 1
+            from public.admin_users au
+            where au.user_id = (select auth.uid())
+              and au.role = any (
+                array[
+                  'superadmin'::public.admin_role,
+                  'admin'::public.admin_role
+                ]
+              )
+          )
+        )
+        with check (
+          exists (
+            select 1
+            from public.admin_users au
+            where au.user_id = (select auth.uid())
+              and au.role = any (
+                array[
+                  'superadmin'::public.admin_role,
+                  'admin'::public.admin_role
+                ]
+              )
+          )
+        )
+    $sql$;
+  end if;
+end
+$do$;
 
 alter policy content_moderation_events_admin_read
   on public.content_moderation_events
