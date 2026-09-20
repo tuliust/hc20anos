@@ -4,6 +4,7 @@ owner: tuliust
 last_verified: 2026-09-20
 source_files:
   - supabase/migrations/20260920105202_advisor_batch4_restrict_internal_security_definer_helpers.sql
+  - supabase/migrations/20260920105712_advisor_batch4_align_rate_limit_service_role.sql
   - supabase/tests/advisor_batch4.sql
 ---
 
@@ -32,6 +33,8 @@ O código do frontend não chama essa função diretamente. Os consumidores enco
 
 Permitir chamada direta pelo cliente era desnecessário e ainda permitiria que um usuário autenticado manipulasse diretamente buckets de rate limit. O `EXECUTE` de `authenticated` foi removido.
 
+O replay limpo mostrou ainda que `service_role` nunca recebe esse grant na cadeia canônica. O ambiente remoto possuía esse acesso como drift histórico. A migration corretiva `20260920105712_advisor_batch4_align_rate_limit_service_role` revogou também o `EXECUTE` direto de `service_role`, alinhando produção e replay sem alterar os consumidores internos.
+
 ### `admin_can_manage_people()`
 
 O frontend também não chama esse helper diretamente. Ele é usado dentro das RPCs administrativas de leitura, edição, limpeza e remoção de pessoas/perfis, todas `SECURITY DEFINER`.
@@ -46,20 +49,21 @@ Continuam inalterados:
 - `save_contact_research(...)` executável por `anon`;
 - `create_uploaded_photo(...)` executável por `authenticated`;
 - `admin_get_person_details(uuid)` executável por `authenticated`;
-- `service_role` continua com acesso aos dois helpers restringidos.
+- `service_role` continua com acesso a `admin_can_manage_people()`;
+- `service_role` não executa diretamente `enforce_rate_limit(...)`, em conformidade com a cadeia reproduzível.
 
 ## Resultado remoto
 
-Após a migration `20260920105202_advisor_batch4_restrict_internal_security_definer_helpers`:
+Após as migrations `20260920105202_advisor_batch4_restrict_internal_security_definer_helpers` e `20260920105712_advisor_batch4_align_rate_limit_service_role`:
 
-- migrations remotas: **137**;
+- migrations remotas: **138**;
 - `auth_rls_initplan`: **0**;
 - FKs sem índice: **30**;
 - múltiplas policies permissivas: **81**;
 - `SECURITY DEFINER` executáveis por `anon`: **7**;
 - `SECURITY DEFINER` executáveis por `authenticated`: **64 → 62**.
 
-Foram executados oito checks remotos de regressão, todos aprovados.
+A primeira validação remota passou. O replay integral das migrations identificou apenas o grant remoto excedente de `service_role` em `enforce_rate_limit(...)`; após a migration corretiva, seis checks de alinhamento remoto passaram e o teste da rodada passou a exigir explicitamente que esse helper não seja executável diretamente por `authenticated` nem por `service_role`.
 
 ## Decisões preservadas
 
