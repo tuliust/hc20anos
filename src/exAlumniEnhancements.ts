@@ -2,6 +2,7 @@ const HOME_CLASS_CARD_ATTRIBUTE = "data-home-class-card-enhanced";
 const HOME_ALUMNI_CARD_ATTRIBUTE = "data-home-alumni-card";
 const HOME_ALUMNI_CARD_HANDLER_ATTRIBUTE = "data-home-alumni-card-handler";
 const HOME_ALUMNI_PERSON_ATTRIBUTE = "data-home-alumni-person";
+const HOME_ALUMNI_PERSON_ID_ATTRIBUTE = "data-home-alumni-person-id";
 const HOME_ALUMNI_PERSON_HANDLER_ATTRIBUTE = "data-home-alumni-person-handler";
 const HOME_ALUMNI_PRESENCE_FILTER_ATTRIBUTE = "data-home-alumni-presence-filter";
 const HOME_ALUMNI_STYLE_ID = "hc-home-alumni-clickable-style";
@@ -184,11 +185,13 @@ function openClassDirectory(group: string) {
 function openAlumniDirectory(options: {
   classGroup?: string | null;
   attendance?: DirectoryAttendanceFilter | null;
+  personId?: string | null;
   personName?: string | null;
 } = {}) {
   const url = new URL("/ex-alunos", window.location.origin);
   if (options.classGroup && /^[ABCD]$/.test(options.classGroup)) url.searchParams.set("turma", options.classGroup);
   if (options.attendance && options.attendance !== "all") url.searchParams.set("presenca", options.attendance);
+  if (options.personId) url.searchParams.set("pessoa_id", options.personId);
   if (options.personName) url.searchParams.set("pessoa", options.personName);
   window.location.assign(`${url.pathname}${url.search}`);
 }
@@ -292,11 +295,13 @@ function enhanceHomePerson(element: HTMLElement, root: HTMLElement, context: "sa
   const personName = getPersonName(element);
   if (!personName) return;
 
+  const personId = element.getAttribute(HOME_ALUMNI_PERSON_ID_ATTRIBUTE)?.trim() || null;
   element.setAttribute(HOME_ALUMNI_PERSON_ATTRIBUTE, personName);
   if (!element.getAttribute("title")) element.setAttribute("title", `Abrir perfil de ${personName}`);
 
   makeDirectoryLink(element, `Abrir perfil de ${personName}`, () => {
     openAlumniDirectory({
+      personId,
       personName,
       classGroup: context === "classes" ? activeHomeClassGroup(root) : null,
       attendance: context === "confirmed" ? "confirmed" : null,
