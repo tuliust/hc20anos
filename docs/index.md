@@ -40,6 +40,8 @@ O snapshot vigente de implementação, produção e homologação está em [`30-
 
 A primeira rodada incremental dos Supabase Advisors está registrada em [`30-contratos/advisors-2026-09-20.md`](./30-contratos/advisors-2026-09-20.md), incluindo métricas antes/depois, exceções públicas deliberadas e próximas rodadas.
 
+A baseline de release estável está em [`30-contratos/release-v1.0.0.md`](./30-contratos/release-v1.0.0.md), com evidências, pendências aceitas e critérios de rollback. O procedimento operacional mínimo está em [`40-runbooks/procedimento-operacional-v1.0.0.md`](./40-runbooks/procedimento-operacional-v1.0.0.md).
+
 ## Domínios documentados
 
 | Domínio | Documento | Estado |
@@ -106,6 +108,7 @@ Quando houver divergência estrutural, prevalece a baseline `generated`.
 
 | Procedimento | Estado |
 |---|---|
+| [`40-runbooks/procedimento-operacional-v1.0.0.md`](./40-runbooks/procedimento-operacional-v1.0.0.md) | `canonical` |
 | [`40-runbooks/desenvolvimento-local.md`](./40-runbooks/desenvolvimento-local.md) | `draft` |
 | [`40-runbooks/deploy-vercel.md`](./40-runbooks/deploy-vercel.md) | `draft` |
 | [`40-runbooks/deploy-edge-functions.md`](./40-runbooks/deploy-edge-functions.md) | `draft` |

@@ -19,7 +19,7 @@ source_files:
 
 ## Estado
 
-Os procedimentos necessários foram criados e reconciliados com o código atual. Permanecem `draft` porque ainda não foram executados integralmente em ambiente controlado com evidências e ensaio de rollback.
+Os runbooks especializados foram criados e reconciliados com o código atual. Permanecem `draft` quando ainda dependem de execução integral em ambiente controlado, evidências ou ensaio físico. O [`procedimento-operacional-v1.0.0.md`](./procedimento-operacional-v1.0.0.md) é `canonical` como síntese das regras mínimas da release; essa classificação não promove automaticamente os runbooks especializados nem substitui as homologações ainda pendentes.
 
 `draft` não significa que um documento histórico ou depreciado possa substituí-los.
 
@@ -29,6 +29,7 @@ A Fase 3 financeira possui agora um runbook agregador e um preflight sem chamada
 
 | Runbook | Estado | Escopo |
 |---|---|---|
+| [`procedimento-operacional-v1.0.0.md`](./procedimento-operacional-v1.0.0.md) | `canonical` | síntese operacional da release v1.0.0: check-in, contingência, incidentes e recuperação |
 | [`desenvolvimento-local.md`](./desenvolvimento-local.md) | `draft` | dependências, variáveis públicas, build, testes e Supabase local |
 | [`deploy-vercel.md`](./deploy-vercel.md) | `draft` | frontend, Vercel Functions, variáveis, smoke test e rollback |
 | [`deploy-edge-functions.md`](./deploy-edge-functions.md) | `draft` | checkout, webhook, notificações e reembolsos |
