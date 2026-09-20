@@ -38,6 +38,8 @@ Documentos `canonical` descrevem regras humanas vigentes. Arquivos `generated` r
 
 O snapshot vigente de implementação, produção e homologação está em [`30-contratos/estado-operacional-2026-09-20.md`](./30-contratos/estado-operacional-2026-09-20.md). Ele registra a proteção da `main`, o `PR gate` obrigatório, a reconciliação das migrations, os pedidos/ingressos/notificações observados e as homologações ainda pendentes.
 
+A primeira rodada incremental dos Supabase Advisors está registrada em [`30-contratos/advisors-2026-09-20.md`](./30-contratos/advisors-2026-09-20.md), incluindo métricas antes/depois, exceções públicas deliberadas e próximas rodadas.
+
 ## Domínios documentados
 
 | Domínio | Documento | Estado |

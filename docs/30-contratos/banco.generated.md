@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-19
-last_verified_commit: accda464614b334b578c10454578314328c2718f
+last_verified: 2026-09-20
+last_verified_commit: 48d23a6ebd61fd9d1e2924b5152ded8cf41a0504
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -402,6 +402,9 @@ source_files:
 | `public.memories` | 11 | `approved_at` | `timestamp with time zone` | YES | `—` |
 | `public.memories` | 12 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.memories` | 13 | `updated_at` | `timestamp with time zone` | NO | `now()` |
+| `public.notification_channel_settings` | 1 | `channel` | `text` | NO | `—` |
+| `public.notification_channel_settings` | 2 | `enabled` | `boolean` | NO | `false` |
+| `public.notification_channel_settings` | 3 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.notification_jobs` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.notification_jobs` | 2 | `event_type` | `text` | NO | `—` |
 | `public.notification_jobs` | 3 | `order_id` | `uuid` | YES | `—` |
@@ -416,7 +419,7 @@ source_files:
 | `public.notification_jobs` | 12 | `processed_at` | `timestamp with time zone` | YES | `—` |
 | `public.notification_jobs` | 13 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.notification_jobs` | 14 | `updated_at` | `timestamp with time zone` | NO | `now()` |
-| `public.notification_jobs` | 15 | `channel` | `text` | YES | `—` |
+| `public.notification_jobs` | 15 | `channel` | `text` | YES | `'email'::text` |
 | `public.notification_jobs` | 16 | `provider_message_id` | `text` | YES | `—` |
 | `public.notification_jobs` | 17 | `provider_response_json` | `jsonb` | YES | `—` |
 | `public.notification_jobs` | 18 | `dead_lettered_at` | `timestamp with time zone` | YES | `—` |
@@ -917,6 +920,8 @@ source_files:
 | `public.memories` | `memories_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'hidden'::text]))` |
 | `public.memories` | `memories_text_length` | `CHECK` | `CHECK (char_length(memory_text) >= 10 AND char_length(memory_text) <= 420)` |
 | `public.memories` | `memories_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
+| `public.notification_channel_settings` | `notification_channel_settings_channel_check` | `CHECK` | `CHECK (channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))` |
+| `public.notification_channel_settings` | `notification_channel_settings_pkey` | `PRIMARY KEY` | `PRIMARY KEY (channel)` |
 | `public.notification_jobs` | `notification_jobs_attempts_check` | `CHECK` | `CHECK (attempts >= 0)` |
 | `public.notification_jobs` | `notification_jobs_channel_check` | `CHECK` | `CHECK (channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))` |
 | `public.notification_jobs` | `notification_jobs_idempotency_key_key` | `UNIQUE` | `UNIQUE (idempotency_key)` |
@@ -1118,6 +1123,7 @@ source_files:
 | `public.audit_logs` | `idx_audit_logs_created_at` | `CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at DESC)` |
 | `public.audit_logs` | `idx_audit_logs_entity` | `CREATE INDEX idx_audit_logs_entity ON public.audit_logs USING btree (entity_type, entity_id)` |
 | `public.audit_logs` | `idx_audit_logs_user_id` | `CREATE INDEX idx_audit_logs_user_id ON public.audit_logs USING btree (user_id)` |
+| `public.checkin_events` | `checkin_events_operator_user_id_idx` | `CREATE INDEX checkin_events_operator_user_id_idx ON public.checkin_events USING btree (operator_user_id)` |
 | `public.checkin_events` | `checkin_events_pkey` | `CREATE UNIQUE INDEX checkin_events_pkey ON public.checkin_events USING btree (id)` |
 | `public.checkin_events` | `checkin_events_ticket_created_idx` | `CREATE INDEX checkin_events_ticket_created_idx ON public.checkin_events USING btree (ticket_id, created_at DESC)` |
 | `public.checkout_terms_acceptances` | `checkout_terms_acceptances_accepted_at_idx` | `CREATE INDEX checkout_terms_acceptances_accepted_at_idx ON public.checkout_terms_acceptances USING btree (accepted_at DESC)` |
@@ -1159,11 +1165,15 @@ source_files:
 | `public.memories` | `idx_memories_status` | `CREATE INDEX idx_memories_status ON public.memories USING btree (status)` |
 | `public.memories` | `idx_memories_user_id` | `CREATE INDEX idx_memories_user_id ON public.memories USING btree (user_id)` |
 | `public.memories` | `memories_pkey` | `CREATE UNIQUE INDEX memories_pkey ON public.memories USING btree (id)` |
+| `public.notification_channel_settings` | `notification_channel_settings_pkey` | `CREATE UNIQUE INDEX notification_channel_settings_pkey ON public.notification_channel_settings USING btree (channel)` |
 | `public.notification_jobs` | `notification_jobs_idempotency_key_key` | `CREATE UNIQUE INDEX notification_jobs_idempotency_key_key ON public.notification_jobs USING btree (idempotency_key)` |
+| `public.notification_jobs` | `notification_jobs_order_id_idx` | `CREATE INDEX notification_jobs_order_id_idx ON public.notification_jobs USING btree (order_id)` |
 | `public.notification_jobs` | `notification_jobs_pending_idx` | `CREATE INDEX notification_jobs_pending_idx ON public.notification_jobs USING btree (status, next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]))` |
 | `public.notification_jobs` | `notification_jobs_pkey` | `CREATE UNIQUE INDEX notification_jobs_pkey ON public.notification_jobs USING btree (id)` |
+| `public.notification_jobs` | `notification_jobs_ticket_id_idx` | `CREATE INDEX notification_jobs_ticket_id_idx ON public.notification_jobs USING btree (ticket_id)` |
 | `public.order_participants` | `order_participants_order_client_key_unique` | `CREATE UNIQUE INDEX order_participants_order_client_key_unique ON public.order_participants USING btree (order_id, client_key) WHERE (client_key IS NOT NULL)` |
 | `public.order_participants` | `order_participants_order_idx` | `CREATE INDEX order_participants_order_idx ON public.order_participants USING btree (order_id, created_at)` |
+| `public.order_participants` | `order_participants_person_id_idx` | `CREATE INDEX order_participants_person_id_idx ON public.order_participants USING btree (person_id)` |
 | `public.order_participants` | `order_participants_pkey` | `CREATE UNIQUE INDEX order_participants_pkey ON public.order_participants USING btree (id)` |
 | `public.order_participants` | `order_participants_sponsor_idx` | `CREATE INDEX order_participants_sponsor_idx ON public.order_participants USING btree (sponsor_person_id, participant_type, status)` |
 | `public.order_participants` | `order_participants_user_idx` | `CREATE INDEX order_participants_user_idx ON public.order_participants USING btree (user_id, created_at DESC)` |
@@ -1174,10 +1184,13 @@ source_files:
 | `public.orders` | `idx_orders_person_id` | `CREATE INDEX idx_orders_person_id ON public.orders USING btree (person_id)` |
 | `public.orders` | `orders_buyer_checkout_idempotency_unique` | `CREATE UNIQUE INDEX orders_buyer_checkout_idempotency_unique ON public.orders USING btree (buyer_user_id, checkout_idempotency_key) WHERE ((buyer_user_id IS NOT NULL) AND (checkout_idempotency_key IS NOT NULL))` |
 | `public.orders` | `orders_buyer_user_created_idx` | `CREATE INDEX orders_buyer_user_created_idx ON public.orders USING btree (buyer_user_id, created_at DESC)` |
+| `public.orders` | `orders_event_id_idx` | `CREATE INDEX orders_event_id_idx ON public.orders USING btree (event_id)` |
+| `public.orders` | `orders_lot_id_idx` | `CREATE INDEX orders_lot_id_idx ON public.orders USING btree (lot_id)` |
 | `public.orders` | `orders_payment_provider_order_unique` | `CREATE UNIQUE INDEX orders_payment_provider_order_unique ON public.orders USING btree (payment_provider, payment_provider_order_id) WHERE (payment_provider_order_id IS NOT NULL)` |
 | `public.orders` | `orders_payment_status_expires_idx` | `CREATE INDEX orders_payment_status_expires_idx ON public.orders USING btree (payment_status, expires_at)` |
 | `public.orders` | `orders_pkey` | `CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)` |
 | `public.orders` | `orders_public_token_unique` | `CREATE UNIQUE INDEX orders_public_token_unique ON public.orders USING btree (public_token)` |
+| `public.orders` | `orders_ticket_type_id_idx` | `CREATE INDEX orders_ticket_type_id_idx ON public.orders USING btree (ticket_type_id)` |
 | `public.participant_extras` | `participant_extras_order_idx` | `CREATE INDEX participant_extras_order_idx ON public.participant_extras USING btree (order_id, extra_type)` |
 | `public.participant_extras` | `participant_extras_order_participant_id_extra_type_key` | `CREATE UNIQUE INDEX participant_extras_order_participant_id_extra_type_key ON public.participant_extras USING btree (order_participant_id, extra_type)` |
 | `public.participant_extras` | `participant_extras_pkey` | `CREATE UNIQUE INDEX participant_extras_pkey ON public.participant_extras USING btree (id)` |
@@ -1283,6 +1296,7 @@ source_files:
 | `public.tickets` | `tickets_qr_code_key` | `CREATE UNIQUE INDEX tickets_qr_code_key ON public.tickets USING btree (qr_code)` |
 | `public.tickets` | `tickets_qr_token_hash_key` | `CREATE UNIQUE INDEX tickets_qr_token_hash_key ON public.tickets USING btree (qr_token_hash)` |
 | `public.tickets` | `tickets_qr_token_unique` | `CREATE UNIQUE INDEX tickets_qr_token_unique ON public.tickets USING btree (qr_token) WHERE (qr_token IS NOT NULL)` |
+| `public.tickets` | `tickets_ticket_type_id_idx` | `CREATE INDEX tickets_ticket_type_id_idx ON public.tickets USING btree (ticket_type_id)` |
 
 ## Views
 

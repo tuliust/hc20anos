@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-19
-last_verified_commit: accda464614b334b578c10454578314328c2718f
+last_verified: 2026-09-20
+last_verified_commit: 48d23a6ebd61fd9d1e2924b5152ded8cf41a0504
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -78,7 +78,7 @@ source_files:
 | `public.get_checkout_status_by_token` | `p_public_token uuid` | `TABLE(order_id uuid, payment_status text, payment_status_detail text, reservation_status text, expires_at timestamp with time zone, paid_at timestamp with time zone, total_amount_cents integer, currency_id text, ticket_count bigint)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
 | `public.get_contact_research_directory` | `—` | `TABLE(person_id uuid, full_name text, class_group text, whatsapp text, instagram text, email text, notes text, research_status text, source text, updated_by uuid, updated_at timestamp with time zone)` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres` |
 | `public.get_current_ticket_catalog` | `p_event_id uuid, p_at timestamp with time zone` | `TABLE(lot_id uuid, lot_code text, lot_name text, lot_starts_at timestamp with time zone, lot_ends_at timestamp with time zone, ticket_type_id uuid, product_code text, product_name text, description text, participant_type text, package_kind text, included_people_count integer, metadata_json jsonb, price_cents integer)` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
-| `public.get_current_ticket_lot` | `p_event_id uuid, p_at timestamp with time zone` | `ticket_lots` | sim | `stable` | `=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
+| `public.get_current_ticket_lot` | `p_event_id uuid, p_at timestamp with time zone` | `ticket_lots` | sim | `stable` | `postgres=X/postgres,service_role=X/postgres` |
 | `public.get_event_reports` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.get_event_reports_mercado_pago_base` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.get_my_commerce_orders` | `—` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
