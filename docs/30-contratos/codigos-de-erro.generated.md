@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-21
-last_verified_commit: 2fd8aca1cca3e90c1810ab328350a80ddbe69d1f
+last_verified_commit: 7e31f0a437b4fd3a5c6771f1b2d5e926ef8efd49
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -29,7 +29,7 @@ source_files:
 | `checkout_upstream_error` | `api/checkout-create.ts:76` |
 | `child_birth_date_invalid` | `supabase/functions/checkout-create/index.ts:96` |
 | `child_birth_date_required` | `supabase/functions/checkout-create/index.ts:94` |
-| `email_configuration_missing` | `supabase/functions/notification-worker/index.ts:113` |
+| `email_configuration_missing` | `supabase/functions/notification-worker/index.ts:114` |
 | `event_id_required` | `supabase/functions/photo-storage/index.ts:103` |
 | `exactly_one_alumni_required` | `supabase/functions/checkout-create/index.ts:99` |
 | `forbidden` | `supabase/functions/payment-webhook/index.ts:299` |
@@ -58,7 +58,7 @@ source_files:
 | `merchant_order_not_found_for_payment` | `supabase/functions/payment-webhook/index.ts:240` |
 | `merchant_order_payment_mismatch` | `supabase/functions/payment-webhook/index.ts:207` |
 | `merchant_order_preference_required` | `supabase/functions/payment-webhook/index.ts:211` |
-| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:183`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
+| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:181`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
 | `missing_access_token` | `supabase/functions/payment-webhook/index.ts:165` |
 | `missing_or_invalid_external_reference` | `supabase/functions/payment-webhook/index.ts:192` |
 | `openai_not_configured` | `api/generate-profile-bio.ts:274` |
@@ -79,7 +79,7 @@ source_files:
 | `photo_authorization_required` | `supabase/functions/photo-storage/index.ts:84` |
 | `public_token_mismatch` | `supabase/functions/payment-webhook/index.ts:304` |
 | `rate_limit_exceeded` | `api/generate-profile-bio.ts:243` |
-| `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:115` |
+| `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:116` |
 | `recipient_phone_invalid` | `supabase/functions/notification-worker/index.ts:37` |
 | `reconciliation_failed` | `supabase/functions/payment-webhook/index.ts:341` |
 | `refund_not_approved` | `supabase/functions/refund-processor/index.ts:38` |
@@ -96,9 +96,10 @@ source_files:
 | `terms_acceptance_write_failed` | `supabase/functions/checkout-create/index.ts:145` |
 | `ticket_not_found` | `supabase/functions/notification-worker/index.ts:48` |
 | `ticket_qr_payload_required` | `src/lib/ticket-experience.ts:30`<br>`src/lib/ticket-experience.ts:41` |
-| `unauthorized` | `supabase/functions/notification-worker/index.ts:185` |
+| `unauthorized` | `supabase/functions/notification-worker/index.ts:183` |
 | `unsupported_primary_product` | `supabase/functions/checkout-create/index.ts:77` |
-| `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:149` |
+| `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:147` |
+| `whatsapp_order_reference_missing` | `supabase/functions/notification-worker/index.ts:152` |
 
 Este contrato cobre apenas códigos literais detectáveis estaticamente. Mensagens dinâmicas, erros SQL e respostas de provedores exigem geradores específicos.
 
