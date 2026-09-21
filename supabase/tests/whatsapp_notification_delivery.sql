@@ -44,6 +44,14 @@ with checks as (
       in pg_get_functiondef('public.enqueue_ticket_whatsapp_notification()'::regprocedure)
     ) > 0 then 'PASS' else 'FAIL' end
   union all
+  select 'ticket_whatsapp_trigger_disabled_until_distinct_template',
+    case when not exists(
+      select 1
+      from pg_trigger
+      where tgname='tickets_enqueue_whatsapp_notification'
+        and not tgisinternal
+    ) then 'PASS' else 'FAIL' end
+  union all
   select 'guest_defer_trigger_removed',
     case when not exists(select 1 from pg_trigger where tgname='defer_guest_approval_notification_job' and not tgisinternal) then 'PASS' else 'FAIL' end
   union all
