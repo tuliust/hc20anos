@@ -151,6 +151,18 @@ Erros típicos:
 
 O banco possui um gate operacional em `public.notification_channel_settings`. O registro `whatsapp` deve permanecer com `enabled=false` até que as credenciais e os templates necessários estejam configurados na Edge Function.
 
+### Contrato Meta validado em 2026-09-21
+
+Os templates aprovados `hc20_pagamento_aprovado` e `hc20_ingresso` usam três variáveis no corpo, nesta ordem:
+
+1. nome;
+2. referência do pedido;
+3. URL da Área do Comprador.
+
+O worker deve enviar exatamente essas três variáveis. O WhatsApp operacional fica limitado a `payment_approved_whatsapp` e `ticket_issued_whatsapp` enquanto não existirem templates específicos aprovados para outros eventos. O enfileiramento de guest approval permanece desativado.
+
+Para evitar duplicidade, o ticket não gera nova mensagem quando o telefone do participante é o mesmo do comprador, e um mesmo telefone recebe no máximo uma mensagem de ingresso por pedido.
+
 Sequência obrigatória:
 
 1. configurar `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_VERSION` e idioma;
