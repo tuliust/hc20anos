@@ -52,6 +52,7 @@ async function hydratePayload(db: ReturnType<typeof getDb>, job: any) {
     ...payload,
     buyer_name: payload.buyer_name ?? order?.buyer_name,
     participant_name: payload.participant_name ?? data.attendee_name,
+    order_id: payload.order_id ?? data.order_id,
     recipient_email: payload.recipient_email ?? data.attendee_email ?? order?.buyer_email,
     recipient_phone: payload.recipient_phone ?? data.attendee_phone ?? order?.buyer_phone,
     ticket_code: payload.ticket_code ?? data.qr_code,
@@ -129,13 +130,10 @@ async function deliverEmail(job: any, payload: Record<string, unknown>) {
 
 function whatsappTemplate(eventType: string) {
   const base = baseEventType(eventType);
-  const envName = base.startsWith("payment_") ? "WHATSAPP_TEMPLATE_PAYMENT"
-    : base.startsWith("ticket_transfer_") ? "WHATSAPP_TEMPLATE_TRANSFER"
-    : base.startsWith("ticket_") ? "WHATSAPP_TEMPLATE_TICKET"
-    : base.includes("refund") ? "WHATSAPP_TEMPLATE_REFUND"
-    : base === "guest_approval_requested" ? "WHATSAPP_TEMPLATE_GUEST_REQUEST"
-    : base.startsWith("guest_approval_") ? "WHATSAPP_TEMPLATE_GUEST_DECISION"
-    : "WHATSAPP_TEMPLATE_DEFAULT";
+  const envName = base === "payment_approved" ? "WHATSAPP_TEMPLATE_PAYMENT"
+    : base === "ticket_issued" ? "WHATSAPP_TEMPLATE_TICKET"
+    : null;
+  if (!envName) throw new Error(`whatsapp_event_not_supported:${base}`);
   const template = Deno.env.get(envName);
   if (!template) throw new Error(`whatsapp_template_missing:${envName}`);
   return template;
@@ -148,14 +146,14 @@ async function deliverWhatsApp(eventType: string, payload: Record<string, unknow
   const language = Deno.env.get("WHATSAPP_TEMPLATE_LANGUAGE") ?? "pt_BR";
   if (!accessToken || !phoneNumberId || !graphVersion) throw new Error("whatsapp_configuration_missing");
   const phone = normalizeWhatsAppPhone(payload.recipient_phone);
-  const copy = notificationCopy(eventType, payload);
   const template = whatsappTemplate(eventType);
+  const person = String(payload.participant_name || payload.buyer_name || "Participante");
+  const orderReference = String(payload.order_id || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
+  if (!orderReference) throw new Error("whatsapp_order_reference_missing");
   const parameters = [
-    String(payload.participant_name || payload.guest_name || payload.buyer_name || payload.sponsor_name || "Participante"),
-    copy.title,
-    copy.message,
-    String(payload.ticket_code || payload.order_id || "—").slice(0, 80),
-    copy.actionUrl,
+    person,
+    orderReference,
+    `${SITE_URL}/meus-pedidos`,
   ].map(text => ({ type: "text", text }));
   const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
     method: "POST",
