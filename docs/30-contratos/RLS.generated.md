@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-20
-last_verified_commit: f0511ec6959ab2b3c33f79aca764b0113aa9dc0b
+last_verified: 2026-09-21
+last_verified_commit: b2955e5fe33a168458a3f16818fd717e8f7b4fa8
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1032,6 +1032,24 @@ source_files:
 | `public.public_attendance_intents` | `service_role` | `REFERENCES` | NO |
 | `public.public_attendance_intents` | `service_role` | `TRIGGER` | NO |
 | `public.public_attendance_intents` | `service_role` | `TRUNCATE` | NO |
+| `public.public_curiosity_profile_details` | `anon` | `REFERENCES` | NO |
+| `public.public_curiosity_profile_details` | `anon` | `SELECT` | NO |
+| `public.public_curiosity_profile_details` | `anon` | `TRIGGER` | NO |
+| `public.public_curiosity_profile_details` | `anon` | `TRUNCATE` | NO |
+| `public.public_curiosity_profile_details` | `authenticated` | `REFERENCES` | NO |
+| `public.public_curiosity_profile_details` | `authenticated` | `SELECT` | NO |
+| `public.public_curiosity_profile_details` | `authenticated` | `TRIGGER` | NO |
+| `public.public_curiosity_profile_details` | `authenticated` | `TRUNCATE` | NO |
+| `public.public_curiosity_profile_details` | `postgres` | `DELETE` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `INSERT` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `REFERENCES` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `SELECT` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `TRIGGER` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `TRUNCATE` | YES |
+| `public.public_curiosity_profile_details` | `postgres` | `UPDATE` | YES |
+| `public.public_curiosity_profile_details` | `service_role` | `REFERENCES` | NO |
+| `public.public_curiosity_profile_details` | `service_role` | `TRIGGER` | NO |
+| `public.public_curiosity_profile_details` | `service_role` | `TRUNCATE` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `REFERENCES` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `SELECT` | NO |
 | `public.public_curiosity_profile_stats` | `anon` | `TRIGGER` | NO |
