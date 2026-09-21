@@ -1,4 +1,5 @@
 -- Contrato de segurança e privacidade da fonte pública usada pelos drill-downs.
+-- Mantém a projeção pública mínima sincronizada com as preferências de exibição.
 
 with expected_columns(column_name) as (
   values
