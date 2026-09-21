@@ -1,10 +1,7 @@
-function replaceRequired(source, search, replacement, label) {
-  const first = source.indexOf(search);
-  if (first < 0) throw new Error(`[photo-upload-year-input] Trecho não encontrado: ${label}`);
-  const second = source.indexOf(search, first + search.length);
-  if (second >= 0) throw new Error(`[photo-upload-year-input] Trecho duplicado: ${label}`);
-  return source.slice(0, first) + replacement + source.slice(first + search.length);
-}
+import { normalizeModuleId, replaceRequired as replaceStrict } from "./transformUtils.mjs";
+
+const replaceRequired = (source, search, replacement, label) =>
+  replaceStrict(source, search, replacement, label, "photo-upload-year-input");
 
 function transformApp(source) {
   let code = source;
@@ -31,7 +28,7 @@ export function photoUploadYearInputTransform() {
     name: "photo-upload-year-input-transform",
     enforce: "pre",
     transform(source, id) {
-      const normalizedId = id.replaceAll("\\", "/").split("?")[0];
+      const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
       return null;
     },

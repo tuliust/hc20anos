@@ -1,16 +1,14 @@
-function replaceRequired(source, before, after, label) {
-  if (!source.includes(before)) {
-    throw new Error(`[production-readiness] Não foi possível aplicar: ${label}`);
-  }
-  return source.replace(before, after);
-}
+import { normalizeModuleId, replaceRequired as replaceStrict } from "./transformUtils.mjs";
+
+const replaceRequired = (source, search, replacement, label) =>
+  replaceStrict(source, search, replacement, label, "production-readiness");
 
 export function productionReadinessTransform() {
   return {
     name: 'production-readiness-transform',
     enforce: 'pre',
     transform(source, id) {
-      const normalizedId = id.replace(/\\/g, '/');
+      const normalizedId = normalizeModuleId(id);
       let code = source;
 
       if (normalizedId.endsWith('/src/app/App.tsx')) {

@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const EXPECTED_NODE = "22.23.2";
 const EXPECTED_NPM = "10.9.8";
+const EXPECTED_SUPABASE_CLI = "2.109.1";
 
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const lock = JSON.parse(fs.readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"));
@@ -29,15 +30,27 @@ if (lock.lockfileVersion !== 3) {
   errors.push(`package-lock.json lockfileVersion must be 3; got ${lock.lockfileVersion}`);
 }
 
+if (lock.name !== pkg.name || lock.version !== pkg.version) {
+  errors.push("package-lock.json root identity must match package.json name/version");
+}
+
+if (pkg.devDependencies?.supabase !== EXPECTED_SUPABASE_CLI) {
+  errors.push(`Supabase CLI must remain pinned at ${EXPECTED_SUPABASE_CLI}; got ${pkg.devDependencies?.supabase ?? "<missing>"}`);
+}
+
 const lockRoot = lock.packages?.[""];
 if (!lockRoot) {
   errors.push("package-lock.json is missing packages['']");
 } else {
+  if (lockRoot.name !== pkg.name || lockRoot.version !== pkg.version) {
+    errors.push("package-lock packages[''] identity does not match package.json");
+  }
+
   if (lockRoot.engines?.node !== EXPECTED_NODE || lockRoot.engines?.npm !== EXPECTED_NPM) {
     errors.push("package-lock root engines do not match package.json");
   }
 
-  for (const section of ["dependencies", "devDependencies"]) {
+  for (const section of ["dependencies", "devDependencies", "peerDependencies"]) {
     for (const [name, spec] of Object.entries(pkg[section] ?? {})) {
       const installed = lock.packages?.[`node_modules/${name}`]?.version;
       const lockedSpec = lockRoot[section]?.[name];

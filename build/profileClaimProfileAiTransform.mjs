@@ -1,20 +1,14 @@
-function replaceRequired(source, search, replacement, label) {
-  const first = source.indexOf(search);
-  if (first < 0) throw new Error(`[profile-claim-ai] Trecho não encontrado: ${label}`);
-  const second = source.indexOf(search, first + search.length);
-  if (second >= 0) throw new Error(`[profile-claim-ai] Trecho duplicado: ${label}`);
-  return source.slice(0, first) + replacement + source.slice(first + search.length);
-}
+import {
+  normalizeModuleId,
+  replaceRangeRequired as replaceRangeStrict,
+  replaceRequired as replaceStrict,
+} from "./transformUtils.mjs";
 
-function replaceRangeRequired(source, start, end, replacement, label) {
-  const first = source.indexOf(start);
-  if (first < 0) throw new Error(`[profile-claim-ai] Início não encontrado: ${label}`);
-  const second = source.indexOf(start, first + start.length);
-  if (second >= 0) throw new Error(`[profile-claim-ai] Início duplicado: ${label}`);
-  const endIndex = source.indexOf(end, first + start.length);
-  if (endIndex < 0) throw new Error(`[profile-claim-ai] Fim não encontrado: ${label}`);
-  return source.slice(0, first) + replacement + source.slice(endIndex);
-}
+const replaceRequired = (source, search, replacement, label) =>
+  replaceStrict(source, search, replacement, label, "profile-claim-ai");
+
+const replaceRangeRequired = (source, start, end, replacement, label) =>
+  replaceRangeStrict(source, start, end, replacement, label, "profile-claim-ai");
 
 function assertMarkers(code) {
   const required = [
@@ -139,7 +133,7 @@ export function profileClaimProfileAiTransform() {
     name: "profile-claim-profile-ai-transform",
     enforce: "pre",
     transform(source, id) {
-      const normalizedId = id.replaceAll("\\", "/").split("?")[0];
+      const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
       return null;
     },
