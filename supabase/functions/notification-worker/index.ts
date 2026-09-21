@@ -130,9 +130,7 @@ async function deliverEmail(job: any, payload: Record<string, unknown>) {
 
 function whatsappTemplate(eventType: string) {
   const base = baseEventType(eventType);
-  const envName = base === "payment_approved" ? "WHATSAPP_TEMPLATE_PAYMENT"
-    : base === "ticket_issued" ? "WHATSAPP_TEMPLATE_TICKET"
-    : null;
+  const envName = base === "payment_approved" ? "WHATSAPP_TEMPLATE_PAYMENT" : null;
   if (!envName) throw new Error(`whatsapp_event_not_supported:${base}`);
   const template = Deno.env.get(envName);
   if (!template) throw new Error(`whatsapp_template_missing:${envName}`);
