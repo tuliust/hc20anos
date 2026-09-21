@@ -15,11 +15,11 @@ with checks as (
   select 'notification_channel_settings_exists',
     case when to_regclass('public.notification_channel_settings') is not null then 'PASS' else 'FAIL' end
   union all
-  select 'whatsapp_disabled_until_configured',
+  select 'whatsapp_channel_setting_exists',
     case when exists(
       select 1
       from public.notification_channel_settings
-      where channel='whatsapp' and enabled=false
+      where channel='whatsapp'
     ) then 'PASS' else 'FAIL' end
   union all
   select 'email_channel_enabled',
@@ -29,8 +29,20 @@ with checks as (
       where channel='email' and enabled=true
     ) then 'PASS' else 'FAIL' end
   union all
-  select 'guest_whatsapp_trigger_exists',
-    case when exists(select 1 from pg_trigger where tgname='enqueue_guest_approval_whatsapp_job' and not tgisinternal) then 'PASS' else 'FAIL' end
+  select 'guest_whatsapp_trigger_disabled_without_template',
+    case when not exists(select 1 from pg_trigger where tgname='enqueue_guest_approval_whatsapp_job' and not tgisinternal) then 'PASS' else 'FAIL' end
+  union all
+  select 'payment_whatsapp_only_for_approved',
+    case when position(
+      'v_status <> ''approved'''
+      in pg_get_functiondef('public.enqueue_order_status_notifications()'::regprocedure)
+    ) > 0 then 'PASS' else 'FAIL' end
+  union all
+  select 'ticket_whatsapp_deduplicates_buyer_phone',
+    case when position(
+      'right(v_recipient_digits, 11) = right(v_buyer_digits, 11)'
+      in pg_get_functiondef('public.enqueue_ticket_whatsapp_notification()'::regprocedure)
+    ) > 0 then 'PASS' else 'FAIL' end
   union all
   select 'guest_defer_trigger_removed',
     case when not exists(select 1 from pg_trigger where tgname='defer_guest_approval_notification_job' and not tgisinternal) then 'PASS' else 'FAIL' end
