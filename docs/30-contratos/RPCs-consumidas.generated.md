@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-21
-last_verified_commit: 2fd8aca1cca3e90c1810ab328350a80ddbe69d1f
+last_verified_commit: 17e494c3d619e686a611dfcfa426073217994f21
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -47,9 +47,9 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `calculate_refund_quote` | `src/app/BuyerCommerceActions.tsx:37` | `CalculateRefundQuoteArgs` | `CalculateRefundQuoteReturns` |
 | `cancel_guest_approval_request` | `src/app/GuestApprovalPage.tsx:76` | `CancelGuestApprovalRequestArgs` | `CancelGuestApprovalRequestReturns` |
 | `cancel_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:91` | `CancelTicketTransferArgs` | `CancelTicketTransferReturns` |
-| `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:187` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
+| `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:183` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
+| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:189` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:193` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
-| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:197` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:140` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:612` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
