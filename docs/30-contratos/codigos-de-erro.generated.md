@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-21
-last_verified_commit: 7e31f0a437b4fd3a5c6771f1b2d5e926ef8efd49
+last_verified_commit: 17e494c3d619e686a611dfcfa426073217994f21
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -58,7 +58,7 @@ source_files:
 | `merchant_order_not_found_for_payment` | `supabase/functions/payment-webhook/index.ts:240` |
 | `merchant_order_payment_mismatch` | `supabase/functions/payment-webhook/index.ts:207` |
 | `merchant_order_preference_required` | `supabase/functions/payment-webhook/index.ts:211` |
-| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:181`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
+| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:179`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
 | `missing_access_token` | `supabase/functions/payment-webhook/index.ts:165` |
 | `missing_or_invalid_external_reference` | `supabase/functions/payment-webhook/index.ts:192` |
 | `openai_not_configured` | `api/generate-profile-bio.ts:274` |
@@ -96,10 +96,10 @@ source_files:
 | `terms_acceptance_write_failed` | `supabase/functions/checkout-create/index.ts:145` |
 | `ticket_not_found` | `supabase/functions/notification-worker/index.ts:48` |
 | `ticket_qr_payload_required` | `src/lib/ticket-experience.ts:30`<br>`src/lib/ticket-experience.ts:41` |
-| `unauthorized` | `supabase/functions/notification-worker/index.ts:183` |
+| `unauthorized` | `supabase/functions/notification-worker/index.ts:181` |
 | `unsupported_primary_product` | `supabase/functions/checkout-create/index.ts:77` |
-| `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:147` |
-| `whatsapp_order_reference_missing` | `supabase/functions/notification-worker/index.ts:152` |
+| `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:145` |
+| `whatsapp_order_reference_missing` | `supabase/functions/notification-worker/index.ts:150` |
 
 Este contrato cobre apenas códigos literais detectáveis estaticamente. Mensagens dinâmicas, erros SQL e respostas de provedores exigem geradores específicos.
 
