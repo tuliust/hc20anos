@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-21
-last_verified_commit: 7b793efa0f99a878dd14c60712fe92803d3c183a
+last_verified_commit: b2955e5fe33a168458a3f16818fd717e8f7b4fa8
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1321,6 +1321,7 @@ source_files:
 | view | `public.poll_results` | ` SELECT poll_id,<br>    option_id,<br>    option_text,<br>    sort_order,<br>    votes_count<br>   FROM app_private.poll_results;` |
 | view | `public.public_alumni_directory_status` | ` SELECT event_id,<br>    person_id,<br>    full_name,<br>    class_group,<br>    profile_status,<br>    has_approved_ticket,<br>    has_completed_registration,<br>    intends_to_attend,<br>    display_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession<br>   FROM app_private.public_alumni_directory_status;` |
 | view | `public.public_attendance_intents` | ` SELECT pr.person_id<br>   FROM (profiles pr<br>     JOIN people pe ON ((pe.id = pr.person_id)))<br>  WHERE ((pr.intends_to_attend = true) AND (pr.show_confirmed_status = true) AND (pe.is_visible = true));` |
+| view | `public.public_curiosity_profile_details` | ` SELECT person_id,<br>    display_name,<br>    avatar_url,<br>    class_group,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    profession_area,<br>    has_children,<br>    children_count,<br>    has_completed_registration,<br>    has_approved_ticket,<br>    intends_to_attend<br>   FROM app_private.public_curiosity_profile_details;` |
 | view | `public.public_curiosity_profile_stats` | ` SELECT event_id,<br>    total_people,<br>    total_registered,<br>    total_preconfirmed,<br>    total_confirmed,<br>    total_with_relationship,<br>    total_with_children,<br>    total_children_declared,<br>    relationship_status_counts,<br>    children_status_counts,<br>    children_count_distribution,<br>    profession_area_counts<br>   FROM app_private.public_curiosity_profile_stats;` |
 | view | `public.public_people_directory` | ` SELECT id,<br>    full_name,<br>    class_year,<br>    class_group,<br>    nickname_at_school,<br>    profile_status,<br>    is_visible,<br>    avatar_url,<br>    display_name,<br>    gender,<br>    (claimed_by_user_id IS NOT NULL) AS is_claimed<br>   FROM people<br>  WHERE (is_visible = true);` |
 | view | `public.public_profile_bios` | ` SELECT pr.person_id,<br>    pr.bio,<br>    pr.updated_at<br>   FROM (profiles pr<br>     JOIN people pe ON ((pe.id = pr.person_id)))<br>  WHERE ((pe.is_visible = true) AND (pr.show_confirmed_status = true));` |
