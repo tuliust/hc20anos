@@ -159,9 +159,11 @@ Os templates aprovados `hc20_pagamento_aprovado` e `hc20_ingresso` usam três va
 2. referência do pedido;
 3. URL da Área do Comprador.
 
-O worker deve enviar exatamente essas três variáveis. O WhatsApp operacional fica limitado a `payment_approved_whatsapp` e `ticket_issued_whatsapp` enquanto não existirem templates específicos aprovados para outros eventos. O enfileiramento de guest approval permanece desativado.
+O worker deve enviar exatamente essas três variáveis.
 
-Para evitar duplicidade, o ticket não gera nova mensagem quando o telefone do participante é o mesmo do comprador, e um mesmo telefone recebe no máximo uma mensagem de ingresso por pedido.
+**Atenção:** nas evidências de 2026-09-21, o template `hc20_ingresso` está aprovado, mas contém o mesmo texto do `hc20_pagamento_aprovado` ("O pagamento do seu pedido ... foi aprovado"). Por isso ele não deve ser usado operacionalmente como notificação de ingresso até que exista uma versão com conteúdo próprio e aprovada pela Meta.
+
+Enquanto isso, o WhatsApp operacional fica limitado a `payment_approved_whatsapp`. O enfileiramento de `ticket_issued_whatsapp` e de guest approval permanece desativado.
 
 Sequência obrigatória:
 
