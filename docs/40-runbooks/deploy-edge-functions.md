@@ -32,7 +32,7 @@ Os scripts npm fixam explicitamente esse project ref. Não selecione outro proje
 |---|---|
 | `checkout-create` | autenticar comprador, criar pedido via RPC e preferência no Mercado Pago; |
 | `payment-webhook` | validar assinatura, consultar pagamento e aplicar transição financeira; |
-| `notification-worker` | consumir fila e enviar e-mail ou WhatsApp configurado; |
+| `notification-worker` | consumir fila e enviar e-mails transacionais; |
 | `refund-processor` | processar reembolso aprovado, invalidar ingressos e restaurar inventário. |
 
 ## Pré-condições
@@ -72,20 +72,9 @@ SUPABASE_FUNCTIONS_URL
 NOTIFICATION_WORKER_KEY
 RESEND_API_KEY
 TRANSACTIONAL_FROM_EMAIL
-WHATSAPP_ACCESS_TOKEN
-WHATSAPP_PHONE_NUMBER_ID
-WHATSAPP_GRAPH_VERSION
-WHATSAPP_TEMPLATE_LANGUAGE
-WHATSAPP_TEMPLATE_PAYMENT
-WHATSAPP_TEMPLATE_TICKET
-WHATSAPP_TEMPLATE_TRANSFER
-WHATSAPP_TEMPLATE_REFUND
-WHATSAPP_TEMPLATE_GUEST_REQUEST
-WHATSAPP_TEMPLATE_GUEST_DECISION
-WHATSAPP_TEMPLATE_DEFAULT
 ```
 
-Somente configure providers e templates realmente usados. A ausência de configuração deve produzir falha controlada no job, não exposição de segredo.
+Configure somente o provedor de e-mail utilizado em produção.
 
 ## Verificar secrets sem exibir valores
 
