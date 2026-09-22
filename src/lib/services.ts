@@ -482,7 +482,7 @@ export interface AdminImportPersonInput {
   birth_year: number | null;
   class_group: string | null;
   avatar_url?: string | null;
-  contact_whatsapp?: string | null;
+  contact_phone?: string | null;
   contact_email?: string | null;
 }
 
@@ -494,7 +494,7 @@ function normalizeImportPerson(row: AdminImportPersonInput) {
     birth_year: row.birth_year ?? null,
     class_group: row.class_group?.trim() || null,
     avatar_url: row.avatar_url?.trim() || null,
-    contact_whatsapp: row.contact_whatsapp?.trim() || null,
+    contact_phone: row.contact_phone?.trim() || null,
     contact_email: row.contact_email?.trim() || null,
   };
 }
@@ -530,7 +530,7 @@ export interface AdminPersonProfileDraft {
   instagram_url?: string | null;
   linkedin_url?: string | null;
   contact_email?: string | null;
-  contact_whatsapp?: string | null;
+  contact_phone?: string | null;
   relationship_status?: "single" | "dating" | "married" | null;
   has_children?: boolean | null;
   children_count?: number | null;
@@ -596,7 +596,7 @@ export interface CompleteProfileRegistrationParams {
   instagramUrl?: string | null;
   linkedinUrl?: string | null;
   contactEmail?: string | null;
-  contactWhatsapp?: string | null;
+  contactPhone?: string | null;
   relationshipStatus?: "single" | "dating" | "married" | null;
   hasChildren?: boolean;
   childrenCount?: number | null;
@@ -628,7 +628,7 @@ export async function completeProfileRegistration(params: CompleteProfileRegistr
     p_instagram_url: params.instagramUrl ?? null,
     p_linkedin_url: params.linkedinUrl ?? null,
     p_contact_email: params.contactEmail ?? null,
-    p_contact_whatsapp: params.contactWhatsapp ?? null,
+    p_contact_phone: params.contactPhone ?? null,
     p_relationship_status: params.relationshipStatus ?? null,
     p_has_children: params.hasChildren ?? false,
     p_children_count: params.childrenCount ?? null,
@@ -676,7 +676,7 @@ export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): 
     instagram_url: patch.instagram_url ?? current.instagram_url,
     linkedin_url: patch.linkedin_url ?? current.linkedin_url,
     contact_email: patch.contact_email ?? current.contact_email,
-    contact_whatsapp: patch.contact_whatsapp ?? current.contact_whatsapp,
+    contact_phone: patch.contact_phone ?? current.contact_phone,
     relationship_status: patch.relationship_status ?? current.relationship_status,
     has_children: patch.has_children ?? current.has_children,
     children_count: patch.children_count ?? current.children_count,
@@ -828,7 +828,7 @@ export async function saveMyPublicProfile(
     "instagram_url",
     "linkedin_url",
     "contact_email",
-    "contact_whatsapp",
+    "contact_phone",
     "relationship_status",
     "has_children",
     "children_count",
