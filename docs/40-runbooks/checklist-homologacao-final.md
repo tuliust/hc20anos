@@ -86,21 +86,7 @@ Executar somente com autorização e transação identificada.
 - [ ] inventário restaurado quando aplicável;
 - [ ] tickets invalidados quando aplicável.
 
-## G. WhatsApp
-
-Enquanto o canal estiver desabilitado, registrar como não habilitado, não como falha.
-
-Antes da ativação:
-
-- [ ] templates aprovados no provedor;
-- [ ] quantidade e ordem das variáveis conferidas contra o worker;
-- [ ] configuração/secrets validados;
-- [ ] um envio controlado autorizado;
-- [ ] provider message ID e retorno conferidos;
-- [ ] duplicidade descartada;
-- [ ] decisão explícita sobre jobs históricos.
-
-## H. Incidente e rollback
+## G. Incidente e rollback
 
 - [ ] responsável/incident commander definido;
 - [ ] rede/canal de comunicação de contingência definido;
