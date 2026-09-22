@@ -81,6 +81,12 @@ function findSummaryGrid() {
 }
 
 function applySummaryChanges() {
+  const nativeSummary = document.querySelector<HTMLElement>("[data-curiosities-summary]");
+  if (nativeSummary) {
+    nativeSummary.dataset.curiositiesSummaryAdjusted = "native";
+    return;
+  }
+
   const grid = findSummaryGrid();
   if (!grid) return;
 

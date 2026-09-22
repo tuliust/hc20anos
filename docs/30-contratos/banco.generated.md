@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1322,6 +1322,7 @@ source_files:
 | view | `public.public_profile_cards` | ` SELECT profile_id,<br>    person_id,<br>    display_name,<br>    full_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    instagram_url,<br>    linkedin_url,<br>    contact_whatsapp,<br>    relationship_status,<br>    has_children,<br>    children_count,<br>    intends_to_attend<br>   FROM app_private.public_profile_cards;` |
 | view | `public.public_profile_locations` | ` SELECT profile_id,<br>    person_id,<br>    display_name,<br>    full_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    show_profession<br>   FROM app_private.public_profile_locations;` |
 | view | `public.public_school_questionnaire_option_stats` | ` SELECT event_id,<br>    question_id,<br>    option_label,<br>    answer_count<br>   FROM app_private.public_school_questionnaire_option_stats;` |
+| view | `public.public_school_questionnaire_response_stats` | ` SELECT event_id,<br>    respondent_count,<br>    answer_count<br>   FROM app_private.public_school_questionnaire_response_stats;` |
 
 ## Triggers
 

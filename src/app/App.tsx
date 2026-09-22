@@ -21,7 +21,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
+  getPublicProfileCardByPersonId, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, getSchoolQuestionnaireResponseStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, updateEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, uploadCmsContentImage, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
@@ -41,6 +41,7 @@ import type {
   PublicCuriosityProfileDetailRow,
   RelationshipStatus,
   SchoolQuestionnaireOptionStatRow,
+  SchoolQuestionnaireResponseStatsRow,
 } from "../lib/people.types";
 import type { AdminRole, DbAdminUser } from "../lib/admin.types";
 import type { DbPhoto } from "../lib/photo.types";
@@ -5995,16 +5996,38 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
 
 type CuriosityChartMode = "questionnaire" | "life";
 
-function StatCard({ label, value, hint, icon }: { label: string; value: React.ReactNode; hint?: string; icon?: React.ReactNode }) {
-  return (
-    <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4">
+function StatCard({ label, value, hint, icon, onClick, drilldown }: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+  drilldown?: string;
+}) {
+  const content = (
+    <>
       <div>
         <p className="text-[#c9a84c] font-mono text-3xl font-bold leading-none">{value}</p>
         <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-2">{label}</p>
         {hint && <p className="text-[#3a5a3a] text-xs mt-2 leading-relaxed">{hint}</p>}
       </div>
       {icon && <div className="text-[#2d6a4f] shrink-0">{icon}</div>}
-    </div>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      data-curiosities-drilldown={drilldown}
+      onClick={onClick}
+      className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] transition-colors"
+    >
+      {content}
+    </button>
   );
 }
 
@@ -6063,13 +6086,167 @@ function groupQuestionnaireStats(rows: SchoolQuestionnaireOptionStatRow[]) {
   }));
 }
 
-function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+type CuriosityDrilldownKind = "alumni" | "cities" | "professions" | "children";
+
+function CuriosityDrilldownModal({
+  kind,
+  details,
+  locations,
+  professionRows,
+  childrenTotal,
+  people,
+  onClose,
+  onOpenPerson,
+}: {
+  kind: CuriosityDrilldownKind | null;
+  details: PublicCuriosityProfileDetailRow[];
+  locations: LocationStat[];
+  professionRows: { label: string; count: number }[];
+  childrenTotal: number;
+  people: DbPerson[];
+  onClose: () => void;
+  onOpenPerson: (person: DbPerson) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const peopleById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
+  const detailsById = useMemo(() => new Map(details.map(row => [row.person_id, row])), [details]);
+
+  useEffect(() => {
+    if (!kind) setQuery("");
+  }, [kind]);
+
+  const titles: Record<CuriosityDrilldownKind, string> = {
+    alumni: "Ex-alunos 2006",
+    cities: "Cidades onde estão hoje",
+    professions: "Áreas profissionais",
+    children: "Total de filhos dos ex-alunos",
+  };
+
+  function renderPerson(row: PublicCuriosityProfileDetailRow, suffix = "") {
+    const person = peopleById.get(row.person_id);
+    if (!person) return null;
+    return (
+      <button
+        type="button"
+        key={`${row.person_id}-${suffix}`}
+        data-curiosity-person-id={row.person_id}
+        onClick={() => onOpenPerson(person)}
+        className="w-full flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-3 py-3 text-left transition-colors"
+      >
+        <div className="w-10 h-10 shrink-0 bg-[#2d6a4f] overflow-hidden flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-xs">
+          {row.avatar_url ? <img src={row.avatar_url} alt="" className="w-full h-full object-cover" /> : initials(row.display_name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[#f0ebe0] text-sm font-semibold truncate">{row.display_name}</p>
+          <p className="text-[#7a9a7a] text-[11px] font-mono mt-1">{row.class_group ? `Turma ${row.class_group}` : "Turma não informada"}</p>
+        </div>
+        <ChevronRight size={15} className="text-[#7a9a7a] shrink-0" />
+      </button>
+    );
+  }
+
+  const normalizedQuery = normalizeLoose(query);
+  const alumniRows = details.filter(row =>
+    !normalizedQuery || normalizeLoose(row.display_name).includes(normalizedQuery) || normalizeLoose(row.class_group).includes(normalizedQuery)
+  );
+  const childrenRows = details.filter(row => row.has_children === true);
+
+  return (
+    <Modal open={Boolean(kind)} onClose={onClose} title={kind ? titles[kind] : "Curiosidades"} wide>
+      <div data-curiosities-drilldown-modal={kind ?? undefined} className="flex flex-col gap-4">
+        {kind === "alumni" && (
+          <>
+            <p className="text-[#8ab89a] text-sm">{details.length} ex-aluno{details.length === 1 ? "" : "s"} na base pública viva de 2006.</p>
+            {details.length > 20 && (
+              <label className="relative block">
+                <span className="sr-only">Buscar ex-aluno</span>
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+                <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por nome ou turma..." className="w-full bg-[#0a120a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-3 pl-10 pr-3 text-sm focus:outline-none focus:border-[#c9a84c]" />
+              </label>
+            )}
+            <div className="max-h-[62svh] overflow-y-auto flex flex-col gap-2 pr-1">{alumniRows.map(row => renderPerson(row, "alumni"))}</div>
+          </>
+        )}
+
+        {kind === "cities" && (
+          <div className="max-h-[68svh] overflow-y-auto flex flex-col gap-4 pr-1">
+            {locations.map(location => {
+              const rows = location.people.map(person => detailsById.get(person.person_id)).filter(Boolean) as PublicCuriosityProfileDetailRow[];
+              return (
+                <section key={location.key} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="text-[#f0ebe0] font-semibold">{location.city}{location.state ? ` · ${location.state}` : ""}{location.country ? ` · ${location.country}` : ""}</h3>
+                      <p className="text-[#7a9a7a] text-xs mt-1">Somente localização autorizada.</p>
+                    </div>
+                    <span className="text-[#c9a84c] font-mono text-sm">{location.count}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">{rows.map(row => renderPerson(row, location.key))}</div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+
+        {kind === "professions" && (
+          <div className="max-h-[68svh] overflow-y-auto flex flex-col gap-4 pr-1">
+            {professionRows.filter(row => row.label !== "Não informado" && row.count > 0).map(area => {
+              const rows = details.filter(row => row.profession_area === area.label);
+              return (
+                <section key={area.label} data-profession-area={area.label} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="text-[#f0ebe0] font-semibold">{area.label}</h3>
+                    <span className="text-[#c9a84c] font-mono text-sm">{area.count}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">{rows.map(row => renderPerson(row, area.label))}</div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+
+        {kind === "children" && (
+          <>
+            <div className="bg-[#0d1a0f] border border-[#c9a84c]/30 p-4">
+              <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Total agregado</p>
+              <p className="text-[#c9a84c] text-4xl font-mono font-bold mt-1">{childrenTotal}</p>
+            </div>
+            <div className="max-h-[58svh] overflow-y-auto flex flex-col gap-2 pr-1">
+              {childrenRows.map(row => {
+                const person = peopleById.get(row.person_id);
+                if (!person) return null;
+                return (
+                  <button
+                    type="button"
+                    key={row.person_id}
+                    data-curiosity-child-person-id={row.person_id}
+                    onClick={() => onOpenPerson(person)}
+                    className="w-full flex items-center justify-between gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-4 py-3 text-left"
+                  >
+                    <span className="text-[#f0ebe0] text-sm font-semibold">{row.display_name}</span>
+                    <span className="text-[#c9a84c] font-mono text-xs">{row.children_count ?? 0} filho{row.children_count === 1 ? "" : "s"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function CuriositiesPage({ navigate, auth, people }: { navigate: (p: Page) => void; auth: AuthState; people: DbPerson[] }) {
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
   const [results, setResults] = useState<Record<string, Record<string, number>>>({});
   const [myVotes, setMyVotes] = useState<DbPollVote[]>([]);
   const [locations, setLocations] = useState<LocationStat[]>([]);
   const [questionnaireStats, setQuestionnaireStats] = useState<SchoolQuestionnaireOptionStatRow[]>([]);
+  const [questionnaireResponseStats, setQuestionnaireResponseStats] = useState<SchoolQuestionnaireResponseStatsRow | null>(null);
   const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
+  const [publicDetails, setPublicDetails] = useState<PublicCuriosityProfileDetailRow[]>([]);
+  const [activeDrilldown, setActiveDrilldown] = useState<CuriosityDrilldownKind | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -6079,16 +6256,20 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
     setLoading(true);
     setError("");
     try {
-      const [pollData, questionnaireData, profileData, locationData] = await Promise.all([
+      const [pollData, questionnaireData, questionnaireResponseData, profileData, locationData, publicDetailData] = await Promise.all([
         getPolls(DEFAULT_EVENT_ID),
         getSchoolQuestionnaireOptionStats(DEFAULT_EVENT_ID).catch(() => []),
+        getSchoolQuestionnaireResponseStats(DEFAULT_EVENT_ID).catch(() => null),
         getCuriosityProfileStats(DEFAULT_EVENT_ID).catch(() => null),
         getPublicLocationStats().catch(() => []),
+        getPublicCuriosityProfileDetails().catch(() => []),
       ]);
       setPolls(pollData);
       setQuestionnaireStats(questionnaireData);
+      setQuestionnaireResponseStats(questionnaireResponseData);
       setProfileStats(profileData);
       setLocations(locationData);
+      setPublicDetails(publicDetailData);
 
       const nextResults: Record<string, Record<string, number>> = {};
       for (const poll of pollData) nextResults[poll.id] = await getPollResults(poll.id);
@@ -6129,8 +6310,29 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
   const childrenRows = profileStats?.children_status_counts ?? [];
   const professionRows = profileStats?.profession_area_counts ?? [];
 
+  function openCuriosityPerson(person: DbPerson) {
+    setActiveDrilldown(null);
+    setSelectedPerson(person);
+  }
+
   return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
+    <>
+      <CuriosityDrilldownModal
+        kind={activeDrilldown}
+        details={publicDetails}
+        locations={locations}
+        professionRows={professionRows}
+        childrenTotal={profileStats?.total_children_declared ?? 0}
+        people={people}
+        onClose={() => setActiveDrilldown(null)}
+        onOpenPerson={openCuriosityPerson}
+      />
+      <PersonDetailModal
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+      />
+      <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4">
         <section className="mb-10 w-full text-left">
           <SectionLabel>Curiosidades da turma</SectionLabel>
@@ -6145,15 +6347,11 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
         {!loading && (
           <>
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-              <StatCard label="Pré-cadastrados" value={profileStats?.total_people ?? "—"} icon={<Users size={28} />} />
-              <StatCard label="Cadastrados" value={profileStats?.total_registered ?? "—"} icon={<UserCheck size={28} />} />
-              <StatCard label="Pré-confirmados" value={profileStats?.total_preconfirmed ?? "—"} icon={<CheckCircle2 size={28} />} />
-              <StatCard label="Confirmados" value={profileStats?.total_confirmed ?? "—"} icon={<Ticket size={28} />} />
-              <StatCard label="Cidades" value={locations.length} hint="Com exibição autorizada" icon={<MapPin size={28} />} />
-              <StatCard label="Áreas profissionais" value={professionRows.filter(row => row.label !== "Não informado").length || "—"} icon={<BriefcaseIcon />} />
-              <StatCard label="Com filhos" value={profileStats?.total_with_children ?? "—"} icon={<Heart size={28} />} />
-              <StatCard label="Filhos declarados" value={profileStats?.total_children_declared ?? "—"} icon={<Users size={28} />} />
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" data-curiosities-summary>
+              <StatCard label="Ex-alunos 2006" value={publicDetails.length} icon={<Users size={28} />} drilldown="alumni" onClick={() => setActiveDrilldown("alumni")} />
+              <StatCard label="Cidades onde estão hoje" value={locations.length} hint="Com exibição autorizada" icon={<MapPin size={28} />} drilldown="cities" onClick={() => setActiveDrilldown("cities")} />
+              <StatCard label="Áreas profissionais" value={professionRows.filter(row => row.label !== "Não informado" && row.count > 0).length || "—"} icon={<BriefcaseIcon />} drilldown="professions" onClick={() => setActiveDrilldown("professions")} />
+              <StatCard label="Total de filhos dos ex-alunos" value={profileStats?.total_children_declared ?? "—"} icon={<Baby size={28} />} drilldown="children" onClick={() => setActiveDrilldown("children")} />
             </section>
 
             <section className="mb-12">
@@ -6162,6 +6360,7 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
                   <SectionLabel>Tempos de escola</SectionLabel>
                   <DisplayTitle className="text-4xl md:text-5xl">O que a turma contou no cadastro</DisplayTitle>
                   <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 5 etapas da mini bio.</p>
+                  <p data-questionnaire-sample className="text-[#c9a84c] font-mono text-xs mt-2">{questionnaireResponseStats?.respondent_count ?? 0} pessoas responderam às perguntas adicionais</p>
                 </div>
                 <Btn variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Responder questionário</Btn>
               </div>
@@ -6174,7 +6373,8 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
             <section className="mb-12">
               <SectionLabel>Como a vida seguiu</SectionLabel>
-              <DisplayTitle className="text-4xl md:text-5xl mb-6">Relacionamentos, filhos e profissões</DisplayTitle>
+              <DisplayTitle className="text-4xl md:text-5xl mb-2">Relacionamentos, filhos e profissões</DisplayTitle>
+              <p data-profile-sample className="text-[#c9a84c] font-mono text-xs mb-6">Base dos gráficos: {profileStats?.total_registered ?? 0} pessoas cadastradas no site</p>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <MiniBarChart title="Relacionamentos" description="Distribuição agregada dos perfis cadastrados." rows={relationshipRows} />
                 <MiniBarChart title="Filhos" description="Dados declarados no cadastro, exibidos somente de forma agregada." rows={childrenRows} />
@@ -6277,6 +6477,7 @@ function CuriositiesPage({ navigate, auth }: { navigate: (p: Page) => void; auth
         )}
       </div>
     </div>
+    </>
   );
 }
 
@@ -10322,7 +10523,7 @@ export default function App() {
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
-        {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth}                              />}
+        {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth} people={people}              />}
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}

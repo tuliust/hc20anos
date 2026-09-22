@@ -141,6 +141,12 @@ export type SchoolQuestionnaireOptionStatRow = Omit<
   answer_count: number;
 };
 
+export interface SchoolQuestionnaireResponseStatsRow {
+  event_id: string;
+  respondent_count: number;
+  answer_count: number;
+}
+
 export interface LocationStat {
   key: string;
   city: string;

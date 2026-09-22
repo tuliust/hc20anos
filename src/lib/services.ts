@@ -17,6 +17,7 @@ import type {
   PublicProfileCardRow,
   PublicCuriosityProfileDetailRow,
   SchoolQuestionnaireOptionStatRow,
+  SchoolQuestionnaireResponseStatsRow,
   UpsertProfile,
 } from "./people.types";
 import type { AdminRole, DbAdminUser } from "./admin.types";
@@ -781,6 +782,20 @@ export async function getSchoolQuestionnaireOptionStats(eventId = DEFAULT_HOME_E
     if (error) throw error;
     return (data as SchoolQuestionnaireOptionStatRow[]) ?? [];
   }, []);
+}
+
+export async function getSchoolQuestionnaireResponseStats(
+  eventId = DEFAULT_HOME_EVENT_ID
+): Promise<SchoolQuestionnaireResponseStatsRow | null> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_school_questionnaire_response_stats")
+      .select("event_id,respondent_count,answer_count")
+      .eq("event_id", eventId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as SchoolQuestionnaireResponseStatsRow | null;
+  }, null);
 }
 
 export async function getCuriosityProfileStats(eventId = DEFAULT_HOME_EVENT_ID): Promise<CuriosityProfileStatsRow | null> {
