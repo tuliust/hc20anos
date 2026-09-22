@@ -90,7 +90,7 @@ function getApprovedPhotoTagNames(photo: DbPhoto) {
   const tags = ((photo as DbPhoto & { photo_tags?: PhotoTagLike[] }).photo_tags ?? []);
   return Array.from(new Set(
     tags
-      .filter(tag => !tag.status || tag.status === "approved")
+      .filter(tag => tag.status === "approved")
       .map(tag => tag.tagged_name_snapshot?.trim() ?? "")
       .filter(Boolean),
   )).slice(0, 3);
@@ -140,7 +140,7 @@ function createApprovedPhotoCard(photo: DbPhoto) {
   button.className = "absolute inset-0 w-full h-full text-left";
   button.setAttribute("aria-label", `Abrir foto: ${photo.caption || "Foto antiga"}`);
   button.addEventListener("click", () => {
-    if (photo.image_url) window.open(photo.image_url, "_blank", "noopener,noreferrer");
+    window.dispatchEvent(new CustomEvent("hc20:open-history-photo", { detail: { photoId: photo.id } }));
   });
 
   const image = document.createElement("img");

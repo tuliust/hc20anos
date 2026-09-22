@@ -42,7 +42,7 @@ function normalizeSource(value: string | null | undefined) {
 function getTags(photo: DbPhoto) {
   const tags = ((photo as DbPhoto & { photo_tags?: Array<{ tagged_name_snapshot?: string | null; status?: string | null }> }).photo_tags ?? []);
   return Array.from(new Set(tags
-    .filter(tag => !["rejected", "removed"].includes(String(tag.status ?? "").toLocaleLowerCase("pt-BR")))
+    .filter(tag => String(tag.status ?? "").toLocaleLowerCase("pt-BR") === "approved")
     .map(tag => tag.tagged_name_snapshot?.trim() ?? "")
     .filter(Boolean)));
 }
@@ -58,7 +58,7 @@ function createPhotoCard(photo: DbPhoto) {
   button.className = "absolute inset-0 w-full h-full text-left";
   button.setAttribute("aria-label", `Abrir foto: ${photo.caption || "Foto antiga"}`);
   button.addEventListener("click", () => {
-    if (photo.image_url) window.open(photo.image_url, "_blank", "noopener,noreferrer");
+    window.dispatchEvent(new CustomEvent("hc20:open-history-photo", { detail: { photoId: photo.id } }));
   });
 
   const image = document.createElement("img");
