@@ -103,31 +103,6 @@ async function sendTransactionalEmail(ticket: any, order: any) {
   if (!res.ok) console.error("[Email] Falha ao enviar", await res.text());
 }
 
-async function sendWhatsAppTemplate(order: any, tickets: any[]) {
-  const endpoint = Deno.env.get("WHATSAPP_PROVIDER_URL");
-  const token = Deno.env.get("WHATSAPP_PROVIDER_TOKEN");
-  const template = Deno.env.get("WHATSAPP_TICKET_TEMPLATE");
-  if (!endpoint || !token || !template) {
-    console.log("[WhatsApp] Provedor nao configurado; disparo ignorado", { order_id: order.id, tickets: tickets.length });
-    return;
-  }
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      template,
-      to: order.buyer_phone,
-      variables: {
-        buyer_name: order.buyer_name,
-        order_id: order.id,
-        ticket_count: tickets.length,
-      },
-    }),
-  });
-
-  if (!res.ok) console.error("[WhatsApp] Falha ao enviar template", await res.text());
-}
 
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 
@@ -347,7 +322,6 @@ app.post(`${BASE}/mp/webhook`, async (c) => {
         });
 
         for (const ticket of tickets ?? []) await sendTransactionalEmail(ticket, order);
-        await sendWhatsAppTemplate(order, tickets ?? []);
       }
     }
 
