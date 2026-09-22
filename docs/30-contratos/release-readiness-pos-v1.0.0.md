@@ -75,7 +75,6 @@ A baseline técnica não substitui:
 - iPhone/Safari e Android/Chrome;
 - ciclo financeiro real controlado quando autorizado;
 - transferência/reembolso/cancelamento com transação identificada;
-- homologação de WhatsApp/templates quando o canal for ativado.
 
 ## Pendências aceitas
 
@@ -85,7 +84,6 @@ A existência de uma release ou de um PR verde não autoriza:
 
 - forçar estado financeiro;
 - reprocessar notificações históricas;
-- ativar WhatsApp sem validar templates;
 - editar migrations aplicadas;
 - considerar contingência presencial ensaiada sem execução real.
 
