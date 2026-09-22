@@ -13,8 +13,6 @@ alter table public.people rename column contact_whatsapp to contact_phone;
 alter table public.profiles rename column contact_whatsapp to contact_phone;
 alter table public.alumni_contact_research rename column whatsapp to phone;
 
-alter table public.backup_people_before_cleanup_20260709 rename column contact_whatsapp to contact_phone;
-alter table public.backup_profiles_before_cleanup_20260709 rename column contact_whatsapp to contact_phone;
 
 alter view app_private.public_profile_cards rename column contact_whatsapp to contact_phone;
 alter view public.public_profile_cards rename column contact_whatsapp to contact_phone;
