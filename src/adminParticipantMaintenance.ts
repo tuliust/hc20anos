@@ -151,7 +151,7 @@ function findManualRowGrid(label: HTMLLabelElement, modal: HTMLElement): HTMLEle
     if (
       current.classList.contains("grid")
       && Array.from(current.querySelectorAll<HTMLLabelElement>("label"))
-        .some(candidate => normalize(candidate.textContent).startsWith("whatsapp"))
+        .some(candidate => normalize(candidate.textContent).startsWith("phone"))
     ) {
       return current;
     }
@@ -192,7 +192,7 @@ function applyManualGridLayout(grid: HTMLElement): void {
   const displayName = findFieldContainer(grid, "Nome de exibição");
   const gender = findFieldContainer(grid, "Gênero");
   const classGroup = findFieldContainer(grid, "Turma");
-  const whatsapp = findFieldContainer(grid, "WhatsApp");
+  const phone = findFieldContainer(grid, "Telefone");
   const email = findFieldContainer(grid, "E-mail");
   const removeButton = Array.from(grid.querySelectorAll<HTMLButtonElement>("button"))
     .find(button => normalize(button.textContent).includes("remover"));
@@ -208,7 +208,7 @@ function applyManualGridLayout(grid: HTMLElement): void {
     setGridColumn(displayName, "8 / span 5");
     setGridColumn(gender, "1 / span 6");
     setGridColumn(classGroup, "7 / span 6");
-    setGridColumn(whatsapp, "1 / span 5");
+    setGridColumn(phone, "1 / span 5");
     setGridColumn(email, "6 / span 7");
     setGridColumn(remove, "1 / -1");
     return;
@@ -220,14 +220,14 @@ function applyManualGridLayout(grid: HTMLElement): void {
     setGridColumn(displayName, "1 / -1");
     setGridColumn(gender, "1 / 2");
     setGridColumn(classGroup, "2 / 3");
-    setGridColumn(whatsapp, "1 / -1");
+    setGridColumn(phone, "1 / -1");
     setGridColumn(email, "1 / -1");
     setGridColumn(remove, "1 / -1");
     return;
   }
 
   grid.style.gridTemplateColumns = "minmax(0, 1fr)";
-  [fullName, displayName, gender, classGroup, whatsapp, email, remove]
+  [fullName, displayName, gender, classGroup, phone, email, remove]
     .forEach(element => setGridColumn(element, "1 / -1"));
 }
 
@@ -260,7 +260,7 @@ function collectManualRows(modal: HTMLElement): AdminImportPersonInput[] {
     birth_year: null,
     class_group: fieldValue(grid, "Turma").toUpperCase(),
     avatar_url: avatarUrlForGrid(grid),
-    contact_whatsapp: fieldValue(grid, "WhatsApp"),
+    contact_phone: fieldValue(grid, "Telefone"),
     contact_email: fieldValue(grid, "E-mail"),
   })).filter(row => row.full_name.trim() || row.class_group?.trim());
 }
