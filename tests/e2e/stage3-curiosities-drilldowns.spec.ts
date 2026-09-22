@@ -19,7 +19,7 @@ test("amostras dos gráficos são dinâmicas e mantêm universos separados", asy
   await openCuriosities(page);
 
   await expect(page.locator("[data-profile-sample]")).toHaveText("Base dos gráficos: 6 pessoas cadastradas no site");
-  await expect(page.locator("[data-questionnaire-sample]")).toHaveText("3 pessoas responderam às perguntas adicionais");
+  await expect(page.locator("[data-questionnaire-sample]")).toHaveText("3 pessoas responderam o questionário");
 });
 
 test("Ex-alunos 2006 abre a base pública viva", async ({ page }) => {
