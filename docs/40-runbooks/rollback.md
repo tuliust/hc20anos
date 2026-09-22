@@ -37,7 +37,7 @@ Restaurar serviço estável com o menor impacto possível, sem apagar evidência
 | Vercel Function | `/api/checkout-create` ou mini bio falhando | reverter arquivo/commit e redeploy Vercel; |
 | Edge Function | webhook, checkout, worker ou reembolso falhando | republicar versão estável da function afetada; |
 | banco/RPC/RLS | erro de migration, permissão, cálculo ou transição | conter consumidores e criar migration corretiva; |
-| integração externa | Mercado Pago, Resend, WhatsApp ou OpenAI indisponível | desabilitar função dependente ou manter fila/retry; |
+| integração externa | Mercado Pago, Resend, e-mail ou OpenAI indisponível | desabilitar função dependente ou manter fila/retry; |
 | configuração | secret, URL ou ambiente incorreto | corrigir configuração e redeploy sem expor valor. |
 
 ## Contenção
@@ -125,7 +125,7 @@ Após restaurar o webhook, reavalie eventos com `processing_status='failed'` ou 
 
 ## Notificações
 
-Falha de e-mail ou WhatsApp não deve reverter pagamento aprovado.
+Falha de e-mail ou e-mail não deve reverter pagamento aprovado.
 
 1. preserve os jobs pendentes ou falhos;
 2. corrija provider, template ou secret;
