@@ -238,7 +238,7 @@ const profileStatsFixture = {
   relationship_status_counts: [{ label: "Casado(a)", count: 3 }, { label: "Solteiro(a)", count: 3 }],
   children_status_counts: [{ label: "Com filhos", count: 3 }, { label: "Sem filhos", count: 3 }],
   children_count_distribution: [],
-  profession_area_counts: [],
+  profession_area_counts: [{ label: "Outras áreas", count: 2 }, { label: "Educação", count: 1 }],
 };
 
 const locationsFixture = [
@@ -274,10 +274,10 @@ const publicCuriosityProfileDetailsFixture = peopleFixture.map((person, index) =
   current_city: index < 2 ? "Natal" : null,
   current_state: index < 2 ? "RN" : null,
   current_country: index < 2 ? "Brasil" : null,
-  profession: index < 2 ? "Profissão pública" : null,
-  profession_area: index < 2 ? "Outras áreas" : null,
+  profession: index < 3 ? "Profissão pública" : null,
+  profession_area: index < 2 ? "Outras áreas" : index === 2 ? "Educação" : null,
   has_children: index < 3,
-  children_count: index < 3 ? index + 1 : null,
+  children_count: index === 0 ? 1 : index < 3 ? 2 : null,
   has_completed_registration: index < 6,
   has_approved_ticket: index < 2,
   intends_to_attend: index >= 2 && index < 5,
@@ -337,6 +337,11 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       poll_votes: [],
       public_curiosity_profile_stats: [profileStatsFixture],
       public_curiosity_profile_details: publicCuriosityProfileDetailsFixture,
+      public_school_questionnaire_response_stats: [{
+        event_id: "00000000-0000-0000-0000-000000000001",
+        respondent_count: 3,
+        answer_count: 15,
+      }],
       public_profile_locations: options.locations ?? locationsFixture,
       public_alumni_directory_status: alumniDirectoryStatusFixture,
       event_page_content: [{
