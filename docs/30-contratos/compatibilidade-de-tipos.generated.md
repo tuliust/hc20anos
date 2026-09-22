@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -25,7 +25,7 @@ A substituição direta é insegura. A migração deve separar o contrato bruto 
 | Categoria | Baseline gerada | Mapa manual | Ausentes no manual | Somente no manual |
 |---|---|---|---|---|
 | Tabelas | 50 | 30 | 24 | 4 |
-| Views | 10 | 2 | 8 | 0 |
+| Views | 11 | 2 | 9 | 0 |
 | Funções/RPCs | 100 | 7 | 93 | 0 |
 | Enums | 11 | 9 | 2 | 0 |
 
@@ -35,9 +35,9 @@ A substituição direta é insegura. A migração deve separar o contrato bruto 
 
 `alumni_contact_research`, `checkin_events`, `checkout_terms_acceptances`, `cms_assets`, `contact_collectors`, `contact_research_roster`, `content_moderation_events`, `content_moderation_settings`, `event_archive_settings`, `faq_items_backup_20260716`, `guest_approval_requests`, `notification_jobs`, `order_participants`, `participant_extras`, `payment_preferences`, `profile_identity_verifications`, `public_page_content`, `rate_limit_buckets`, `refund_policy`, `refund_requests`, `security_audit_log`, `ticket_lot_prices`, `ticket_lots`, `ticket_transfers`
 
-### Views (8)
+### Views (9)
 
-`public_alumni_directory_status`, `public_attendance_intents`, `public_curiosity_profile_details`, `public_curiosity_profile_stats`, `public_people_directory`, `public_profile_bios`, `public_profile_cards`, `public_school_questionnaire_option_stats`
+`public_alumni_directory_status`, `public_attendance_intents`, `public_curiosity_profile_details`, `public_curiosity_profile_stats`, `public_people_directory`, `public_profile_bios`, `public_profile_cards`, `public_school_questionnaire_option_stats`, `public_school_questionnaire_response_stats`
 
 ### Funções e RPCs (93)
 
