@@ -14,8 +14,8 @@ with checks as (
              and not tgisinternal
          )
   union all
-  select 'ticket_whatsapp_trigger_exists',
-         exists (
+  select 'ticket_whatsapp_trigger_removed',
+         not exists (
            select 1 from pg_trigger
            where tgname = 'tickets_enqueue_whatsapp_notification'
              and not tgisinternal
