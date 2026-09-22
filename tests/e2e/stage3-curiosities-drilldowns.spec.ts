@@ -30,12 +30,16 @@ test("Ex-alunos 2006 abre a base pública viva", async ({ page }) => {
   await expect(modal.locator(`[data-curiosity-person-id="${peopleFixture[7].id}"]`)).toBeVisible();
 });
 
-test("Cidades agrupa somente pessoas da fonte pública de localização", async ({ page }) => {
+test("Cidades normaliza variações de cidade, UF e país antes de agrupar", async ({ page }) => {
   await openCuriosities(page);
   const modal = await openDrilldown(page, "cities");
 
-  await expect(modal).toContainText("Natal");
-  await expect(modal.locator("[data-curiosity-person-id]")).toHaveCount(5);
+  await expect(modal.getByRole("heading", { name: "Natal · RN · Brasil", exact: true })).toHaveCount(1);
+  const natalGroup = modal.locator("section").filter({ hasText: "Natal · RN · Brasil" }).first();
+  await expect(natalGroup).toContainText("3");
+  await expect(modal.getByRole("heading", { name: "NATAL · RN · Brasil", exact: true })).toHaveCount(0);
+  await expect(modal.getByRole("heading", { name: "Natal/RN · Brasil", exact: true })).toHaveCount(0);
+  await expect(modal.locator("[data-curiosity-person-id]")).toHaveCount(6);
 });
 
 test("Áreas profissionais usa a mesma classificação e contagem do gráfico", async ({ page }) => {
