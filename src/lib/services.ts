@@ -15,6 +15,7 @@ import type {
   LocationStat,
   PublicLocationRow,
   PublicProfileCardRow,
+  PublicCuriosityProfileDetailRow,
   SchoolQuestionnaireOptionStatRow,
   UpsertProfile,
 } from "./people.types";
@@ -792,6 +793,17 @@ export async function getCuriosityProfileStats(eventId = DEFAULT_HOME_EVENT_ID):
     if (error) throw error;
     return data as CuriosityProfileStatsRow | null;
   }, null);
+}
+
+export async function getPublicCuriosityProfileDetails(): Promise<PublicCuriosityProfileDetailRow[]> {
+  return withFallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("public_curiosity_profile_details")
+      .select("*")
+      .order("display_name", { ascending: true });
+    if (error) throw error;
+    return ((data ?? []) as PublicCuriosityProfileDetailRow[]).filter(row => Boolean(row?.person_id));
+  }, []);
 }
 
 export async function saveMyPublicProfile(
