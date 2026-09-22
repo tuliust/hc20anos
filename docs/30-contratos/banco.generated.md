@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: b2955e5fe33a168458a3f16818fd717e8f7b4fa8
+last_verified: 2026-09-22
+last_verified_commit: df339dc49be77c0d30379caa21b3201d8aad1c36
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -402,9 +402,6 @@ source_files:
 | `public.memories` | 11 | `approved_at` | `timestamp with time zone` | YES | `—` |
 | `public.memories` | 12 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.memories` | 13 | `updated_at` | `timestamp with time zone` | NO | `now()` |
-| `public.notification_channel_settings` | 1 | `channel` | `text` | NO | `—` |
-| `public.notification_channel_settings` | 2 | `enabled` | `boolean` | NO | `false` |
-| `public.notification_channel_settings` | 3 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.notification_jobs` | 1 | `id` | `uuid` | NO | `gen_random_uuid()` |
 | `public.notification_jobs` | 2 | `event_type` | `text` | NO | `—` |
 | `public.notification_jobs` | 3 | `order_id` | `uuid` | YES | `—` |
@@ -419,7 +416,7 @@ source_files:
 | `public.notification_jobs` | 12 | `processed_at` | `timestamp with time zone` | YES | `—` |
 | `public.notification_jobs` | 13 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.notification_jobs` | 14 | `updated_at` | `timestamp with time zone` | NO | `now()` |
-| `public.notification_jobs` | 15 | `channel` | `text` | YES | `'email'::text` |
+| `public.notification_jobs` | 15 | `channel` | `text` | NO | `'email'::text` |
 | `public.notification_jobs` | 16 | `provider_message_id` | `text` | YES | `—` |
 | `public.notification_jobs` | 17 | `provider_response_json` | `jsonb` | YES | `—` |
 | `public.notification_jobs` | 18 | `dead_lettered_at` | `timestamp with time zone` | YES | `—` |
@@ -920,10 +917,8 @@ source_files:
 | `public.memories` | `memories_status_check` | `CHECK` | `CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'hidden'::text]))` |
 | `public.memories` | `memories_text_length` | `CHECK` | `CHECK (char_length(memory_text) >= 10 AND char_length(memory_text) <= 420)` |
 | `public.memories` | `memories_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL` |
-| `public.notification_channel_settings` | `notification_channel_settings_channel_check` | `CHECK` | `CHECK (channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))` |
-| `public.notification_channel_settings` | `notification_channel_settings_pkey` | `PRIMARY KEY` | `PRIMARY KEY (channel)` |
 | `public.notification_jobs` | `notification_jobs_attempts_check` | `CHECK` | `CHECK (attempts >= 0)` |
-| `public.notification_jobs` | `notification_jobs_channel_check` | `CHECK` | `CHECK (channel = ANY (ARRAY['email'::text, 'whatsapp'::text]))` |
+| `public.notification_jobs` | `notification_jobs_channel_check` | `CHECK` | `CHECK (channel = 'email'::text)` |
 | `public.notification_jobs` | `notification_jobs_idempotency_key_key` | `UNIQUE` | `UNIQUE (idempotency_key)` |
 | `public.notification_jobs` | `notification_jobs_order_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE` |
 | `public.notification_jobs` | `notification_jobs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
@@ -1168,7 +1163,6 @@ source_files:
 | `public.memories` | `idx_memories_status` | `CREATE INDEX idx_memories_status ON public.memories USING btree (status)` |
 | `public.memories` | `idx_memories_user_id` | `CREATE INDEX idx_memories_user_id ON public.memories USING btree (user_id)` |
 | `public.memories` | `memories_pkey` | `CREATE UNIQUE INDEX memories_pkey ON public.memories USING btree (id)` |
-| `public.notification_channel_settings` | `notification_channel_settings_pkey` | `CREATE UNIQUE INDEX notification_channel_settings_pkey ON public.notification_channel_settings USING btree (channel)` |
 | `public.notification_jobs` | `notification_jobs_idempotency_key_key` | `CREATE UNIQUE INDEX notification_jobs_idempotency_key_key ON public.notification_jobs USING btree (idempotency_key)` |
 | `public.notification_jobs` | `notification_jobs_order_id_idx` | `CREATE INDEX notification_jobs_order_id_idx ON public.notification_jobs USING btree (order_id)` |
 | `public.notification_jobs` | `notification_jobs_pending_idx` | `CREATE INDEX notification_jobs_pending_idx ON public.notification_jobs USING btree (status, next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]))` |
@@ -1346,7 +1340,6 @@ source_files:
 | `public.memories` | `trg_auto_approve_memories` | `CREATE TRIGGER trg_auto_approve_memories AFTER INSERT ON memories FOR EACH ROW EXECUTE FUNCTION apply_automatic_content_approval()` |
 | `public.memories` | `trg_memories_sanitize` | `CREATE TRIGGER trg_memories_sanitize BEFORE INSERT OR UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION sanitize_content_row()` |
 | `public.memories` | `trg_memories_updated_at` | `CREATE TRIGGER trg_memories_updated_at BEFORE UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
-| `public.notification_jobs` | `enqueue_guest_approval_whatsapp_job` | `CREATE TRIGGER enqueue_guest_approval_whatsapp_job AFTER INSERT ON notification_jobs FOR EACH ROW EXECUTE FUNCTION enqueue_guest_approval_whatsapp_job()` |
 | `public.orders` | `orders_enqueue_status_notifications` | `CREATE TRIGGER orders_enqueue_status_notifications AFTER INSERT OR UPDATE OF payment_status ON orders FOR EACH ROW EXECUTE FUNCTION enqueue_order_status_notifications()` |
 | `public.orders` | `orders_ensure_pending_expiry` | `CREATE TRIGGER orders_ensure_pending_expiry BEFORE INSERT OR UPDATE OF payment_status, reservation_status, expires_at ON orders FOR EACH ROW EXECUTE FUNCTION ensure_pending_order_expiry()` |
 | `public.orders` | `orders_sync_ticket_type_sales` | `CREATE TRIGGER orders_sync_ticket_type_sales AFTER UPDATE OF payment_status ON orders FOR EACH ROW EXECUTE FUNCTION sync_order_payment_sales_trigger()` |
@@ -1377,7 +1370,6 @@ source_files:
 | `public.ticket_transfers` | `audit_ticket_transfers_change` | `CREATE TRIGGER audit_ticket_transfers_change AFTER INSERT OR DELETE OR UPDATE ON ticket_transfers FOR EACH ROW EXECUTE FUNCTION audit_sensitive_row_change()` |
 | `public.ticket_types` | `ticket_types_enforce_hc20_capacity` | `CREATE TRIGGER ticket_types_enforce_hc20_capacity BEFORE INSERT OR UPDATE OF event_id, available_quantity, sold_quantity ON ticket_types FOR EACH ROW EXECUTE FUNCTION enforce_hc20_commerce_capacity()` |
 | `public.ticket_types` | `trg_ticket_types_updated_at` | `CREATE TRIGGER trg_ticket_types_updated_at BEFORE UPDATE ON ticket_types FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
-| `public.tickets` | `tickets_enqueue_whatsapp_notification` | `CREATE TRIGGER tickets_enqueue_whatsapp_notification AFTER INSERT ON tickets FOR EACH ROW EXECUTE FUNCTION enqueue_ticket_whatsapp_notification()` |
 | `public.tickets` | `tickets_sync_ticket_type_sales` | `CREATE TRIGGER tickets_sync_ticket_type_sales AFTER INSERT OR DELETE OR UPDATE OF order_id, ticket_type_id ON tickets FOR EACH ROW EXECUTE FUNCTION sync_ticket_type_sold_quantity_trigger()` |
 | `public.tickets` | `trg_tickets_qr` | `CREATE TRIGGER trg_tickets_qr BEFORE INSERT ON tickets FOR EACH ROW EXECUTE FUNCTION fn_generate_qr_code()` |
 | `public.tickets` | `trg_tickets_updated_at` | `CREATE TRIGGER trg_tickets_updated_at BEFORE UPDATE ON tickets FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at()` |
