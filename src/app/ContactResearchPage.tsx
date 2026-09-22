@@ -374,22 +374,25 @@ export function ContactResearchPage() {
   }
 
   return <main className="contact-research-shell">
-    <header className="contact-research-header">
+    <section className="contact-research-hero-band">
+      <header className="contact-research-header">
       <div>
         <span className="contact-research-kicker">2006 — 2026</span>
         <h1>Mutirão de contatos</h1>
         <p>Localize os colegas e ajude a completar a lista do reencontro.</p>
       </div>
-    </header>
+      </header>
 
-    <section className="contact-research-summary" aria-label="Resumo do mutirão">
+      <section className="contact-research-summary" aria-label="Resumo do mutirão">
       <div><strong>{summary.total}</strong><span>ex-alunos</span></div>
       <div><strong>{summary.located}</strong><span>localizados</span></div>
       <div><strong>{summary.pending}</strong><span>pendentes</span></div>
       <div><strong>{summary.noContact}</strong><span>sem contato</span></div>
+      </section>
     </section>
 
-    <section className="contact-research-device-guide" aria-labelledby="contact-research-device-title">
+    <section className="contact-research-guide-band">
+      <section className="contact-research-device-guide" aria-labelledby="contact-research-device-title">
       <div className="contact-research-device-guide-head">
         <span>Como colaborar</span>
         <h2 id="contact-research-device-title">Escolha o jeito que funciona no seu dispositivo</h2>
@@ -435,9 +438,9 @@ export function ContactResearchPage() {
       </div>
 
       <p className="contact-research-device-privacy">Em qualquer dispositivo: confira se o contato corresponde à pessoa certa antes de salvar. Os dados só entram no mutirão depois da sua confirmação.</p>
-    </section>
+      </section>
 
-    <details className="contact-research-ios-setup">
+      <details className="contact-research-ios-setup">
       <summary><span>iPhone</span> Configurar “Enviar para HC 2006”</summary>
       <div className="contact-research-ios-setup-body">
         <p>O Safari não abre a agenda diretamente, mas o app Atalhos pode receber um cartão compartilhado pelo app Contatos e enviar somente nome, telefone e e-mail para esta página.</p>
@@ -455,30 +458,10 @@ export function ContactResearchPage() {
         </div>
         <p className="contact-research-ios-note">Os dados viajam no fragmento <code>#</code> do endereço: eles não fazem parte da requisição HTTP ao servidor. Nada é salvo até você confirmar no editor.</p>
       </div>
-    </details>
+      </details>
+    </section>
 
-    {shortcutImport && !editing && <section className="contact-research-shortcut-banner" aria-live="polite">
-      <div className="contact-research-shortcut-heading">
-        <div>
-          <span>Recebido do iPhone</span>
-          <h2>{shortcutImport.name || "Contato sem nome"}</h2>
-        </div>
-        <button type="button" onClick={() => setShortcutImport(null)} aria-label="Descartar contato recebido">×</button>
-      </div>
-      <div className="contact-research-shortcut-data">
-        {shortcutImport.phone && <span><strong>Telefone</strong>{shortcutImport.phone}</span>}
-        {shortcutImport.email && <span><strong>E-mail</strong>{shortcutImport.email}</span>}
-      </div>
-      {shortcutCandidates.length > 0 ? <>
-        <p>Confirme a pessoa correspondente na lista HC 2006:</p>
-        <div className="contact-research-shortcut-candidates">
-          {shortcutCandidates.map(({ row, score }) => <button type="button" key={row.person_id} onClick={() => openEditor(row, shortcutImport)}>
-            <strong>{row.full_name}</strong>
-            <span>Turma {row.class_group}{score >= 80 ? " · correspondência forte" : ""}</span>
-          </button>)}
-        </div>
-      </> : <p>Nenhum nome parecido foi encontrado. Use a busca abaixo e abra manualmente a pessoa correta; o contato recebido permanecerá disponível até ser descartado.</p>}
-    </section>}
+    <section className="contact-research-directory-band">
 
     <section className="contact-research-toolbar">
       <div className="contact-research-tabs" role="tablist" aria-label="Turmas">
@@ -515,6 +498,29 @@ export function ContactResearchPage() {
       </div>
     </section>
 
+    {shortcutImport && !editing && <section className="contact-research-shortcut-banner" aria-live="polite">
+      <div className="contact-research-shortcut-heading">
+        <div>
+          <span>Recebido do iPhone</span>
+          <h2>{shortcutImport.name || "Contato sem nome"}</h2>
+        </div>
+        <button type="button" onClick={() => setShortcutImport(null)} aria-label="Descartar contato recebido">×</button>
+      </div>
+      <div className="contact-research-shortcut-data">
+        {shortcutImport.phone && <span><strong>Telefone</strong>{shortcutImport.phone}</span>}
+        {shortcutImport.email && <span><strong>E-mail</strong>{shortcutImport.email}</span>}
+      </div>
+      {shortcutCandidates.length > 0 ? <>
+        <p>Confirme a pessoa correspondente na lista HC 2006:</p>
+        <div className="contact-research-shortcut-candidates">
+          {shortcutCandidates.map(({ row, score }) => <button type="button" key={row.person_id} onClick={() => openEditor(row, shortcutImport)}>
+            <strong>{row.full_name}</strong>
+            <span>Turma {row.class_group}{score >= 80 ? " · correspondência forte" : ""}</span>
+          </button>)}
+        </div>
+      </> : <p>Nenhum nome parecido foi encontrado. Use a busca abaixo e abra manualmente a pessoa correta; o contato recebido permanecerá disponível até ser descartado.</p>}
+    </section>}
+
     {error && <div className="contact-research-error contact-research-page-error">{error}</div>}
 
     <section className="contact-research-list-section">
@@ -539,6 +545,8 @@ export function ContactResearchPage() {
         </table>
         {!filteredRows.length && <div className="contact-research-empty">Nenhum registro encontrado com estes filtros.</div>}
       </div>
+    </section>
+
     </section>
 
     {editing && <div className="contact-research-modal" role="dialog" aria-modal="true" aria-labelledby="contact-editor-title" onMouseDown={(event) => { if (event.target === event.currentTarget) closeEditor(); }}>
