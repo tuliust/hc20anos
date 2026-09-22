@@ -42,7 +42,7 @@ superseded_by:
 
 - Mercado Pago real.
 - E-mails transacionais.
-- WhatsApp.
+- e-mail.
 - Relatórios avançados.
 - Múltiplos eventos.
 - Produto reutilizável para reencontros.
