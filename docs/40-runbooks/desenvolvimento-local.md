@@ -52,7 +52,7 @@ VITE_DEV_MODE=false
 
 Use `VITE_DEV_MODE=true` somente quando a execução com fallbacks e mocks for intencional. Para validar integração real, mantenha `false`.
 
-Nunca use prefixo `VITE_` em service role, tokens do Mercado Pago, OpenAI, Resend ou WhatsApp.
+Nunca use prefixo `VITE_` em service role, tokens do Mercado Pago, OpenAI, Resend ou e-mail.
 
 ## Executar o frontend
 
