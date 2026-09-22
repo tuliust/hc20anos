@@ -142,14 +142,6 @@ PHASE3_TRANSACTIONAL_FROM_EMAIL
 PHASE3_TEST_RECIPIENT_EMAIL
 ```
 
-Para WhatsApp:
-
-```text
-PHASE3_WHATSAPP_ACCESS_TOKEN
-PHASE3_WHATSAPP_PHONE_NUMBER_ID
-PHASE3_WHATSAPP_GRAPH_VERSION
-PHASE3_TEST_RECIPIENT_PHONE
-```
 
 O payload de checkout deve conter apenas comprador, produto, participantes, extras permitidos e chave de idempotência. Não deve conter preço, total, moeda ou tipo interno de ingresso.
 
@@ -287,7 +279,7 @@ A sequência deve verificar falhas parciais entre provedor, atualização do ped
 
 ### 9. Notificações e retentativas
 
-Validar separadamente e-mail e WhatsApp quando houver configuração aprovada.
+Validar separadamente e-mail e e-mail quando houver configuração aprovada.
 
 - worker exige `x-worker-key` correto;
 - claim respeita limite e bloqueio concorrente;
