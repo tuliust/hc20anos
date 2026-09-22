@@ -36,7 +36,7 @@ A designação **estável** significa que o código versionado passou pelos gate
 - lockfile: npm lockfile v3;
 - banco remoto: projeto `EventoHC`;
 - migrations remotas observadas em 20/09/2026: **134**;
-- WhatsApp transacional: **desabilitado** até homologação do provedor/templates.
+- canal transacional vigente: **e-mail**.
 
 A tag é criada pelo workflow `Stable release` somente sobre um commit de `main` que execute com sucesso as verificações de release no mesmo SHA.
 
@@ -69,7 +69,7 @@ Em 20/09/2026 foram observados:
 - **3 participantes ativos**;
 - **3 ingressos emitidos**;
 - **0 eventos de check-in persistidos**;
-- WhatsApp explicitamente desabilitado por configuração de canal.
+- notificações transacionais por e-mail ativas conforme configuração do worker.
 
 A ausência de `checkin_events` persistidos é compatível com o ensaio técnico feito com rollback e não deve ser interpretada como homologação física.
 
@@ -95,7 +95,7 @@ Estas pendências **não bloqueiam a criação da baseline de código v1.0.0**, 
 
 1. **Supabase CLI:** o projeto está congelado em `2.109.1`. Há versão posterior disponível. A atualização deve ocorrer em mudança isolada, seguida de replay integral das migrations e de todas as suítes de banco.
 2. **Dependências npm:** `npm ci` reporta atualmente **3 vulnerabilidades conhecidas (1 moderada e 2 altas)**. Não aplicar `npm audit fix` automaticamente na release. Tratar em mudança específica de dívida técnica com revisão dos upgrades.
-3. **WhatsApp:** canal permanece desabilitado até aprovação/configuração dos templates e ensaio controlado.
+3. **Notificações:** validar entrega efetiva dos e-mails transacionais em ensaio controlado.
 4. **Fluxo financeiro externo:** ainda requer novo ciclo controlado `checkout → pagamento → webhook → aprovação → ingresso → notificação` em tempo real.
 5. **Reembolso, transferência e cancelamento:** requerem homologação integrada com invalidação/restauração verificadas.
 6. **Check-in físico:** requer ensaio com câmera, dispositivo real, rede principal/reserva e tentativa de reutilização.
