@@ -1,6 +1,6 @@
 %% status: generated
 %% last_verified: 2026-09-22
-%% last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+%% last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -15,7 +15,7 @@ erDiagram
   }
   public_alumni_contact_research {
     uuid person_id
-    text whatsapp
+    text phone
     text instagram
     text email
     text notes
@@ -161,7 +161,7 @@ erDiagram
     event_status event_status
     sales_status sales_status
     text contact_email
-    text contact_whatsapp
+    text contact_phone
     text general_rules
     text companion_policy
     text refund_policy
@@ -509,7 +509,7 @@ erDiagram
     integer birth_year
     text verification_status
     text contact_email
-    text contact_whatsapp
+    text contact_phone
     text display_name
     text gender
     text person_type
@@ -700,7 +700,7 @@ erDiagram
     timestamp_with_time_zone created_at
     timestamp_with_time_zone updated_at
     text contact_email
-    text contact_whatsapp
+    text contact_phone
     text relationship_status
     boolean has_children
     integer children_count
