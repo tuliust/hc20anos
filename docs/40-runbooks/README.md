@@ -38,7 +38,7 @@ A Fase 3 financeira possui agora um runbook agregador e um preflight sem chamada
 | [`validacao-de-pagamentos.md`](./validacao-de-pagamentos.md) | `draft` | checkout, Mercado Pago, webhook, tickets e notificações |
 | [`fase-3-financeiro.md`](./fase-3-financeiro.md) | `draft` | sequência integrada das etapas 15 a 22, preflight, evidências e interrupção |
 | [`investigacao-de-webhook.md`](./investigacao-de-webhook.md) | `draft` | assinatura, `payment_events`, provedor e reprocessamento |
-| [`notificacoes.md`](./notificacoes.md) | `draft` | fila, worker, e-mail, WhatsApp e tentativas |
+| [`notificacoes.md`](./notificacoes.md) | `draft` | fila, worker, e-mail, e-mail e tentativas |
 | [`reembolsos.md`](./reembolsos.md) | `draft` | elegibilidade, decisão, provedor, inventário e ingressos |
 | [`operacao-no-dia-do-evento.md`](./operacao-no-dia-do-evento.md) | `draft` | check-in, QR, vouchers, conectividade e contingência |
 | [`resposta-a-incidentes.md`](./resposta-a-incidentes.md) | `draft` | severidade, contenção, recuperação e pós-incidente |
