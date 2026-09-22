@@ -266,6 +266,23 @@ const alumniDirectoryStatusFixture = peopleFixture.map((person, index) => ({
   profession: null,
 }));
 
+const publicCuriosityProfileDetailsFixture = peopleFixture.map((person, index) => ({
+  person_id: person.id,
+  display_name: person.display_name ?? person.full_name,
+  avatar_url: null,
+  class_group: person.class_group,
+  current_city: index < 2 ? "Natal" : null,
+  current_state: index < 2 ? "RN" : null,
+  current_country: index < 2 ? "Brasil" : null,
+  profession: index < 2 ? "Profissão pública" : null,
+  profession_area: index < 2 ? "Outras áreas" : null,
+  has_children: index < 3,
+  children_count: index < 3 ? index + 1 : null,
+  has_completed_registration: index < 6,
+  has_approved_ticket: index < 2,
+  intends_to_attend: index >= 2 && index < 5,
+}));
+
 const eventFixture = {
   id: "00000000-0000-0000-0000-000000000001",
   title: "Reencontro da Turma 2006",
@@ -318,6 +335,7 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       ],
       poll_votes: [],
       public_curiosity_profile_stats: [profileStatsFixture],
+      public_curiosity_profile_details: publicCuriosityProfileDetailsFixture,
       public_profile_locations: options.locations ?? locationsFixture,
       public_alumni_directory_status: alumniDirectoryStatusFixture,
       event_page_content: [{
