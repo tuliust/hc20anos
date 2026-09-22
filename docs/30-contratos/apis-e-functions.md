@@ -127,7 +127,7 @@ source_files:
 
 - assumir até 20 jobs por chamada;
 - hidratar dados de pedido/ingresso;
-- enviar e-mail ou WhatsApp;
+- enviar e-mail;
 - registrar resposta e ID do provedor;
 - concluir job com sucesso ou erro.
 
