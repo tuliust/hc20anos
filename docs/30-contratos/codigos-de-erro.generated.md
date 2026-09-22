@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: 2fd8aca1cca3e90c1810ab328350a80ddbe69d1f
+last_verified: 2026-09-22
+last_verified_commit: da10a1bcf5e704f27370514540e7003945f8a8aa
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -79,8 +79,7 @@ source_files:
 | `photo_authorization_required` | `supabase/functions/photo-storage/index.ts:84` |
 | `public_token_mismatch` | `supabase/functions/payment-webhook/index.ts:304` |
 | `rate_limit_exceeded` | `api/generate-profile-bio.ts:243` |
-| `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:115` |
-| `recipient_phone_invalid` | `supabase/functions/notification-worker/index.ts:37` |
+| `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:106` |
 | `reconciliation_failed` | `supabase/functions/payment-webhook/index.ts:341` |
 | `refund_not_approved` | `supabase/functions/refund-processor/index.ts:38` |
 | `refund_request_not_found` | `supabase/functions/refund-processor/index.ts:37` |
@@ -94,11 +93,10 @@ source_files:
 | `temporary_processing_failure` | `supabase/functions/payment-webhook/index.ts:374`<br>`supabase/functions/payment-webhook/index.ts:403` |
 | `terms_acceptance_required` | `supabase/functions/checkout-create/index.ts:75` |
 | `terms_acceptance_write_failed` | `supabase/functions/checkout-create/index.ts:145` |
-| `ticket_not_found` | `supabase/functions/notification-worker/index.ts:48` |
+| `ticket_not_found` | `supabase/functions/notification-worker/index.ts:40` |
 | `ticket_qr_payload_required` | `src/lib/ticket-experience.ts:30`<br>`src/lib/ticket-experience.ts:41` |
-| `unauthorized` | `supabase/functions/notification-worker/index.ts:185` |
+| `unauthorized` | `supabase/functions/notification-worker/index.ts:135` |
 | `unsupported_primary_product` | `supabase/functions/checkout-create/index.ts:77` |
-| `whatsapp_configuration_missing` | `supabase/functions/notification-worker/index.ts:149` |
 
 Este contrato cobre apenas códigos literais detectáveis estaticamente. Mensagens dinâmicas, erros SQL e respostas de provedores exigem geradores específicos.
 
