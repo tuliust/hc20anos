@@ -37,7 +37,7 @@ O retorno do navegador não confirma pagamento. A confirmação financeira depen
 A versão anterior registrava o seguinte fluxo:
 
 1. O usuário escolhia um tipo de ingresso.
-2. O checkout coletava nome, e-mail, WhatsApp e aceite dos termos.
+2. O checkout coletava nome, e-mail, e-mail e aceite dos termos.
 3. O frontend chamava `POST /functions/v1/make-server-62fab262/orders`.
 4. A função criava `orders` com `payment_status='pending'` usando service role.
 5. O frontend chamava `POST /functions/v1/make-server-62fab262/mp/preference`.
