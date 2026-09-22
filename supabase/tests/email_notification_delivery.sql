@@ -1,4 +1,5 @@
 -- Testes estruturais da entrega transacional por e-mail.
+-- WhatsApp permanece fora do escopo operacional da aplicação.
 with checks as (
   select 'notification_channel_column_exists' as check_name,
     case when exists(
