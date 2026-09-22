@@ -21,7 +21,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, getCuriosityProfileStats, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
+  getPublicProfileCardByPersonId, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, updateEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, uploadCmsContentImage, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
@@ -38,6 +38,7 @@ import type {
   ProfileStatus,
   PublicLocationRow,
   PublicProfileCardRow,
+  PublicCuriosityProfileDetailRow,
   RelationshipStatus,
   SchoolQuestionnaireOptionStatRow,
 } from "../lib/people.types";
@@ -1433,7 +1434,7 @@ function PersonDetailModal({
 
   if (!person) return null;
 
-  const avatarUrl = publicProfile?.avatar_url ?? person.avatar_url ?? profile?.avatar_url ?? null;
+  const avatarUrl = publicProfile ? publicProfile.avatar_url : (profile?.avatar_url ?? person.avatar_url ?? null);
   const displayName = publicProfile?.display_name || profile?.display_name || person.full_name;
   const location = [
     publicProfile?.current_city ?? profile?.current_city,
@@ -1517,26 +1518,89 @@ function PersonDetailModal({
 function Modal({ open, onClose, title, children, wide = false }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    document.body.style.overflow = "hidden";
+
+    const frame = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus({ preventScroll: true });
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+      )).filter(element => element.getClientRects().length > 0);
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus({ preventScroll: true });
+    };
   }, [open]);
+
   if (!open) return null;
   return (
     <div
       data-modal-root="true"
       className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-3 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       style={{ background: "rgba(8,15,8,0.88)" }}
+      onPointerDown={event => {
+        if (event.target === event.currentTarget) onCloseRef.current();
+      }}
     >
-      <div className={`bg-[#141f14] border border-[#2d6a4f]/40 w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100svh-1.5rem)] sm:max-h-[92vh] overflow-y-auto`}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className={`bg-[#141f14] border border-[#2d6a4f]/40 w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100svh-1.5rem)] sm:max-h-[92vh] overflow-y-auto focus:outline-none`}
+      >
         <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 sm:py-5 border-b border-[#2d6a4f]/20 sticky top-0 bg-[#141f14] z-20">
           <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-lg leading-tight pr-2">{title}</p>
           <button
+            ref={closeButtonRef}
             type="button"
-            onClick={onClose}
+            onClick={() => onCloseRef.current()}
             aria-label="Fechar modal"
-            className="w-10 h-10 shrink-0 inline-flex items-center justify-center text-[#7a9a7a] hover:text-[#f0ebe0] hover:bg-[#1a2e1a] transition-colors -mr-2"
+            className="w-10 h-10 shrink-0 inline-flex items-center justify-center text-[#7a9a7a] hover:text-[#f0ebe0] hover:bg-[#1a2e1a] transition-colors -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
           >
             <X size={22} />
           </button>
@@ -4381,6 +4445,110 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 type AlumniClassFilter = "all" | "A" | "B" | "C" | "D";
 type AlumniAttendanceFilter = "all" | "confirmed" | "preconfirmed" | "registered";
 
+type ExAlumniDrilldownKind = "bought" | "going" | "registered";
+
+function ExAlumniDrilldownModal({
+  kind,
+  rows,
+  loading,
+  people,
+  onClose,
+  onOpenPerson,
+}: {
+  kind: ExAlumniDrilldownKind | null;
+  rows: PublicCuriosityProfileDetailRow[];
+  loading: boolean;
+  people: DbPerson[];
+  onClose: () => void;
+  onOpenPerson: (person: DbPerson) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const peopleById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
+
+  useEffect(() => {
+    if (!kind) setQuery("");
+  }, [kind]);
+
+  const config = kind ? {
+    bought: { title: "Já compraram", description: "Ex-alunos com ingresso aprovado." },
+    going: { title: "Eu vou!", description: "Ex-alunos que pretendem participar e ainda não possuem ingresso aprovado." },
+    registered: { title: "Cadastrados no site", description: "Ex-alunos que concluíram o cadastro no site." },
+  }[kind] : null;
+
+  const normalizedQuery = normalizeLoose(query);
+  const filteredRows = rows.filter(row =>
+    !normalizedQuery
+    || normalizeLoose(row.display_name).includes(normalizedQuery)
+    || normalizeLoose(row.class_group).includes(normalizedQuery)
+  );
+  const showSearch = rows.length > 20;
+
+  return (
+    <Modal open={Boolean(kind)} onClose={onClose} title={config?.title ?? "Ex-alunos"} wide>
+      <div data-ex-alumni-drilldown-modal={kind ?? undefined} className="flex flex-col gap-4">
+        <div>
+          <p className="text-[#8ab89a] text-sm leading-relaxed">{config?.description}</p>
+          <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mt-2">
+            {loading ? "Carregando..." : `${rows.length} pessoa${rows.length === 1 ? "" : "s"}`}
+          </p>
+        </div>
+
+        {showSearch && (
+          <label className="relative block">
+            <span className="sr-only">Buscar nesta lista</span>
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
+            <input
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Buscar por nome ou turma..."
+              className="w-full bg-[#0a120a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a5a3a] py-3 pl-10 pr-3 text-sm focus:outline-none focus:border-[#c9a84c]"
+            />
+          </label>
+        )}
+
+        <div className="max-h-[min(62svh,34rem)] overflow-y-auto pr-1 -mr-1 flex flex-col gap-2" data-ex-alumni-drilldown-list>
+          {loading && (
+            <div className="py-10 text-center text-[#7a9a7a] font-mono text-xs">Carregando lista...</div>
+          )}
+
+          {!loading && filteredRows.map(row => {
+            const person = peopleById.get(row.person_id);
+            if (!person) return null;
+            return (
+              <button
+                type="button"
+                key={row.person_id}
+                data-person-id={row.person_id}
+                onClick={() => onOpenPerson(person)}
+                className="w-full min-w-0 flex items-center gap-3 text-left border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-3 py-3 transition-colors"
+              >
+                <div className="w-12 h-12 shrink-0 overflow-hidden bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold">
+                  {row.avatar_url
+                    ? <img src={row.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : initials(row.display_name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[#f0ebe0] font-semibold truncate">{row.display_name}</p>
+                  <p className="text-[#7a9a7a] text-xs font-mono mt-1">
+                    {row.class_group ? `Turma ${row.class_group}` : "Turma não informada"}
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-[#7a9a7a] shrink-0" />
+              </button>
+            );
+          })}
+
+          {!loading && filteredRows.length === 0 && (
+            <div className="py-10 text-center text-[#7a9a7a] font-mono text-xs">
+              Nenhuma pessoa encontrada.
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<AlumniClassFilter>("all");
@@ -4388,6 +4556,9 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
+  const [publicDetailRows, setPublicDetailRows] = useState<PublicCuriosityProfileDetailRow[]>([]);
+  const [loadingPublicDetails, setLoadingPublicDetails] = useState(true);
+  const [activeDrilldown, setActiveDrilldown] = useState<ExAlumniDrilldownKind | null>(null);
 
   const requestedPersonFromUrl = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -4424,6 +4595,16 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       .then(rows => { if (active) setDirectoryRows(rows); })
       .catch(() => { if (active) setDirectoryRows([]); })
       .finally(() => { if (active) setLoadingStatuses(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingPublicDetails(true);
+    getPublicCuriosityProfileDetails()
+      .then(rows => { if (active) setPublicDetailRows(rows); })
+      .catch(() => { if (active) setPublicDetailRows([]); })
+      .finally(() => { if (active) setLoadingPublicDetails(false); });
     return () => { active = false; };
   }, []);
 
@@ -4491,12 +4672,21 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     return matchesSearch && matchesClass && matchesAttendance;
   });
 
-  const confirmedCount = visiblePeople.filter(person => getDirectoryStatus(person).hasApprovedTicket).length;
-  const preconfirmedCount = visiblePeople.filter(person => {
-    const status = getDirectoryStatus(person);
-    return status.intendsToAttend && !status.hasApprovedTicket;
-  }).length;
-  const registeredCount = visiblePeople.filter(person => getDirectoryStatus(person).hasCompletedRegistration).length;
+  const publicBoughtRows = publicDetailRows.filter(row => row.has_approved_ticket);
+  const publicGoingRows = publicDetailRows.filter(row => row.intends_to_attend && !row.has_approved_ticket);
+  const publicRegisteredRows = publicDetailRows.filter(row => row.has_completed_registration);
+  const drilldownRows = activeDrilldown === "bought"
+    ? publicBoughtRows
+    : activeDrilldown === "going"
+      ? publicGoingRows
+      : activeDrilldown === "registered"
+        ? publicRegisteredRows
+        : [];
+
+  function openDrilldownPerson(person: DbPerson) {
+    setActiveDrilldown(null);
+    setSelectedPerson(person);
+  }
 
   const classButtons: { value: AlumniClassFilter; label: string }[] = [
     { value: "all", label: "Todas as turmas" },
@@ -4520,6 +4710,14 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
         onClose={closePersonModal}
         onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
       />
+      <ExAlumniDrilldownModal
+        kind={activeDrilldown}
+        rows={drilldownRows}
+        loading={loadingPublicDetails}
+        people={visiblePeople}
+        onClose={() => setActiveDrilldown(null)}
+        onOpenPerson={openDrilldownPerson}
+      />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
@@ -4532,23 +4730,41 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3" data-ex-alumni-summary>
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{visiblePeople.length}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Pré-cadastrados</p>
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicDetailRows.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Ex-Alunos</p>
               </div>
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{confirmedCount}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Confirmados</p>
-              </div>
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{preconfirmedCount}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Pré-confirmados</p>
-              </div>
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{registeredCount}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cadastrados</p>
-              </div>
+              <button
+                type="button"
+                data-ex-alumni-drilldown="bought"
+                onClick={() => setActiveDrilldown("bought")}
+                disabled={loadingPublicDetails}
+                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
+              >
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicBoughtRows.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Já compraram</p>
+              </button>
+              <button
+                type="button"
+                data-ex-alumni-drilldown="going"
+                onClick={() => setActiveDrilldown("going")}
+                disabled={loadingPublicDetails}
+                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
+              >
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicGoingRows.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Eu vou!</p>
+              </button>
+              <button
+                type="button"
+                data-ex-alumni-drilldown="registered"
+                onClick={() => setActiveDrilldown("registered")}
+                disabled={loadingPublicDetails}
+                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
+              >
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicRegisteredRows.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cadastrados no site</p>
+              </button>
             </div>
           </section>
 

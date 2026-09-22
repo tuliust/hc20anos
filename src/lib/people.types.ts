@@ -6,6 +6,7 @@ type PublicLocationViewRow = Database["public"]["Views"]["public_profile_locatio
 type PublicProfileCardViewRow = Database["public"]["Views"]["public_profile_cards"]["Row"];
 type AlumniDirectoryStatusViewRow = Database["public"]["Views"]["public_alumni_directory_status"]["Row"];
 type CuriosityProfileStatsViewRow = Database["public"]["Views"]["public_curiosity_profile_stats"]["Row"];
+type PublicCuriosityProfileDetailViewRow = Database["public"]["Views"]["public_curiosity_profile_details"]["Row"];
 type SchoolQuestionnaireOptionStatViewRow = Database["public"]["Views"]["public_school_questionnaire_option_stats"]["Row"];
 
 export type ProfileStatus = Database["public"]["Enums"]["profile_status"];
@@ -91,6 +92,21 @@ export type AlumniDirectoryStatusRow = Omit<
   profile_status: ProfileStatus;
   has_approved_ticket: boolean;
   has_completed_registration: boolean;
+  intends_to_attend: boolean;
+};
+
+export type PublicCuriosityProfileDetailRow = Omit<
+  PublicCuriosityProfileDetailViewRow,
+  | "person_id"
+  | "display_name"
+  | "has_completed_registration"
+  | "has_approved_ticket"
+  | "intends_to_attend"
+> & {
+  person_id: string;
+  display_name: string;
+  has_completed_registration: boolean;
+  has_approved_ticket: boolean;
   intends_to_attend: boolean;
 };
 
