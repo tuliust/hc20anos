@@ -12,11 +12,6 @@ on:
         required: false
         default: false
         type: boolean
-      include_whatsapp:
-        description: "Verificar também a presença da configuração de WhatsApp"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -49,10 +44,6 @@ jobs:
       PHASE3_RESEND_API_KEY: ${{ inputs.include_email && secrets.PHASE3_RESEND_API_KEY || '' }}
       PHASE3_TRANSACTIONAL_FROM_EMAIL: ${{ inputs.include_email && secrets.PHASE3_TRANSACTIONAL_FROM_EMAIL || '' }}
       PHASE3_TEST_RECIPIENT_EMAIL: ${{ inputs.include_email && secrets.PHASE3_TEST_RECIPIENT_EMAIL || '' }}
-      PHASE3_WHATSAPP_ACCESS_TOKEN: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_ACCESS_TOKEN || '' }}
-      PHASE3_WHATSAPP_PHONE_NUMBER_ID: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_PHONE_NUMBER_ID || '' }}
-      PHASE3_WHATSAPP_GRAPH_VERSION: ${{ inputs.include_whatsapp && secrets.PHASE3_WHATSAPP_GRAPH_VERSION || '' }}
-      PHASE3_TEST_RECIPIENT_PHONE: ${{ inputs.include_whatsapp && secrets.PHASE3_TEST_RECIPIENT_PHONE || '' }}
 
     steps:
       - name: Guardar escopo
@@ -91,7 +82,6 @@ jobs:
         shell: bash
         env:
           INCLUDE_EMAIL: ${{ inputs.include_email }}
-          INCLUDE_WHATSAPP: ${{ inputs.include_whatsapp }}
         run: |
           set -euo pipefail
           if [ "${INCLUDE_EMAIL}" = "true" ]; then
@@ -102,12 +92,6 @@ jobs:
               fi
             done
           fi
-          if [ "${INCLUDE_WHATSAPP}" = "true" ]; then
-            for name in PHASE3_WHATSAPP_ACCESS_TOKEN PHASE3_WHATSAPP_PHONE_NUMBER_ID PHASE3_WHATSAPP_GRAPH_VERSION PHASE3_TEST_RECIPIENT_PHONE; do
-              if [ -z "${!name:-}" ]; then
-                echo "Configuração ausente: ${name}"
-                exit 1
-              fi
             done
           fi
 
@@ -122,4 +106,4 @@ jobs:
       - name: Confirm no execution
         run: |
           echo "Fase 3 preparada, mas não executada."
-          echo "Nenhuma chamada ao Mercado Pago, Supabase remoto, Resend ou WhatsApp foi realizada."
+          echo "Nenhuma chamada ao Mercado Pago, Supabase remoto ou Resend foi realizada."
