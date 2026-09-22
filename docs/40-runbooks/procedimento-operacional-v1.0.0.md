@@ -118,7 +118,7 @@ Nunca apagar ou editar migration aplicada.
 
 ### Notificações
 
-Falha de e-mail/WhatsApp não deve reverter pagamento aprovado. Preservar jobs, corrigir configuração/provider e reprocessar apenas após verificar idempotência.
+Falha de e-mail não deve reverter pagamento aprovado. Preservar jobs, corrigir configuração/provider e reprocessar apenas após verificar idempotência.
 
 ## 5. Critérios de retomada
 
