@@ -6360,7 +6360,7 @@ function CuriositiesPage({ navigate, auth, people }: { navigate: (p: Page) => vo
                   <SectionLabel>Tempos de escola</SectionLabel>
                   <DisplayTitle className="text-4xl md:text-5xl">O que a turma contou no cadastro</DisplayTitle>
                   <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 5 etapas da mini bio.</p>
-                  <p data-questionnaire-sample className="text-[#c9a84c] font-mono text-xs mt-2">{questionnaireResponseStats?.respondent_count ?? 0} pessoas responderam às perguntas adicionais</p>
+                  <p data-questionnaire-sample className="text-[#c9a84c] font-mono text-xs mt-2">{questionnaireResponseStats?.respondent_count ?? 0} {(questionnaireResponseStats?.respondent_count ?? 0) === 1 ? "pessoa respondeu" : "pessoas responderam"} o questionário</p>
                 </div>
                 <Btn variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Responder questionário</Btn>
               </div>
