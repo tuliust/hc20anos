@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: 2fd8aca1cca3e90c1810ab328350a80ddbe69d1f
+last_verified: 2026-09-22
+last_verified_commit: 444cab8e2c85ab7edf430d24c7aeb607095cc436
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -47,9 +47,9 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `calculate_refund_quote` | `src/app/BuyerCommerceActions.tsx:37` | `CalculateRefundQuoteArgs` | `CalculateRefundQuoteReturns` |
 | `cancel_guest_approval_request` | `src/app/GuestApprovalPage.tsx:76` | `CancelGuestApprovalRequestArgs` | `CancelGuestApprovalRequestReturns` |
 | `cancel_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:91` | `CancelTicketTransferArgs` | `CancelTicketTransferReturns` |
-| `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:187` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
-| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:193` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
-| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:197` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
+| `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:137` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
+| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:143` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
+| `complete_notification_job` | `supabase/functions/notification-worker/index.ts:147` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:140` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:612` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
@@ -58,7 +58,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
 | `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:114` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
 | `export_checkin_report` | `src/app/OperationsReportingPanel.tsx:17` | `ExportCheckinReportArgs` | `ExportCheckinReportReturns` |
-| `fn_increment_sold` | `supabase/functions/server/index.ts:344` | `FnIncrementSoldArgs` | `FnIncrementSoldReturns` |
+| `fn_increment_sold` | `supabase/functions/server/index.ts:319` | `FnIncrementSoldArgs` | `FnIncrementSoldReturns` |
 | `get_admin_orders` | `src/lib/services.ts:1027` | `GetAdminOrdersArgs` | `GetAdminOrdersReturns` |
 | `get_admin_refund_requests` | `src/app/OperationsPage.tsx:44` | `GetAdminRefundRequestsArgs` | `GetAdminRefundRequestsReturns` |
 | `get_checkin_activity` | `src/app/OperationsReportingPanel.tsx:15` | `GetCheckinActivityArgs` | `GetCheckinActivityReturns` |
