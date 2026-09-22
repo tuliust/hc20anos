@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -80,7 +80,7 @@ source_files:
 | `public.admin_users` | 6 | `email` | `text` | YES | `—` |
 | `public.admin_users` | 7 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.alumni_contact_research` | 1 | `person_id` | `uuid` | NO | `—` |
-| `public.alumni_contact_research` | 2 | `whatsapp` | `text` | YES | `—` |
+| `public.alumni_contact_research` | 2 | `phone` | `text` | YES | `—` |
 | `public.alumni_contact_research` | 3 | `instagram` | `text` | YES | `—` |
 | `public.alumni_contact_research` | 4 | `email` | `text` | YES | `—` |
 | `public.alumni_contact_research` | 5 | `notes` | `text` | YES | `—` |
@@ -204,7 +204,7 @@ source_files:
 | `public.events` | 9 | `event_status` | `event_status` | NO | `'draft'::event_status` |
 | `public.events` | 10 | `sales_status` | `sales_status` | NO | `'closed'::sales_status` |
 | `public.events` | 11 | `contact_email` | `text` | YES | `—` |
-| `public.events` | 12 | `contact_whatsapp` | `text` | YES | `—` |
+| `public.events` | 12 | `contact_phone` | `text` | YES | `—` |
 | `public.events` | 13 | `general_rules` | `text` | YES | `—` |
 | `public.events` | 14 | `companion_policy` | `text` | YES | `—` |
 | `public.events` | 15 | `refund_policy` | `text` | YES | `—` |
@@ -526,7 +526,7 @@ source_files:
 | `public.people` | 14 | `birth_year` | `integer` | YES | `—` |
 | `public.people` | 15 | `verification_status` | `text` | YES | `'not_started'::text` |
 | `public.people` | 16 | `contact_email` | `text` | YES | `—` |
-| `public.people` | 17 | `contact_whatsapp` | `text` | YES | `—` |
+| `public.people` | 17 | `contact_phone` | `text` | YES | `—` |
 | `public.people` | 18 | `display_name` | `text` | YES | `—` |
 | `public.people` | 19 | `gender` | `text` | YES | `—` |
 | `public.people` | 20 | `person_type` | `text` | NO | `'alumni'::text` |
@@ -689,7 +689,7 @@ source_files:
 | `public.profiles` | 20 | `created_at` | `timestamp with time zone` | NO | `now()` |
 | `public.profiles` | 21 | `updated_at` | `timestamp with time zone` | NO | `now()` |
 | `public.profiles` | 22 | `contact_email` | `text` | YES | `—` |
-| `public.profiles` | 23 | `contact_whatsapp` | `text` | YES | `—` |
+| `public.profiles` | 23 | `contact_phone` | `text` | YES | `—` |
 | `public.profiles` | 24 | `relationship_status` | `text` | YES | `—` |
 | `public.profiles` | 25 | `has_children` | `boolean` | NO | `false` |
 | `public.profiles` | 26 | `children_count` | `integer` | YES | `—` |
@@ -1319,9 +1319,10 @@ source_files:
 | view | `public.public_curiosity_profile_stats` | ` SELECT event_id,<br>    total_people,<br>    total_registered,<br>    total_preconfirmed,<br>    total_confirmed,<br>    total_with_relationship,<br>    total_with_children,<br>    total_children_declared,<br>    relationship_status_counts,<br>    children_status_counts,<br>    children_count_distribution,<br>    profession_area_counts<br>   FROM app_private.public_curiosity_profile_stats;` |
 | view | `public.public_people_directory` | ` SELECT id,<br>    full_name,<br>    class_year,<br>    class_group,<br>    nickname_at_school,<br>    profile_status,<br>    is_visible,<br>    avatar_url,<br>    display_name,<br>    gender,<br>    (claimed_by_user_id IS NOT NULL) AS is_claimed<br>   FROM people<br>  WHERE (is_visible = true);` |
 | view | `public.public_profile_bios` | ` SELECT pr.person_id,<br>    pr.bio,<br>    pr.updated_at<br>   FROM (profiles pr<br>     JOIN people pe ON ((pe.id = pr.person_id)))<br>  WHERE ((pe.is_visible = true) AND (pr.show_confirmed_status = true));` |
-| view | `public.public_profile_cards` | ` SELECT profile_id,<br>    person_id,<br>    display_name,<br>    full_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    instagram_url,<br>    linkedin_url,<br>    contact_whatsapp,<br>    relationship_status,<br>    has_children,<br>    children_count,<br>    intends_to_attend<br>   FROM app_private.public_profile_cards;` |
+| view | `public.public_profile_cards` | ` SELECT profile_id,<br>    person_id,<br>    display_name,<br>    full_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    instagram_url,<br>    linkedin_url,<br>    contact_phone,<br>    relationship_status,<br>    has_children,<br>    children_count,<br>    intends_to_attend<br>   FROM app_private.public_profile_cards;` |
 | view | `public.public_profile_locations` | ` SELECT profile_id,<br>    person_id,<br>    display_name,<br>    full_name,<br>    avatar_url,<br>    current_city,<br>    current_state,<br>    current_country,<br>    profession,<br>    show_profession<br>   FROM app_private.public_profile_locations;` |
 | view | `public.public_school_questionnaire_option_stats` | ` SELECT event_id,<br>    question_id,<br>    option_label,<br>    answer_count<br>   FROM app_private.public_school_questionnaire_option_stats;` |
+| view | `public.public_school_questionnaire_response_stats` | ` SELECT event_id,<br>    respondent_count,<br>    answer_count<br>   FROM app_private.public_school_questionnaire_response_stats;` |
 
 ## Triggers
 
