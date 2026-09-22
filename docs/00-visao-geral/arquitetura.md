@@ -46,7 +46,7 @@ Supabase
 Serviços externos
   ├─ Mercado Pago
   ├─ OpenAI ou Vercel AI Gateway
-  └─ provedores opcionais de e-mail e WhatsApp
+  └─ provedor de e-mail transacional
 ```
 
 ## Frontend
