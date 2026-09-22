@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1167,6 +1167,24 @@ source_files:
 | `public.public_school_questionnaire_option_stats` | `service_role` | `REFERENCES` | NO |
 | `public.public_school_questionnaire_option_stats` | `service_role` | `TRIGGER` | NO |
 | `public.public_school_questionnaire_option_stats` | `service_role` | `TRUNCATE` | NO |
+| `public.public_school_questionnaire_response_stats` | `anon` | `REFERENCES` | NO |
+| `public.public_school_questionnaire_response_stats` | `anon` | `SELECT` | NO |
+| `public.public_school_questionnaire_response_stats` | `anon` | `TRIGGER` | NO |
+| `public.public_school_questionnaire_response_stats` | `anon` | `TRUNCATE` | NO |
+| `public.public_school_questionnaire_response_stats` | `authenticated` | `REFERENCES` | NO |
+| `public.public_school_questionnaire_response_stats` | `authenticated` | `SELECT` | NO |
+| `public.public_school_questionnaire_response_stats` | `authenticated` | `TRIGGER` | NO |
+| `public.public_school_questionnaire_response_stats` | `authenticated` | `TRUNCATE` | NO |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `DELETE` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `INSERT` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `REFERENCES` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `SELECT` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `TRIGGER` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `TRUNCATE` | YES |
+| `public.public_school_questionnaire_response_stats` | `postgres` | `UPDATE` | YES |
+| `public.public_school_questionnaire_response_stats` | `service_role` | `REFERENCES` | NO |
+| `public.public_school_questionnaire_response_stats` | `service_role` | `TRIGGER` | NO |
+| `public.public_school_questionnaire_response_stats` | `service_role` | `TRUNCATE` | NO |
 | `public.rate_limit_buckets` | `postgres` | `DELETE` | YES |
 | `public.rate_limit_buckets` | `postgres` | `INSERT` | YES |
 | `public.rate_limit_buckets` | `postgres` | `REFERENCES` | YES |

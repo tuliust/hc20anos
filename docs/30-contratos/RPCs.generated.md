@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
+last_verified_commit: e810915b22f15fb72977daa2838d1ed715c87d31
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
