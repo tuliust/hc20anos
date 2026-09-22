@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: e085a9b321ab1ed9ee48dfb6531463e4f01c51e6
+last_verified: 2026-09-22
+last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -37,7 +37,6 @@ source_files:
 | `public.guest_approval_requests` | sim | não |
 | `public.home_page_content` | sim | não |
 | `public.memories` | sim | não |
-| `public.notification_channel_settings` | sim | não |
 | `public.notification_jobs` | sim | não |
 | `public.order_participants` | sim | não |
 | `public.orders` | sim | não |
@@ -583,17 +582,6 @@ source_files:
 | `public.memories` | `service_role` | `SELECT` | NO |
 | `public.memories` | `service_role` | `TRIGGER` | NO |
 | `public.memories` | `service_role` | `TRUNCATE` | NO |
-| `public.notification_channel_settings` | `postgres` | `DELETE` | YES |
-| `public.notification_channel_settings` | `postgres` | `INSERT` | YES |
-| `public.notification_channel_settings` | `postgres` | `REFERENCES` | YES |
-| `public.notification_channel_settings` | `postgres` | `SELECT` | YES |
-| `public.notification_channel_settings` | `postgres` | `TRIGGER` | YES |
-| `public.notification_channel_settings` | `postgres` | `TRUNCATE` | YES |
-| `public.notification_channel_settings` | `postgres` | `UPDATE` | YES |
-| `public.notification_channel_settings` | `service_role` | `REFERENCES` | NO |
-| `public.notification_channel_settings` | `service_role` | `SELECT` | NO |
-| `public.notification_channel_settings` | `service_role` | `TRIGGER` | NO |
-| `public.notification_channel_settings` | `service_role` | `TRUNCATE` | NO |
 | `public.notification_jobs` | `postgres` | `DELETE` | YES |
 | `public.notification_jobs` | `postgres` | `INSERT` | YES |
 | `public.notification_jobs` | `postgres` | `REFERENCES` | YES |
@@ -1407,9 +1395,7 @@ source_files:
 | `public.enforce_hc20_commerce_capacity` | `PUBLIC` | `EXECUTE` | NO |
 | `public.enforce_hc20_commerce_capacity` | `postgres` | `EXECUTE` | YES |
 | `public.enforce_rate_limit` | `postgres` | `EXECUTE` | YES |
-| `public.enqueue_guest_approval_whatsapp_job` | `postgres` | `EXECUTE` | YES |
 | `public.enqueue_order_status_notifications` | `postgres` | `EXECUTE` | YES |
-| `public.enqueue_ticket_whatsapp_notification` | `postgres` | `EXECUTE` | YES |
 | `public.ensure_active_preference_expiry` | `PUBLIC` | `EXECUTE` | NO |
 | `public.ensure_active_preference_expiry` | `postgres` | `EXECUTE` | YES |
 | `public.ensure_pending_order_expiry` | `PUBLIC` | `EXECUTE` | NO |

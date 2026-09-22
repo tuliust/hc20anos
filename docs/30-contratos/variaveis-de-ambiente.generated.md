@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: b79d7b7b299071d4228a605006c8490798f9058e
+last_verified: 2026-09-22
+last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -51,13 +51,6 @@ source_files:
 | `VITE_DEV_MODE` | pública no bundle | `src/lib/supabase.ts` |
 | `VITE_SUPABASE_ANON_KEY` | pública no bundle | `api/checkout-create.ts`<br>`src/app/OperationsPage.tsx`<br>`src/lib/checkout.ts`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
 | `VITE_SUPABASE_URL` | pública no bundle | `api/checkout-create.ts`<br>`scripts/apply-phase2-content-storage.mjs`<br>`src/app/OperationsPage.tsx`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
-| `WHATSAPP_ACCESS_TOKEN` | server-side | `supabase/functions/notification-worker/index.ts` |
-| `WHATSAPP_GRAPH_VERSION` | server-side | `supabase/functions/notification-worker/index.ts` |
-| `WHATSAPP_PHONE_NUMBER_ID` | server-side | `supabase/functions/notification-worker/index.ts` |
-| `WHATSAPP_PROVIDER_TOKEN` | server-side | `supabase/functions/server/index.ts` |
-| `WHATSAPP_PROVIDER_URL` | server-side | `supabase/functions/server/index.ts` |
-| `WHATSAPP_TEMPLATE_LANGUAGE` | server-side | `supabase/functions/notification-worker/index.ts` |
-| `WHATSAPP_TICKET_TEMPLATE` | server-side | `supabase/functions/server/index.ts` |
 
 Valores e secrets são deliberadamente omitidos.
 

@@ -133,10 +133,6 @@ Erros de `apply_mercado_pago_payment` podem incluir validações adicionais de m
 | `email_configuration_missing` | Resend ou remetente ausente |
 | `recipient_email_missing` | destinatário de e-mail ausente |
 | `email_provider_error_<status>` | Resend respondeu erro |
-| `recipient_phone_invalid` | telefone não pôde ser normalizado |
-| `whatsapp_configuration_missing` | credenciais do WhatsApp incompletas |
-| `whatsapp_template_missing:<VAR>` | template necessário ausente |
-| `whatsapp_provider_error_<status>` | Graph API respondeu erro |
 | `notification_error` | erro não classificado do job |
 
 ## Reembolsos

@@ -27,22 +27,14 @@ function formatMoney(cents: unknown) {
 }
 
 function baseEventType(eventType: string) {
-  return eventType.replace(/_(email|whatsapp)$/, "");
-}
-
-function normalizeWhatsAppPhone(value: unknown) {
-  let digits = String(value ?? "").replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
-  if (!/^\d{12,15}$/.test(digits)) throw new Error("recipient_phone_invalid");
-  return digits;
+  return eventType.replace(/_email$/, "");
 }
 
 async function hydratePayload(db: ReturnType<typeof getDb>, job: any) {
   const payload = { ...(job.payload_json ?? {}) };
   if (!job.ticket_id) return payload;
   const { data, error } = await db.from("tickets")
-    .select("id, order_id, attendee_name, attendee_email, attendee_phone, qr_code, qr_token, status, orders!inner(buyer_name, buyer_email, buyer_phone, payment_status, total_amount_cents), ticket_types(name)")
+    .select("id, order_id, attendee_name, attendee_email, qr_code, qr_token, status, orders!inner(buyer_name, buyer_email, payment_status, total_amount_cents), ticket_types(name)")
     .eq("id", job.ticket_id).maybeSingle();
   if (error) throw new Error(`ticket_hydration_failed:${error.message}`);
   if (!data) throw new Error("ticket_not_found");
@@ -53,7 +45,6 @@ async function hydratePayload(db: ReturnType<typeof getDb>, job: any) {
     buyer_name: payload.buyer_name ?? order?.buyer_name,
     participant_name: payload.participant_name ?? data.attendee_name,
     recipient_email: payload.recipient_email ?? data.attendee_email ?? order?.buyer_email,
-    recipient_phone: payload.recipient_phone ?? data.attendee_phone ?? order?.buyer_phone,
     ticket_code: payload.ticket_code ?? data.qr_code,
     qr_token: payload.qr_token ?? data.qr_token,
     ticket_status: data.status,
@@ -127,52 +118,11 @@ async function deliverEmail(job: any, payload: Record<string, unknown>) {
   return { provider: "resend", messageId: String(providerPayload.id ?? ""), response: providerPayload };
 }
 
-function whatsappTemplate(eventType: string) {
-  const base = baseEventType(eventType);
-  const envName = base.startsWith("payment_") ? "WHATSAPP_TEMPLATE_PAYMENT"
-    : base.startsWith("ticket_transfer_") ? "WHATSAPP_TEMPLATE_TRANSFER"
-    : base.startsWith("ticket_") ? "WHATSAPP_TEMPLATE_TICKET"
-    : base.includes("refund") ? "WHATSAPP_TEMPLATE_REFUND"
-    : base === "guest_approval_requested" ? "WHATSAPP_TEMPLATE_GUEST_REQUEST"
-    : base.startsWith("guest_approval_") ? "WHATSAPP_TEMPLATE_GUEST_DECISION"
-    : "WHATSAPP_TEMPLATE_DEFAULT";
-  const template = Deno.env.get(envName);
-  if (!template) throw new Error(`whatsapp_template_missing:${envName}`);
-  return template;
-}
-
-async function deliverWhatsApp(eventType: string, payload: Record<string, unknown>) {
-  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  const graphVersion = Deno.env.get("WHATSAPP_GRAPH_VERSION");
-  const language = Deno.env.get("WHATSAPP_TEMPLATE_LANGUAGE") ?? "pt_BR";
-  if (!accessToken || !phoneNumberId || !graphVersion) throw new Error("whatsapp_configuration_missing");
-  const phone = normalizeWhatsAppPhone(payload.recipient_phone);
-  const copy = notificationCopy(eventType, payload);
-  const template = whatsappTemplate(eventType);
-  const parameters = [
-    String(payload.participant_name || payload.guest_name || payload.buyer_name || payload.sponsor_name || "Participante"),
-    copy.title,
-    copy.message,
-    String(payload.ticket_code || payload.order_id || "—").slice(0, 80),
-    copy.actionUrl,
-  ].map(text => ({ type: "text", text }));
-  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to: phone, type: "template", template: { name: template, language: { code: language }, components: [{ type: "body", parameters }] } }),
-  });
-  const providerPayload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`whatsapp_provider_error_${response.status}:${JSON.stringify(providerPayload).slice(0, 500)}`);
-  return { provider: "meta_whatsapp_cloud", messageId: String(providerPayload.messages?.[0]?.id ?? ""), response: providerPayload };
-}
-
 async function deliver(db: ReturnType<typeof getDb>, job: any) {
   const payload = await hydratePayload(db, job);
-  const eventType = String(job.event_type || "");
-  const result = eventType.endsWith("_whatsapp") ? await deliverWhatsApp(eventType, payload) : await deliverEmail(job, payload);
+  const result = await deliverEmail(job, payload);
   await db.from("notification_jobs").update({
-    channel: eventType.endsWith("_whatsapp") ? "whatsapp" : "email",
+    channel: "email",
     provider_message_id: result.messageId || null,
     provider_response_json: result.response,
   }).eq("id", job.id);

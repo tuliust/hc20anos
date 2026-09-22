@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: e085a9b321ab1ed9ee48dfb6531463e4f01c51e6
+last_verified: 2026-09-22
+last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -53,9 +53,7 @@ source_files:
 | `public.decide_guest_approval_request` | `p_request_id uuid, p_decision text, p_decided_by_user_id uuid, p_notes text` | `guest_approval_requests` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enforce_hc20_commerce_capacity` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.enforce_rate_limit` | `p_action text, p_limit integer, p_window_seconds integer, p_subject text` | `integer` | sim | `volatile` | `postgres=X/postgres` |
-| `public.enqueue_guest_approval_whatsapp_job` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.enqueue_order_status_notifications` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
-| `public.enqueue_ticket_whatsapp_notification` | `—` | `trigger` | sim | `volatile` | `postgres=X/postgres` |
 | `public.ensure_active_preference_expiry` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.ensure_pending_order_expiry` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.expire_checkout_reservations` | `p_now timestamp with time zone` | `integer` | sim | `volatile` | `postgres=X/postgres,service_role=X/postgres` |

@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-21
-last_verified_commit: b79d7b7b299071d4228a605006c8490798f9058e
+last_verified: 2026-09-22
+last_verified_commit: 5bfc54d13164e8baada572fdc761951dc1d41399
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -33,7 +33,7 @@ source_files:
 - **Arquivo:** `supabase/functions/notification-worker/index.ts`
 - **Métodos detectados:** `OPTIONS`, `POST`
 - **Sinais de autenticação:** service role, worker key
-- **Variáveis:** `NOTIFICATION_WORKER_KEY`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_GRAPH_VERSION`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_LANGUAGE`
+- **Variáveis:** `NOTIFICATION_WORKER_KEY`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`
 - **RPCs chamadas:** `claim_notification_jobs`, `complete_notification_job`
 
 ## `payment-webhook`
@@ -65,6 +65,6 @@ source_files:
 - **Arquivo:** `supabase/functions/server/index.ts`
 - **Métodos detectados:** não inferidos estaticamente
 - **Sinais de autenticação:** service role, assinatura Mercado Pago
-- **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`, `WHATSAPP_PROVIDER_TOKEN`, `WHATSAPP_PROVIDER_URL`, `WHATSAPP_TICKET_TEMPLATE`
+- **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`
 - **RPCs chamadas:** `fn_increment_sold`
 

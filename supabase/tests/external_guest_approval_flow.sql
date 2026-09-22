@@ -42,8 +42,8 @@ with checks as (
       where tgname='defer_guest_approval_notification_job' and not tgisinternal
     ) then 'PASS' else 'FAIL' end
   union all
-  select 'guest_whatsapp_trigger_exists',
-    case when exists(
+  select 'guest_whatsapp_trigger_removed',
+    case when not exists(
       select 1 from pg_trigger
       where tgname='enqueue_guest_approval_whatsapp_job' and not tgisinternal
     ) then 'PASS' else 'FAIL' end
