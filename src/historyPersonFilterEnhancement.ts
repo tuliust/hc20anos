@@ -48,7 +48,7 @@ function getPhotoTags(photo: DbPhoto) {
   const tags = ((photo as DbPhoto & { photo_tags?: PhotoTagLike[] }).photo_tags ?? []);
   return Array.from(new Set(
     tags
-      .filter(tag => !["rejected", "removed"].includes(String(tag.status ?? "").toLocaleLowerCase("pt-BR")))
+      .filter(tag => String(tag.status ?? "").toLocaleLowerCase("pt-BR") === "approved")
       .map(tag => tag.tagged_name_snapshot?.trim() ?? "")
       .filter(Boolean),
   ));

@@ -308,6 +308,7 @@ type InstallOptions = {
   mutateHome?: (row: Record<string, unknown>) => void;
   people?: typeof peopleFixture;
   locations?: typeof locationsFixture;
+  photos?: unknown[];
 };
 
 export async function installHomeFixtures(page: Page, options: InstallOptions = {}) {
@@ -326,7 +327,7 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       people: options.people ?? peopleFixture,
       profiles: [],
       ticket_types: [],
-      photos: [],
+      photos: options.photos ?? [],
       memories: memoriesFixture,
       polls: [pollFixture],
       poll_results: [

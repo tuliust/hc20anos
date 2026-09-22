@@ -5411,8 +5411,113 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
 
 // ─── PHOTO WALL ───────────────────────────────────────────────────────────────
 
-function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
-  navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; onSelectPhoto: (id: string) => void;
+type PublicPhotoTag = Pick<DbPhotoTag, "person_id" | "tagged_name_snapshot" | "status">;
+
+function getApprovedPublicPhotoTags(photo: DbPhoto): PublicPhotoTag[] {
+  return (((photo as DbPhoto & { photo_tags?: PublicPhotoTag[] }).photo_tags ?? [])
+    .filter(tag => tag.status === "approved"));
+}
+
+function HistoryPhotoLightbox({
+  photo,
+  people,
+  onClose,
+  onOpenPerson,
+  onOpenDetails,
+}: {
+  photo: DbPhoto | null;
+  people: DbPerson[];
+  onClose: () => void;
+  onOpenPerson: (person: DbPerson) => void;
+  onOpenDetails: (photo: DbPhoto) => void;
+}) {
+  const peopleById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
+  const tags = photo ? getApprovedPublicPhotoTags(photo) : [];
+
+  return (
+    <Modal open={Boolean(photo)} onClose={onClose} title={photo?.caption || "Foto da turma"} wide>
+      {photo && (
+        <div data-history-photo-lightbox={photo.id} className="flex flex-col gap-5">
+          <div className="bg-[#080f08] border border-[#2d6a4f]/25 max-h-[58svh] flex items-center justify-center overflow-hidden">
+            <img
+              src={photo.image_url}
+              alt={photo.caption || "Foto da turma"}
+              className="max-w-full max-h-[58svh] object-contain"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {photo.year_approx && (
+              <span className="border border-[#c9a84c]/40 text-[#c9a84c] px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider">
+                {photo.year_approx}
+              </span>
+            )}
+            {photo.location_text && (
+              <span className="border border-[#2d6a4f]/30 text-[#8ab89a] px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin size={11} />{photo.location_text}
+              </span>
+            )}
+          </div>
+
+          {photo.caption && <p className="text-[#f0ebe0] leading-relaxed">{photo.caption}</p>}
+
+          <div>
+            <button
+              type="button"
+              data-history-photo-details={photo.id}
+              onClick={() => onOpenDetails(photo)}
+              className="inline-flex items-center gap-2 border border-[#c9a84c]/50 text-[#c9a84c] hover:bg-[#c9a84c] hover:text-[#0d1a0f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-4 py-2.5 text-xs font-mono uppercase tracking-wider transition-colors"
+            >
+              Ver detalhes e interagir
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <section aria-labelledby="history-photo-people-title" className="border-t border-[#2d6a4f]/20 pt-4">
+            <h3 id="history-photo-people-title" className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">
+              Pessoas nesta foto
+            </h3>
+            {tags.length === 0 ? (
+              <p className="text-[#7a9a7a] text-sm">Nenhuma pessoa marcada publicamente.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, index) => {
+                  const person = tag.person_id ? peopleById.get(tag.person_id) : null;
+                  const label = person?.display_name || person?.full_name || tag.tagged_name_snapshot || "Pessoa marcada";
+                  if (!person) {
+                    return (
+                      <span key={`${tag.person_id ?? "snapshot"}-${index}`} className="border border-[#2d6a4f]/30 text-[#8ab89a] px-3 py-2 text-xs">
+                        {label}
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      key={tag.person_id}
+                      data-history-tag-person-id={tag.person_id ?? undefined}
+                      onClick={() => onOpenPerson(person)}
+                      className="border border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c] hover:text-[#c9a84c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-3 py-2 text-xs transition-colors"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
+  navigate: (p: Page) => void;
+  auth: AuthState;
+  photos: DbPhoto[];
+  people: DbPerson[];
+  onSelectPhoto: (id: string) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedPersonFilters, setSelectedPersonFilters] = useState<string[]>([]);
@@ -5422,20 +5527,21 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   const [likedPhotoIds, setLikedPhotoIds] = useState<string[]>([]);
   const [busyLike, setBusyLike] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [lightboxPhoto, setLightboxPhoto] = useState<DbPhoto | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
 
   const availableYears = Array.from(new Set(photos.map(p => String(p.year_approx ?? "")).filter(Boolean))).sort();
   const years = ["all", ...availableYears];
-  const taggedNames = Array.from(new Set(photos.flatMap(p => (((p as DbPhoto & { photo_tags?: { tagged_name_snapshot?: string | null; status?: string | null }[] }).photo_tags ?? [])
-    .filter(tag => !tag.status || tag.status === "approved")
-    .map(tag => tag.tagged_name_snapshot)
-    .filter(Boolean) as string[])))).sort();
+  const taggedNames = Array.from(new Set(photos.flatMap(p => (
+    getApprovedPublicPhotoTags(p)
+      .map(tag => tag.tagged_name_snapshot)
+      .filter(Boolean) as string[]
+  )))).sort();
 
   const managedPhotos = photos.filter(p => p.is_featured);
   const filteredPhotos = managedPhotos.filter(p => {
     const matchesYear = filter === "all" || String(p.year_approx) === filter;
-    const tags = ((p as DbPhoto & { photo_tags?: { tagged_name_snapshot?: string | null; status?: string | null }[] }).photo_tags ?? []);
-    const approvedTagNames = tags
-      .filter(tag => !tag.status || tag.status === "approved")
+    const approvedTagNames = getApprovedPublicPhotoTags(p)
       .map(tag => tag.tagged_name_snapshot)
       .filter(Boolean) as string[];
     const matchesPerson = selectedPersonFilters.length === 0 || approvedTagNames.some(name => selectedPersonFilters.includes(name));
@@ -5455,6 +5561,29 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   }
 
   useEffect(() => { loadStats().catch(() => {}); }, [photos, auth.loggedIn, auth.userId]);
+
+  useEffect(() => {
+    function handleLegacyOpen(event: Event) {
+      const photoId = (event as CustomEvent<{ photoId?: string }>).detail?.photoId;
+      if (!photoId) return;
+      const requestedPhoto = photos.find(photo => photo.id === photoId);
+      if (requestedPhoto) setLightboxPhoto(requestedPhoto);
+    }
+
+    window.addEventListener("hc20:open-history-photo", handleLegacyOpen);
+    return () => window.removeEventListener("hc20:open-history-photo", handleLegacyOpen);
+  }, [photos]);
+
+  function openTaggedPerson(person: DbPerson) {
+    setLightboxPhoto(null);
+    setSelectedPerson(person);
+  }
+
+  function openPhotoDetails(photo: DbPhoto) {
+    onSelectPhoto(photo.id);
+    setLightboxPhoto(null);
+    navigate("photo-detail");
+  }
 
   async function toggleLike(photoId: string) {
     if (!auth.loggedIn) { navigate("login"); return; }
@@ -5487,6 +5616,18 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
   return (
     <>
       <PhotoUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} auth={auth} navigate={navigate} />
+      <HistoryPhotoLightbox
+        photo={lightboxPhoto}
+        people={people}
+        onClose={() => setLightboxPhoto(null)}
+        onOpenPerson={openTaggedPerson}
+        onOpenDetails={openPhotoDetails}
+      />
+      <PersonDetailModal
+        person={selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
+      />
       <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
@@ -5508,7 +5649,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
               <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-4 flex items-center gap-2"><Star size={14} />Fotos destacadas pela organização</p>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {featuredPhotos.map(p => (
-                  <button key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="relative aspect-square overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20 text-left">
+                  <button key={p.id} onClick={() => setLightboxPhoto(p)} className="relative aspect-square overflow-hidden bg-[#141f14] border border-[#2d6a4f]/20 text-left">
                     <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
                     <span className="absolute top-2 left-2 bg-[#c9a84c] text-[#0d1a0f] text-[9px] font-mono font-bold px-2 py-1">DESTAQUE</span>
                   </button>
@@ -5590,14 +5731,13 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
             {filteredPhotos.map(p => {
               const photoStats = stats[p.id] ?? { photo_id: p.id, likes_count: 0, comments_count: 0 };
               const liked = likedPhotoIds.includes(p.id);
-              const tags = ((p as DbPhoto & { photo_tags?: { tagged_name_snapshot?: string | null; status?: string | null }[] }).photo_tags ?? [])
-                .filter(tag => !tag.status || tag.status === "approved")
+              const tags = getApprovedPublicPhotoTags(p)
                 .map(tag => tag.tagged_name_snapshot)
                 .filter(Boolean)
                 .slice(0, 3);
               return (
                 <div key={p.id} className="relative group overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-                  <button onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="absolute inset-0 text-left">
+                  <button data-history-photo-id={p.id} onClick={() => setLightboxPhoto(p)} className="absolute inset-0 text-left">
                     <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                       <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
@@ -5635,7 +5775,7 @@ function PhotoWallPage({ navigate, auth, photos, onSelectPhoto }: {
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-4">Fotos mais curtidas</p>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {popularPhotos.map(p => (
-                  <button key={p.id} onClick={() => { onSelectPhoto(p.id); navigate("photo-detail"); }} className="relative aspect-square overflow-hidden bg-[#0a120a]">
+                  <button key={p.id} onClick={() => setLightboxPhoto(p)} className="relative aspect-square overflow-hidden bg-[#0a120a]">
                     <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80" />
                     <span className="absolute bottom-2 left-2 bg-[#0a120a]/80 text-[#f0ebe0] text-[10px] font-mono px-2 py-1 flex items-center gap-1"><Heart size={10} />{stats[p.id]?.likes_count ?? 0}</span>
                   </button>
@@ -10179,7 +10319,7 @@ export default function App() {
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
         {page === "ex-alumni"     && <ExAlumniPage      navigate={navigate} people={people}                       />}
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
-        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} onSelectPhoto={setSelectedPhotoId} />}
+        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onSelectPhoto={setSelectedPhotoId} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
         {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth}                              />}

@@ -1068,11 +1068,28 @@ export async function checkInTicket(ticketId: string, adminUserId: string): Prom
 
 export async function getApprovedPhotos(eventId?: string): Promise<DbPhoto[]> {
   return withFallback(async () => {
-    let query = supabase.from("photos").select("*, photo_tags(person_id, tagged_name_snapshot, status)").eq("status", "approved").order("created_at", { ascending: false });
+    let query = supabase
+      .from("photos")
+      .select("*, photo_tags(person_id, tagged_name_snapshot, status)")
+      .eq("status", "approved")
+      .eq("photo_tags.status", "approved")
+      .order("created_at", { ascending: false });
     if (eventId) query = query.eq("event_id", eventId);
     const { data, error } = await query;
     if (error) throw error;
-    return hydratePhotoUrls((data as DbPhoto[]) ?? []);
+
+    const sanitized = ((data ?? []) as Array<DbPhoto & {
+      photo_tags?: Array<{
+        person_id?: string | null;
+        tagged_name_snapshot?: string | null;
+        status?: string | null;
+      }>;
+    }>).map(photo => ({
+      ...photo,
+      photo_tags: (photo.photo_tags ?? []).filter(tag => tag.status === "approved"),
+    }));
+
+    return hydratePhotoUrls(sanitized as DbPhoto[]);
   }, []);
 }
 
