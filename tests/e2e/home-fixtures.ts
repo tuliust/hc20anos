@@ -244,9 +244,10 @@ const profileStatsFixture = {
 const locationsFixture = [
   { profile_id: "l1", person_id: peopleFixture[0].id, display_name: peopleFixture[0].display_name, full_name: peopleFixture[0].full_name, avatar_url: null, current_city: "Natal", current_state: "RN", current_country: "Brasil", profession: null, show_profession: true },
   { profile_id: "l2", person_id: peopleFixture[1].id, display_name: peopleFixture[1].display_name, full_name: peopleFixture[1].full_name, avatar_url: null, current_city: "NATAL", current_state: "rn", current_country: "Brazil", profession: null, show_profession: true },
-  { profile_id: "l3", person_id: peopleFixture[2].id, display_name: peopleFixture[2].display_name, full_name: peopleFixture[2].full_name, avatar_url: null, current_city: "Mossoró", current_state: "RN", current_country: "Brasil", profession: null, show_profession: true },
-  { profile_id: "l4", person_id: peopleFixture[3].id, display_name: peopleFixture[3].display_name, full_name: peopleFixture[3].full_name, avatar_url: null, current_city: "Recife", current_state: "PE", current_country: "Brasil", profession: null, show_profession: true },
-  { profile_id: "l5", person_id: peopleFixture[4].id, display_name: peopleFixture[4].display_name, full_name: peopleFixture[4].full_name, avatar_url: null, current_city: "Lisboa", current_state: null, current_country: "Portugal", profession: null, show_profession: true },
+  { profile_id: "l3", person_id: peopleFixture[2].id, display_name: peopleFixture[2].display_name, full_name: peopleFixture[2].full_name, avatar_url: null, current_city: "Natal/RN", current_state: null, current_country: "BRASIL", profession: null, show_profession: true },
+  { profile_id: "l4", person_id: peopleFixture[3].id, display_name: peopleFixture[3].display_name, full_name: peopleFixture[3].full_name, avatar_url: null, current_city: "Mossoró", current_state: "RN", current_country: "Brasil", profession: null, show_profession: true },
+  { profile_id: "l5", person_id: peopleFixture[4].id, display_name: peopleFixture[4].display_name, full_name: peopleFixture[4].full_name, avatar_url: null, current_city: "Recife", current_state: "PE", current_country: "Brasil", profession: null, show_profession: true },
+  { profile_id: "l6", person_id: peopleFixture[5].id, display_name: peopleFixture[5].display_name, full_name: peopleFixture[5].full_name, avatar_url: null, current_city: "Lisboa", current_state: null, current_country: "Portugal", profession: null, show_profession: true },
 ];
 
 const alumniDirectoryStatusFixture = peopleFixture.map((person, index) => ({

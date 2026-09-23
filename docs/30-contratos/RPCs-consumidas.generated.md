@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: b936747601beb3aa1d2d5f0a3c1b8493cc6610ec
+last_verified_commit: 136bb4da53d911a74ead2139f8ce94ef240c81bf
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -90,7 +90,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
 | `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:224` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
 | `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
-| `reject_photo_removal_request` | `src/lib/services.ts:1894` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
+| `reject_photo_removal_request` | `src/lib/services.ts:1996` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
@@ -108,7 +108,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `set_participant_vouchers_delivered` | `src/app/OperationsPage.tsx:92` | `SetParticipantVouchersDeliveredArgs` | `SetParticipantVouchersDeliveredReturns` |
 | `submit_memory` | `src/lib/services.ts:1630` | `SubmitMemoryArgs` | `SubmitMemoryReturns` |
 | `submit_photo_comment` | `src/lib/services.ts:1564` | `SubmitPhotoCommentArgs` | `SubmitPhotoCommentReturns` |
-| `submit_photo_removal_request` | `src/lib/services.ts:1874` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
+| `submit_photo_removal_request` | `src/lib/services.ts:1976` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
 | `submit_photo_tag` | `src/lib/services.ts:1184` | `SubmitPhotoTagArgs` | `SubmitPhotoTagReturns` |
 | `update_my_public_profile` | `src/lib/services.ts:895` | `UpdateMyPublicProfileArgs` | `UpdateMyPublicProfileReturns` |
 
