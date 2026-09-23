@@ -57,7 +57,7 @@ checks as (
       from public.public_profile_cards c
       join latest_profile p on p.person_id = c.person_id
       where p.show_social_links is false
-        and (c.instagram_url is not null or c.linkedin_url is not null or c.contact_whatsapp is not null)
+        and (c.instagram_url is not null or c.linkedin_url is not null or c.contact_phone is not null)
     )
 
   union all

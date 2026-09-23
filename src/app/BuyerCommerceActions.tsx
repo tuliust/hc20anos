@@ -21,7 +21,7 @@ export function TicketTransferAction({ ticketId, disabled, onDone }: { ticketId:
     if (!name) return;
     const email = window.prompt("E-mail do novo participante");
     if (!email) return;
-    const phone = window.prompt("WhatsApp do novo participante (opcional)") ?? "";
+    const phone = window.prompt("Telefone do novo participante (opcional)") ?? "";
     setBusy(true);
     const { error } = await supabase.rpc("request_ticket_transfer", { p_ticket_id: ticketId, p_to_name: name, p_to_email: email, p_to_phone: phone || null });
     setBusy(false);

@@ -26,7 +26,7 @@ export type DbPerson = Omit<
   | "birth_year"
   | "verification_status"
   | "contact_email"
-  | "contact_whatsapp"
+  | "contact_phone"
   | "avatar_url"
 > & {
   display_name?: PersonRow["display_name"];
@@ -34,7 +34,7 @@ export type DbPerson = Omit<
   birth_year?: PersonRow["birth_year"];
   verification_status?: PersonRow["verification_status"];
   contact_email?: PersonRow["contact_email"];
-  contact_whatsapp?: PersonRow["contact_whatsapp"];
+  contact_phone?: PersonRow["contact_phone"];
   avatar_url?: PersonRow["avatar_url"];
 };
 

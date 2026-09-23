@@ -105,7 +105,7 @@ export function GuestApprovalPage() {
         <form className="guest-form" onSubmit={submit}>
           <input required value={form.name} onChange={event => setForm({...form,name:event.target.value})} placeholder="Nome completo do convidado"/>
           <input required type="email" value={form.email} onChange={event => setForm({...form,email:event.target.value})} placeholder="E-mail"/>
-          <input required value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} placeholder="WhatsApp com DDD"/>
+          <input required value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} placeholder="Telefone com DDD"/>
           <input required value={form.relationship} onChange={event => setForm({...form,relationship:event.target.value})} placeholder="Relação com o ex-aluno"/>
           <button disabled={!selected}><ShieldCheck size={18}/> Enviar solicitação</button>
         </form>

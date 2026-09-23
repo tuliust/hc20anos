@@ -11,7 +11,7 @@ type DirectoryRow = {
   person_id: string;
   full_name: string;
   class_group: ClassGroup;
-  whatsapp: string | null;
+  phone: string | null;
   instagram: string | null;
   email: string | null;
   notes: string | null;
@@ -22,7 +22,7 @@ type DirectoryRow = {
 };
 
 type Draft = {
-  whatsapp: string;
+  phone: string;
   instagram: string;
   email: string;
   notes: string;
@@ -142,7 +142,7 @@ function formatUpdatedAt(value: string | null) {
 
 function rowDraft(row: DirectoryRow): Draft {
   return {
-    whatsapp: row.whatsapp ?? "",
+    phone: row.phone ?? "",
     instagram: row.instagram ?? "",
     email: row.email ?? "",
     notes: row.notes ?? "",
@@ -157,7 +157,7 @@ export function ContactResearchPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ResearchStatus>("all");
   const [editing, setEditing] = useState<DirectoryRow | null>(null);
-  const [draft, setDraft] = useState<Draft>({ whatsapp: "", instagram: "", email: "", notes: "" });
+  const [draft, setDraft] = useState<Draft>({ phone: "", instagram: "", email: "", notes: "" });
   const [draftSource, setDraftSource] = useState<ResearchSource>("manual");
   const [saving, setSaving] = useState(false);
   const [shortcutImport, setShortcutImport] = useState<ImportedContact | null>(() => parseShortcutImport());
@@ -221,7 +221,7 @@ export function ContactResearchPage() {
       if (!normalized) return true;
 
       return normalizeSearch(row.full_name).includes(normalized)
-        || normalizeSearch(row.whatsapp ?? "").includes(normalized)
+        || normalizeSearch(row.phone ?? "").includes(normalized)
         || normalizeSearch(row.instagram ?? "").includes(normalized)
         || normalizeSearch(row.email ?? "").includes(normalized);
     });
@@ -238,7 +238,7 @@ export function ContactResearchPage() {
     setActiveGroup(row.class_group);
     setDraft(imported ? {
       ...base,
-      whatsapp: imported.phone || base.whatsapp,
+      phone: imported.phone || base.phone,
       email: imported.email || base.email,
     } : base);
     setDraftSource(imported ? "ios_shortcut" : (row.source ?? "manual"));
@@ -273,7 +273,7 @@ export function ContactResearchPage() {
     const sourceBeingSaved = draftSource;
     const { data, error: rpcError } = await db.rpc("save_contact_research", {
       p_person_id: editing.person_id,
-      p_whatsapp: draft.whatsapp,
+      p_phone: draft.phone,
       p_instagram: draft.instagram,
       p_email: draft.email,
       p_notes: draft.notes,
@@ -293,7 +293,7 @@ export function ContactResearchPage() {
 
     setRows((current) => current.map((row) => row.person_id === editing.person_id ? {
       ...row,
-      whatsapp: saved?.whatsapp ?? null,
+      phone: saved?.phone ?? null,
       instagram: saved?.instagram ?? null,
       email: saved?.email ?? null,
       notes: saved?.notes ?? null,
@@ -339,7 +339,7 @@ export function ContactResearchPage() {
 
       setDraft((current) => ({
         ...current,
-        whatsapp: contact.tel?.[0] ?? current.whatsapp,
+        phone: contact.tel?.[0] ?? current.phone,
         email: contact.email?.[0] ?? current.email,
       }));
       setDraftSource("device_contact_picker");
@@ -430,10 +430,10 @@ export function ContactResearchPage() {
           <ol>
             <li>Procure o colega por nome ou turma.</li>
             <li>Clique no nome para abrir o cadastro.</li>
-            <li>Digite ou cole WhatsApp, Instagram, e-mail e alguma observação útil.</li>
+            <li>Digite ou cole Telefone, Instagram, e-mail e alguma observação útil.</li>
             <li>Confira os dados e clique em <strong>Salvar</strong>.</li>
           </ol>
-          <p>Você não precisa ter todos os dados: WhatsApp, Instagram ou e-mail já é suficiente para marcar o colega como localizado.</p>
+          <p>Você não precisa ter todos os dados: Telefone, Instagram ou e-mail já é suficiente para marcar o colega como localizado.</p>
         </article>
       </div>
 
@@ -531,11 +531,11 @@ export function ContactResearchPage() {
 
       <div className="contact-research-table-wrap">
         <table className="contact-research-table">
-          <thead><tr><th>Nome</th><th>WhatsApp</th><th>Instagram</th><th>E-mail</th><th>Observação</th><th>Status</th></tr></thead>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Instagram</th><th>E-mail</th><th>Observação</th><th>Status</th></tr></thead>
           <tbody>
             {filteredRows.map((row) => <tr key={row.person_id} onClick={() => openEditor(row, shortcutImport ?? undefined)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") openEditor(row, shortcutImport ?? undefined); }}>
               <td data-label="Nome"><strong>{row.full_name}</strong>{row.updated_at && <small>Atualizado {formatUpdatedAt(row.updated_at)}</small>}</td>
-              <td data-label="WhatsApp">{row.whatsapp || "—"}</td>
+              <td data-label="Telefone">{row.phone || "—"}</td>
               <td data-label="Instagram">{row.instagram || "—"}</td>
               <td data-label="E-mail">{row.email || "—"}</td>
               <td data-label="Observação">{row.notes || "—"}</td>
@@ -566,7 +566,7 @@ export function ContactResearchPage() {
         <p className="contact-research-picker-help">No Android compatível, a agenda abre aqui. No iPhone, compartilhe o contato pelo atalho “Enviar para HC 2006”.</p>
 
         <div className="contact-research-fields">
-          <label>WhatsApp<input value={draft.whatsapp} onChange={(event) => { setDraft({ ...draft, whatsapp: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
+          <label>Telefone<input value={draft.phone} onChange={(event) => { setDraft({ ...draft, phone: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
           <label>Instagram<input value={draft.instagram} onChange={(event) => { setDraft({ ...draft, instagram: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} placeholder="@usuario" autoCapitalize="none" /></label>
           <label>E-mail<input value={draft.email} onChange={(event) => { setDraft({ ...draft, email: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
           <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
