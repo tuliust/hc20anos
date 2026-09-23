@@ -14,3 +14,5 @@ source_files:
 Registro da alteração que remove a nomenclatura específica de WhatsApp dos dados cadastrais, preservando os números existentes como telefone genérico.
 
 A migration final roda após as migrations da Etapa 3, renomeia os campos persistidos e atualiza os contratos e consumidores correspondentes. A alteração não reintroduz integração, templates, jobs ou notificações de WhatsApp.
+
+Replay canônico validado em 23/09/2026 após a reconciliação dos timestamps remotos.
