@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-22
-last_verified_commit: bcf4af87038b09f4d8ef765f6bf569ade17c7863
+last_verified_commit: 8de23b99a57353e43a5ef0f530b5cd388a53218d
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
