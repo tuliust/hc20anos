@@ -7988,15 +7988,41 @@ function AdminPersonEditModal({
     setProfileDraft(current => ({ ...current, ...patch }));
   }
 
+  async function persistAvatar(url: string | null) {
+    const updated = await updateAdminPersonAndProfile({
+      personId: person.id,
+      person: { avatar_url: url },
+      profile: hasProfile ? { current_photo_url: url } : null,
+      adminId,
+    });
+
+    updatePersonForm({ avatar_url: updated.person.avatar_url ?? "" });
+    if (hasProfile) {
+      updateProfileDraft({ current_photo_url: updated.profile?.current_photo_url ?? "" });
+    }
+    onSaved(updated.person);
+  }
+
   async function handleAvatar(file: File) {
     setPhotoBusy(true);
     setError("");
     try {
       const url = await uploadAdminPersonAvatar(adminId, file, person.id);
-      updatePersonForm({ avatar_url: url });
-      updateProfileDraft({ current_photo_url: url });
+      await persistAvatar(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar foto.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setPhotoBusy(true);
+    setError("");
+    try {
+      await persistAvatar(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao apagar foto.");
     } finally {
       setPhotoBusy(false);
     }
@@ -8069,8 +8095,8 @@ function AdminPersonEditModal({
           uploading={photoBusy}
           disabled={busy || photoBusy}
           onCroppedFile={handleAvatar}
-          onRemove={personForm.avatar_url ? () => { updatePersonForm({ avatar_url: "" }); updateProfileDraft({ current_photo_url: "" }); } : undefined}
-          helperText="Use a mesma ferramenta de crop/zoom para padronizar a foto exibida nos cards."
+          onRemove={personForm.avatar_url ? handleAvatarRemove : undefined}
+          helperText="Ao confirmar o recorte, a foto é salva imediatamente no cadastro do participante."
         />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
