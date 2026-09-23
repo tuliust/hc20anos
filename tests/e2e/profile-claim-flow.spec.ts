@@ -39,6 +39,24 @@ test.describe("reivindicação de perfil", () => {
     ).toBeNull();
   });
 
+  test("filtra participantes cadastrados e confirmados pela fonte canônica", async ({ page }) => {
+    await installAuthenticatedProfileClaimFixtures(page, { admin: true });
+
+    await page.goto("/admin/participants?tab=participants");
+
+    const filters = page.locator("[data-admin-participant-status-filter]");
+    await expect(filters).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: /Todos\s+1/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Cadastrados\s+1/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Confirmados\s+0/ })).toBeVisible();
+
+    await page.getByRole("button", { name: /Cadastrados\s+1/ }).click();
+    await expect(page.locator("[data-admin-participant-results]")).toContainText("Maria Cabeção");
+
+    await page.getByRole("button", { name: /Confirmados\s+0/ }).click();
+    await expect(page.getByText("Nenhum participante neste filtro", { exact: true })).toBeVisible();
+  });
+
   test("abre a aba de disputas pela URL e exibe evidências atuais e legadas", async ({ page }) => {
     await installAuthenticatedProfileClaimFixtures(page, { admin: true });
 

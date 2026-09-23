@@ -248,6 +248,24 @@ export async function installAuthenticatedProfileClaimFixtures(
       case "profiles":
         rows = [profileRow];
         break;
+      case "public_alumni_directory_status":
+        rows = [{
+          event_id: eventRow.id,
+          person_id: personRow.id,
+          full_name: personRow.full_name,
+          class_group: personRow.class_group,
+          profile_status: "claimed",
+          has_approved_ticket: false,
+          has_completed_registration: true,
+          intends_to_attend: true,
+          display_name: personRow.display_name,
+          avatar_url: personRow.avatar_url,
+          current_city: "Natal",
+          current_state: "RN",
+          current_country: "Brasil",
+          profession: null,
+        }];
+        break;
       case "admin_users":
         rows = options.admin ? [adminRow] : [];
         break;
