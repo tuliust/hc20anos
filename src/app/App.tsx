@@ -8307,6 +8307,7 @@ function updateAdminBrowserPath(tab: string) {
 }
 
 type AdminNavigationGuard = (action: () => void) => void;
+type AdminPeopleStatusFilter = "all" | "registered" | "confirmed";
 
 function AdminPage({ navigate, auth, onHomeContentUpdated, registerNavigationGuard }: {
   navigate: (p: Page) => void;
@@ -8323,6 +8324,8 @@ function AdminPage({ navigate, auth, onHomeContentUpdated, registerNavigationGua
   const [lots, setLots] = useState<DbTicketType[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [peopleRows, setPeopleRows] = useState<DbPerson[]>([]);
+  const [peopleDirectoryRows, setPeopleDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
+  const [peopleStatusFilter, setPeopleStatusFilter] = useState<AdminPeopleStatusFilter>("all");
   const [peopleImportOpen, setPeopleImportOpen] = useState(false);
   const [selectedAdminPerson, setSelectedAdminPerson] = useState<DbPerson | null>(null);
   const [pendingPhotos, setPendingPhotos] = useState<DbPhoto[]>([]);
@@ -8510,11 +8513,12 @@ const role = auth.role ?? "viewer";
   async function loadAdminData() {
     setLoading(true);
     try {
-      const [eventData, lotData, orderData, peopleData, photoData, tagData, commentData, memoryData, pollData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
+      const [eventData, lotData, orderData, peopleData, peopleDirectoryData, photoData, tagData, commentData, memoryData, pollData, claimData, removalData, disputeData, adminData, auditData] = await Promise.all([
         getEventSettings(),
         getTicketTypesAdmin(),
         getOrdersByStatus(),
         getPeople(),
+        getAlumniDirectoryStatuses(DEFAULT_EVENT_ID).catch(() => []),
         getPhotosForModeration(photoFilter),
         getTagsForModeration(tagFilter),
         getPhotoCommentsForModeration(commentFilter),
@@ -8530,6 +8534,7 @@ const role = auth.role ?? "viewer";
       setLots(lotData);
       setOrders(orderData);
       setPeopleRows(peopleData);
+      setPeopleDirectoryRows(peopleDirectoryData);
       setPendingPhotos(photoData);
       setTags(tagData);
       setComments(commentData);
@@ -8873,6 +8878,21 @@ const role = auth.role ?? "viewer";
   function setEventExtraInfoItems(items: EventPageInfoItem[]) {
     setEventDraft(s => ({ ...s, extra_info_json: JSON.stringify(items, null, 2) }));
   }
+
+  const adminPeopleStatusMap = new Map<string, AlumniDirectoryStatusRow>(
+    peopleDirectoryRows.map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]),
+  );
+  const adminPeopleCounts = {
+    all: peopleRows.length,
+    registered: peopleRows.filter(person => adminPeopleStatusMap.get(person.id)?.has_completed_registration === true).length,
+    confirmed: peopleRows.filter(person => adminPeopleStatusMap.get(person.id)?.has_approved_ticket === true).length,
+  };
+  const filteredAdminPeople = peopleRows.filter(person => {
+    if (peopleStatusFilter === "all") return true;
+    const status = adminPeopleStatusMap.get(person.id);
+    if (peopleStatusFilter === "registered") return status?.has_completed_registration === true;
+    return status?.has_approved_ticket === true;
+  });
 
   if (!auth.isAdmin) return <PermissionState />;
 
@@ -9656,17 +9676,39 @@ const role = auth.role ?? "viewer";
           <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Pessoas pré-cadastradas</p>
-                <p className="text-[#3a5a3a] text-xs mt-1">Cadastre ex-alunos que ainda não estão confirmados no evento. Eles aparecerão no fluxo de criação de perfil para validação.</p>
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">Participantes e ex-alunos</p>
+                <p className="text-[#3a5a3a] text-xs mt-1">Filtre quem concluiu o cadastro no site e quem já está confirmado pela compra de ingresso.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {canExport && <Btn size="sm" variant="ghost" onClick={exportPeopleCSV}><Download size={14} />CSV ex-alunos</Btn>}
                 <Btn size="sm" onClick={() => setPeopleImportOpen(true)}><UserCheck size={14} />Cadastrar pessoas</Btn>
               </div>
             </div>
-            {peopleRows.length === 0 ? <EmptyState title="Nenhum participante" /> : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {peopleRows.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} onOpen={() => setSelectedAdminPerson(a)} />)}
+
+            <div className="flex flex-wrap gap-2" data-admin-participant-status-filter>
+              {([
+                ["all", "Todos", "Todos os registros", adminPeopleCounts.all],
+                ["registered", "Cadastrados", "Concluíram o cadastro no site", adminPeopleCounts.registered],
+                ["confirmed", "Confirmados", "Compraram ingresso com pagamento aprovado", adminPeopleCounts.confirmed],
+              ] as [AdminPeopleStatusFilter, string, string, number][]).map(([value, label, description, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  data-admin-participant-filter={value}
+                  aria-pressed={peopleStatusFilter === value}
+                  title={description}
+                  onClick={() => setPeopleStatusFilter(value)}
+                  className={"inline-flex items-center gap-2 border px-4 py-2 text-xs font-mono uppercase tracking-wider transition-colors " + (peopleStatusFilter === value ? "border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/70 hover:text-[#f0ebe0]")}
+                >
+                  <span>{label}</span>
+                  <span className="text-[10px] opacity-80">{count}</span>
+                </button>
+              ))}
+            </div>
+
+            {filteredAdminPeople.length === 0 ? <EmptyState title="Nenhum participante neste filtro" /> : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-admin-participant-results>
+                {filteredAdminPeople.map(a => <AlumniCard key={a.id} alumni={personToAlumni(a)} onOpen={() => setSelectedAdminPerson(a)} />)}
               </div>
             )}
           </div>
