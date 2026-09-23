@@ -4,7 +4,7 @@ owner: tuliust
 last_verified: 2026-09-22
 last_verified_commit: 39331876c8adfc6d5cb32d0d8292b57d5898d006
 source_files:
-  - supabase/migrations/20260922064000_generic_phone_contact_fields.sql
+  - supabase/migrations/20260923030549_generic_phone_contact_fields.sql
   - src/lib/database.types.ts
   - src/lib/services.ts
 ---
