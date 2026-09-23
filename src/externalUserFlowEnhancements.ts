@@ -9,7 +9,7 @@ const FORM_ATTRIBUTE = "data-hc-external-user-form";
 type ExternalProfilePayload = {
   fullName: string;
   email: string;
-  whatsapp: string;
+  phone: string;
   city: string;
   profession: string;
 };
@@ -20,7 +20,7 @@ type ExternalRegistrationRpc = {
     args: {
       p_full_name: string;
       p_contact_email: string;
-      p_contact_whatsapp: string;
+      p_contact_phone: string;
       p_current_city: string | null;
       p_profession: string | null;
     },
@@ -83,7 +83,7 @@ function readPending(): ExternalProfilePayload | null {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ExternalProfilePayload;
-    return parsed?.fullName && parsed?.email && parsed?.whatsapp ? parsed : null;
+    return parsed?.fullName && parsed?.email && parsed?.phone ? parsed : null;
   } catch {
     return null;
   }
@@ -101,7 +101,7 @@ function externalRegistrationError(error: { message?: string; code?: string } | 
   const message = String(error?.message ?? "");
   if (message.includes("external_registration_conflicts_with_alumni_profile")) return "Esta conta já está vinculada a um ex-aluno da turma.";
   if (message.includes("external_email_mismatch")) return "O e-mail informado precisa ser o mesmo da conta conectada.";
-  if (message.includes("external_whatsapp_required")) return "Informe um WhatsApp válido.";
+  if (message.includes("external_phone_required")) return "Informe um Telefone válido.";
   if (message.includes("external_email_invalid")) return "Informe um e-mail válido.";
   if (message.includes("external_name_required")) return "Informe seu nome completo.";
   if (message.includes("authentication_required")) return "Entre na sua conta para continuar.";
@@ -113,7 +113,7 @@ async function registerExternalProfile(payload: ExternalProfilePayload) {
   const { error } = await client.rpc("register_external_user_profile", {
     p_full_name: payload.fullName.trim(),
     p_contact_email: payload.email.trim().toLowerCase(),
-    p_contact_whatsapp: payload.whatsapp.trim(),
+    p_contact_phone: payload.phone.trim(),
     p_current_city: payload.city.trim() || null,
     p_profession: payload.profession.trim() || null,
   });
@@ -159,7 +159,7 @@ function field(labelText: string, type: string, name: string, placeholder: strin
   input.type = type;
   input.name = name;
   input.placeholder = placeholder;
-  input.autocomplete = name === "email" ? "email" : name === "whatsapp" ? "tel" : name.includes("password") ? "new-password" : "off";
+  input.autocomplete = name === "email" ? "email" : name === "phone" ? "tel" : name.includes("password") ? "new-password" : "off";
   label.appendChild(input);
   return label;
 }
@@ -183,7 +183,7 @@ function createExternalForm() {
   grid.append(
     field("Nome completo", "text", "fullName", "Seu nome completo", true),
     field("E-mail", "email", "email", "voce@exemplo.com"),
-    field("WhatsApp", "tel", "whatsapp", "(84) 99999-9999"),
+    field("Telefone", "tel", "phone", "(84) 99999-9999"),
     field("Cidade (opcional)", "text", "city", "Cidade / UF"),
     field("Profissão (opcional)", "text", "profession", "Sua profissão"),
   );
@@ -236,14 +236,14 @@ function createExternalForm() {
     const payload: ExternalProfilePayload = {
       fullName: formValue(form, "fullName"),
       email: formValue(form, "email").toLowerCase(),
-      whatsapp: formValue(form, "whatsapp"),
+      phone: formValue(form, "phone"),
       city: formValue(form, "city"),
       profession: formValue(form, "profession"),
     };
     const accepted = Boolean(form.querySelector<HTMLInputElement>('input[name="terms"]')?.checked);
     if (!payload.fullName) return setStatus(form, "Informe seu nome completo.", "error");
     if (!/^\S+@\S+\.\S+$/.test(payload.email)) return setStatus(form, "Informe um e-mail válido.", "error");
-    if (payload.whatsapp.replace(/\D/g, "").length < 10) return setStatus(form, "Informe um WhatsApp válido, com DDD.", "error");
+    if (payload.phone.replace(/\D/g, "").length < 10) return setStatus(form, "Informe um Telefone válido, com DDD.", "error");
     if (!accepted) return setStatus(form, "Aceite os Termos de Uso e a Política de Privacidade para continuar.", "error");
 
     submit.disabled = true;

@@ -169,7 +169,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
     setProfileLoading(true);
     (supabase as any)
       .from("profiles")
-      .select("display_name,contact_email,contact_whatsapp,person_id,people(full_name)")
+      .select("display_name,contact_email,contact_phone,person_id,people(full_name)")
       .eq("user_id", auth.userId)
       .maybeSingle()
       .then(({ data }: any) => {
@@ -181,7 +181,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
           ...current,
           name: name || current.name,
           email: email || current.email,
-          phone: current.phone || data?.contact_whatsapp || "",
+          phone: current.phone || data?.contact_phone || "",
         }));
         setParticipants((current) => current.map((participant) => participant.participant_type === "alumni" ? {
           ...participant,
@@ -245,7 +245,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
     if (profileLoading) return "Aguarde a validação do cadastro do ex-aluno.";
     if (!profilePersonId) return "Conclua seu cadastro de ex-aluno antes de comprar o ingresso.";
     if (!currentProduct || !isCatalogItemAvailable(currentProduct)) return "O ingresso não está disponível no lote vigente.";
-    if (!buyer.name.trim() || !buyer.email.trim() || !buyer.phone.trim()) return "Preencha nome, e-mail e WhatsApp do comprador.";
+    if (!buyer.name.trim() || !buyer.email.trim() || !buyer.phone.trim()) return "Preencha nome, e-mail e Telefone do comprador.";
     if (!/^\S+@\S+\.\S+$/.test(buyer.email)) return "Informe um e-mail válido.";
     if (participants.length < 1 || participants.length > MAX_PARTICIPANTS) return "O pedido deve ter entre 1 e 6 participantes.";
 
@@ -351,7 +351,7 @@ export function SecureCheckoutPage({ navigate, auth, ticketTypes, selectedTicket
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <input className={inputClass()} placeholder="Nome completo" value={buyer.name} onChange={(event) => setBuyer({ ...buyer, name: event.target.value })} />
             <input className={inputClass()} type="email" placeholder="E-mail" value={buyer.email} onChange={(event) => setBuyer({ ...buyer, email: event.target.value })} />
-            <input className={`${inputClass()} md:col-span-2`} placeholder="WhatsApp" value={buyer.phone} onChange={(event) => setBuyer({ ...buyer, phone: event.target.value })} />
+            <input className={`${inputClass()} md:col-span-2`} placeholder="Telefone" value={buyer.phone} onChange={(event) => setBuyer({ ...buyer, phone: event.target.value })} />
           </div>
         </section>
 

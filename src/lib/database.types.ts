@@ -35,7 +35,7 @@ export interface DbEvent {
   event_status:      EventStatus;
   sales_status:      SalesStatus;
   contact_email:     string | null;
-  contact_whatsapp:  string | null;
+  contact_phone:  string | null;
   general_rules:     string | null;
   companion_policy:  string | null;
   refund_policy:     string | null;
@@ -53,7 +53,7 @@ export interface DbPerson {
   birth_year?:          number | null;
   verification_status?: string | null;
   contact_email?:       string | null;
-  contact_whatsapp?:    string | null;
+  contact_phone?:    string | null;
   nickname_at_school:   string | null;
   profile_status:       ProfileStatus;
   claimed_by_user_id:   uuid | null;
@@ -80,7 +80,7 @@ export interface DbProfile {
   instagram_url:        string | null;
   linkedin_url:         string | null;
   contact_email:        string | null;
-  contact_whatsapp:     string | null;
+  contact_phone:     string | null;
   relationship_status:  RelationshipStatus | null;
   has_children:         boolean;
   children_count:       number | null;
@@ -364,7 +364,7 @@ export interface PublicProfileCardRow {
   profession:          string | null;
   instagram_url:       string | null;
   linkedin_url:        string | null;
-  contact_whatsapp:    string | null;
+  contact_phone:    string | null;
   relationship_status: RelationshipStatus | null;
   has_children:        boolean;
   children_count:      number | null;

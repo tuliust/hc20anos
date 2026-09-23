@@ -72,7 +72,7 @@ export async function installCommerceFixtures(page: Page): Promise<CheckoutReque
     person_id: TEST_PERSON_ID,
     display_name: "Maria Cabeção",
     contact_email: "CLAIMANT@EXAMPLE.COM",
-    contact_whatsapp: "84999999999",
+    contact_phone: "84999999999",
     people: { full_name: "Maria Cabeção da Silva Souza" },
   }));
 
