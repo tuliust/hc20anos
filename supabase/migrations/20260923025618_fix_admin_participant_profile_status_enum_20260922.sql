@@ -1,12 +1,13 @@
--- Corrige a resolução de tipos do enum profile_status na RPC administrativa.
--- O cast precisa ocorrer antes do COALESCE; caso contrário, qualquer chamada da RPC falha com 42804.
-
-CREATE OR REPLACE FUNCTION public.admin_update_person_and_profile(p_person_id uuid, p_person jsonb DEFAULT '{}'::jsonb, p_profile jsonb DEFAULT '{}'::jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'auth'
-AS $function$
+create or replace function public.admin_update_person_and_profile(
+  p_person_id uuid,
+  p_person jsonb default '{}'::jsonb,
+  p_profile jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
 declare
   v_person public.people%rowtype;
   v_profile public.profiles%rowtype;
@@ -44,7 +45,7 @@ begin
     class_group = case when p_person ? 'class_group' then upper(nullif(trim(coalesce(p_person->>'class_group', '')), '')) else class_group end,
     avatar_url = case when p_person ? 'avatar_url' then nullif(trim(coalesce(p_person->>'avatar_url', '')), '') else avatar_url end,
     contact_email = case when p_person ? 'contact_email' then nullif(trim(coalesce(p_person->>'contact_email', '')), '') else contact_email end,
-    contact_phone = case when p_person ? 'contact_phone' then nullif(trim(coalesce(p_person->>'contact_phone', '')), '') else contact_phone end,
+    contact_whatsapp = case when p_person ? 'contact_whatsapp' then nullif(trim(coalesce(p_person->>'contact_whatsapp', '')), '') else contact_whatsapp end,
     nickname_at_school = case when p_person ? 'nickname_at_school' then nullif(trim(coalesce(p_person->>'nickname_at_school', '')), '') else nickname_at_school end,
     profile_status = case when p_person ? 'profile_status' then coalesce(nullif(trim(p_person->>'profile_status'), '')::profile_status, profile_status) else profile_status end,
     is_visible = case when p_person ? 'is_visible' then coalesce((p_person->>'is_visible')::boolean, is_visible) else is_visible end,
@@ -76,7 +77,7 @@ begin
       instagram_url = case when p_profile ? 'instagram_url' then nullif(trim(coalesce(p_profile->>'instagram_url', '')), '') else instagram_url end,
       linkedin_url = case when p_profile ? 'linkedin_url' then nullif(trim(coalesce(p_profile->>'linkedin_url', '')), '') else linkedin_url end,
       contact_email = case when p_profile ? 'contact_email' then nullif(trim(coalesce(p_profile->>'contact_email', '')), '') else contact_email end,
-      contact_phone = case when p_profile ? 'contact_phone' then nullif(trim(coalesce(p_profile->>'contact_phone', '')), '') else contact_phone end,
+      contact_whatsapp = case when p_profile ? 'contact_whatsapp' then nullif(trim(coalesce(p_profile->>'contact_whatsapp', '')), '') else contact_whatsapp end,
       relationship_status = case when p_profile ? 'relationship_status' then nullif(trim(coalesce(p_profile->>'relationship_status', '')), '') else relationship_status end,
       has_children = case when p_profile ? 'has_children' then coalesce((p_profile->>'has_children')::boolean, false) else has_children end,
       children_count = case when p_profile ? 'children_count' and nullif(regexp_replace(coalesce(p_profile->>'children_count', ''), '\D', '', 'g'), '') is not null then regexp_replace(p_profile->>'children_count', '\D', '', 'g')::integer when p_profile ? 'children_count' then null else children_count end,
@@ -101,4 +102,6 @@ begin
     'profile', case when v_profile.id is null then null else to_jsonb(v_profile) end
   );
 end;
-$function$;
+$$;
+
+revoke all on function public.admin_update_person_and_profile(uuid, jsonb, jsonb) from public;
