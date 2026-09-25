@@ -41,7 +41,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_import_people` | `src/lib/services.ts:510` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
-| `admin_prepare_event_cancellation_refund` | `src/app/AdminCommerceOrdersMount.tsx:314` | `AdminPrepareEventCancellationRefundArgs` | `AdminPrepareEventCancellationRefundReturns` |
+| `admin_prepare_event_cancellation_refund` | `src/app/AdminCommerceOrdersMount.tsx:313` | `AdminPrepareEventCancellationRefundArgs` | `AdminPrepareEventCancellationRefundReturns` |
 | `admin_update_person_and_profile` | `src/lib/services.ts:566` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
 | `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:253` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
