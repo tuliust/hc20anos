@@ -37,7 +37,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
 | `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:248` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
 | `admin_get_person_details` | `src/lib/services.ts:553` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
-| `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:120` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
+| `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:141` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_import_people` | `src/lib/services.ts:510` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
@@ -54,7 +54,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:119` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:614` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
-| `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:141` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
+| `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:120` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
 | `create_checkout_order` | `supabase/functions/checkout-create/index.ts:228` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
 | `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:114` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
