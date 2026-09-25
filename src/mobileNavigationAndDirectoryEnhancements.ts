@@ -80,7 +80,7 @@ function findExAlumniFilterPanel() {
   while (current && current !== document.body) {
     const labels = Array.from(current.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
-    const hasAttendance = ["todos", "confirmados", "pre-confirmados", "cadastrados"]
+    const hasAttendance = ["todos", "cadastrados", "ainda sem perfil"]
       .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
     if (hasClassFilterLabels(labels) && hasAttendance) return current;
     current = current.parentElement;
@@ -103,7 +103,7 @@ function markExAlumniMobileLayout() {
   const attendanceRow = directChildren.find(child => {
     const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
-    return ["todos", "confirmados", "pre-confirmados", "cadastrados"]
+    return ["todos", "cadastrados", "ainda sem perfil"]
       .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
   });
 
