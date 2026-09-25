@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-25
-last_verified_commit: b9e3e3bfc0bbb452f560a0e862e269b001f586b3
+last_verified_commit: ea6346f1bed705df0bb46b6a12e5f2e59d733772
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 66 |
-| Ocorrências literais | 81 |
+| RPCs distintas | 65 |
+| Ocorrências literais | 80 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -37,7 +37,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
 | `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:248` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
 | `admin_get_person_details` | `src/lib/services.ts:553` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
-| `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:162` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
+| `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:120` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_import_people` | `src/lib/services.ts:510` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
@@ -52,7 +52,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:143` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:147` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
-| `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:140` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
+| `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:119` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v2` | `src/lib/services.ts:614` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:141` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
 | `create_checkout_order` | `supabase/functions/checkout-create/index.ts:228` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
@@ -74,7 +74,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:63` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_event_reports` | `src/lib/services.ts:1358` | `GetEventReportsArgs` | `GetEventReportsReturns` |
-| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:382` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
+| `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:293` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
 | `get_my_guest_approval_requests` | `src/app/GuestApprovalPage.tsx:37` | `GetMyGuestApprovalRequestsArgs` | `GetMyGuestApprovalRequestsReturns` |
 | `get_my_ticket_transfers` | `src/app/BuyerCommerceActions.tsx:80` | `GetMyTicketTransfersArgs` | `GetMyTicketTransfersReturns` |
 | `get_public_memories` | `src/lib/services.ts:1638` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
@@ -96,7 +96,6 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
 | `request_order_refund` | `src/app/BuyerCommerceActions.tsx:57` | `RequestOrderRefundArgs` | `RequestOrderRefundReturns` |
-| `request_ticket_resend` | `src/app/BuyerOrdersPage.tsx:411` | `RequestTicketResendArgs` | `RequestTicketResendReturns` |
 | `request_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:26` | `RequestTicketTransferArgs` | `RequestTicketTransferReturns` |
 | `respond_guest_approval_request` | `src/app/GuestApprovalPage.tsx:69` | `RespondGuestApprovalRequestArgs` | `RespondGuestApprovalRequestReturns` |
 | `restore_refunded_order_inventory` | `supabase/functions/refund-processor/index.ts:71` | `RestoreRefundedOrderInventoryArgs` | `RestoreRefundedOrderInventoryReturns` |
