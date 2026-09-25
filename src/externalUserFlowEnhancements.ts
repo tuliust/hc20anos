@@ -135,7 +135,7 @@ async function resumePendingExternalRegistration() {
     await registerExternalProfile(pending);
     clearPending();
     window.sessionStorage.setItem("hc-external-registration-complete", "true");
-    if (currentPath() !== "/checkout") window.location.assign("/ingressos");
+    if (currentPath() !== "/minha-area") window.location.assign("/minha-area");
   } catch (error) {
     console.error("[Usuário Externo] Não foi possível retomar o cadastro.", error);
   } finally {
@@ -176,7 +176,7 @@ function createExternalForm() {
   title.textContent = "Continuar como Usuário Externo";
   const intro = document.createElement("p");
   intro.className = "hc-external-intro";
-  intro.textContent = "Se seu nome não estiver na lista da Turma 2006, crie um acesso externo para comprar seu ingresso. Seu cadastro não será exibido no diretório de ex-alunos.";
+  intro.textContent = "Se seu nome não estiver na lista da Turma 2006, crie um acesso para registrar seus dados e informar sua relação com o HC. Formandos de 2006 podem ser integrados ao diretório da turma.";
 
   const grid = document.createElement("div");
   grid.className = "hc-external-grid";
@@ -214,7 +214,7 @@ function createExternalForm() {
   const status = document.createElement("p");
   status.dataset.externalStatus = "true";
   status.dataset.tone = "muted";
-  status.textContent = "O ingresso de Usuário Externo custa o valor integral vigente.";
+  status.textContent = "Este cadastro serve para participar do site e manter suas informações atualizadas.";
 
   form.append(title, intro, grid, authFields, terms, submit, status);
 
@@ -273,7 +273,7 @@ function createExternalForm() {
         session = signUp.data.session;
         if (!session) {
           savePending(payload);
-          setStatus(form, "Conta criada. Confirme o e-mail enviado para continuar; depois da confirmação, você seguirá para os ingressos.", "success");
+          setStatus(form, "Conta criada. Confirme o e-mail enviado para continuar; depois da confirmação, você poderá acessar sua área.", "success");
           submit.textContent = "Aguardando confirmação do e-mail";
           return;
         }
@@ -285,8 +285,8 @@ function createExternalForm() {
 
       await registerExternalProfile(payload);
       clearPending();
-      setStatus(form, "Cadastro concluído. Abrindo os ingressos...", "success");
-      window.setTimeout(() => window.location.assign("/ingressos"), 700);
+      setStatus(form, "Cadastro concluído. Abrindo sua área...", "success");
+      window.setTimeout(() => window.location.assign("/minha-area"), 700);
     } catch (error) {
       setStatus(form, error instanceof Error ? error.message : "Não foi possível criar o acesso externo.", "error");
     } finally {
@@ -320,7 +320,7 @@ function mountClaimExternalEntry() {
   const mount = document.createElement("div");
   mount.setAttribute(MOUNT_ATTRIBUTE, "true");
   const helper = document.createElement("p");
-  helper.textContent = "Não encontrou seu nome? Você ainda pode criar uma conta e comprar o ingresso sem entrar na lista pública da turma.";
+  helper.textContent = "Não encontrou seu nome? Você ainda pode criar uma conta, informar seus dados e indicar sua relação com o Henrique Castriciano.";
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.hcExternalUserButton = "true";

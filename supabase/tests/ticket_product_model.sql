@@ -2,6 +2,8 @@
 -- Contract checks for the current single-ticket product model.
 -- ================================================================
 
+begin;
+
 set role postgres;
 
 do $$
@@ -14,17 +16,41 @@ declare
   v_active_price integer;
   v_checkout_definition text;
 begin
+  -- Em produção o evento está cancelado e o catálogo público deve estar vazio.
+  select array_agg(c.product_code order by c.product_code),
+         array_agg(c.product_name order by c.product_code)
+    into v_codes, v_names
+  from public.get_public_ticket_catalog(v_event_id, now()) c;
+
+  if v_codes is not null or v_names is not null then
+    raise exception 'Cancelled event must expose no public catalog: codes %, names %', v_codes, v_names;
+  end if;
+
+  if not exists (
+    select 1 from public.events e
+    where e.id = v_event_id
+      and e.event_status = 'cancelled'
+      and e.sales_status = 'closed'
+  ) then
+    raise exception 'Canonical event must remain cancelled with sales closed';
+  end if;
+
+  -- Reabre apenas dentro desta transação para continuar validando o modelo histórico.
+  update public.events
+  set event_status = 'published', sales_status = 'open'
+  where id = v_event_id;
+
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)
     into v_codes, v_names
   from public.get_public_ticket_catalog(v_event_id, now()) c;
 
   if v_codes is distinct from array['simple']::text[] then
-    raise exception 'Public catalog must contain only the simple product: %', v_codes;
+    raise exception 'Historical catalog must contain only the simple product when sales are explicitly reopened: %', v_codes;
   end if;
 
   if v_names is distinct from array['Ingresso']::text[] then
-    raise exception 'Public ticket name does not match the approved copy: %', v_names;
+    raise exception 'Historical ticket name does not match the approved copy: %', v_names;
   end if;
 
   if exists (
@@ -100,3 +126,5 @@ end;
 $$;
 
 select 'PASS' as single_ticket_product_model;
+
+rollback;

@@ -3,6 +3,11 @@
 
 begin;
 
+-- Reabre vendas apenas dentro desta transação para validar a mecânica histórica do checkout.
+update public.events
+set event_status = 'published', sales_status = 'open'
+where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 -- Canonical event date and timezone.
 do $$
 declare

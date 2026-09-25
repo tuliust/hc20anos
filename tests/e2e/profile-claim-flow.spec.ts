@@ -97,8 +97,8 @@ test.describe("reivindicação de perfil", () => {
     await expect(page.getByText("Apelido, nickname ou ex-perfil do Fotolog", { exact: true })).toBeVisible();
     await expect(page.getByText("Meu perfil", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /Responda 5 perguntas/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Eu vou!", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Não sei ainda...", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Eu vou!", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Não sei ainda...", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Solteiro (a)", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Namorando", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Casado (a)", exact: true })).toBeVisible();

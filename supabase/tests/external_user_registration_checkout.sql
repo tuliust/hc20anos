@@ -1,5 +1,10 @@
 begin;
 
+-- Cadastro externo segue ativo, mas o checkout é legado; reabre vendas só para esta transação de teste.
+update public.events
+set event_status = 'published', sales_status = 'open'
+where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at

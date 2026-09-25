@@ -15,7 +15,7 @@ const ORDERS_LINK_ATTRIBUTE = "data-buyer-orders-link";
 const CLASSMATE_STATUS_LABELS: Record<string, string> = {
   unclaimed: "Não atualizado",
   claimed: "Perfil completo",
-  confirmed: "Confirmado",
+  confirmed: "Perfil completo",
 };
 
 function currentPath() {
