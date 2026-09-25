@@ -310,7 +310,7 @@ function AdminCommerceOrdersPanel() {
     setError("");
 
     try {
-      const { data: requestId, error: prepareError } = await (supabase.rpc as any)(
+      const { data: requestId, error: prepareError } = await supabase.rpc(
         "admin_prepare_event_cancellation_refund",
         { p_order_id: order.id },
       );
