@@ -7,7 +7,6 @@ import { AdminCommerceOrdersMount } from './app/AdminCommerceOrdersMount';
 import { AdminTicketLotsMount } from './app/AdminTicketLotsMount';
 import { AdminTicketProductCopyMount } from './app/AdminTicketProductCopyMount';
 import { ContactResearchPage } from './app/ContactResearchPage';
-import { HomeHeroUserStateMount } from './app/HomeHeroUserStateMount';
 import { OperationsRouteGuard } from './app/OperationsRouteGuard';
 import { PublicCmsStrictGuard } from './app/PublicCmsStrictGuard';
 import { PublicTicketsCatalogMount } from './app/PublicTicketsCatalogMount';
@@ -35,7 +34,6 @@ import { installHistoryEmptyStateEnhancement } from './historyEmptyStateEnhancem
 import { installHistoryHeaderEnhancements } from './historyHeaderEnhancements';
 import { installHistoryPersonFilterEnhancement } from './historyPersonFilterEnhancement';
 import { installHistoryPhotoRefreshEnhancement } from './historyPhotoRefreshEnhancement';
-import { installHomeLandingEnhancements } from './homeLandingEnhancements';
 import { installHomeMemoryAvatarEnhancement } from './homeMemoryAvatarEnhancement';
 import { installHomeMemoryFormattingEnhancement } from './homeMemoryFormattingEnhancement';
 import { installHomeMobileDomRefinements } from './homeMobileDomRefinements';
@@ -88,12 +86,38 @@ const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const operationsRoutes = new Set(['/admin/operacao', '/admin/checkin']);
 const contactResearchRoutes = new Set(['/buscar']);
 const legacyGuestApprovalRoutes = new Set(['/convidado', '/aprovacoes-convidados']);
+const retiredPublicRoutes = new Map<string, string>([
+  ['/evento', '/'],
+  ['/event', '/'],
+  ['/ingressos', '/'],
+  ['/tickets', '/'],
+  ['/quem-vai', '/ex-alunos'],
+  ['/who-going', '/ex-alunos'],
+  ['/turma', '/ex-alunos'],
+  ['/the-class', '/ex-alunos'],
+  ['/pos-festa', '/nossa-historia'],
+  ['/archive', '/nossa-historia'],
+  ['/convite', '/'],
+  ['/share-invite', '/'],
+]);
 const isOperationsRoute = operationsRoutes.has(normalizedPath);
 const isContactResearchRoute = contactResearchRoutes.has(normalizedPath);
 const isStandaloneRoute = isOperationsRoute || isContactResearchRoute;
 
-if (legacyGuestApprovalRoutes.has(normalizedPath)) {
-  window.location.replace('/ingressos');
+const checkoutParams = new URLSearchParams(window.location.search);
+const hasPaymentReturn = ['payment_id', 'collection_id', 'token', 'order', 'checkout'].some(key => checkoutParams.has(key));
+const retiredDestination =
+  legacyGuestApprovalRoutes.has(normalizedPath)
+    ? '/'
+    : normalizedPath === '/checkout'
+      ? (hasPaymentReturn ? `/meus-pedidos${window.location.search}` : '/')
+      : normalizedPath === '/confirmacao'
+        ? `/meus-pedidos${window.location.search}`
+        : retiredPublicRoutes.get(normalizedPath) ?? null;
+const isRedirectingRetiredRoute = Boolean(retiredDestination && retiredDestination !== `${normalizedPath}${window.location.search}`);
+
+if (isRedirectingRetiredRoute && retiredDestination) {
+  window.location.replace(retiredDestination);
 }
 
 installSiteAnalyticsTracker();
@@ -106,7 +130,6 @@ if (!isStandaloneRoute) {
   installMobileHeroRefinements();
   installMobileNavigationAndDirectoryEnhancements();
   installHomeMobileDomRefinements();
-  installHomeLandingEnhancements();
   installHomeMemoryFormattingEnhancement();
   installHomeMemoryAvatarEnhancement();
   installHomeProfileMetricsEnhancements();
@@ -157,14 +180,13 @@ if (!rootElement) throw new Error('Root element #root not found.');
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    {isContactResearchRoute ? <ContactResearchPage /> : isOperationsRoute ? <OperationsRouteGuard /> : <>
+    {isRedirectingRetiredRoute ? null : isContactResearchRoute ? <ContactResearchPage /> : isOperationsRoute ? <OperationsRouteGuard /> : <>
       <App />
       <AdminCmsPanelsMount />
       <AdminOverviewDashboardMount />
       <AdminCommerceOrdersMount />
       <AdminTicketLotsMount />
       <AdminTicketProductCopyMount />
-      {normalizedPath === '/' && <HomeHeroUserStateMount />}
       <PublicCmsStrictGuard />
       <PublicTicketsCatalogMount />
     </>}
