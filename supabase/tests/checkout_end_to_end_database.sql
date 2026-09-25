@@ -3,6 +3,13 @@
 -- Run against disposable/local Supabase. Creates and removes its own records.
 -- ================================================================
 
+begin;
+
+-- O cancelamento é o estado produtivo. Reabrimos somente nesta transação para testar as primitivas legadas.
+update public.events
+set event_status = 'published', sales_status = 'open'
+where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 create temporary table if not exists _checkout_e2e_results (
   check_name text primary key,
   expected text,
@@ -277,3 +284,5 @@ from _checkout_e2e_results
 order by check_name;
 
 drop table if exists _checkout_e2e_results;
+
+rollback;
