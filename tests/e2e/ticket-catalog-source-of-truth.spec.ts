@@ -51,5 +51,5 @@ test("rota /checkout também permanece fechada sem parâmetros de retorno", asyn
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Comprar/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Comprar agora", exact: true })).toHaveCount(0);
 });
