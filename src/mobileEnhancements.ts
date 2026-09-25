@@ -181,7 +181,7 @@ function enhanceExAlumniDirectorySummary() {
     && Array.from(element.children).filter(child => child instanceof HTMLElement).length === 4);
   if (!summaryGrid) return;
 
-  const labels = ["Ex-Alunos", "Já compraram", "Eu vou!", "Cadastrados no site"];
+  const labels = ["Ex-Alunos", "Cadastrados no site", "Com foto atual", "Cidades representadas"];
   const cards = Array.from(summaryGrid.children).filter((element): element is HTMLElement => element instanceof HTMLElement);
 
   cards.slice(0, labels.length).forEach((card, index) => {
