@@ -9932,31 +9932,29 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
 
 function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
   const sections = [
-    { title: "1. Aceitação dos Termos",            body: "Ao utilizar o site do evento Turma 2006 — 20 anos depois, você concorda com estes Termos de Uso. Se não concordar com qualquer parte, não utilize o site." },
-    { title: "2. Ingressos e Pagamentos",           body: "Os ingressos são pessoais e intransferíveis, vinculados ao CPF do comprador. O pagamento é processado pelo Mercado Pago. Não haverá reembolso após a confirmação, exceto em caso de cancelamento do evento pela organização." },
-    { title: "3. Dados Pessoais",                   body: "A coleta e o uso de dados pessoais estão descritos na Política de Privacidade. Ao se cadastrar, você concorda com o tratamento dos seus dados para as finalidades descritas nessa política." },
-    { title: "4. Fotos e Imagens",                  body: "Ao enviar uma foto, você declara ter o direito de compartilhá-la e autoriza a exibição no site e no evento. Fotos ofensivas, inadequadas ou que violem direitos de terceiros serão removidas. Qualquer pessoa pode solicitar a remoção da sua imagem." },
-    { title: "5. Perfis de Ex-Alunos",              body: "Os perfis foram criados com base em informações históricas. Cada ex-aluno pode reivindicar seu perfil via processo de verificação. Informações falsas resultarão no cancelamento do acesso." },
-    { title: "6. Conduta no Evento",                body: "Os participantes devem manter conduta respeitosa. A organização pode retirar qualquer participante com comportamento inadequado, sem direito a reembolso." },
-    { title: "7. Check-in",                         body: "O check-in é realizado mediante apresentação do QR Code do ingresso. Cada QR Code só pode ser utilizado uma vez. A tentativa de uso duplicado será registrada." },
-    { title: "8. Moderação de Conteúdo",            body: "Toda foto enviada passa por moderação. A organização pode remover qualquer conteúdo sem aviso prévio caso viole estes termos ou a política de privacidade." },
-    { title: "9. Responsabilidade da Organização",  body: "A organização não se responsabiliza por objetos perdidos/roubados ou acidentes de percurso. O evento pode ser cancelado por força maior, com comunicação prévia e reembolso integral." },
-    { title: "10. Contato",                         body: "Dúvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
+    { title: "1. Aceitação dos Termos", body: "Ao utilizar o HC20Anos, espaço digital da Turma 2006 do Henrique Castriciano, você concorda com estes Termos de Uso e com as regras de convivência e privacidade da plataforma." },
+    { title: "2. Cancelamento do encontro e pagamentos", body: "O encontro de 20 anos previsto para 2026 foi cancelado. Novas vendas de ingressos estão encerradas. Os pagamentos aprovados realizados antes do cancelamento serão reembolsados integralmente pela organização por meio do Mercado Pago." },
+    { title: "3. Dados Pessoais", body: "A coleta e o uso de dados pessoais estão descritos na Política de Privacidade. Ao criar ou atualizar um perfil, você concorda com o tratamento dos dados para as finalidades descritas nessa política." },
+    { title: "4. Fotos e Imagens", body: "Ao enviar uma foto, você declara ter o direito de compartilhá-la e autoriza a exibição no site. Fotos ofensivas, inadequadas ou que violem direitos de terceiros poderão ser removidas. Qualquer pessoa pode solicitar a remoção da própria imagem." },
+    { title: "5. Perfis de Ex-Alunos", body: "A lista da Turma 2006 foi criada com base em registros históricos. Cada ex-aluno pode reivindicar ou atualizar seu perfil por meio do processo de verificação disponível no site. Informações falsas ou uso indevido podem resultar na suspensão do acesso." },
+    { title: "6. Participação e convivência", body: "O HC20Anos existe para registrar memórias, perfis, fotos, curiosidades e informações sobre a turma. Conteúdos ofensivos, discriminatórios, falsos ou que violem direitos de terceiros não são permitidos." },
+    { title: "7. Histórico de pedidos e reembolsos", body: "Pedidos e ingressos já emitidos permanecem acessíveis aos respectivos usuários como registro da compra e para acompanhamento do reembolso. Esses registros não representam ingresso válido para um evento futuro." },
+    { title: "8. Moderação de Conteúdo", body: "Fotos, memórias, comentários e outros conteúdos podem passar por moderação. A administração pode ocultar ou remover conteúdo que viole estes termos ou a Política de Privacidade." },
+    { title: "9. Continuidade do site", body: "O cancelamento do encontro não encerra o HC20Anos. A plataforma pode continuar disponível como acervo e espaço de atualização da Turma 2006, com funcionalidades ajustadas ao longo do tempo." },
+    { title: "10. Contato", body: "Dúvidas sobre o site, pagamentos ou reembolsos podem ser encaminhadas para hc20anos@gmail.com." },
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
-          <ArrowLeft size={16} /> Voltar
-        </button>
+        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl mb-3">Termos de Uso</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 1 de julho de 2026</p>
+        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026</p>
         <div className="flex flex-col gap-8">
-          {sections.map(s => (
-            <div key={s.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{s.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{s.body}</p>
+          {sections.map(section => (
+            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
+              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
+              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
             </div>
           ))}
         </div>
@@ -9973,30 +9971,28 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
 
 function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   const sections = [
-    { title: "1. Dados que coletamos",               body: "Nome completo, e-mail, telefone/WhatsApp, CPF (para compra de ingresso), cidade de residência, profissão, fotos enviadas voluntariamente, respostas Ã s perguntas de verificação de identidade, e dados de navegação como logs de acesso." },
-    { title: "2. Como usamos seus dados",            body: "Processamento de ingressos e pagamentos, verificação de identidade para reivindicação de perfis, exibição no mural e na lista de confirmados (somente com sua autorização), envio de comunicações sobre o evento, e check-in no dia." },
-    { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas nome, apelido e turma/sala. Nenhum dado sensível foi incluído sem consentimento. Qualquer ex-aluno pode solicitar a remoção." },
-    { title: "4. Uso de dados de pagamento",         body: "Os dados de pagamento são processados exclusivamente pelo Mercado Pago. Não armazenamos dados de cartão. O processamento segue a política de privacidade do Mercado Pago." },
-    { title: "5. Fotos e marcações",                 body: "Fotos enviadas são armazenadas com segurança e exibidas apenas após moderação. Qualquer pessoa pode solicitar a remoção da sua imagem. As marcações em fotos também podem ser removidas mediante solicitação." },
-    { title: "6. Controles de privacidade",          body: "Você pode escolher exibir ou ocultar sua cidade, profissão, redes sociais, e se deseja aparecer na lista de confirmados. Você pode bloquear marcações em fotos a qualquer momento nas configurações do perfil." },
-    { title: "7. Solicitações de remoção",           body: "Você pode solicitar a remoção da sua imagem de qualquer foto ou marcação diretamente na plataforma, ou via e-mail para turma2006.hc@gmail.com. As solicitações serão processadas em até 48 horas." },
-    { title: "8. Seus direitos (LGPD)",              body: "Nos termos da Lei 13.709/2018 (LGPD), você tem direito a: acessar seus dados, corrigir informações, solicitar exclusão, revogar consentimentos e receber cópia dos seus dados. Envie sua solicitação para turma2006.hc@gmail.com." },
-    { title: "9. Contato",                           body: "Para exercer seus direitos ou tirar dúvidas: turma2006.hc@gmail.com ou (84) 99999-0206." },
+    { title: "1. Dados que coletamos", body: "Podemos tratar nome, e-mail, telefone/WhatsApp, cidade, profissão, fotos enviadas voluntariamente, respostas de verificação de identidade, informações de perfil e dados técnicos de navegação. Dados associados a pedidos antigos, inclusive identificadores necessários ao pagamento, permanecem vinculados ao histórico comercial e ao reembolso." },
+    { title: "2. Como usamos seus dados", body: "Os dados são usados para identificar ex-alunos, permitir criação e atualização de perfis, exibir informações autorizadas no diretório e nas curiosidades, moderar fotos e memórias, operar a conta do usuário e, quando aplicável, manter o histórico de pagamentos e processar reembolsos." },
+    { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas informações necessárias para identificar integrantes da turma. O ex-aluno pode reivindicar, corrigir ou solicitar a remoção do próprio perfil." },
+    { title: "4. Dados de pagamento e reembolso", body: "Os pagamentos foram processados pelo Mercado Pago. O HC20Anos não armazena dados completos de cartão. Identificadores de pedidos e pagamentos podem ser mantidos para conciliação, auditoria e execução dos reembolsos decorrentes do cancelamento do encontro." },
+    { title: "5. Fotos e marcações", body: "Fotos enviadas são armazenadas com segurança e exibidas após as regras de moderação aplicáveis. Qualquer pessoa pode solicitar a remoção da própria imagem ou de uma marcação." },
+    { title: "6. Controles de privacidade", body: "Você pode escolher exibir ou ocultar informações como cidade, profissão, redes sociais e presença no diretório público. Também pode controlar permissões relacionadas a marcações em fotos." },
+    { title: "7. Solicitações de remoção", body: "Você pode solicitar correção ou remoção de informações e imagens pelos recursos disponíveis na plataforma ou pelo contato informado abaixo. Solicitações serão analisadas conforme a natureza do dado e as obrigações legais aplicáveis." },
+    { title: "8. Seus direitos (LGPD)", body: "Nos termos da Lei 13.709/2018 (LGPD), você pode solicitar acesso, correção, informações sobre tratamento, revogação de consentimento e exclusão quando juridicamente aplicável. Registros que precisem ser mantidos por obrigação legal ou para defesa de direitos poderão ser preservados pelo prazo necessário." },
+    { title: "9. Contato", body: "Para exercer seus direitos ou tirar dúvidas sobre privacidade, escreva para hc20anos@gmail.com." },
   ];
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors">
-          <ArrowLeft size={16} /> Voltar
-        </button>
+        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
         <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
         <DisplayTitle className="text-4xl md:text-5xl mb-3">Política de Privacidade</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 1 de julho de 2026 · Em conformidade com a LGPD</p>
+        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026 · Em conformidade com a LGPD</p>
         <div className="flex flex-col gap-8">
-          {sections.map(s => (
-            <div key={s.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{s.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{s.body}</p>
+          {sections.map(section => (
+            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
+              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
+              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
             </div>
           ))}
         </div>
