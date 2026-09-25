@@ -3,9 +3,18 @@
 -- There is no separate family product: each participant is priced individually.
 -- ================================================================
 
+begin;
+
 set role postgres;
 
+-- Reabre o evento apenas para validar a precificação histórica; rollback restaura cancelado/fechado.
+update public.events
+set event_status = 'published', sales_status = 'open'
+where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 drop table if exists pg_temp._checkout_family_results;
+
+rollback;
 create temporary table _checkout_family_results (
   scenario text primary key,
   expected_cents integer,
