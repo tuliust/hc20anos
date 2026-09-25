@@ -8,7 +8,7 @@ async function openDirectory(page: Page) {
   await expect(page.locator("[data-ex-alumni-summary]")).toBeVisible();
 }
 
-async function openDrilldown(page: Page, kind: "bought" | "going" | "registered") {
+async function openDrilldown(page: Page, kind: "registered" | "photo") {
   const trigger = page.locator(`[data-ex-alumni-drilldown="${kind}"]`);
   await expect(trigger).toBeEnabled();
   await trigger.click();
@@ -17,28 +17,7 @@ async function openDrilldown(page: Page, kind: "bought" | "going" | "registered"
   return modal;
 }
 
-test("Já compraram abre somente pessoas com ingresso aprovado", async ({ page }) => {
-  await openDirectory(page);
-  const modal = await openDrilldown(page, "bought");
-
-  await expect(modal.locator("[data-person-id]")).toHaveCount(2);
-  await expect(modal.locator(`[data-person-id="${peopleFixture[0].id}"]`)).toBeVisible();
-  await expect(modal.locator(`[data-person-id="${peopleFixture[1].id}"]`)).toBeVisible();
-  await expect(modal.locator(`[data-person-id="${peopleFixture[2].id}"]`)).toHaveCount(0);
-});
-
-test("Eu vou exclui quem já possui ingresso aprovado", async ({ page }) => {
-  await openDirectory(page);
-  const modal = await openDrilldown(page, "going");
-
-  await expect(modal.locator("[data-person-id]")).toHaveCount(3);
-  await expect(modal.locator(`[data-person-id="${peopleFixture[0].id}"]`)).toHaveCount(0);
-  await expect(modal.locator(`[data-person-id="${peopleFixture[1].id}"]`)).toHaveCount(0);
-  await expect(modal.locator(`[data-person-id="${peopleFixture[2].id}"]`)).toBeVisible();
-  await expect(modal.locator(`[data-person-id="${peopleFixture[4].id}"]`)).toBeVisible();
-});
-
-test("Cadastrados no site usa a regra canônica e permite sobreposição", async ({ page }) => {
+test("Cadastrados no site usa a regra canônica de perfil concluído", async ({ page }) => {
   await openDirectory(page);
   const modal = await openDrilldown(page, "registered");
 
@@ -46,6 +25,18 @@ test("Cadastrados no site usa a regra canônica e permite sobreposição", async
   await expect(modal.locator(`[data-person-id="${peopleFixture[0].id}"]`)).toBeVisible();
   await expect(modal.locator(`[data-person-id="${peopleFixture[5].id}"]`)).toBeVisible();
   await expect(modal.locator(`[data-person-id="${peopleFixture[6].id}"]`)).toHaveCount(0);
+});
+
+test("Com foto atual não reutiliza métricas antigas de compra ou presença", async ({ page }) => {
+  await openDirectory(page);
+  const trigger = page.locator('[data-ex-alumni-drilldown="photo"]');
+  await expect(trigger).toContainText("Com foto atual");
+  await trigger.click();
+
+  const modal = page.locator('[data-ex-alumni-drilldown-modal="photo"]');
+  await expect(modal).toBeVisible();
+  await expect(modal).toContainText("Ex-alunos que adicionaram uma foto atual");
+  await expect(modal).toContainText("Nenhum perfil encontrado");
 });
 
 test("pessoa do drill-down abre o modal individual correto por person_id", async ({ page }) => {
@@ -63,7 +54,7 @@ test("pessoa do drill-down abre o modal individual correto por person_id", async
 
 test("modal fecha por Esc, backdrop e botão, bloqueia scroll e restaura foco", async ({ page }) => {
   await openDirectory(page);
-  const trigger = page.locator('[data-ex-alumni-drilldown="bought"]');
+  const trigger = page.locator('[data-ex-alumni-drilldown="registered"]');
 
   await trigger.focus();
   await trigger.click();
@@ -71,17 +62,17 @@ test("modal fecha por Esc, backdrop e botão, bloqueia scroll e restaura foco", 
   await expect(page.getByRole("button", { name: "Fechar modal" })).toBeFocused();
 
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "Já compraram" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Cadastrados no site" })).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
 
   await trigger.click();
   await page.locator("[data-modal-root='true']").click({ position: { x: 4, y: 4 } });
-  await expect(page.getByRole("dialog", { name: "Já compraram" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Cadastrados no site" })).toHaveCount(0);
 
   await trigger.click();
   await page.getByRole("button", { name: "Fechar modal" }).click();
-  await expect(page.getByRole("dialog", { name: "Já compraram" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Cadastrados no site" })).toHaveCount(0);
 });
 
 test("drill-down permanece utilizável em viewport móvel", async ({ page }) => {
