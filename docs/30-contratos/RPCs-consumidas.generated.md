@@ -35,7 +35,7 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_archive_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:323` | `AdminArchiveTicketLotArgs` | `AdminArchiveTicketLotReturns` |
 | `admin_clear_person_profile` | `src/adminParticipantMaintenance.ts:422` | `AdminClearPersonProfileArgs` | `AdminClearPersonProfileReturns` |
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
-| `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:245` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
+| `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:247` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
 | `admin_get_person_details` | `src/lib/services.ts:553` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
 | `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:162` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
