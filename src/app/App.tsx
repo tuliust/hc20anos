@@ -4497,7 +4497,7 @@ function ExAlumniDrilldownModal({
             const person = peopleById.get(row.person_id);
             if (!person) return null;
             return (
-              <button key={row.person_id} type="button" onClick={() => onOpenPerson(person)} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0a120a] p-3 text-left hover:border-[#c9a84c]/60">
+              <button key={row.person_id} type="button" data-person-id={row.person_id} onClick={() => onOpenPerson(person)} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0a120a] p-3 text-left hover:border-[#c9a84c]/60">
                 {row.avatar_url ? (
                   <img src={row.avatar_url} alt={row.display_name || person.full_name} className="h-11 w-11 shrink-0 object-cover" />
                 ) : (
