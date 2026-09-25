@@ -52,7 +52,6 @@ import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.type
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
-import { CancelledEventHome } from "./CancelledEventHome";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
@@ -1436,6 +1435,7 @@ function PersonDetailModal({
 
   if (!person) return null;
 
+  const publicProfileStatus = person.profile_status === "confirmed" ? "claimed" : person.profile_status;
   const avatarUrl = publicProfile ? publicProfile.avatar_url : (profile?.avatar_url ?? person.avatar_url ?? null);
   const displayName = publicProfile?.display_name || profile?.display_name || person.full_name;
   const location = [
@@ -1471,14 +1471,14 @@ function PersonDetailModal({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <StatusBadge status={person.profile_status} />
+            <StatusBadge status={publicProfileStatus} />
             {person.class_group && <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_group}</span>}
             <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-[#1a2e1a] text-[#7a9a7a] border border-[#2d6a4f]/30">Turma {person.class_year}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InfoRow label="Nome completo" value={person.full_name} />
-            <InfoRow label="Status do perfil" value={profileStatusLabel(person.profile_status)} />
+            <InfoRow label="Status do perfil" value={profileStatusLabel(publicProfileStatus)} />
             <InfoRow label="Localização atual" value={location || null} />
             <InfoRow label="Profissão" value={profession || null} />
             <InfoRow label="Estado civil" value={relationshipLabel} />
@@ -2557,74 +2557,66 @@ function LoginPage({ navigate, onLogin }: {
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 
-function Hero({ navigate, content, event, auth }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null; auth: AuthState }) {
-  const extendedContent = getExtendedHomeContent(content);
+function Hero({ navigate, content, auth }: { navigate: (p: Page) => void; content: HomePageContent; event: DbEvent | null; auth: AuthState }) {
   const showSubtitle = shouldShowHeroSubtitle(content.hero_subtitle);
-  const [time, setTime] = useState(() => getTimeLeft(getEventDateTime(event)));
-  const [attendanceState, setAttendanceState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  useEffect(() => {
-    const update = () => setTime(getTimeLeft(getEventDateTime(event)));
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [event?.event_date, event?.event_time]);
-  async function handleAttendanceIntent() {
-    window.sessionStorage.setItem("hc-attendance-intent", "yes");
-    if (!auth.loggedIn || !auth.userId) {
-      navigate("claim-profile");
-      return;
-    }
-    setAttendanceState("saving");
-    try {
-      await saveMyPublicProfile(auth.userId, { intends_to_attend: true });
-      window.sessionStorage.removeItem("hc-attendance-intent");
-      setAttendanceState("saved");
-    } catch {
-      setAttendanceState("error");
-    }
-  }
+  const profileDestination: Page = auth.loggedIn ? "edit-profile" : "claim-profile";
 
   return (
-    <section data-home-section="hero" className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-8"
-      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
-      <div className="absolute inset-0 opacity-[0.06]"
-        style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
-      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] pointer-events-none"
-        style={{ background: "#2d6a4f" }} />
+    <section
+      data-home-section="hero"
+      className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-24 pb-12 md:pt-28 md:pb-16"
+      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}
+    >
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "80px 80px" }}
+      />
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] pointer-events-none" style={{ background: "#2d6a4f" }} />
 
       <div className="relative z-10 text-center px-4 max-w-5xl w-full mx-auto">
         <p className="text-[#c9a84c] tracking-[0.5em] text-[10px] md:text-xs font-mono font-bold uppercase mb-4 md:mb-5">{content.hero_eyebrow}</p>
-        <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] uppercase leading-[0.86] tracking-tight"
-          style={{ fontSize: "clamp(3rem, 10vw, 8rem)" }}>{content.hero_title}</h1>
-        <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2"
-          style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>{content.hero_tagline}</p>
+        <h1
+          className="font-['Playfair_Display'] font-black text-[#f0ebe0] uppercase leading-[0.86] tracking-tight"
+          style={{ fontSize: "clamp(3rem, 10vw, 8rem)" }}
+        >
+          {content.hero_title}
+        </h1>
+        <p className="font-['Playfair_Display'] font-light italic text-[#c9a84c] leading-tight mt-2" style={{ fontSize: "clamp(1.15rem, 3.2vw, 2.2rem)" }}>
+          {content.hero_tagline}
+        </p>
         <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
-        {showSubtitle && <p className="text-[#8ab89a] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>}
-        <p className={`text-[#f0ebe0] font-mono text-sm md:text-[15px] tracking-[0.24em] uppercase opacity-75 ${showSubtitle ? "mt-1" : "mt-0"} mb-8 md:mb-10`}>{content.hero_event_line}</p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 md:mb-12">
-          <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(normalizePage(extendedContent.primary_cta_page, "tickets"))}>{content.primary_cta_label}</Btn>
-          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" disabled={attendanceState === "saving"} onClick={handleAttendanceIntent}>{attendanceState === "saving" ? "Salvando..." : attendanceState === "saved" ? "Presença marcada" : content.secondary_cta_label}</Btn>
+        {showSubtitle && <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>}
+        <p className="text-[#f0ebe0] font-mono text-xs md:text-sm tracking-[0.18em] uppercase opacity-70 mb-8">{content.hero_event_line}</p>
+
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate("ex-alumni")}>
+            {content.primary_cta_label || "Ver ex-alunos"}
+          </Btn>
+          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(profileDestination)}>
+            {content.secondary_cta_label || "Criar ou atualizar meu perfil"}
+          </Btn>
         </div>
-        {attendanceState === "saved" && <p className="-mt-5 mb-7 text-sm font-mono text-[#74c69d]">Sua intenção de participar foi registrada.</p>}
-        {attendanceState === "error" && <p className="-mt-5 mb-7 text-sm font-mono text-[#e07a5f]">Não foi possível marcar sua presença. Tente novamente.</p>}
-        <div className="inline-flex">
-          {[
-            { v: time.days, l: extendedContent.countdown_days_label },
-            { v: time.hours, l: extendedContent.countdown_hours_label },
-            { v: time.minutes, l: extendedContent.countdown_minutes_label },
-            { v: time.seconds, l: extendedContent.countdown_seconds_label },
-          ].map(({ v, l }, i) => (
-            <div key={l} className="flex items-center">
-              {i > 0 && <span className="text-[#2d6a4f] font-mono text-4xl md:text-4xl mx-2.5 md:mx-6 font-light">:</span>}
-              <div className="text-center">
-                <div className="font-['JetBrains_Mono'] text-5xl md:text-6xl font-bold text-[#f0ebe0] tabular-nums">{String(v).padStart(2, "0")}</div>
-                <div className="text-[#c9a84c] text-[9px] tracking-[0.3em] uppercase font-mono mt-1">{l}</div>
-              </div>
-            </div>
-          ))}
+
+        <div className="mx-auto mt-10 max-w-2xl border border-[#c9a84c]/25 bg-[#081008]/80 p-5 text-left md:p-6">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c9a84c]">Comunicado sobre o encontro de 2026</p>
+          <p className="mt-3 text-sm leading-6 text-[#d8ddd8] md:text-base">
+            O encontro previsto para setembro foi cancelado devido à baixa adesão. Os pagamentos realizados estão sendo reembolsados integralmente pelo Mercado Pago.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-[#7f9784]">O site continua ativo para reunir a Turma 2006, seus perfis, histórias, fotos e curiosidades.</p>
+            {auth.loggedIn ? (
+              <button type="button" onClick={() => window.location.assign("/meus-pedidos")} className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">
+                Acompanhar reembolso →
+              </button>
+            ) : (
+              <button type="button" onClick={() => navigate("login")} className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">
+                Entrar para acompanhar →
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
       <div className="absolute bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 animate-bounce">
         <ChevronDown className="text-[#c9a84c] opacity-70" size={34} />
       </div>
@@ -4445,9 +4437,8 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 // ─── EX-ALUNOS PAGE ──────────────────────────────────────────────────────────
 
 type AlumniClassFilter = "all" | "A" | "B" | "C" | "D";
-type AlumniAttendanceFilter = "all" | "confirmed" | "preconfirmed" | "registered";
-
-type ExAlumniDrilldownKind = "bought" | "going" | "registered";
+type AlumniProfileFilter = "all" | "registered" | "unregistered";
+type ExAlumniDrilldownKind = "registered" | "photo";
 
 function ExAlumniDrilldownModal({
   kind,
@@ -4472,9 +4463,8 @@ function ExAlumniDrilldownModal({
   }, [kind]);
 
   const config = kind ? {
-    bought: { title: "Já compraram", description: "Ex-alunos com ingresso aprovado." },
-    going: { title: "Eu vou!", description: "Ex-alunos que pretendem participar e ainda não possuem ingresso aprovado." },
-    registered: { title: "Cadastrados no site", description: "Ex-alunos que concluíram o cadastro no site." },
+    registered: { title: "Cadastrados no site", description: "Ex-alunos que concluíram o cadastro e atualizaram seu perfil." },
+    photo: { title: "Com foto atual", description: "Ex-alunos que adicionaram uma foto atual ao perfil público." },
   }[kind] : null;
 
   const normalizedQuery = normalizeLoose(query);
@@ -4483,7 +4473,6 @@ function ExAlumniDrilldownModal({
     || normalizeLoose(row.display_name).includes(normalizedQuery)
     || normalizeLoose(row.class_group).includes(normalizedQuery)
   );
-  const showSearch = rows.length > 20;
 
   return (
     <Modal open={Boolean(kind)} onClose={onClose} title={config?.title ?? "Ex-alunos"} wide>
@@ -4495,56 +4484,33 @@ function ExAlumniDrilldownModal({
           </p>
         </div>
 
-        {showSearch && (
+        {rows.length > 20 && (
           <label className="relative block">
             <span className="sr-only">Buscar nesta lista</span>
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-            <input
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder="Buscar por nome ou turma..."
-              className="w-full bg-[#0a120a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a5a3a] py-3 pl-10 pr-3 text-sm focus:outline-none focus:border-[#c9a84c]"
-            />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por nome ou turma..." className="w-full bg-[#0a120a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a5a3a] py-3 pl-10 pr-3 text-sm focus:outline-none focus:border-[#c9a84c]" />
           </label>
         )}
 
-        <div className="max-h-[min(62svh,34rem)] overflow-y-auto pr-1 -mr-1 flex flex-col gap-2" data-ex-alumni-drilldown-list>
-          {loading && (
-            <div className="py-10 text-center text-[#7a9a7a] font-mono text-xs">Carregando lista...</div>
-          )}
-
-          {!loading && filteredRows.map(row => {
+        <div className="max-h-[min(62svh,34rem)] overflow-y-auto pr-1 -mr-1 flex flex-col gap-2">
+          {filteredRows.map(row => {
             const person = peopleById.get(row.person_id);
             if (!person) return null;
             return (
-              <button
-                type="button"
-                key={row.person_id}
-                data-person-id={row.person_id}
-                onClick={() => onOpenPerson(person)}
-                className="w-full min-w-0 flex items-center gap-3 text-left border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-3 py-3 transition-colors"
-              >
-                <div className="w-12 h-12 shrink-0 overflow-hidden bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-mono font-bold">
-                  {row.avatar_url
-                    ? <img src={row.avatar_url} alt="" className="w-full h-full object-cover" />
-                    : initials(row.display_name)}
+              <button key={row.person_id} type="button" onClick={() => onOpenPerson(person)} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0a120a] p-3 text-left hover:border-[#c9a84c]/60">
+                {row.avatar_url ? (
+                  <img src={row.avatar_url} alt={row.display_name || person.full_name} className="h-11 w-11 shrink-0 object-cover" />
+                ) : (
+                  <div className="h-11 w-11 shrink-0 bg-[#2d6a4f] flex items-center justify-center text-xs font-mono font-bold text-[#f0ebe0]">{initials(row.display_name || person.full_name)}</div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[#f0ebe0]">{row.display_name || person.full_name}</p>
+                  <p className="mt-1 text-xs font-mono text-[#7a9a7a]">{[row.class_group ? `Turma ${row.class_group}` : null, row.current_city, row.current_state].filter(Boolean).join(" · ")}</p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[#f0ebe0] font-semibold truncate">{row.display_name}</p>
-                  <p className="text-[#7a9a7a] text-xs font-mono mt-1">
-                    {row.class_group ? `Turma ${row.class_group}` : "Turma não informada"}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-[#7a9a7a] shrink-0" />
               </button>
             );
           })}
-
-          {!loading && filteredRows.length === 0 && (
-            <div className="py-10 text-center text-[#7a9a7a] font-mono text-xs">
-              Nenhuma pessoa encontrada.
-            </div>
-          )}
+          {!loading && filteredRows.length === 0 && <p className="py-8 text-center text-sm text-[#7a9a7a]">Nenhum perfil encontrado.</p>}
         </div>
       </div>
     </Modal>
@@ -4554,41 +4520,13 @@ function ExAlumniDrilldownModal({
 function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<AlumniClassFilter>("all");
-  const [attendanceFilter, setAttendanceFilter] = useState<AlumniAttendanceFilter>("all");
-  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
+  const [profileFilter, setProfileFilter] = useState<AlumniProfileFilter>("all");
   const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[]>([]);
-  const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [publicDetailRows, setPublicDetailRows] = useState<PublicCuriosityProfileDetailRow[]>([]);
+  const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [loadingPublicDetails, setLoadingPublicDetails] = useState(true);
   const [activeDrilldown, setActiveDrilldown] = useState<ExAlumniDrilldownKind | null>(null);
-
-  const requestedPersonFromUrl = (() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedPersonId = params.get("pessoa_id")?.trim();
-    const requestedName = params.get("pessoa")?.trim();
-    const normalizedRequested = normalizeLoose(requestedName);
-
-    return people.find(person => Boolean(requestedPersonId) && person.id === requestedPersonId)
-      ?? people.find(person =>
-        Boolean(normalizedRequested)
-        && (
-          normalizeLoose(person.full_name) === normalizedRequested
-          || normalizeLoose(person.display_name) === normalizedRequested
-          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
-        )
-      )
-      ?? null;
-  })();
-
-  const modalPerson = selectedPerson ?? requestedPersonFromUrl;
-
-  function closePersonModal() {
-    setSelectedPerson(null);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("pessoa_id");
-    url.searchParams.delete("pessoa");
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -4597,65 +4535,24 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       .then(rows => { if (active) setDirectoryRows(rows); })
       .catch(() => { if (active) setDirectoryRows([]); })
       .finally(() => { if (active) setLoadingStatuses(false); });
-    return () => { active = false; };
-  }, []);
 
-  useEffect(() => {
-    let active = true;
     setLoadingPublicDetails(true);
-    getPublicCuriosityProfileDetails()
+    getPublicCuriosityProfileDetails(DEFAULT_EVENT_ID)
       .then(rows => { if (active) setPublicDetailRows(rows); })
       .catch(() => { if (active) setPublicDetailRows([]); })
       .finally(() => { if (active) setLoadingPublicDetails(false); });
+
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedPersonId = params.get("pessoa_id")?.trim();
-    const requestedName = params.get("pessoa")?.trim();
-    const requestedClass = params.get("turma")?.trim().toUpperCase();
-    const requestedPresence = params.get("presenca")?.trim().toLowerCase();
-
-    if (requestedClass && ["A", "B", "C", "D"].includes(requestedClass)) {
-      setClassFilter(requestedClass as AlumniClassFilter);
-    }
-    if (requestedPresence === "confirmed") {
-      setAttendanceFilter("confirmed");
-    }
-
-    if (!requestedPersonId && !requestedName) return;
-
-    const normalizedRequested = normalizeLoose(requestedName);
-    const requestedPerson = people.find(person => requestedPersonId && person.id === requestedPersonId)
-      ?? people.find(person =>
-        Boolean(normalizedRequested)
-        && (
-          normalizeLoose(person.full_name) === normalizedRequested
-          || normalizeLoose(person.display_name) === normalizedRequested
-          || normalizeLoose(getHomeAlumniDisplayName(person)) === normalizedRequested
-        )
-      );
-
-    if (requestedPerson) {
-      setSearch("");
-      setSelectedPerson(requestedPerson);
-    }
-  }, [people]);
-
-  const visiblePeople = people.filter(person => person.is_visible !== false);
+  const visiblePeople = people.filter(person => person.is_visible);
   const statusMap = new Map<string, AlumniDirectoryStatusRow>(directoryRows.map(row => [row.person_id, row] as [string, AlumniDirectoryStatusRow]));
   const shouldUseFallbackStatus = !loadingStatuses && directoryRows.length === 0;
 
   function getDirectoryStatus(person: DbPerson) {
     const row = statusMap.get(person.id);
     return {
-      hasApprovedTicket: row?.has_approved_ticket ?? (shouldUseFallbackStatus && person.profile_status === "confirmed"),
-      intendsToAttend: row?.intends_to_attend === true,
       hasCompletedRegistration: row?.has_completed_registration ?? (shouldUseFallbackStatus && Boolean(person.claimed_by_user_id)),
-      city: row?.current_city ?? null,
-      state: row?.current_state ?? null,
-      country: row?.current_country ?? null,
       displayName: row?.display_name ?? null,
     };
   }
@@ -4666,60 +4563,35 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
     const cardName = displayNameForPerson(person, status.displayName);
     const matchesSearch = !normalizedSearch || person.full_name.toLowerCase().includes(normalizedSearch) || cardName.toLowerCase().includes(normalizedSearch);
     const matchesClass = classFilter === "all" || (person.class_group ?? "").toUpperCase() === classFilter;
-    const matchesAttendance =
-      attendanceFilter === "all" ||
-      (attendanceFilter === "confirmed" && status.hasApprovedTicket) ||
-      (attendanceFilter === "preconfirmed" && status.intendsToAttend && !status.hasApprovedTicket) ||
-      (attendanceFilter === "registered" && status.hasCompletedRegistration);
-    return matchesSearch && matchesClass && matchesAttendance;
+    const matchesProfile = profileFilter === "all"
+      || (profileFilter === "registered" && status.hasCompletedRegistration)
+      || (profileFilter === "unregistered" && !status.hasCompletedRegistration);
+    return matchesSearch && matchesClass && matchesProfile;
   });
 
-  const publicBoughtRows = publicDetailRows.filter(row => row.has_approved_ticket);
-  const publicGoingRows = publicDetailRows.filter(row => row.intends_to_attend && !row.has_approved_ticket);
-  const publicRegisteredRows = publicDetailRows.filter(row => row.has_completed_registration);
-  const drilldownRows = activeDrilldown === "bought"
-    ? publicBoughtRows
-    : activeDrilldown === "going"
-      ? publicGoingRows
-      : activeDrilldown === "registered"
-        ? publicRegisteredRows
-        : [];
-
-  function openDrilldownPerson(person: DbPerson) {
-    setActiveDrilldown(null);
-    setSelectedPerson(person);
-  }
+  const registeredRows = publicDetailRows.filter(row => row.has_completed_registration);
+  const photoRows = registeredRows.filter(row => Boolean(row.avatar_url));
+  const cityKeys = new Set(registeredRows.filter(row => row.current_city).map(row => [row.current_city, row.current_state, row.current_country].filter(Boolean).join("|").toLocaleLowerCase("pt-BR")));
+  const registeredCount = visiblePeople.filter(person => getDirectoryStatus(person).hasCompletedRegistration).length;
+  const drilldownRows = activeDrilldown === "registered" ? registeredRows : activeDrilldown === "photo" ? photoRows : [];
 
   const classButtons: { value: AlumniClassFilter; label: string }[] = [
-    { value: "all", label: "Todas as turmas" },
+    { value: "all", label: "Todas" },
     { value: "A", label: "Turma A" },
     { value: "B", label: "Turma B" },
     { value: "C", label: "Turma C" },
     { value: "D", label: "Turma D" },
   ];
-
-  const attendanceButtons: { value: AlumniAttendanceFilter; label: string; description: string }[] = [
-    { value: "all", label: "Todos", description: "Todos os pré-cadastrados" },
-    { value: "confirmed", label: "Confirmados", description: "Compraram o ingresso" },
-    { value: "preconfirmed", label: "Pré-confirmados", description: "Pretendem ir para a festa" },
-    { value: "registered", label: "Cadastrados", description: "Fizeram o cadastro no site" },
+  const profileButtons: { value: AlumniProfileFilter; label: string; description: string }[] = [
+    { value: "all", label: "Todos", description: "Ex-alunos 2006" },
+    { value: "registered", label: "Cadastrados", description: "Perfis atualizados no site" },
+    { value: "unregistered", label: "Ainda sem perfil", description: "Cadastro ainda não concluído" },
   ];
 
   return (
     <>
-      <PersonDetailModal
-        person={modalPerson}
-        onClose={closePersonModal}
-        onClaim={() => { closePersonModal(); navigate("claim-profile"); }}
-      />
-      <ExAlumniDrilldownModal
-        kind={activeDrilldown}
-        rows={drilldownRows}
-        loading={loadingPublicDetails}
-        people={visiblePeople}
-        onClose={() => setActiveDrilldown(null)}
-        onOpenPerson={openDrilldownPerson}
-      />
+      <PersonDetailModal person={selectedPerson} onClose={() => setSelectedPerson(null)} onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }} />
+      <ExAlumniDrilldownModal kind={activeDrilldown} rows={drilldownRows} loading={loadingPublicDetails} people={people} onClose={() => setActiveDrilldown(null)} onOpenPerson={person => { setActiveDrilldown(null); setSelectedPerson(person); }} />
 
       <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4">
@@ -4727,45 +4599,25 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
             <div>
               <SectionLabel>Turma 2006 · Diretório</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Ex-alunos</DisplayTitle>
-              <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">
-                Uma visão consolidada da turma, de quem comprou ingresso, quem pretende ir, quem já atualizou o cadastro e onde os ex-alunos estão hoje.
-              </p>
+              <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">Uma visão da Turma 2006, de quem já entrou no site, atualizou seu perfil e compartilhou um pouco de como a vida seguiu nesses 20 anos.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3" data-ex-alumni-summary>
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicDetailRows.length}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Ex-Alunos</p>
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{visiblePeople.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Ex-alunos</p>
               </div>
-              <button
-                type="button"
-                data-ex-alumni-drilldown="bought"
-                onClick={() => setActiveDrilldown("bought")}
-                disabled={loadingPublicDetails}
-                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
-              >
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicBoughtRows.length}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Já compraram</p>
-              </button>
-              <button
-                type="button"
-                data-ex-alumni-drilldown="going"
-                onClick={() => setActiveDrilldown("going")}
-                disabled={loadingPublicDetails}
-                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
-              >
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicGoingRows.length}</p>
-                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Eu vou!</p>
-              </button>
-              <button
-                type="button"
-                data-ex-alumni-drilldown="registered"
-                onClick={() => setActiveDrilldown("registered")}
-                disabled={loadingPublicDetails}
-                className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] disabled:cursor-wait transition-colors"
-              >
-                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : publicRegisteredRows.length}</p>
+              <button type="button" data-ex-alumni-drilldown="registered" onClick={() => setActiveDrilldown("registered")} disabled={loadingPublicDetails} className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 disabled:cursor-wait">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingStatuses ? "—" : registeredCount}</p>
                 <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cadastrados no site</p>
+              </button>
+              <button type="button" data-ex-alumni-drilldown="photo" onClick={() => setActiveDrilldown("photo")} disabled={loadingPublicDetails} className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 disabled:cursor-wait">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : photoRows.length}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Com foto atual</p>
+              </button>
+              <button type="button" onClick={() => navigate("curiosities")} disabled={loadingPublicDetails} className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 disabled:cursor-wait">
+                <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : cityKeys.size}</p>
+                <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cidades representadas</p>
               </button>
             </div>
           </section>
@@ -4773,75 +4625,32 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
           <section className="bg-[#141f14] border border-[#2d6a4f]/30 mb-8 p-4 md:p-5 flex flex-col gap-4">
             <div className="relative bg-[#0a120a] border border-[#2d6a4f]/20">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-              <input
-                placeholder="Buscar por nome..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none"
-              />
+              <input placeholder="Buscar por nome..." value={search} onChange={event => setSearch(event.target.value)} className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none" />
             </div>
-
             <div className="flex gap-2 overflow-x-auto pb-1">
               {classButtons.map(button => (
-                <button
-                  key={button.value}
-                  onClick={() => setClassFilter(button.value)}
-                  className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${classFilter === button.value ? "bg-[#c9a84c] text-[#0d1a0f] border-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}
-                >
-                  {button.label}
-                </button>
+                <button key={button.value} onClick={() => setClassFilter(button.value)} className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${classFilter === button.value ? "bg-[#c9a84c] text-[#0d1a0f] border-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{button.label}</button>
               ))}
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {attendanceButtons.map(button => (
-                <button
-                  key={button.value}
-                  onClick={() => setAttendanceFilter(button.value)}
-                  className={`text-left border px-4 py-3 transition-colors ${attendanceFilter === button.value ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#2d6a4f]/60"}`}
-                >
-                  <span className="block text-xs font-mono uppercase tracking-wider font-bold">{button.label}</span>
-                  <span className="block text-[11px] mt-1 opacity-80">{button.description}</span>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {profileButtons.map(button => (
+                <button key={button.value} onClick={() => setProfileFilter(button.value)} className={`px-4 py-2 text-left border transition-colors whitespace-nowrap ${profileFilter === button.value ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>
+                  <span className="block text-xs font-mono uppercase tracking-wider">{button.label}</span>
+                  <span className="block mt-1 text-[10px] opacity-75">{button.description}</span>
                 </button>
               ))}
             </div>
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</p>
-              {loadingStatuses && <p className="text-[#3a5a3a] font-mono text-[10px] uppercase tracking-wider">Carregando status...</p>}
-            </div>
-
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filtered.map(person => {
                 const status = getDirectoryStatus(person);
-                return (
-                  <AlumniCard
-                    key={person.id}
-                    alumni={personToAlumni(
-                      person,
-                      status.displayName,
-                      status.hasApprovedTicket
-                        ? "confirmed"
-                        : status.intendsToAttend
-                          ? "preconfirmed"
-                          : status.hasCompletedRegistration
-                            ? "claimed"
-                            : "unclaimed",
-                    )}
-                    onOpen={() => setSelectedPerson(person)}
-                    onClaim={() => navigate("claim-profile")}
-                  />
-                );
+                return <AlumniCard key={person.id} alumni={personToAlumni(person, status.displayName, status.hasCompletedRegistration ? "claimed" : "unclaimed")} onOpen={() => setSelectedPerson(person)} onClaim={() => navigate("claim-profile")} />;
               })}
             </div>
-
             {filtered.length === 0 && (
-              <div className="text-center py-20 text-[#7a9a7a]">
-                <Users size={40} className="mx-auto mb-4 opacity-40" />
-                <p className="font-mono text-sm">Nenhum resultado para os filtros selecionados.</p>
-              </div>
+              <div className="text-center py-20 text-[#7a9a7a]"><Users size={40} className="mx-auto mb-4 opacity-40" /><p className="font-mono text-sm">Nenhum resultado para os filtros selecionados.</p></div>
             )}
           </section>
         </div>
@@ -4873,7 +4682,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
     relationshipStatus: "" as RelationshipStatus | "",
     hasChildren: "" as "" | "yes" | "no",
     childrenCount: "",
-    intendsToAttend: (window.sessionStorage.getItem("hc-attendance-intent") === "yes" ? "yes" : "") as "" | "yes" | "no",
+    intendsToAttend: "" as "" | "yes" | "no",
   });
   const [privacy, setPrivacy] = useState({ showCurrentPhoto: true, showCity: true, showProfession: true, showSocial: true, showInList: true, allowTagging: true });
   const [bioAssistantOpen, setBioAssistantOpen] = useState(false);
@@ -5115,7 +4924,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
         relationshipStatus: profileDraft.relationshipStatus || null,
         hasChildren: profileDraft.hasChildren === "yes",
         childrenCount: profileDraft.hasChildren === "yes" && profileDraft.childrenCount.trim() ? Number(profileDraft.childrenCount) : null,
-        intendsToAttend: profileDraft.intendsToAttend ? profileDraft.intendsToAttend === "yes" : null,
+        intendsToAttend: null,
         showCurrentPhoto: privacy.showCurrentPhoto,
         showCity: privacy.showCity,
         showProfession: privacy.showProfession,
@@ -5287,7 +5096,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               </div>
             </div>
             {profileDraft.hasChildren === "yes" && <Field label="Quantidade de filhos" type="number" value={profileDraft.childrenCount} onChange={v => setProfileDraft(f => ({ ...f, childrenCount: v.replace(/\D/g, "").slice(0, 2) }))} />}
-            <div>
+            <div className="hidden" aria-hidden="true">
               <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Você pretende ir para a festa?</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <OptionButton selected={profileDraft.intendsToAttend === "yes"} onClick={() => setProfileDraft(f => ({ ...f, intendsToAttend: "yes" }))}>Sim, pretendo ir</OptionButton>
@@ -5316,7 +5125,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-4">Preferências de exibição</p>
               <div className="flex flex-col gap-4">
                 {([
-                  ["showInList", "Aparecer na lista de confirmados"],
+                  ["showInList", "Aparecer no diretório de ex-alunos"],
                   ["showCurrentPhoto", "Exibir foto atual"],
                   ["showCity", "Exibir cidade atual"],
                   ["showProfession", "Exibir profissão"],
@@ -6725,7 +6534,6 @@ function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 
 function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
   const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
-  const [event, setEvent] = useState<DbEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -6734,15 +6542,11 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
     setLoading(true);
     setError("");
     try {
-      const [ticketData, eventData] = await Promise.all([
-        getMyTickets(auth.userId, auth.email),
-        getEventSettings().catch(() => null),
-      ]);
+      const ticketData = await getMyTickets(auth.userId, auth.email);
       setTickets(ticketData);
-      setEvent(eventData);
       if (!selectedId && ticketData[0]) setSelectedId(ticketData[0].id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar ingresso.");
+      setError(err instanceof Error ? err.message : "Erro ao carregar seus ingressos.");
     } finally {
       setLoading(false);
     }
@@ -6750,94 +6554,79 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
 
   useEffect(() => { loadTicket(); }, [auth.userId, auth.email]);
 
-  const ticket = tickets.find(t => t.id === selectedId) ?? tickets[0] ?? null;
+  const ticket = tickets.find(item => item.id === selectedId) ?? tickets[0] ?? null;
   const paymentStatus = ticketPaymentStatus(ticket);
-  const ticketStatus = ticket?.checked_in ? "checked_in" : paymentStatus;
-  const eventName = event?.title ?? "Turma 2006 — 20 anos depois";
-  const eventLocation = event?.location_name ?? "Local a confirmar";
-  const eventAddress = event?.location_address ?? "Endereço será informado pela organização.";
+  const refundTitle = paymentStatus === "refunded"
+    ? "Reembolso concluído"
+    : paymentStatus === "approved"
+      ? "Reembolso integral em processamento"
+      : "Pagamento sem cobrança adicional";
+  const refundBody = paymentStatus === "refunded"
+    ? "O Mercado Pago confirmou o reembolso deste pagamento. O prazo para o valor aparecer na conta ou na fatura depende da instituição financeira e do meio de pagamento."
+    : paymentStatus === "approved"
+      ? "O evento foi cancelado e a organização está processando a devolução integral do valor pago pelo Mercado Pago. Você não precisa solicitar o reembolso."
+      : "O evento foi cancelado e não haverá novas cobranças. Se você acredita que houve um pagamento não identificado, entre em contato com a organização.";
 
   return (
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Minha área</button>
-        <SectionLabel>Meu ingresso</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-6xl mb-4">Entrada do reencontro</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Confira o status do pagamento e apresente o código no check-in do evento.</p>
+        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} />Minha área</button>
 
-        {loading && <LoadingState message="Carregando ingresso..." />}
+        <SectionLabel>Pagamento e reembolso</SectionLabel>
+        <DisplayTitle className="text-4xl md:text-6xl mb-4">Meus ingressos</DisplayTitle>
+        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-8">O encontro de 2026 foi cancelado. Esta área permanece disponível para você consultar o ingresso, o pagamento original e o andamento do reembolso.</p>
+
+        <div className="mb-8 border border-[#c9a84c]/35 bg-[#141f14] p-5 md:p-6">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#c9a84c]">Evento cancelado</p>
+          <p className="mt-2 text-sm leading-6 text-[#d8ddd8]">Todos os pagamentos aprovados serão devolvidos integralmente pela organização.</p>
+          <button type="button" onClick={() => window.location.assign("/meus-pedidos")} className="mt-4 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">Ver meus pedidos e pagamentos →</button>
+        </div>
+
+        {loading && <LoadingState message="Carregando ingressos..." />}
         {error && <ErrorState message={error} onRetry={loadTicket} />}
+
         {!loading && !error && tickets.length === 0 && (
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos ingressos vinculados ao seu e-mail de login. Compre um ingresso ou entre em contato com a organização." />
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-              <Btn variant="outline" onClick={() => navigate("home")}><Mail size={16} />Contato da organização</Btn>
-            </div>
+            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos pagamentos ou ingressos vinculados ao seu e-mail de login." />
+            <div className="mt-6 flex justify-center"><Btn variant="outline" onClick={() => window.location.assign("/meus-pedidos")}><FileText size={16} />Consultar meus pedidos</Btn></div>
           </div>
         )}
 
         {!loading && !error && ticket && (
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
-            <div className="bg-[#f0ebe0] text-[#0d1a0f] border-8 border-[#c9a84c] p-8 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-6">Ingresso oficial</p>
-              <div className="w-48 h-48 mx-auto bg-white border-4 border-[#0d1a0f] flex items-center justify-center mb-6">
-                <QrCode size={128} className="text-[#0d1a0f]" />
-              </div>
-              <p className="font-mono text-lg font-bold tracking-widest break-all">{ticket.qr_code}</p>
-              <p className="text-xs text-[#5b4636] mt-3">Apresente este código na entrada junto com um documento.</p>
-              <div className="mt-6 flex justify-center"><StatusBadge status={ticketStatus} /></div>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              {tickets.length > 1 && (
-                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                  <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-3">Selecionar ingresso</p>
-                  <div className="flex flex-wrap gap-2">
-                    {tickets.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`px-4 py-2 text-xs font-mono border ${item.id === ticket.id ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{item.attendee_name}</button>)}
-                  </div>
+          <div className="flex flex-col gap-6">
+            {tickets.length > 1 && (
+              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-3">Selecionar ingresso</p>
+                <div className="flex flex-wrap gap-2">
+                  {tickets.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`px-4 py-2 text-xs font-mono border ${item.id === ticket.id ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{item.attendee_name}</button>)}
                 </div>
-              )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6">
+              <div className="bg-[#141f14] border border-[#c9a84c]/35 p-6">
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Situação</p>
+                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{refundTitle}</h2>
+                <p className="mt-4 text-[#8ab89a] text-sm leading-6">{refundBody}</p>
+                <div className="mt-5 flex flex-wrap gap-2"><StatusBadge status={paymentStatus} /><StatusBadge status="cancelled" /></div>
+              </div>
 
               <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
-                  <div>
-                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Participante</p>
-                    <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{ticket.attendee_name}</h2>
-                    <p className="text-[#7a9a7a] text-sm font-mono mt-1">{ticket.attendee_email}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2"><StatusBadge status={paymentStatus} />{ticket.checked_in && <StatusBadge status="checked_in" />}</div>
-                </div>
-
+                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Dados do ingresso e do pagamento</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <InfoRow label="Participante" value={ticket.attendee_name} />
                   <InfoRow label="Tipo" value={ticketTypeName(ticket)} />
-                  <InfoRow label="Telefone" value={ticket.attendee_phone ?? "Não informado"} />
-                  <InfoRow label="Acompanhante" value={ticket.guest_name ?? "Não informado"} />
-                  <InfoRow label="Check-in" value={ticket.checked_in ? `Realizado ${formatDateTimeBR(ticket.checked_in_at)}` : "Ainda não realizado"} />
-                  <InfoRow label="Pagamento" value={paymentStatus} />
+                  <InfoRow label="Pagamento" value={paymentStatus === "refunded" ? "Reembolsado" : paymentStatus === "approved" ? "Aprovado — aguardando devolução" : paymentStatus} />
+                  <InfoRow label="Método" value={ticket.orders?.payment_method ?? "Não informado"} />
+                  <InfoRow label="Data do pagamento" value={formatDateTimeBR(ticket.orders?.paid_at) || "Sem confirmação"} />
                   <InfoRow label="Pedido" value={ticket.order_id} />
                 </div>
               </div>
+            </div>
 
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Dados do evento</p>
-                <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold mb-2">{eventName}</h3>
-                <div className="flex flex-col gap-2 text-sm text-[#8ab89a]">
-                  <p className="flex items-center gap-2"><Calendar size={14} />{eventDateTimeLabel(event)}</p>
-                  <p className="flex items-center gap-2"><MapPin size={14} />{eventLocation}</p>
-                  <p className="text-[#7a9a7a]">{eventAddress}</p>
-                </div>
-              </div>
-
-              <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Instruções e termos</p>
-                <ul className="text-[#8ab89a] text-sm leading-relaxed list-disc pl-5 space-y-2">
-                  <li>Apresente o QR Code ou o código textual na entrada.</li>
-                  <li>O ingresso é nominal e deve estar com pagamento aprovado.</li>
-                  <li>Depois do check-in, o mesmo código não poderá ser reutilizado.</li>
-                  <li>Em caso de divergência, procure a organização do evento.</li>
-                </ul>
-              </div>
+            <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
+              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Sobre o QR Code</p>
+              <p className="text-[#8ab89a] text-sm leading-6">O ingresso permanece registrado como comprovante histórico da compra, mas não haverá check-in nem uso do QR Code porque o evento foi cancelado.</p>
             </div>
           </div>
         )}
@@ -7270,7 +7059,8 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
                     <>
                       <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">{ticketTypeName(mainTicket)}</p>
                       <p className="text-[#7a9a7a] text-xs font-mono mb-3">{mainTicket.qr_code} · {mainTicket.attendee_name}</p>
-                      <div className="flex flex-wrap gap-2"><StatusBadge status={paymentStatus} />{mainTicket.checked_in && <StatusBadge status="checked_in" />}</div>
+                      <div className="flex flex-wrap gap-2"><StatusBadge status={paymentStatus} /><StatusBadge status="cancelled" /></div>
+                      <p className="text-[#8ab89a] text-xs leading-relaxed mt-3">{paymentStatus === "refunded" ? "Reembolso concluído pelo Mercado Pago." : paymentStatus === "approved" ? "Reembolso integral sendo processado pela organização." : "O evento foi cancelado e não haverá novas cobranças."}</p>
                     </>
                   ) : (
                     <>
@@ -7279,7 +7069,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
                     </>
                   )}
                 </div>
-                {mainTicket ? <Btn onClick={() => navigate("my-ticket")} size="sm"><QrCode size={14} />Ver ingresso</Btn> : <Btn onClick={() => navigate("tickets")} size="sm"><CreditCard size={14} />Comprar ingresso</Btn>}
+                {mainTicket ? <Btn onClick={() => navigate("my-ticket")} size="sm"><FileText size={14} />Ver pagamento</Btn> : <Btn onClick={() => window.location.assign("/meus-pedidos")} size="sm" variant="outline"><FileText size={14} />Meus pedidos</Btn>}
               </div>
             </div>
 
@@ -7532,7 +7322,6 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         relationship_status: form.relationshipStatus || null,
         has_children: form.hasChildren === "yes",
         children_count: form.hasChildren === "yes" && form.childrenCount.trim() ? Number(form.childrenCount) : null,
-        intends_to_attend: form.intendsToAttend ? form.intendsToAttend === "yes" : null,
         show_current_photo: privacy.showCurrentPhoto,
         show_city: privacy.showCity,
         show_profession: privacy.showProfession,
@@ -7625,7 +7414,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               {form.hasChildren === "yes" && (
                 <Field label="Quantidade de filhos" type="number" value={form.childrenCount} onChange={v => setForm(f => ({ ...f, childrenCount: v.replace(/\D/g, "").slice(0, 2) }))} placeholder="Ex.: 2" />
               )}
-              <div>
+              <div className="hidden" aria-hidden="true">
                 <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Você pretende ir para a festa?</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <OptionButton selected={form.intendsToAttend === "yes"} onClick={() => setForm(f => ({ ...f, intendsToAttend: "yes" }))}>Sim, pretendo ir</OptionButton>
@@ -7654,7 +7443,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Privacidade</p>
               <div className="flex flex-col gap-4">
                 {([
-                  ["showInList",     "Aparecer na lista de confirmados"],
+                  ["showInList",     "Aparecer no diretório de ex-alunos"],
                   ["showCurrentPhoto", "Exibir foto atual"],
                   ["showCity",       "Exibir cidade atual"],
                   ["showProfession", "Exibir profissão"],
@@ -10580,7 +10369,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <CancelledEventHome content={homeContent as HomePageContent} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <SecureCheckoutPage navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
