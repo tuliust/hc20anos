@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-23
-last_verified_commit: 0a15d05c65b894f57e94b31c61244667bed97f4b
+last_verified: 2026-09-25
+last_verified_commit: f87328de81aafeee403289265da1c876241dd317
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 65 |
-| Ocorrências literais | 80 |
+| RPCs distintas | 66 |
+| Ocorrências literais | 81 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -35,12 +35,13 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_archive_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:323` | `AdminArchiveTicketLotArgs` | `AdminArchiveTicketLotReturns` |
 | `admin_clear_person_profile` | `src/adminParticipantMaintenance.ts:422` | `AdminClearPersonProfileArgs` | `AdminClearPersonProfileReturns` |
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
-| `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:245` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
+| `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:248` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
 | `admin_get_person_details` | `src/lib/services.ts:553` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
 | `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:162` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_import_people` | `src/lib/services.ts:510` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
+| `admin_prepare_event_cancellation_refund` | `src/app/AdminCommerceOrdersMount.tsx:313` | `AdminPrepareEventCancellationRefundArgs` | `AdminPrepareEventCancellationRefundReturns` |
 | `admin_update_person_and_profile` | `src/lib/services.ts:566` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
 | `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:253` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |

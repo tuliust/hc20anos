@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-23
-last_verified_commit: 44d766b4e61d39d08c2befa8a5de653bd6e62ae2
+last_verified: 2026-09-25
+last_verified_commit: cfcc1808d9df08687bf3dc7759126f0503ed1d0f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -1360,6 +1360,8 @@ source_files:
 | `public.admin_import_people` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_import_people` | `postgres` | `EXECUTE` | YES |
 | `public.admin_import_people` | `service_role` | `EXECUTE` | NO |
+| `public.admin_prepare_event_cancellation_refund` | `authenticated` | `EXECUTE` | NO |
+| `public.admin_prepare_event_cancellation_refund` | `postgres` | `EXECUTE` | YES |
 | `public.admin_update_person_and_profile` | `authenticated` | `EXECUTE` | NO |
 | `public.admin_update_person_and_profile` | `postgres` | `EXECUTE` | YES |
 | `public.admin_update_person_and_profile` | `service_role` | `EXECUTE` | NO |

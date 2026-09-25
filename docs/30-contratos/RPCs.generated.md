@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-23
-last_verified_commit: 44d766b4e61d39d08c2befa8a5de653bd6e62ae2
+last_verified: 2026-09-25
+last_verified_commit: cfcc1808d9df08687bf3dc7759126f0503ed1d0f
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -26,6 +26,7 @@ source_files:
 | `public.admin_get_profile_claim_disputes_with_identity` | `p_status text` | `TABLE(id uuid, person_id uuid, current_claimant_user_id uuid, requester_user_id uuid, requester_name text, requester_email text, requester_phone text, reason text, evidence_text text, status text, reviewed_by_admin_id uuid, reviewed_at timestamp with time zone, admin_notes text, created_at timestamp with time zone, updated_at timestamp with time zone, people jsonb, identity_verification jsonb)` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_get_ticket_lots` | `p_event_id uuid` | `jsonb` | sim | `stable` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_import_people` | `p_people jsonb` | `SETOF people` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
+| `public.admin_prepare_event_cancellation_refund` | `p_order_id uuid` | `uuid` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.admin_update_person_and_profile` | `p_person_id uuid, p_person jsonb, p_profile jsonb` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_update_refund_policy` | `p_enabled boolean, p_percentage_basis_points integer, p_fixed_fee_cents integer, p_maximum_fee_cents integer, p_policy_label text, p_policy_notice text` | `refund_policy` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.admin_upsert_ticket_lot` | `p_lot_id uuid, p_event_id uuid, p_code text, p_name text, p_sort_order integer, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_capacity integer, p_status text, p_prices jsonb` | `jsonb` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |

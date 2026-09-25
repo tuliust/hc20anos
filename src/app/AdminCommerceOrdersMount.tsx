@@ -9,6 +9,7 @@ import {
   Mail,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Search,
   Ticket,
   UserCheck,
@@ -237,6 +238,8 @@ function AdminCommerceOrdersPanel() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [refundingOrderId, setRefundingOrderId] = useState<string | null>(null);
+  const [refundNotice, setRefundNotice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -291,6 +294,55 @@ function AdminCommerceOrdersPanel() {
       else next.add(orderId);
       return next;
     });
+  }
+
+  async function refundCancelledEventOrder(order: CommerceOrder) {
+    if (normalize(order.payment_status) !== "approved") return;
+    const amount = formatCurrency(order.total_amount_cents);
+    const buyer = order.buyer_name || order.buyer_email || "este comprador";
+    const confirmed = window.confirm(
+      `Confirmar reembolso integral de ${amount} para ${buyer}?\n\nA operação será enviada ao Mercado Pago e não deve ser repetida manualmente.`
+    );
+    if (!confirmed) return;
+
+    setRefundingOrderId(order.id);
+    setRefundNotice("");
+    setError("");
+
+    try {
+      const { data: requestId, error: prepareError } = await supabase.rpc(
+        "admin_prepare_event_cancellation_refund",
+        { p_order_id: order.id },
+      );
+      if (prepareError) throw prepareError;
+      if (!requestId) throw new Error("Não foi possível criar a solicitação de reembolso.");
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão administrativa expirada. Entre novamente.");
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refund-processor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ request_id: requestId }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = payload?.detail?.message || payload?.detail?.error || payload?.error;
+        throw new Error(detail || "O Mercado Pago não confirmou o reembolso.");
+      }
+
+      setRefundNotice(`Reembolso de ${amount} processado para ${buyer}.`);
+      await load();
+    } catch (refundError) {
+      setError(refundError instanceof Error ? refundError.message : "Não foi possível processar o reembolso.");
+    } finally {
+      setRefundingOrderId(null);
+    }
   }
 
   return (
@@ -351,6 +403,13 @@ function AdminCommerceOrdersPanel() {
         </div>
       )}
 
+      {refundNotice && (
+        <div role="status" className="flex items-start gap-3 border border-[#2d6a4f]/55 bg-[#2d6a4f]/10 p-5 text-sm text-[#f0ebe0]">
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#8ab89a]" />
+          <p>{refundNotice}</p>
+        </div>
+      )}
+
       {!error && !loading && filteredOrders.length === 0 && (
         <div className="border border-dashed border-[#2d6a4f]/30 p-10 text-center text-sm text-[#7a9a7a]">Nenhum pedido encontrado com os filtros atuais.</div>
       )}
@@ -378,9 +437,22 @@ function AdminCommerceOrdersPanel() {
                   <p className="mt-1 text-xs text-[#7a9a7a]">{order.ticket_type_name || "Ingresso"}{order.lot_name ? ` · ${order.lot_name}` : ""}</p>
                   <p className="mt-2 font-mono text-[10px] text-[#c9a84c]">Payment ID: {order.payment_provider_order_id || "—"}</p>
                 </div>
+<div className="flex flex-col gap-2">
+                {normalize(order.payment_status) === "approved" && (
+                  <button
+                    type="button"
+                    onClick={() => void refundCancelledEventOrder(order)}
+                    disabled={refundingOrderId === order.id}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#c9a84c]/55 bg-[#c9a84c]/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#f0ebe0] hover:bg-[#c9a84c]/15 disabled:cursor-wait disabled:opacity-55"
+                  >
+                    <RotateCcw size={15} className={refundingOrderId === order.id ? "animate-spin" : ""} />
+                    {refundingOrderId === order.id ? "Reembolsando..." : "Reembolsar integral"}
+                  </button>
+                )}
                 <button type="button" onClick={() => toggle(order.id)} className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#2d6a4f]/35 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#f0ebe0] hover:border-[#c9a84c]">
                   {isOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}{isOpen ? "Ocultar detalhes" : "Ver tudo"}
                 </button>
+              </div>
               </div>
 
               {isOpen && (
