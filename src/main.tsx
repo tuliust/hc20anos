@@ -104,6 +104,10 @@ const isOperationsRoute = operationsRoutes.has(normalizedPath);
 const isContactResearchRoute = contactResearchRoutes.has(normalizedPath);
 const isStandaloneRoute = isOperationsRoute || isContactResearchRoute;
 
+if (legacyGuestApprovalRoutes.has(normalizedPath)) {
+  window.location.replace('/');
+}
+
 const checkoutParams = new URLSearchParams(window.location.search);
 const hasPaymentReturn = ['payment_id', 'collection_id', 'token', 'order', 'checkout'].some(key => checkoutParams.has(key));
 const retiredDestination =
