@@ -144,6 +144,10 @@ test("Home pós-cancelamento oculta confirmados, evento e compra", async ({ page
   await installHomeFixtures(page, {
     mutateHome(home) {
       home.header_cta_visible = false;
+      home.primary_cta_label = "Ver ex-alunos";
+      home.primary_cta_page = "ex-alumni";
+      home.secondary_cta_label = "Criar ou atualizar meu perfil";
+      home.secondary_cta_page = "claim-profile";
       home.nav_event_visible = false;
       home.nav_who_going_visible = false;
       home.home_sections_json = JSON.stringify([
