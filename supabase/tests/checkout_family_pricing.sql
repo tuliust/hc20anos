@@ -14,7 +14,6 @@ where id = '00000000-0000-0000-0000-000000000001'::uuid;
 
 drop table if exists pg_temp._checkout_family_results;
 
-rollback;
 create temporary table _checkout_family_results (
   scenario text primary key,
   expected_cents integer,
@@ -174,3 +173,5 @@ from _checkout_family_results
 order by scenario;
 
 drop table if exists pg_temp._checkout_family_results;
+
+rollback;
