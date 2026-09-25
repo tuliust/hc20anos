@@ -19,12 +19,7 @@ export function productionReadinessTransform() {
           'data fallback do evento',
         );
 
-        code = replaceRequired(
-          code,
-          `    } catch {\n      setAttendanceState("error");\n    }`,
-          `    } catch (error) {\n      const message = error instanceof Error ? error.message : String(error ?? "");\n      if (message.includes("Perfil ainda não reivindicado") || message.includes("cadastro de ex-aluno")) {\n        navigate("claim-profile");\n        return;\n      }\n      console.error("Não foi possível marcar presença.", error);\n      setAttendanceState("error");\n    }`,
-          'retomada do cadastro ao marcar presença',
-        );
+
       }
 
       if (normalizedId.endsWith('/src/lib/services.ts')) {
