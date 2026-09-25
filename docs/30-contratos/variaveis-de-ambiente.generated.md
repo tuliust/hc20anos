@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-23
-last_verified_commit: 0a15d05c65b894f57e94b31c61244667bed97f4b
+last_verified: 2026-09-25
+last_verified_commit: f87328de81aafeee403289265da1c876241dd317
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -49,8 +49,8 @@ source_files:
 | `TRANSACTIONAL_FROM_EMAIL` | server-side | `supabase/functions/notification-worker/index.ts`<br>`supabase/functions/server/index.ts` |
 | `VERCEL_OIDC_TOKEN` | server-side | `api/generate-profile-bio.ts` |
 | `VITE_DEV_MODE` | pública no bundle | `src/lib/supabase.ts` |
-| `VITE_SUPABASE_ANON_KEY` | pública no bundle | `api/checkout-create.ts`<br>`src/app/OperationsPage.tsx`<br>`src/lib/checkout.ts`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
-| `VITE_SUPABASE_URL` | pública no bundle | `api/checkout-create.ts`<br>`scripts/apply-phase2-content-storage.mjs`<br>`src/app/OperationsPage.tsx`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
+| `VITE_SUPABASE_ANON_KEY` | pública no bundle | `api/checkout-create.ts`<br>`src/app/AdminCommerceOrdersMount.tsx`<br>`src/app/OperationsPage.tsx`<br>`src/lib/checkout.ts`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
+| `VITE_SUPABASE_URL` | pública no bundle | `api/checkout-create.ts`<br>`scripts/apply-phase2-content-storage.mjs`<br>`src/app/AdminCommerceOrdersMount.tsx`<br>`src/app/OperationsPage.tsx`<br>`src/lib/secureImageStorage.ts`<br>`src/lib/services.ts`<br>`src/lib/supabase.ts` |
 
 Valores e secrets são deliberadamente omitidos.
 
