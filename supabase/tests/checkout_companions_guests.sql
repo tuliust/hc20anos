@@ -4,9 +4,18 @@
 -- participants of the same `simple` product with age-based pricing.
 -- ================================================================
 
+begin;
+
 set role postgres;
 
+-- O site real permanece cancelado; o teste reabre vendas somente nesta transação.
+update public.events
+set event_status = 'published', sales_status = 'open'
+where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 drop table if exists pg_temp._single_ticket_checkout_results;
+
+rollback;
 create temporary table _single_ticket_checkout_results (
   scenario text primary key,
   expected_cents integer,
