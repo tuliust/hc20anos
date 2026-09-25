@@ -6,6 +6,31 @@
     overflow-x: clip;
   }
 
+  /* O shell mobile precisa ser full-bleed. Os gutters pertencem somente aos
+     containers internos de conteúdo, nunca ao root/main da página. */
+  html,
+  body,
+  #root,
+  #root > div,
+  #root > div > main {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box;
+  }
+
+  #root > div > main > div[class*="min-h-screen"],
+  #root > div > main > section {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+  }
+
   main,
   main > div,
   main section,

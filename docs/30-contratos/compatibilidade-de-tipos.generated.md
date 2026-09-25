@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-25
-last_verified_commit: cfcc1808d9df08687bf3dc7759126f0503ed1d0f
+last_verified_commit: 1e1e10fb9140fb201ac2db0f2232e1746366e777
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts

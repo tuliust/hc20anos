@@ -54,6 +54,29 @@ for (const viewport of mobileViewports) {
         await expect(page.locator("main")).toBeVisible({ timeout: 20_000 });
         await expectNoHorizontalOverflow(page);
 
+        const shellGeometry = await page.evaluate(() => {
+          const viewportWidth = document.documentElement.clientWidth;
+          const main = document.querySelector<HTMLElement>("main");
+          const pageRoot = main?.firstElementChild instanceof HTMLElement ? main.firstElementChild : null;
+          if (!main || !pageRoot) return null;
+
+          const mainRect = main.getBoundingClientRect();
+          const pageRect = pageRoot.getBoundingClientRect();
+          return {
+            viewportWidth,
+            mainLeft: mainRect.left,
+            mainRight: mainRect.right,
+            pageLeft: pageRect.left,
+            pageRight: pageRect.right,
+          };
+        });
+
+        expect(shellGeometry).not.toBeNull();
+        expect(Math.abs(shellGeometry!.mainLeft)).toBeLessThanOrEqual(1);
+        expect(Math.abs(shellGeometry!.mainRight - shellGeometry!.viewportWidth)).toBeLessThanOrEqual(1);
+        expect(Math.abs(shellGeometry!.pageLeft)).toBeLessThanOrEqual(1);
+        expect(Math.abs(shellGeometry!.pageRight - shellGeometry!.viewportWidth)).toBeLessThanOrEqual(1);
+
         const overflowingElements = await page.evaluate(() => {
           const viewportWidth = document.documentElement.clientWidth;
           return Array.from(document.querySelectorAll<HTMLElement>("main *"))
