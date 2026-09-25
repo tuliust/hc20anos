@@ -140,8 +140,28 @@ test("pessoa do card Turmas abre o perfil com filtro da turma", async ({ page })
   await expect(modal).toContainText(fixtureFullName(personId!));
 });
 
-test("Home não renderiza grade de confirmados do evento", async ({ page }) => {
-  await openHome(page);
+test("Home pós-cancelamento oculta confirmados, evento e compra", async ({ page }) => {
+  await installHomeFixtures(page, {
+    mutateHome(home) {
+      home.header_cta_visible = false;
+      home.nav_event_visible = false;
+      home.nav_who_going_visible = false;
+      home.home_sections_json = JSON.stringify([
+        { key: "hero", label: "Hero", is_visible: true, sort_order: 10 },
+        { key: "about", label: "Sobre", is_visible: true, sort_order: 20 },
+        { key: "info", label: "Informações do evento", is_visible: false, sort_order: 30 },
+        { key: "tickets", label: "Ingressos", is_visible: false, sort_order: 40 },
+        { key: "confirmed", label: "Confirmados", is_visible: false, sort_order: 50 },
+        { key: "photos", label: "Fotos", is_visible: true, sort_order: 60 },
+        { key: "timeline", label: "Linha do tempo", is_visible: true, sort_order: 70 },
+        { key: "faq", label: "FAQ", is_visible: true, sort_order: 80 },
+      ]);
+    },
+  });
+  await page.goto("/");
+  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("[data-home-confirmed-grid]")).toHaveCount(0);
+  await expect(page.locator("[data-home-section='info']")).toHaveCount(0);
+  await expect(page.locator("[data-home-section='tickets']")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Comprar ingresso/i })).toHaveCount(0);
 });
