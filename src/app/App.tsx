@@ -52,6 +52,7 @@ import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.type
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
+import { CancelledEventHome } from "./CancelledEventHome";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
@@ -10579,7 +10580,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <CancelledEventHome content={homeContent as HomePageContent} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <SecureCheckoutPage navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
