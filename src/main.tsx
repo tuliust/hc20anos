@@ -122,7 +122,7 @@ if (isRedirectingRetiredRoute && retiredDestination) {
 
 installSiteAnalyticsTracker();
 
-if (!isStandaloneRoute) {
+if (!isStandaloneRoute && !isRedirectingRetiredRoute) {
   installAdminReadResilience();
   installAdminTicketLotsRouteSync();
   installNeutralCmsDefaults();
