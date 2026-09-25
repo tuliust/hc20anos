@@ -93,8 +93,8 @@ function enhanceExAlumniEyebrow(pageRoot: HTMLElement) {
   const eyebrow = Array.from(pageRoot.querySelectorAll<HTMLElement>("p"))
     .find(element => normalizeText(element.textContent) === "turma 2006 · diretório");
 
-  if (eyebrow && eyebrow.textContent !== "Pré HC 2006") {
-    eyebrow.textContent = "Pré HC 2006";
+  if (eyebrow && eyebrow.textContent !== "Turma 2006 · Diretório") {
+    eyebrow.textContent = "Turma 2006 · Diretório";
   }
 }
 
