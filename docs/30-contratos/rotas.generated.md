@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-25
-last_verified_commit: 1e1e10fb9140fb201ac2db0f2232e1746366e777
+last_verified_commit: 2a6f854317194c1159dcb0b22c96dc4e574ccf51
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
@@ -75,8 +75,8 @@ As rotas standalone são interceptadas antes de `App.tsx`. Isso inclui as rotas 
 
 | Origem | Destino | Mecanismo |
 |---|---|---|
-| `/convidado` | `/ingressos` | window.location.replace |
-| `/aprovacoes-convidados` | `/ingressos` | window.location.replace |
+| `/convidado` | `/` | window.location.replace |
+| `/aprovacoes-convidados` | `/` | window.location.replace |
 
 ## Regras de resolução
 
