@@ -4529,6 +4529,23 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedClass = (params.get("turma") ?? "").toUpperCase();
+    if (["A", "B", "C", "D"].includes(requestedClass)) {
+      setClassFilter(requestedClass as AlumniClassFilter);
+    }
+    const requestedProfile = params.get("perfil");
+    if (requestedProfile === "registered" || requestedProfile === "unregistered") {
+      setProfileFilter(requestedProfile);
+    }
+    const personId = params.get("pessoa_id");
+    if (personId) {
+      const person = people.find(item => item.id === personId);
+      if (person) setSelectedPerson(person);
+    }
+  }, [people]);
+
+  useEffect(() => {
     let active = true;
     setLoadingStatuses(true);
     getAlumniDirectoryStatuses(DEFAULT_EVENT_ID)
