@@ -214,16 +214,16 @@ function synchronizeAlumniAreaOrders() {
   if (!main) return;
 
   main.querySelectorAll<HTMLElement>('a[data-buyer-orders-link]').forEach(link => {
-    link.style.setProperty("display", "none", "important");
-    link.setAttribute("aria-hidden", "true");
-    link.setAttribute("tabindex", "-1");
-    link.setAttribute(HIDDEN_ORDERS_SHORTCUT_ATTRIBUTE, "true");
+    link.style.removeProperty("display");
+    link.removeAttribute("aria-hidden");
+    link.removeAttribute("tabindex");
+    link.removeAttribute(HIDDEN_ORDERS_SHORTCUT_ATTRIBUTE);
   });
 
   const action = findAlumniAreaTicketAction(main);
   if (!action) return;
 
-  action.textContent = "Comprar Ingresso";
+  action.textContent = "Meus pedidos e ingressos";
   action.setAttribute("aria-label", "Abrir meus pedidos e ingressos");
   action.setAttribute("title", "Abrir meus pedidos e ingressos");
 
