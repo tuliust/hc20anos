@@ -15,7 +15,6 @@ where id = '00000000-0000-0000-0000-000000000001'::uuid;
 
 drop table if exists pg_temp._single_ticket_checkout_results;
 
-rollback;
 create temporary table _single_ticket_checkout_results (
   scenario text primary key,
   expected_cents integer,
@@ -222,3 +221,5 @@ from _single_ticket_checkout_results
 order by scenario;
 
 drop table if exists pg_temp._single_ticket_checkout_results;
+
+rollback;
