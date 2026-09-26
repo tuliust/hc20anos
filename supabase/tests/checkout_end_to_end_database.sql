@@ -7,8 +7,18 @@ begin;
 
 -- O cancelamento é o estado produtivo. Reabrimos somente nesta transação para testar as primitivas legadas.
 update public.events
-set event_status = 'published', sales_status = 'open'
+set event_status = 'published',
+    sales_status = 'open',
+    event_date = current_date + 1,
+    event_time = '14:00:00'::time
 where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
+update public.ticket_lots
+set status = 'open',
+    starts_at = now() - interval '1 day',
+    ends_at = now() + interval '1 day'
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+  and code = 'single';
 
 create temporary table if not exists _checkout_e2e_results (
   check_name text primary key,
@@ -82,7 +92,7 @@ begin
 
   begin
     -- Six participants at the global limit: alumni, spouse and four children.
-    -- Ages on 26/09/2026: 8 (free), 10 (half), 12 (half), 13 (full).
+    -- Ages on the transaction-local event date: 8 (free), 10 (half), 12 (half), 13 (full).
     -- Expected total: 120 + 120 + 0 + 60 + 60 + 120 = R$ 480.
     select * into v_order
     from public.create_checkout_order(
@@ -94,10 +104,10 @@ begin
       jsonb_build_array(
         jsonb_build_object('client_key','alumni-' || v_key,'participant_type','alumni','full_name','Ex-aluno E2E'),
         jsonb_build_object('client_key','spouse-' || v_key,'participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
-        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26'),
-        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
-        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
-        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
+        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date',to_char((current_date + 1 - interval '8 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date',to_char((current_date + 1 - interval '10 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date',to_char((current_date + 1 - interval '12 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date',to_char((current_date + 1 - interval '13 years')::date, 'YYYY-MM-DD'))
       ),
       '[]'::jsonb,
       'checkout-e2e-main-' || v_key
@@ -152,10 +162,10 @@ begin
       jsonb_build_array(
         jsonb_build_object('client_key','alumni-' || v_key,'participant_type','alumni','full_name','Ex-aluno E2E'),
         jsonb_build_object('client_key','spouse-' || v_key,'participant_type','spouse','full_name','Cônjuge E2E','email','spouse-e2e@example.com'),
-        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26'),
-        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
-        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
-        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
+        jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date',to_char((current_date + 1 - interval '8 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date',to_char((current_date + 1 - interval '10 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date',to_char((current_date + 1 - interval '12 years')::date, 'YYYY-MM-DD')),
+        jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date',to_char((current_date + 1 - interval '13 years')::date, 'YYYY-MM-DD'))
       ),
       '[]'::jsonb,
       'checkout-e2e-main-' || v_key
