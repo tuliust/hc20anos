@@ -37,7 +37,7 @@ test("Home mantém apenas a timeline e a caixa de memórias da seção Sobre", a
 
   await expect(page.locator("[data-home-nostalgia-timeline]")).toHaveCount(1);
   await expect(page.locator("[data-home-memory-carousel]")).toHaveCount(1);
-  await expect(page.getByRole("heading", { name: "A linha do tempo da turma" })).toHaveCount(0);
+  await expect(page.getByText("Inicio do ensino medio", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Memórias da turma" })).toHaveCount(0);
 });
 
