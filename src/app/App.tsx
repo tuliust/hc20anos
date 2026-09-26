@@ -3646,66 +3646,6 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
   );
 }
 
-function TimelineSection({ content, memories = [] }: { content: HomePageContent; memories?: DbMemory[] }) {
-  const extendedContent = getExtendedHomeContent(content);
-  const timelineItems = parseHomeJsonArray<TimelineItemContent>(extendedContent.timeline_items_json, [])
-    .filter(item => item.is_visible !== false);
-  const previewMemories = memories.slice(0, 4);
-
-  return (
-    <section className="home-section bg-[#f0ebe0]">
-      <div className="max-w-7xl mx-auto px-4">
-        <SectionLabel>{content.timeline_eyebrow}</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl text-[#0d1a0f] mb-16">{content.timeline_title}</DisplayTitle>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.92fr] gap-12 items-start">
-          <div className="flex flex-col">
-            {timelineItems.map((item, i) => {
-              const highlighted = item.highlight ?? item.year === "2026";
-              return (
-                <div key={`${item.year}-${i}`} className="flex gap-6 md:gap-12">
-                  <div className="flex flex-col items-center">
-                    <div className={"w-12 h-12 flex items-center justify-center font-['JetBrains_Mono'] font-bold text-sm shrink-0 " + (highlighted ? "bg-[#2d6a4f] text-[#f0ebe0]" : "border-2 border-[#2d6a4f] text-[#2d6a4f]")}>{item.year.slice(-2)}</div>
-                    {i < timelineItems.length - 1 && <div className="w-px flex-1 bg-[#2d6a4f]/30 my-2" />}
-                  </div>
-                  <div className={i < timelineItems.length - 1 ? "pb-12" : ""}>
-                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">{item.year}</p>
-                    <p className="text-[#0d1a0f] font-['Playfair_Display'] font-bold text-xl mb-2">{item.label}</p>
-                    <p className="text-[#4a6a4a] text-sm leading-relaxed max-w-md">{item.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <aside className="bg-[#0d1a0f] border border-[#2d6a4f]/30 p-6 md:p-8 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">Caixa de Memórias</p>
-                <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">Memórias da turma</h3>
-              </div>
-              <MessageCircle size={22} className="text-[#2d6a4f] shrink-0" />
-            </div>
-
-            {previewMemories.length === 0 ? (
-              <p className="text-[#7a9a7a] text-sm leading-relaxed">As memórias aprovadas pela moderação aparecerão aqui, ao lado da linha do tempo da turma.</p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {previewMemories.map(memory => (
-                  <div key={memory.id} className="bg-[#141f14] border border-[#2d6a4f]/25 p-5">
-                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
-                    <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
-                    <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : memory.author_name ?? "Ex-aluno"} · {formatDateShortBR(memory.created_at)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </aside>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function FAQSection({ content }: { content: HomePageContent }) {
   const extendedContent = getExtendedHomeContent(content);
   return <HomeFaqSectionLoader
@@ -3750,7 +3690,9 @@ function LandingPage({
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />,
     photos: null,
-    timeline: <TimelineSection content={content} memories={memories} />,
+    // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
+    // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
+    timeline: null,
     faq: <FAQSection content={content} />,
   };
 
