@@ -9,8 +9,18 @@ set role postgres;
 
 -- Reabre o evento apenas para validar a precificação histórica; rollback restaura cancelado/fechado.
 update public.events
-set event_status = 'published', sales_status = 'open'
+set event_status = 'published',
+    sales_status = 'open',
+    event_date = current_date + 1,
+    event_time = '14:00:00'::time
 where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
+update public.ticket_lots
+set status = 'open',
+    starts_at = now() - interval '1 day',
+    ends_at = now() + interval '1 day'
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+  and code = 'single';
 
 drop table if exists pg_temp._checkout_family_results;
 
@@ -87,7 +97,7 @@ begin
     jsonb_build_array(
       jsonb_build_object('client_key','alumni-1-' || v_key,'participant_type','alumni','full_name','Ex-aluno Teste'),
       jsonb_build_object('client_key','spouse-1-' || v_key,'participant_type','spouse','full_name','Cônjuge Teste','email','spouse1@example.com'),
-      jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date','2018-09-26')
+      jsonb_build_object('client_key','child-8-' || v_key,'participant_type','child','full_name','Filho 8','birth_date',to_char((current_date + 1 - interval '8 years')::date, 'YYYY-MM-DD'))
     ),
     '[]'::jsonb,
     'single-family-1-' || v_key
@@ -115,9 +125,9 @@ begin
     jsonb_build_array(
       jsonb_build_object('client_key','alumni-2-' || v_key,'participant_type','alumni','full_name','Ex-aluno Teste'),
       jsonb_build_object('client_key','spouse-2-' || v_key,'participant_type','spouse','full_name','Cônjuge Teste','email','spouse2@example.com'),
-      jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date','2016-09-26'),
-      jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date','2014-09-26'),
-      jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date','2013-09-26')
+      jsonb_build_object('client_key','child-10-' || v_key,'participant_type','child','full_name','Filho 10','birth_date',to_char((current_date + 1 - interval '10 years')::date, 'YYYY-MM-DD')),
+      jsonb_build_object('client_key','child-12-' || v_key,'participant_type','child','full_name','Filho 12','birth_date',to_char((current_date + 1 - interval '12 years')::date, 'YYYY-MM-DD')),
+      jsonb_build_object('client_key','child-13-' || v_key,'participant_type','child','full_name','Filho 13','birth_date',to_char((current_date + 1 - interval '13 years')::date, 'YYYY-MM-DD'))
     ),
     '[]'::jsonb,
     'single-family-2-' || v_key

@@ -26,6 +26,21 @@ test("monta visão geral, timeline CMS, tabs de turmas e CTA do evento", async (
   await expect(page).toHaveURL(/\/evento$/);
 });
 
+test("Home mantém apenas a timeline e a caixa de memórias da seção Sobre", async ({ page }) => {
+  await installHomeFixtures(page, { mutateHome: row => {
+    const sections = JSON.parse(String(row.home_sections_json || "[]"));
+    row.home_sections_json = JSON.stringify(sections.map((section: { key: string }) =>
+      section.key === "timeline" ? { ...section, is_visible: true } : section));
+  }});
+
+  await loadHome(page);
+
+  await expect(page.locator("[data-home-nostalgia-timeline]")).toHaveCount(1);
+  await expect(page.locator("[data-home-memory-carousel]")).toHaveCount(1);
+  await expect(page.getByText("Inicio do ensino medio", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Memórias da turma" })).toHaveCount(0);
+});
+
 test("timeline usa exclusivamente os itens do CMS", async ({ page }) => {
   await installHomeFixtures(page, { mutateHome: row => {
     row.home_nostalgia_timeline_json = JSON.stringify([
