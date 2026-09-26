@@ -21,7 +21,7 @@ import {
   getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, submitPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, getRegisteredHomePeople, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, getSchoolQuestionnaireResponseStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
+  getPublicProfileCardByPersonId, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, getSchoolQuestionnaireResponseStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, updateEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, uploadCmsContentImage, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
@@ -1381,18 +1381,19 @@ function AlumniCard({ alumni, onClaim, onOpen, showInviteButton = false }: { alu
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex w-full min-w-0 items-center gap-1">
         {alumni.status === "unclaimed" && showInviteButton ? (
-          <button type="button" onClick={event => event.stopPropagation()} className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#c9a84c] border border-[#c9a84c]/50 px-3 py-1.5">
+          <button type="button" onClick={event => event.stopPropagation()} style={{ fontSize: "clamp(7px, 1vw, 10px)", letterSpacing: "-0.04em" }} className="inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap border border-[#2d6a4f]/50 bg-[#1a3a2a] px-0 py-1 font-mono font-bold uppercase text-[#74c69d] sm:px-2 sm:tracking-wider">
             Enviar Convite
           </button>
         ) : <StatusBadge status={alumni.status} />}
         {alumni.status === "unclaimed" && onClaim && (
           <button
             onClick={(e) => { e.stopPropagation(); onClaim(); }}
-            className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2d6a4f] hover:text-[#40916c] border border-[#2d6a4f]/40 hover:border-[#40916c] px-3 py-1.5 transition-colors"
+            style={{ fontSize: "clamp(7px, 1vw, 10px)", letterSpacing: "-0.04em" }}
+            className="inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap border border-[#2d6a4f]/50 bg-[#1a3a2a] px-0 py-1 font-mono font-bold uppercase text-[#74c69d] transition-colors hover:border-[#40916c] hover:text-[#9ce0bc] sm:px-2 sm:tracking-wider"
           >
-            Reivindicar
+            Sou eu!
           </button>
         )}
       </div>
@@ -1470,7 +1471,7 @@ function PersonDetailModal({
         <div className="flex flex-col gap-5">
           <div>
             <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Ex-aluno</p>
-            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold leading-tight">{displayName}</h3>
+            <h3 className="text-[#c9a84c] font-['Playfair_Display'] text-3xl font-bold leading-tight">{displayName}</h3>
             {person.nickname_at_school && <p className="text-[#c9a84c] font-mono text-sm mt-1">&ldquo;{person.nickname_at_school}&rdquo;</p>}
           </div>
 
@@ -1481,12 +1482,12 @@ function PersonDetailModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InfoRow label="Nome completo" value={person.full_name} />
-            <InfoRow label="Status do perfil" value={profileStatusLabel(publicProfileStatus)} />
-            <InfoRow label="Localização atual" value={location || null} />
-            <InfoRow label="Profissão" value={profession || null} />
-            <InfoRow label="Estado civil" value={relationshipLabel} />
-            <InfoRow label="Filhos" value={childrenLabel} />
+            <InfoRow label="Nome completo" value={person.full_name} profileContrast />
+            <InfoRow label="Status do perfil" value={profileStatusLabel(publicProfileStatus)} profileContrast />
+            <InfoRow label="Localização atual" value={location || null} profileContrast />
+            <InfoRow label="Profissão" value={profession || null} profileContrast />
+            <InfoRow label="Estado civil" value={relationshipLabel} profileContrast />
+            <InfoRow label="Filhos" value={childrenLabel} profileContrast />
           </div>
 
           {profileLoading && <p className="text-[#7a9a7a] text-xs font-mono">Carregando dados públicos...</p>}
@@ -3205,14 +3206,15 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
 }
 
 function HomeRegisteredPeopleGrid({ people, classGroup, navigate, onOpenPerson }: { people: DbPerson[]; classGroup: string; navigate: (page: Page) => void; onOpenPerson: (person: DbPerson) => void }) {
-  const classPeople = people.filter(person => getHomeClassGroup(person.class_group) === classGroup);
+  const classPeople = people.filter(person => classGroup === "all" || getHomeClassGroup(person.class_group) === classGroup).slice(0, 24);
   return (
     <section data-home-registered-people className="border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><Users size={17} /></div>
-        <h3 className="flex-1 font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">Pessoas cadastradas</h3>
+        <h3 className="flex-1 font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">Pessoas da turma</h3>
         <button type="button" onClick={() => {
-          window.history.pushState({}, "", `/ex-alunos?turma=${encodeURIComponent(classGroup)}`);
+          const target = classGroup === "all" ? "/ex-alunos" : `/ex-alunos?turma=${encodeURIComponent(classGroup)}`;
+          window.history.pushState({}, "", target);
           window.dispatchEvent(new Event("pushstate"));
           navigate("ex-alumni");
         }} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#7a9a7a] transition-colors hover:text-[#c9a84c]">
@@ -3227,7 +3229,7 @@ function HomeRegisteredPeopleGrid({ people, classGroup, navigate, onOpenPerson }
             <span className="font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">{person.class_group ? `Turma ${getHomeClassGroup(person.class_group) ?? person.class_group}` : "Turma não informada"}</span>
           </button>
         ))}
-      </div> : <p className="text-sm text-[#7a9a7a]">Nenhum perfil cadastrado disponível para exibição.</p>}
+      </div> : <p className="text-sm text-[#7a9a7a]">Nenhuma pessoa disponível para exibição.</p>}
     </section>
   );
 }
@@ -3238,7 +3240,6 @@ function AboutSection({
   people,
   memories,
   auth,
-  activeClassGroup,
   onSelectClassGroup,
 }: {
   content: HomePageContent;
@@ -3246,7 +3247,6 @@ function AboutSection({
   people: DbPerson[];
   memories: DbMemory[];
   auth: AuthState;
-  activeClassGroup: string;
   onSelectClassGroup: (group: string) => void;
 }) {
   const extendedContent = getExtendedHomeContent(content);
@@ -3261,7 +3261,7 @@ function AboutSection({
     if (group) counts[group] = (counts[group] ?? 0) + 1;
     return counts;
   }, {}), [visiblePeople]);
-  const [registeredPeople, setRegisteredPeople] = useState<DbPerson[]>([]);
+  const [peopleClassFilter, setPeopleClassFilter] = useState("all");
   const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
   const [locations, setLocations] = useState<LocationStat[]>([]);
@@ -3271,9 +3271,20 @@ function AboutSection({
   const [pollBusy, setPollBusy] = useState<string | null>(null);
   const [pollError, setPollError] = useState("");
 
-  useEffect(() => {
-    setRegisteredPeople(getRegisteredHomePeople(people));
-  }, [people]);
+  const homePeople = useMemo(() => people
+    .filter(person => person.is_visible)
+    .sort((a, b) => Number(Boolean(b.has_registered_profile)) - Number(Boolean(a.has_registered_profile)) || a.full_name.localeCompare(b.full_name, "pt-BR"))
+    .map(person => ({
+      ...person,
+      display_name: person.has_registered_profile ? person.display_name : null,
+      avatar_url: person.has_registered_profile ? person.avatar_url ?? null : null,
+      contact_email: null,
+      contact_phone: null,
+      claimed_by_user_id: null,
+      claimed_at: null,
+      private_notes: null,
+      verification_status: null,
+    })), [people]);
 
   useEffect(() => {
     let active = true;
@@ -3324,11 +3335,11 @@ function AboutSection({
                 <Users size={24} className="text-[#2d6a4f]" />
               </div>
               <div className="mt-5 grid grid-cols-4 gap-3">
-                {(["A", "B", "C", "D"] as const).map(group => <button key={group} type="button" data-class-group={group} aria-pressed={activeClassGroup === group} onClick={() => onSelectClassGroup(group)} className={`bg-[#091109] p-3 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${activeClassGroup === group ? "ring-1 ring-[#c9a84c]/70" : "hover:bg-[#141f14]"}`}><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></button>)}
+                {(["A", "B", "C", "D"] as const).map(group => <button key={group} type="button" data-class-group={group} aria-pressed={peopleClassFilter === group} onClick={() => { setPeopleClassFilter(peopleClassFilter === group ? "all" : group); onSelectClassGroup(group); }} className={`bg-[#091109] p-3 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${peopleClassFilter === group ? "ring-1 ring-[#c9a84c]/70" : "hover:bg-[#141f14]"}`}><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></button>)}
               </div>
             </div>
 
-            <HomeRegisteredPeopleGrid people={registeredPeople} classGroup={activeClassGroup} navigate={navigate} onOpenPerson={setSelectedPerson} />
+            <HomeRegisteredPeopleGrid people={homePeople} classGroup={peopleClassFilter} navigate={navigate} onOpenPerson={setSelectedPerson} />
             <div className="mt-3">
               <div className="mb-3 flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
               <CompactNostalgiaTimeline items={nostalgiaItems} />
@@ -3726,7 +3737,7 @@ function LandingPage({
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
     hero: <Hero navigate={navigate} content={content} event={event} auth={auth} />,
-    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
+    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} onSelectClassGroup={setActiveClassGroup} />,
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
@@ -6636,13 +6647,13 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
   );
 }
 
-function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode; icon?: React.ReactNode }) {
+function InfoRow({ label, value, icon, profileContrast = false }: { label: string; value: React.ReactNode; icon?: React.ReactNode; profileContrast?: boolean }) {
   return (
-    <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
+    <div data-profile-info={profileContrast ? "true" : undefined} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
       {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
       <div>
-        <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-[#fffaf0] text-sm font-semibold leading-relaxed break-words">{value}</p>
+        <p className={`${profileContrast ? "text-[#a6cfae]" : "text-[#7a9a7a]"} font-mono text-[10px] uppercase tracking-widest mb-1`}>{label}</p>
+        <p className={`${profileContrast ? "text-[#d4e8d6]" : "text-[#fffaf0]"} text-sm font-semibold leading-relaxed break-words`}>{value}</p>
       </div>
     </div>
   );

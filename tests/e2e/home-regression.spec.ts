@@ -146,7 +146,7 @@ test("Adicionar mem\u00f3ria reaproveita a p\u00e1gina de envio existente", asyn
   await expect(page.getByText("Enviar mem\u00f3ria", { exact: true })).toBeVisible();
 });
 
-test("Home exibe somente pessoas com perfil cadastrado e abre o modal de perfil sobre a Home", async ({ page }) => {
+test("Home inicia com até 24 pessoas, prioriza perfis cadastrados e abre o modal sobre a Home", async ({ page }) => {
   await installHomeFixtures(page, { people: peopleFixture.map((person, index) => ({
     ...person,
     avatar_url: index === 7 ? "https://example.test/privado.jpg" : null,
@@ -157,11 +157,13 @@ test("Home exibe somente pessoas com perfil cadastrado e abre o modal de perfil 
   await loadHome(page);
 
   const box = page.locator("[data-home-registered-people]");
-  await expect(box.locator("[data-home-registered-person]")).toHaveCount(2);
+  await expect(box.locator("[data-home-registered-person]")).toHaveCount(8);
   await expect(box).toContainText("Perfil cadastrado 1");
+  await expect(box.locator("[data-home-registered-person]").first()).toContainText("Perfil cadastrado 1");
   await expect(box.locator("[data-home-registered-person]").first()).toContainText("Turma A");
   await expect(box.locator("img").first()).toHaveAttribute("src", "https://example.test/public-avatar.jpg");
-  await expect(box).not.toContainText("Pessoa 8");
+  await expect(box).toContainText("Pessoa Confirmada 7");
+  await expect(box.locator("[data-home-registered-person]").filter({ hasText: "Pessoa Confirmada 8" }).locator("img")).toHaveCount(0);
   await expect(box).not.toContainText("privado-");
   await expect(box).not.toContainText("+5511");
   await expect(box).not.toContainText("nota privada");
@@ -170,7 +172,51 @@ test("Home exibe somente pessoas com perfil cadastrado e abre o modal de perfil 
   await box.locator("[data-home-registered-person]").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("Perfil cadastrado 1");
+  await expect(page.getByRole("dialog").locator("h3")).toHaveClass(/text-\[\#c9a84c\]/);
+  await expect(page.getByRole("dialog").locator("[data-profile-info]").first().locator("p").last()).toHaveCSS("color", "rgb(212, 232, 214)");
   expect(page.url()).toBe(currentUrl);
+});
+
+test("Home limita a grade inicial a 24 pessoas de todas as turmas", async ({ page }) => {
+  const people = Array.from({ length: 32 }, (_, index) => ({
+    ...peopleFixture[index % peopleFixture.length],
+    id: `00000000-0000-0000-0002-${String(index + 1).padStart(12, "0")}`,
+    full_name: `Pessoa ${String(index + 1).padStart(2, "0")}`,
+    display_name: null,
+    profile_status: "unclaimed" as const,
+    class_group: ["A", "B", "C", "D"][index % 4],
+  }));
+  await installHomeFixtures(page, { people });
+  await loadHome(page);
+
+  const box = page.locator("[data-home-registered-people]");
+  await expect(box.locator("[data-home-registered-person]")).toHaveCount(24);
+  await expect(box).toContainText("Pessoa 24");
+  await expect(box).not.toContainText("Pessoa 25");
+  await expect(box).toContainText("Turma A");
+  await expect(box).toContainText("Turma B");
+  await expect(box).toContainText("Turma C");
+  await expect(box).toContainText("Turma D");
+});
+
+test("ações do diretório ficam alinhadas na mesma linha em viewport móvel", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  const unclaimedPeople = peopleFixture.map(person => ({ ...person, profile_status: "unclaimed" as const }));
+  await installHomeFixtures(page, { people: unclaimedPeople });
+  await page.goto("/ex-alunos");
+  await expect(page.getByRole("heading", { name: "Ex-alunos" })).toBeVisible({ timeout: 20_000 });
+
+  const invite = page.getByRole("button", { name: "Enviar Convite", exact: true }).first();
+  const claim = page.getByRole("button", { name: "Sou eu!", exact: true }).first();
+  await expect(invite).toBeVisible();
+  await expect(claim).toBeVisible();
+  const [inviteBox, claimBox] = await Promise.all([invite.boundingBox(), claim.boundingBox()]);
+  expect(inviteBox).not.toBeNull();
+  expect(claimBox).not.toBeNull();
+  expect(Math.abs(inviteBox!.y - claimBox!.y)).toBeLessThanOrEqual(1);
+  const noOverlap = inviteBox!.x + inviteBox!.width <= claimBox!.x + 1 || claimBox!.x + claimBox!.width <= inviteBox!.x + 1;
+  expect(noOverlap).toBe(true);
+  await expect(invite).toHaveCSS("font-size", "7px");
 });
 
 test("seções ocultas no CMS não são montadas", async ({ page }) => {

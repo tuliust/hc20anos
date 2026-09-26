@@ -71,8 +71,8 @@ function enhanceExAlumniClaimButtons(pageRoot: HTMLElement) {
   buttons.forEach(button => {
     if (button.textContent !== "Sou eu!") button.textContent = "Sou eu!";
     button.setAttribute("data-ex-alumni-claim-action", "true");
-    button.classList.remove("px-3", "py-1.5");
-    button.classList.add("px-2.5", "py-1");
+    button.classList.remove("px-3", "py-1.5", "px-2.5", "px-1");
+    button.classList.add("px-0", "py-1", "flex-1", "min-w-0", "whitespace-nowrap", "justify-center");
     matchButtonToStatusBadge(button);
   });
 }

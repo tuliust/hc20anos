@@ -63,6 +63,7 @@ export interface DbPerson {
   avatar_url?:          string | null;
   created_at:           string;
   updated_at:           string;
+  has_registered_profile?: boolean;
 }
 
 export interface DbProfile {
