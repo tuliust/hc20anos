@@ -1901,11 +1901,11 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
           </div>
           <p className="font-['Playfair_Display'] font-bold text-[#f0ebe0] text-xl mb-2">Foto enviada!</p>
           <p className="text-[#7a9a7a] text-sm mb-6">
-            Sua foto foi enviada para moderação. Ela aparecerá no mural em até 24 horas após aprovação.
+            Sua foto já está publicada no mural.
           </p>
           <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 mb-6">
             <p className="text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider mb-2">Status</p>
-            <StatusBadge status="pending" />
+            <StatusBadge status="approved" />
           </div>
           <Btn full onClick={handleClose}>Fechar</Btn>
         </div>
@@ -2003,7 +2003,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
 
           <div className="flex items-start gap-3 bg-[#0a120a] border border-[#2d6a4f]/20 p-4">
             <Info size={14} className="text-[#2d6a4f] shrink-0 mt-0.5" />
-            <p className="text-[#7a9a7a] text-xs">Todas as fotos passam por moderação antes de aparecerem no mural. Fotos inadequadas serão rejeitadas.</p>
+            <p className="text-[#7a9a7a] text-xs">Depois do envio, sua foto aparece imediatamente no mural. Compartilhe apenas imagens que você tem autorização para publicar.</p>
           </div>
 
           {uploadError && (
@@ -2013,7 +2013,7 @@ function PhotoUploadModal({ open, onClose, auth, navigate }: {
           <Btn full onClick={submit} disabled={loading}>
             {loading
               ? <><RefreshCw size={16} className="animate-spin" />Enviando...</>
-              : <><Upload size={16} />Enviar para moderação</>}
+              : <><Upload size={16} />Publicar no mural</>}
           </Btn>
         </div>
       )}
@@ -3160,7 +3160,7 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
       setQuestion("");
       setOptionsText("");
       setCreating(false);
-      setCreateMessage("Enquete enviada para moderação.");
+      setCreateMessage("Enquete criada e publicada.");
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Falha ao enviar a enquete.";
       setCreateError(message.includes("profile_registration_required") ? "Conclua seu cadastro no site para enviar uma enquete." : message);
@@ -3194,7 +3194,7 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
           <div className="flex flex-col gap-3" data-home-poll-form>
             <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Pergunta<input value={question} onChange={event => setQuestion(event.target.value.slice(0, 180))} maxLength={180} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Escreva a pergunta" /></label>
             <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Opções (uma por linha)<textarea value={optionsText} onChange={event => setOptionsText(event.target.value.slice(0, 800))} rows={4} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Uma opção por linha" /></label>
-            <div className="flex flex-wrap gap-2"><button type="button" disabled={submitting} onClick={submitNewPoll} className="border border-[#c9a84c] bg-[#c9a84c] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#0d1a0f] disabled:opacity-60">Enviar para moderação</button><button type="button" onClick={() => { setCreating(false); setCreateError(""); }} className="border border-[#2d6a4f]/35 px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Cancelar</button></div>
+            <div className="flex flex-wrap gap-2"><button type="button" disabled={submitting} onClick={submitNewPoll} className="border border-[#c9a84c] bg-[#c9a84c] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#0d1a0f] disabled:opacity-60">Publicar enquete</button><button type="button" onClick={() => { setCreating(false); setCreateError(""); }} className="border border-[#2d6a4f]/35 px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Cancelar</button></div>
           </div>
         )}
         {createMessage && <p role="status" className="mt-3 text-xs text-[#74c69d]">{createMessage}</p>}
@@ -3239,6 +3239,7 @@ function AboutSection({
   memories,
   auth,
   activeClassGroup,
+  onSelectClassGroup,
 }: {
   content: HomePageContent;
   navigate: (p: Page) => void;
@@ -3246,6 +3247,7 @@ function AboutSection({
   memories: DbMemory[];
   auth: AuthState;
   activeClassGroup: string;
+  onSelectClassGroup: (group: string) => void;
 }) {
   const extendedContent = getExtendedHomeContent(content);
   const aboutCopy = parseHomeJsonObject<HomeAboutOverviewCopy>(extendedContent.home_about_overview_json, {});
@@ -3322,7 +3324,7 @@ function AboutSection({
                 <Users size={24} className="text-[#2d6a4f]" />
               </div>
               <div className="mt-5 grid grid-cols-4 gap-3">
-                {(["A", "B", "C", "D"] as const).map(group => <div key={group} data-class-group={group} className="bg-[#091109] p-3 text-center"><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></div>)}
+                {(["A", "B", "C", "D"] as const).map(group => <button key={group} type="button" data-class-group={group} aria-pressed={activeClassGroup === group} onClick={() => onSelectClassGroup(group)} className={`bg-[#091109] p-3 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${activeClassGroup === group ? "ring-1 ring-[#c9a84c]/70" : "hover:bg-[#141f14]"}`}><p className="font-['Playfair_Display'] text-2xl font-black text-[#f0ebe0]">{classCounts[group] ?? 0}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">Turma {group}</p></button>)}
               </div>
             </div>
 
@@ -3724,7 +3726,7 @@ function LandingPage({
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
     hero: <Hero navigate={navigate} content={content} event={event} auth={auth} />,
-    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} activeClassGroup={activeClassGroup} />,
+    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
@@ -5537,7 +5539,7 @@ function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {filteredPhotos.length === 0 && <EmptyState title="Nenhuma foto encontrada" subtitle="Ajuste os filtros ou envie uma foto antiga para moderação." />}
+            {filteredPhotos.length === 0 && <EmptyState title="Nenhuma foto encontrada" subtitle="Ajuste os filtros ou publique uma foto antiga no mural." />}
             {filteredPhotos.map(p => {
               const photoStats = stats[p.id] ?? { photo_id: p.id, likes_count: 0, comments_count: 0 };
               const liked = likedPhotoIds.includes(p.id);
@@ -5597,7 +5599,7 @@ function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
           <div className="mt-12 bg-[#141f14] border border-dashed border-[#2d6a4f]/40 p-12 text-center">
             <Camera size={32} className="text-[#7a9a7a] mx-auto mb-4" />
             <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-2">Tem uma foto dessa época?</p>
-            <p className="text-[#7a9a7a] text-sm mb-6">Contribua com o mural. Todas as fotos passam por moderação antes de serem publicadas.</p>
+            <p className="text-[#7a9a7a] text-sm mb-6">Contribua com o mural. As fotos publicadas aparecem imediatamente para todos.</p>
             <Btn onClick={() => setUploadOpen(true)}><Upload size={16} />Enviar foto</Btn>
           </div>
         </div>
@@ -6763,7 +6765,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
       });
       setMemoryText("");
       setIsAnonymous(false);
-      setMessage("Memória enviada para moderação.");
+      setMessage("Memória adicionada à caixa de memórias.");
       await loadMemories();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao enviar memória.";
@@ -6783,7 +6785,7 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
           <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5 h-fit">
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
             <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
-            <div className="flex items-center justify-between text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span><StatusBadge status="pending" /></div>
+            <div className="flex items-center justify-between text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span><StatusBadge status="approved" /></div>
             <div className="flex items-center justify-between border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">
               <span id="memory-anonymity-label" className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>
               <button
@@ -6799,12 +6801,12 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
             </div>
             {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
             {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Enviar para moderação</Btn>
+            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Adicionar memória</Btn>
           </div>
 
           <div className="flex flex-col gap-4">
             {loading && <LoadingState message="Carregando memórias..." />}
-            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória aprovada ainda" subtitle="As memórias enviadas aparecem aqui depois da moderação." />}
+            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória ainda" subtitle="Compartilhe uma lembrança para ela aparecer aqui." />}
             {memories.map(memory => (
               <div key={memory.id} className={`bg-[#141f14] border p-6 ${memory.is_featured ? "border-[#c9a84c]/60" : "border-[#2d6a4f]/25"}`}>
                 <div className="flex items-center justify-between mb-4">
@@ -8477,7 +8479,7 @@ const role = auth.role ?? "viewer";
     }, false);
   }
 
-  async function setAutomaticApproval(key: "auto_approve_photos" | "auto_approve_comments" | "auto_approve_memories", enabled: boolean) {
+  async function setAutomaticApproval(key: "auto_approve_comments", enabled: boolean) {
     if (!canManageEvent) return;
     await runAction(`moderation-${key}`, async () => {
       const updated = await updateContentModerationSettings(DEFAULT_EVENT_ID, { [key]: enabled });
@@ -9489,7 +9491,6 @@ const role = auth.role ?? "viewer";
           <div>
             <div className="mb-6 flex flex-col gap-3 border border-[#2d6a4f]/25 bg-[#141f14] p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider">{pendingPhotos.length} fotos encontradas</p>
-              <label className="flex items-center gap-3 text-sm text-[#f0ebe0]"><input type="checkbox" checked={moderationSettings.auto_approve_photos} onChange={event => void setAutomaticApproval("auto_approve_photos", event.target.checked)} className="accent-[#2d6a4f]" />Aprovar novas fotos automaticamente</label>
             </div>
             <div className="mb-6 flex flex-wrap gap-2">
               {(["pending", "approved", "rejected", "all"] as const).map(value => <button key={value} type="button" onClick={() => setPhotoFilter(value)} className={"border px-4 py-2 text-xs font-mono uppercase tracking-wider transition-colors " + (photoFilter === value ? "border-[#2d6a4f] bg-[#2d6a4f] text-[#f0ebe0]" : "border-[#2d6a4f]/30 text-[#7a9a7a]")}>{adminStatusLabel(value)}</button>)}
@@ -9573,7 +9574,6 @@ const role = auth.role ?? "viewer";
 
         {!loading && tab === "memories" && (!canModerate ? <PermissionState /> : (
           <div className="flex flex-col gap-4">
-            <label className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#141f14] p-4 text-sm text-[#f0ebe0]"><input type="checkbox" checked={moderationSettings.auto_approve_memories} onChange={event => void setAutomaticApproval("auto_approve_memories", event.target.checked)} className="accent-[#2d6a4f]" />Aprovar novas memórias automaticamente</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(["pending","approved","rejected","hidden","all"] as const).map(val => (
                 <button key={val} onClick={() => setMemoryFilter(val)}
@@ -9920,7 +9920,7 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
     { title: "5. Perfis de Ex-Alunos", body: "A lista da Turma 2006 foi criada com base em registros históricos. Cada ex-aluno pode reivindicar ou atualizar seu perfil por meio do processo de verificação disponível no site. Informações falsas ou uso indevido podem resultar na suspensão do acesso." },
     { title: "6. Participação e convivência", body: "O HC20Anos existe para registrar memórias, perfis, fotos, curiosidades e informações sobre a turma. Conteúdos ofensivos, discriminatórios, falsos ou que violem direitos de terceiros não são permitidos." },
     { title: "7. Histórico de pedidos e reembolsos", body: "Pedidos e ingressos já emitidos permanecem acessíveis aos respectivos usuários como registro da compra e para acompanhamento do reembolso. Esses registros não representam ingresso válido para um evento futuro." },
-    { title: "8. Moderação de Conteúdo", body: "Fotos, memórias, comentários e outros conteúdos podem passar por moderação. A administração pode ocultar ou remover conteúdo que viole estes termos ou a Política de Privacidade." },
+    { title: "8. Conteúdo publicado", body: "Fotos, memórias e enquetes são publicadas automaticamente. A administração pode ocultar ou remover conteúdo que viole estes termos ou a Política de Privacidade." },
     { title: "9. Continuidade do site", body: "O cancelamento do encontro não encerra o HC20Anos. A plataforma pode continuar disponível como acervo e espaço de atualização da Turma 2006, com funcionalidades ajustadas ao longo do tempo." },
     { title: "10. Contato", body: "Dúvidas sobre o site, pagamentos ou reembolsos podem ser encaminhadas para hc20anos@gmail.com." },
   ];
@@ -9953,10 +9953,10 @@ function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
 function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
   const sections = [
     { title: "1. Dados que coletamos", body: "Podemos tratar nome, e-mail, telefone/WhatsApp, cidade, profissão, fotos enviadas voluntariamente, data de nascimento declarada, respostas de verificação de identidade, informações de perfil e dados técnicos de navegação. Dados associados a pedidos antigos, inclusive identificadores necessários ao pagamento, permanecem vinculados ao histórico comercial e ao reembolso." },
-    { title: "2. Como usamos seus dados", body: "Os dados são usados para identificar ex-alunos, permitir criação e atualização de perfis, exibir informações autorizadas no diretório e nas curiosidades, moderar fotos e memórias, operar a conta do usuário e, quando aplicável, manter o histórico de pagamentos e processar reembolsos." },
+    { title: "2. Como usamos seus dados", body: "Os dados são usados para identificar ex-alunos, permitir criação e atualização de perfis, exibir informações autorizadas no diretório e nas curiosidades, administrar conteúdo publicado, operar a conta do usuário e, quando aplicável, manter o histórico de pagamentos e processar reembolsos." },
     { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas informações necessárias para identificar integrantes da turma. O ex-aluno pode reivindicar, corrigir ou solicitar a remoção do próprio perfil." },
     { title: "4. Dados de pagamento e reembolso", body: "Os pagamentos foram processados pelo Mercado Pago. O HC20Anos não armazena dados completos de cartão. Identificadores de pedidos e pagamentos podem ser mantidos para conciliação, auditoria e execução dos reembolsos decorrentes do cancelamento do encontro." },
-    { title: "5. Fotos e marcações", body: "Fotos enviadas são armazenadas com segurança e exibidas após as regras de moderação aplicáveis. Qualquer pessoa pode solicitar a remoção da própria imagem ou de uma marcação." },
+    { title: "5. Fotos e marcações", body: "Fotos enviadas são armazenadas com segurança e exibidas imediatamente. Qualquer pessoa pode solicitar a remoção da própria imagem ou de uma marcação." },
     { title: "6. Controles de privacidade", body: "Você pode escolher exibir ou ocultar informações como cidade, profissão, redes sociais e presença no diretório público. Também pode controlar permissões relacionadas a marcações em fotos." },
     { title: "7. Solicitações de remoção", body: "Você pode solicitar correção ou remoção de informações e imagens pelos recursos disponíveis na plataforma ou pelo contato informado abaixo. Solicitações serão analisadas conforme a natureza do dado e as obrigações legais aplicáveis." },
     { title: "8. Seus direitos (LGPD)", body: "Nos termos da Lei 13.709/2018 (LGPD), você pode solicitar acesso, correção, informações sobre tratamento, revogação de consentimento e exclusão quando juridicamente aplicável. Registros que precisem ser mantidos por obrigação legal ou para defesa de direitos poderão ser preservados pelo prazo necessário." },

@@ -7,7 +7,7 @@ import {
 import { TEST_USER_ID } from "./profile-claim-fixtures";
 
 test.describe("memórias e enquetes", () => {
-  test("preserva anonimato público e envia memória pendente para moderação", async ({ page }) => {
+  test("preserva anonimato público e publica a memória imediatamente", async ({ page }) => {
     const api = await installEngagementFixtures(page);
 
     await page.goto("/nossa-historia/memorias");
@@ -20,7 +20,7 @@ test.describe("memórias e enquetes", () => {
     await expect(page.getByText("Autor Confidencial", { exact: false })).toHaveCount(0);
 
     const memoryField = page.locator("textarea").first();
-    const submitMemory = page.getByRole("button", { name: /^Enviar(?: para moderação)?$/i });
+    const submitMemory = page.getByRole("button", { name: "Adicionar memória" });
     await expect(memoryField).toBeVisible();
     await expect(submitMemory).toBeVisible();
     await memoryField.fill("Curta");
@@ -37,7 +37,7 @@ test.describe("memórias e enquetes", () => {
     await submitMemory.click();
 
     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
-    await expect(page.getByText("Memória enviada para moderação.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Memória adicionada à caixa de memórias.", { exact: true })).toBeVisible();
     await expect(memoryField).toHaveValue("");
 
     expect(api.memoryCalls[0]).toMatchObject({
@@ -45,7 +45,7 @@ test.describe("memórias e enquetes", () => {
       user_id: TEST_USER_ID,
       memory_text: "Lembro das conversas no corredor antes da primeira aula.",
       is_anonymous: true,
-      status: "pending",
+      status: "approved",
       is_featured: false,
     });
   });

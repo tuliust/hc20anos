@@ -102,7 +102,7 @@ function rememberLocalMemoryAction(event: Event) {
   ]);
 
   const publicSubmit = isPublicMemoriesRoute()
-    && (label === "enviar" || label === "enviar para moderação");
+    && (label === "adicionar memória" || label === "enviar" || label === "enviar para moderação");
 
   if (!adminActions.has(label) && !publicSubmit) return;
 

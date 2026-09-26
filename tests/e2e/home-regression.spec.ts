@@ -106,14 +106,25 @@ test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enq
   await page.getByPlaceholder("Escreva a pergunta").fill("Qual atividade rever a seguir?");
   await page.getByPlaceholder("Uma opção por linha").fill("Café da manhã\nVisita à escola");
   const pollRequestPromise = page.waitForRequest(request => new URL(request.url()).pathname.endsWith("/rpc/submit_poll"));
-  await page.getByRole("button", { name: /Enviar para modera/ }).click();
+  await page.getByRole("button", { name: "Publicar enquete" }).click();
   const pollRequest = await pollRequestPromise;
   expect(JSON.parse(pollRequest.postData() ?? "{}")).toMatchObject({
     p_event_id: "00000000-0000-0000-0000-000000000001",
     p_question: "Qual atividade rever a seguir?",
     p_options: ["Café da manhã", "Visita à escola"],
   });
-  await expect(page.getByRole("status")).toContainText("Enquete enviada para moderação.");
+  await expect(page.getByRole("status")).toContainText("Enquete criada e publicada.");
+});
+
+test("os cards de turma filtram as pessoas cadastradas sem sair da Home", async ({ page }) => {
+  await installHomeFixtures(page);
+  await loadHome(page);
+
+  await page.locator('[data-home-about-stats] button[data-class-group="B"]').click();
+  await expect(page.locator('[data-home-about-stats] button[data-class-group="B"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-home-registered-person]")).toHaveCount(2);
+  await expect(page.locator("[data-home-registered-person]")).toContainText(["Turma B", "Turma B"]);
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("bot\u00e3o Criar Enquete continua dispon\u00edvel sem enquete aberta", async ({ page }) => {
@@ -146,7 +157,7 @@ test("Home exibe somente pessoas com perfil cadastrado e abre o modal de perfil 
   await loadHome(page);
 
   const box = page.locator("[data-home-registered-people]");
-  await expect(box.locator("[data-home-registered-person]")).toHaveCount(6);
+  await expect(box.locator("[data-home-registered-person]")).toHaveCount(2);
   await expect(box).toContainText("Perfil cadastrado 1");
   await expect(box.locator("[data-home-registered-person]").first()).toContainText("Turma A");
   await expect(box.locator("img").first()).toHaveAttribute("src", "https://example.test/public-avatar.jpg");

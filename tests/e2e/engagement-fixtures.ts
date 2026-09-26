@@ -162,7 +162,7 @@ export async function installEngagementFixtures(page: Page): Promise<EngagementA
         author_name: "Maria Cabeção",
         memory_text: body.p_memory_text,
         is_anonymous: Boolean(body.p_is_anonymous),
-        status: "pending",
+        status: "approved",
         is_featured: false,
       };
       memoryCalls.push(mapped);

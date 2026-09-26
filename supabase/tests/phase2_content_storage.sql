@@ -36,6 +36,10 @@ with checks as (
     select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_photos_sanitize','trg_photo_comments_sanitize','trg_memories_sanitize','trg_photo_tags_sanitize','trg_photo_removal_requests_sanitize')
   )=5
   union all
+  select 'community_content_publish_triggers_exist', (
+    select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_publish_photos_immediately','trg_publish_memories_immediately')
+  )=2
+  union all
   select 'legacy_memory_defaults_removed',
     not exists(select 1 from pg_trigger where not tgisinternal and tgname='trg_force_public_memory_defaults')
     and to_regprocedure('public.force_public_memory_defaults()') is null
@@ -90,7 +94,7 @@ begin
 end $$;
 rollback;
 
--- Registered members may submit memories and draft polls; unregistered accounts are rejected.
+-- Registered members may submit immediately published memories and polls; unregistered accounts are rejected.
 begin;
 insert into public.profiles (person_id, user_id)
 values ('77777777-7777-4777-8777-777777777777', '22222222-2222-4222-8222-222222222222')
@@ -109,14 +113,14 @@ begin
     'Qual atividade da turma revisar?',
     '["Café da manhã","Visita à escola"]'::jsonb
   );
-  if v_poll.status <> 'draft' then raise exception 'FAIL submitted_poll_requires_moderation'; end if;
+  if v_poll.status <> 'open' then raise exception 'FAIL submitted_poll_is_published'; end if;
   if (select count(*) from public.poll_options where poll_id = v_poll.id) <> 2 then raise exception 'FAIL submitted_poll_saves_options'; end if;
-  raise notice 'PASS registered_member_submits_draft_poll';
+  raise notice 'PASS registered_member_submits_published_poll';
 
-  if (public.submit_memory('00000000-0000-0000-0000-000000000001', null, 'Uma memória válida da turma.', false)).status <> 'pending' then
-    raise exception 'FAIL registered_member_submits_pending_memory';
+  if (public.submit_memory('00000000-0000-0000-0000-000000000001', null, 'Uma memória válida da turma.', false)).status <> 'approved' then
+    raise exception 'FAIL registered_member_submits_published_memory';
   end if;
-  raise notice 'PASS registered_member_submits_pending_memory';
+  raise notice 'PASS registered_member_submits_published_memory';
 
   perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
   perform set_config('request.jwt.claim.role','authenticated',true);
