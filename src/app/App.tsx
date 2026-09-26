@@ -3132,6 +3132,12 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
   const [createError, setCreateError] = useState("");
   const [createMessage, setCreateMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    if (window.sessionStorage.getItem("hc20-open-poll-creator") !== "true") return;
+    window.sessionStorage.removeItem("hc20-open-poll-creator");
+    setCreating(true);
+    window.requestAnimationFrame(() => document.querySelector("[data-home-poll]")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, []);
   const options = poll ? [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order) : [];
   const votedIds = new Set(votes.filter(vote => vote.poll_id === poll?.id).map(vote => vote.option_id));
   const showResults = poll?.status === "closed" || votedIds.size > 0;
@@ -6922,10 +6928,10 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
 
 // ─── EDIT PROFILE ─────────────────────────────────────────────────────────────
 
-function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
+function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: Page) => void; auth: AuthState; onSelectPhoto: (photo: DbPhoto) => void }) {
   type AreaProfile = DbProfile & { people?: Partial<DbPerson> | null };
   const [profile, setProfile] = useState<AreaProfile | null>(null);
-  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
+  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<DbPhoto[]>([]);
   const [taggedPhotos, setTaggedPhotos] = useState<DbPhoto[]>([]);
   const [memories, setMemories] = useState<DbMemory[]>([]);
@@ -6948,8 +6954,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
     const personId = nextProfile?.person_id ?? "";
     const classGroup = nextProfile?.people?.class_group ?? "";
-    const [ticketsRes, uploadedRes, taggedRes, memoriesRes, pollsRes, votesRes, classmatesRes] = await Promise.allSettled([
-      getMyTickets(auth.userId, auth.email),
+    const [uploadedRes, taggedRes, memoriesRes, pollsRes, votesRes, classmatesRes] = await Promise.allSettled([
       getMyUploadedPhotos(auth.userId),
       personId ? getMyTaggedPhotos(personId) : Promise.resolve([]),
       getMyMemories(auth.userId),
@@ -6968,7 +6973,6 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
     if (profileResult.status === "rejected") {
       errors.profile = profileResult.reason instanceof Error ? profileResult.reason.message : "Não foi possível carregar o perfil.";
     }
-    setTickets(listOrEmpty(ticketsRes, "tickets"));
     setUploadedPhotos(listOrEmpty(uploadedRes, "photos"));
     setTaggedPhotos(listOrEmpty(taggedRes, "tags"));
     setMemories(listOrEmpty(memoriesRes, "memories"));
@@ -6981,8 +6985,6 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
   useEffect(() => { loadArea(); }, [auth.userId, auth.email]);
 
-  const mainTicket = tickets[0] ?? null;
-  const paymentStatus = ticketPaymentStatus(mainTicket);
   const displayName = profile?.display_name || profile?.people?.full_name || auth.name || auth.email?.split("@")[0] || "Ex-aluno";
   const firstNameRaw = displayName.split(/\s+/).find(Boolean) ?? displayName;
   const firstName = firstNameRaw.toLocaleLowerCase("pt-BR").replace(/^./, c => c.toLocaleUpperCase("pt-BR"));
@@ -7028,40 +7030,18 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
               {sectionErrors.profile && <p className="text-[#c9a84c] text-xs font-mono mt-3">{sectionErrors.profile}</p>}
             </div>
 
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 lg:col-span-2">
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div className="bg-[#f0ebe0] p-6 w-28 h-28 flex items-center justify-center shrink-0">
-                  <QrCode size={60} className="text-[#0d1a0f]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-1">Meu ingresso</p>
-                  {mainTicket ? (
-                    <>
-                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">{ticketTypeName(mainTicket)}</p>
-                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">{mainTicket.qr_code} · {mainTicket.attendee_name}</p>
-                      <div className="flex flex-wrap gap-2"><StatusBadge status={paymentStatus} /><StatusBadge status="cancelled" /></div>
-                      <p className="text-[#8ab89a] text-xs leading-relaxed mt-3">{paymentStatus === "refunded" ? "Reembolso concluído pelo Mercado Pago." : paymentStatus === "approved" ? "Reembolso integral sendo processado pela organização." : "O evento foi cancelado e não haverá novas cobranças."}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl mb-1">Nenhum ingresso localizado</p>
-                      <p className="text-[#7a9a7a] text-xs font-mono mb-3">{sectionErrors.tickets ? "Não foi possível conferir ingressos agora." : "Use o mesmo e-mail da compra para vincular seu ingresso."}</p>
-                    </>
-                  )}
-                </div>
-                {mainTicket ? <Btn onClick={() => navigate("my-ticket")} size="sm"><FileText size={14} />Ver pagamento</Btn> : <Btn onClick={() => window.location.assign("/meus-pedidos")} size="sm" variant="outline"><FileText size={14} />Meus pedidos</Btn>}
-              </div>
-            </div>
-
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Minhas fotos</p>
                 <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Nossa História</button>
               </div>
+              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => setPhotoUploadOpen(true)}><Upload size={14} />Adicionar Fotos</Btn></div>
               {allPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {allPhotos.map(photo => (
-                    <img key={photo.id} src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto"} className="aspect-square w-full object-cover bg-[#1a2e1a]" />
+                    <button key={photo.id} type="button" onClick={() => { onSelectPhoto(photo); navigate("photo-detail"); }} aria-label={`Abrir foto ${photo.caption ?? "da turma"}`} className="overflow-hidden bg-[#1a2e1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
+                      <img src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto"} className="aspect-square w-full object-cover transition-transform hover:scale-105" />
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -7071,16 +7051,17 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-5">Minhas memórias</p>
+              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => navigate("memories")}><Send size={14} />Adicionar Memórias</Btn></div>
               {memories.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {memories.slice(0, 3).map(memory => (
-                    <div key={memory.id} className="border border-[#2d6a4f]/20 bg-[#0a120a] p-4">
+                    <button key={memory.id} type="button" onClick={() => navigate("memories")} className="w-full border border-[#2d6a4f]/20 bg-[#0a120a] p-4 text-left transition-colors hover:border-[#c9a84c]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <StatusBadge status={memory.status} />
                         <span className="text-[#7a9a7a] text-[10px] font-mono">{memory.created_at?.slice(0, 10)}</span>
                       </div>
                       <p className="text-[#f0ebe0] text-sm line-clamp-3">{memory.memory_text}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -7090,6 +7071,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-5">Enquetes</p>
+              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => { window.sessionStorage.setItem("hc20-open-poll-creator", "true"); navigate("home"); }}><BarChart3 size={14} />Criar Enquete</Btn></div>
               {openPolls.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {openPolls.map(poll => (
@@ -7130,6 +7112,7 @@ function AlumniDashboardPage({ navigate, auth }: { navigate: (p: Page) => void; 
           </div>
         )}
       </div>
+      <PhotoUploadModal open={photoUploadOpen} onClose={() => setPhotoUploadOpen(false)} auth={auth} navigate={navigate} />
     </div>
   );
 }
@@ -10083,7 +10066,7 @@ export default function App() {
   const [approvedPhotos, setApprovedPhotos] = useState<DbPhoto[]>([]);
   const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
   const [attendanceIntentPersonIds, setAttendanceIntentPersonIds] = useState<Set<string>>(() => new Set());
-  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<DbPhoto | null>(null);
   const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
   const [homeContentLoaded, setHomeContentLoaded] = useState(false);
   const [homeContentError, setHomeContentError] = useState<string | null>(null);
@@ -10354,15 +10337,15 @@ export default function App() {
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
         {page === "ex-alumni"     && <ExAlumniPage      navigate={navigate} people={people}                       />}
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
-        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onSelectPhoto={setSelectedPhotoId} />}
-        {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={approvedPhotos.find(p => p.id === selectedPhotoId) ?? approvedPhotos[0] ?? null} />}
+        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onSelectPhoto={id => setSelectedPhoto(approvedPhotos.find(photo => photo.id === id) ?? null)} />}
+        {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={selectedPhoto ?? approvedPhotos[0] ?? null} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
         {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth} people={people}              />}
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
-        {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth}                         />}
+        {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth} onSelectPhoto={setSelectedPhoto} />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} registerNavigationGuard={registerAdminNavigationGuard} />}
         {page === "checkin"       && <CheckinPage        navigate={navigate} auth={auth}                           />}

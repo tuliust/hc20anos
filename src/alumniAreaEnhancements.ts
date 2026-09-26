@@ -10,7 +10,6 @@ const PROFILE_ROW_ATTRIBUTE = "data-alumni-area-profile-row-stretched";
 const PROFILE_PHOTO_ATTRIBUTE = "data-alumni-area-profile-photo-stretched";
 const PROFILE_PHOTO_IMAGE_ATTRIBUTE = "data-alumni-area-profile-photo-image-stretched";
 const CLASSMATE_STATUS_ATTRIBUTE = "data-alumni-area-classmate-status-translated";
-const ORDERS_LINK_ATTRIBUTE = "data-buyer-orders-link";
 
 const CLASSMATE_STATUS_LABELS: Record<string, string> = {
   unclaimed: "Não atualizado",
@@ -328,61 +327,6 @@ function updateEmptyStateActionBorders() {
     });
 }
 
-function ensureOrdersLink() {
-  document
-    .querySelectorAll<HTMLAnchorElement>(`a[${ORDERS_LINK_ATTRIBUTE}]`)
-    .forEach(link => {
-      if (!isAlumniAreaRoute()) {
-        link.remove();
-      }
-    });
-
-  if (
-    !isAlumniAreaRoute()
-    || document.querySelector(`a[${ORDERS_LINK_ATTRIBUTE}]`)
-  ) {
-    return;
-  }
-
-  const main = document.querySelector("main");
-
-  if (!main) return;
-
-  const heading = Array.from(
-    main.querySelectorAll<HTMLElement>("h1, h2"),
-  ).find(element =>
-    /minha área|área do ex-aluno|olá/i.test(element.textContent ?? ""),
-  );
-
-  const anchor = heading?.parentElement ?? main.firstElementChild;
-
-  if (!(anchor instanceof HTMLElement)) return;
-
-  const link = document.createElement("a");
-  link.href = "/meus-pedidos";
-  link.textContent = "Meus pedidos e ingressos";
-  link.setAttribute(ORDERS_LINK_ATTRIBUTE, "true");
-  link.setAttribute("aria-label", "Abrir meus pedidos e ingressos");
-
-  Object.assign(link.style, {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "fit-content",
-    marginTop: "12px",
-    padding: "11px 18px",
-    borderRadius: "999px",
-    background: "#173c2f",
-    color: "#ffffff",
-    fontWeight: "700",
-    lineHeight: "1.2",
-    textDecoration: "none",
-    cursor: "pointer",
-  });
-
-  anchor.appendChild(link);
-}
-
 function updateAlumniArea() {
   updateHeaderExitButton();
   updateGreetingClassLabel();
@@ -392,7 +336,6 @@ function updateAlumniArea() {
   updateTicketMessage();
   updatePhotosHeaderLink();
   updateEmptyStateActionBorders();
-  ensureOrdersLink();
 }
 
 let scheduled = false;
