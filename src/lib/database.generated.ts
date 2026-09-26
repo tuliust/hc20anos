@@ -5043,6 +5043,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      submit_poll: {
+        Args: {
+          p_event_id: string
+          p_options: Json
+          p_question: string
+        }
+        Returns: {
+          allow_multiple_votes: boolean
+          created_at: string
+          created_by_admin_id: string | null
+          description: string | null
+          event_id: string
+          id: string
+          question: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "polls"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_photo_comment: {
         Args: { p_comment_text: string; p_photo_id: string }
         Returns: {
@@ -5417,4 +5441,3 @@ export const Constants = {
     },
   },
 } as const
-

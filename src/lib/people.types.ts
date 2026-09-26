@@ -29,6 +29,7 @@ export type DbPerson = Omit<
   | "contact_phone"
   | "avatar_url"
 > & {
+  has_registered_profile?: boolean;
   display_name?: PersonRow["display_name"];
   gender?: Gender | null;
   birth_year?: PersonRow["birth_year"];

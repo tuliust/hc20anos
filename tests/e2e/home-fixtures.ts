@@ -78,6 +78,25 @@ export const peopleFixture = Array.from({ length: 8 }, (_, index) => ({
   updated_at: "2026-01-01T00:00:00Z",
 }));
 
+export const registeredProfileCardsFixture = peopleFixture.slice(0, 6).map((person, index) => ({
+  profile_id: `00000000-0000-0000-0006-${String(index + 1).padStart(12, "0")}`,
+  person_id: person.id,
+  display_name: `Perfil cadastrado ${index + 1}`,
+  full_name: person.full_name,
+  avatar_url: index === 0 ? "https://example.test/public-avatar.jpg" : null,
+  current_city: null,
+  current_state: null,
+  current_country: null,
+  profession: null,
+  instagram_url: null,
+  linkedin_url: null,
+  contact_phone: null,
+  relationship_status: null,
+  has_children: false,
+  children_count: null,
+  intends_to_attend: false,
+}));
+
 export const homeContentFixture: Record<string, unknown> = {
   event_id: "00000000-0000-0000-0000-000000000001",
   header_logo_url: null,
@@ -310,9 +329,32 @@ type InstallOptions = {
   people?: typeof peopleFixture;
   locations?: typeof locationsFixture;
   photos?: unknown[];
+  polls?: unknown[];
+  authenticated?: boolean;
 };
 
 export async function installHomeFixtures(page: Page, options: InstallOptions = {}) {
+  if (options.authenticated) {
+    await page.addInitScript(() => {
+      const now = Math.floor(Date.now() / 1000);
+      localStorage.setItem("sb-supabase-auth-token", JSON.stringify({
+        access_token: "test-access-token",
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: now + 3600,
+        refresh_token: "test-refresh-token",
+        user: {
+          id: "00000000-0000-0000-0007-000000000001",
+          aud: "authenticated",
+          role: "authenticated",
+          email: "aluno@example.test",
+          app_metadata: { provider: "email", providers: ["email"] },
+          user_metadata: { full_name: "Aluno cadastrado" },
+          created_at: new Date().toISOString(),
+        },
+      }));
+    });
+  }
   await page.route("**/rest/v1/**", async route => {
     const pathname = new URL(route.request().url()).pathname;
     const resource = pathname.split("/rest/v1/")[1]?.split("/")[0] ?? "";
@@ -328,10 +370,11 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       events: [eventFixture],
       people: options.people ?? peopleFixture,
       profiles: [],
+      public_profile_cards: registeredProfileCardsFixture,
       ticket_types: [],
       photos: options.photos ?? [],
       memories: memoriesFixture,
-      polls: [pollFixture],
+      polls: options.polls ?? [pollFixture],
       poll_results: [
         { poll_id: pollFixture.id, option_id: pollFixture.poll_options[0].id, option_text: pollFixture.poll_options[0].option_text, sort_order: 0, votes_count: 3 },
         { poll_id: pollFixture.id, option_id: pollFixture.poll_options[1].id, option_text: pollFixture.poll_options[1].option_text, sort_order: 1, votes_count: 1 },
@@ -375,13 +418,18 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       }],
       rpc: [],
     };
+    const requestUrl = new URL(route.request().url());
+    const responsePayload = resource === "rpc" && rpcName === "get_public_memories"
+      ? memoriesFixture
+      : payloads[resource] ?? [];
+    const filteredPayload = resource === "public_profile_cards"
+      ? (responsePayload as Array<Record<string, unknown>>).filter(row => !requestUrl.searchParams.has("person_id") || requestUrl.searchParams.get("person_id") === `eq.${row.person_id}`)
+      : responsePayload;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       headers: { "Content-Range": "0-0/1" },
-      body: JSON.stringify(resource === "rpc" && rpcName === "get_public_memories"
-        ? memoriesFixture
-        : payloads[resource] ?? []),
+      body: JSON.stringify(filteredPayload),
     });
   });
 }

@@ -441,13 +441,28 @@ export async function getPeople(filters?: {
     );
     return people.map(person => {
       const card = cardsByPersonId.get(person.id);
-      return card ? {
+      return {
         ...person,
-        display_name: card.display_name ?? person.display_name,
-        avatar_url: card.avatar_url ?? person.avatar_url,
-      } : person;
+        has_registered_profile: Boolean(card),
+        ...(card ? {
+          display_name: card.display_name ?? person.display_name,
+          avatar_url: card.avatar_url,
+        } : {}),
+      };
     });
   }, MOCK_PEOPLE);
+}
+
+export function getRegisteredHomePeople(people: DbPerson[]): DbPerson[] {
+  return people.filter(person => person.is_visible && person.has_registered_profile).map(person => ({
+    ...person,
+    contact_email: null,
+    contact_phone: null,
+    claimed_by_user_id: null,
+    claimed_at: null,
+    private_notes: null,
+    verification_status: null,
+  }));
 }
 
 export async function getPublicPeople(): Promise<DbPerson[]> {
@@ -1775,6 +1790,16 @@ export async function createPoll(params: {
   }
   await writeAudit("create_poll", "polls", pollRow.id, { options_count: options.length, admin_id: params.adminId });
   return pollRow;
+}
+
+export async function submitPoll(params: { eventId?: string; question: string; options: string[] }): Promise<DbPoll> {
+  const { data, error } = await supabase.rpc("submit_poll", {
+    p_event_id: params.eventId ?? DEFAULT_EVENT_ID,
+    p_question: params.question,
+    p_options: params.options,
+  });
+  if (error) throw error;
+  return data as DbPoll;
 }
 
 export async function updatePoll(id: string, patch: Partial<DbPoll>, adminId: string): Promise<void> {

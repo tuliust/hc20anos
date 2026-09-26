@@ -42,8 +42,8 @@ with checks as (
   union all
   select 'phase2_rpcs_exist', (
     select count(distinct proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='public' and proname in ('get_public_memories','create_uploaded_photo','submit_photo_comment','submit_memory','submit_photo_tag','submit_photo_removal_request','moderate_content_item','set_content_featured','reject_photo_removal_request','prepare_photo_removal','complete_photo_removal')
-  )=11
+    where n.nspname='public' and proname in ('get_public_memories','create_uploaded_photo','submit_photo_comment','submit_memory','submit_poll','submit_photo_tag','submit_photo_removal_request','moderate_content_item','set_content_featured','reject_photo_removal_request','prepare_photo_removal','complete_photo_removal')
+  )=12
   union all
   select 'anonymous_memory_table_read_removed', not exists(
     select 1 from pg_policies where schemaname='public' and tablename='memories' and policyname='memories_public_read'
@@ -54,6 +54,8 @@ with checks as (
   select 'content_submission_rpcs_are_authenticated',
     not has_function_privilege('anon','public.submit_memory(uuid,uuid,text,boolean)','EXECUTE')
     and has_function_privilege('authenticated','public.submit_memory(uuid,uuid,text,boolean)','EXECUTE')
+    and not has_function_privilege('anon','public.submit_poll(uuid,text,jsonb)','EXECUTE')
+    and has_function_privilege('authenticated','public.submit_poll(uuid,text,jsonb)','EXECUTE')
     and not has_function_privilege('anon','public.create_uploaded_photo(uuid,text,text,text,bigint,text,integer,integer,text,integer,text,jsonb,boolean)','EXECUTE')
   union all
   select 'completion_rpc_is_service_only',
@@ -85,6 +87,56 @@ begin
   end;
   if not blocked then raise exception 'FAIL direct_memory_insert_blocked'; end if;
   raise notice 'PASS direct_memory_insert_blocked';
+end $$;
+rollback;
+
+-- Registered members may submit memories and draft polls; unregistered accounts are rejected.
+begin;
+insert into public.profiles (person_id, user_id)
+values ('77777777-7777-4777-8777-777777777777', '22222222-2222-4222-8222-222222222222')
+on conflict (person_id) do update set user_id = excluded.user_id;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+select set_config('request.jwt.claim.role','authenticated',true);
+select set_config('request.jwt.claims','{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}',true);
+set local role authenticated;
+do $$
+declare
+  v_poll public.polls;
+  v_rejected boolean := false;
+begin
+  v_poll := public.submit_poll(
+    '00000000-0000-0000-0000-000000000001',
+    'Qual atividade da turma revisar?',
+    '["Café da manhã","Visita à escola"]'::jsonb
+  );
+  if v_poll.status <> 'draft' then raise exception 'FAIL submitted_poll_requires_moderation'; end if;
+  if (select count(*) from public.poll_options where poll_id = v_poll.id) <> 2 then raise exception 'FAIL submitted_poll_saves_options'; end if;
+  raise notice 'PASS registered_member_submits_draft_poll';
+
+  if (public.submit_memory('00000000-0000-0000-0000-000000000001', null, 'Uma memória válida da turma.', false)).status <> 'pending' then
+    raise exception 'FAIL registered_member_submits_pending_memory';
+  end if;
+  raise notice 'PASS registered_member_submits_pending_memory';
+
+  perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  perform set_config('request.jwt.claims','{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}',true);
+  begin
+    perform public.submit_poll('00000000-0000-0000-0000-000000000001','Qual atividade da turma revisar?','["A","B"]'::jsonb);
+  exception when others then
+    if sqlerrm = 'profile_registration_required' then v_rejected := true; else raise; end if;
+  end;
+  if not v_rejected then raise exception 'FAIL unregistered_member_poll_submission_blocked'; end if;
+  raise notice 'PASS unregistered_member_poll_submission_blocked';
+
+  v_rejected := false;
+  begin
+    perform public.submit_memory('00000000-0000-0000-0000-000000000001', null, 'Uma memória válida da turma.', false);
+  exception when others then
+    if sqlerrm = 'profile_registration_required' then v_rejected := true; else raise; end if;
+  end;
+  if not v_rejected then raise exception 'FAIL unregistered_member_memory_submission_blocked'; end if;
+  raise notice 'PASS unregistered_member_memory_submission_blocked';
 end $$;
 rollback;
 

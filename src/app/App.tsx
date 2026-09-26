@@ -18,10 +18,10 @@ import {
   getPhotoCommentsForModeration, moderatePhotoComment,
   getApprovedMemories, createMemory, getMemoriesForModeration, moderateMemory,
   toggleFeaturedPhoto, toggleFeaturedMemory,
-  getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, updatePoll, closePoll, archivePoll,
+  getPolls, getPollResults, getMyPollVotes, votePoll, createPoll, submitPoll, updatePoll, closePoll, archivePoll,
   getPublicLocationStats, getAlumniDirectoryStatuses, getMyTickets, getMyProfile, saveMyPublicProfile, findTicketForCheckin, markTicketCheckedIn,
   getMyUploadedPhotos, getMyTaggedPhotos, getMyMemories, getClassmates,
-  getPublicProfileCardByPersonId, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, getSchoolQuestionnaireResponseStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
+  getPublicProfileCardByPersonId, getRegisteredHomePeople, getCuriosityProfileStats, getPublicCuriosityProfileDetails, getSchoolQuestionnaireOptionStats, getSchoolQuestionnaireResponseStats, saveSchoolQuestionnaireAnswers, importPeopleAdmin,
   getAdminPersonDetails, updateAdminPersonAndProfile, uploadAdminPersonAvatar, completeProfileRegistration, type AdminImportPersonInput, type AdminPersonProfileDraft,
   createCheckoutOrder, createPaymentPreference, getCheckoutOrder,
   getEventArchiveSettings, updateEventArchiveSettings, uploadProfileAvatar, uploadHeaderLogo, uploadFavicon, uploadCmsContentImage, getHomePageContent, updateHomePageContent, getAttendanceIntentPersonIds, HOME_PAGE_CONTENT_DEFAULTS, type HomePageContent,
@@ -2602,18 +2602,7 @@ function Hero({ navigate, content, auth }: { navigate: (p: Page) => void; conten
           <p className="mt-3 text-sm leading-6 text-[#d8ddd8] md:text-base">
             O encontro previsto para setembro foi cancelado devido à baixa adesão. Os pagamentos realizados estão sendo reembolsados integralmente pelo Mercado Pago.
           </p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs leading-5 text-[#7f9784]">O site continua ativo para reunir a Turma 2006, seus perfis, histórias, fotos e curiosidades.</p>
-            {auth.loggedIn ? (
-              <button type="button" onClick={() => window.location.assign("/meus-pedidos")} className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">
-                Acompanhar reembolso →
-              </button>
-            ) : (
-              <button type="button" onClick={() => navigate("login")} className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">
-                Entrar para acompanhar →
-              </button>
-            )}
-          </div>
+          <p className="mt-4 text-xs leading-5 text-[#7f9784]">O site continua ativo para reunir a Turma 2006, seus perfis, histórias, fotos e curiosidades.</p>
         </div>
       </div>
 
@@ -2859,7 +2848,7 @@ function HomeAboutCard({ icon, label, children, className = "" }: { icon: React.
   );
 }
 
-function HomeMemoriesCarousel({ memories, people, emptyLabel, description }: { memories: DbMemory[]; people: DbPerson[]; emptyLabel?: string; description?: string }) {
+function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navigate, auth }: { memories: DbMemory[]; people: DbPerson[]; emptyLabel?: string; description?: string; navigate: (page: Page) => void; auth: AuthState }) {
   const [index, setIndex] = useState(0);
   useEffect(() => setIndex(0), [memories.length]);
   useEffect(() => {
@@ -2867,16 +2856,14 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description }: { m
     const intervalId = window.setInterval(() => setIndex(current => (current + 1) % memories.length), 3000);
     return () => window.clearInterval(intervalId);
   }, [memories.length]);
-  if (!memories.length) return <p className="text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>;
-
   const memory = memories[index];
-  const author = memory.person_id ? people.find(person => person.id === memory.person_id) : undefined;
-  const authorName = memory.is_anonymous ? "Anônimo" : author ? getHomeAlumniDisplayName(author) : memory.author_name || "Ex-aluno(a)";
-  const classLabel = !memory.is_anonymous && author?.class_group ? `Turma ${getHomeClassGroup(author.class_group) ?? author.class_group}` : null;
+  const author = memory?.person_id ? people.find(person => person.id === memory.person_id) : undefined;
+  const authorName = memory?.is_anonymous ? "Anônimo" : author ? getHomeAlumniDisplayName(author) : memory?.author_name || "Ex-aluno(a)";
+  const classLabel = memory && !memory.is_anonymous && author?.class_group ? `Turma ${getHomeClassGroup(author.class_group) ?? author.class_group}` : null;
   const go = (delta: number) => setIndex(current => (current + delta + memories.length) % memories.length);
   return (
     <div data-home-memory-carousel className="flex min-h-52 flex-col">
-      <div className="grid flex-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
+      {memory ? <div key={memory.id} className="grid flex-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
         <div className="min-w-0">
           <blockquote className="font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0] md:text-2xl">“{memory.memory_text}”</blockquote>
           <div className="mt-5 font-semibold text-[#f0ebe0]">
@@ -2887,13 +2874,16 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description }: { m
         <div className="flex justify-start sm:justify-end">
           {author && !memory.is_anonymous ? <AlumniAvatar person={author} dimension={112} /> : <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>}
         </div>
-      </div>
+      </div> : <p className="flex-1 py-6 text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>}
       <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
+        <button type="button" data-add-memory onClick={() => navigate(auth.loggedIn ? "memories" : "login")} className="border border-[#c9a84c]/60 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] transition-colors hover:bg-[#c9a84c] hover:text-[#0d1a0f]">Adicionar memória</button>
+        {memories.length > 1 && <div className="flex items-center gap-3">
         <p className="font-mono text-[10px] text-[#3a5a3a]">{index + 1} / {memories.length}</p>
         <div className="flex gap-2">
           <button type="button" onClick={() => go(-1)} aria-label="Memória anterior" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronLeft size={16} /></button>
           <button type="button" onClick={() => go(1)} aria-label="Próxima memória" className="flex h-9 w-9 items-center justify-center border border-[#2d6a4f]/35 text-[#c9a84c] transition-colors hover:border-[#c9a84c]"><ChevronRight size={16} /></button>
-        </div>
+          </div>
+        </div>}
       </div>
     </div>
   );
@@ -3155,7 +3145,7 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
   );
 }
 
-function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVote }: {
+function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVote, onCreatePoll, navigate }: {
   poll: (DbPoll & { poll_options?: DbPollOption[] }) | null;
   results: Record<string, number>;
   votes: DbPollVote[];
@@ -3164,33 +3154,96 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
   busy: string | null;
   error: string;
   onVote: (poll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) => void;
+  onCreatePoll: (question: string, options: string[]) => Promise<unknown>;
+  navigate: (page: Page) => void;
 }) {
-  if (!poll) return <p className="text-sm leading-relaxed text-[#7a9a7a]">{fallback.empty_label}</p>;
-  const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-  const votedIds = new Set(votes.filter(vote => vote.poll_id === poll.id).map(vote => vote.option_id));
-  const showResults = poll.status === "closed" || votedIds.size > 0;
+  const [creating, setCreating] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [optionsText, setOptionsText] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [createMessage, setCreateMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const options = poll ? [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order) : [];
+  const votedIds = new Set(votes.filter(vote => vote.poll_id === poll?.id).map(vote => vote.option_id));
+  const showResults = poll?.status === "closed" || votedIds.size > 0;
   const total = Object.values(results).reduce((sum, count) => sum + Number(count), 0);
+
+  async function submitNewPoll() {
+    if (!auth.loggedIn) { navigate("login"); return; }
+    const cleanOptions = optionsText.split("\n").map(option => option.trim()).filter(Boolean);
+    if (question.trim().length < 8 || cleanOptions.length < 2) {
+      setCreateError("Informe uma pergunta e pelo menos duas alternativas.");
+      return;
+    }
+    setSubmitting(true);
+    setCreateError("");
+    setCreateMessage("");
+    try {
+      await onCreatePoll(question.trim(), cleanOptions);
+      setQuestion("");
+      setOptionsText("");
+      setCreating(false);
+      setCreateMessage("Enquete enviada para moderação.");
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : "Falha ao enviar a enquete.";
+      setCreateError(message.includes("profile_registration_required") ? "Conclua seu cadastro no site para enviar uma enquete." : message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div data-home-poll>
-      <p className="mb-4 font-['Playfair_Display'] text-xl font-bold leading-tight text-[#f0ebe0]">{poll.question}</p>
-      <div className="flex flex-col gap-2">
-        {options.map(option => {
-          const count = results[option.id] ?? 0;
-          const percent = percentOf(count, total);
-          if (showResults) return (
-            <div key={option.id} className={`border p-3 ${votedIds.has(option.id) ? "border-[#c9a84c]/70 bg-[#1a2e1a]" : "border-[#2d6a4f]/20 bg-[#0d1a0f]"}`}>
-              <div className="mb-2 flex justify-between gap-3 text-xs"><span className="text-[#f0ebe0]">{option.option_text}</span><span className="font-mono text-[#c9a84c]">{percent}%</span></div>
-              <div className="h-1.5 overflow-hidden bg-[#1a2e1a]"><div className="h-full bg-[#c9a84c]" style={{ width: `${percent}%` }} /></div>
-            </div>
-          );
-          return (
-            <button key={option.id} type="button" disabled={busy === option.id} onClick={() => onVote(poll, option.id)} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-3 text-left text-sm text-[#f0ebe0] transition-colors hover:border-[#c9a84c]/60 disabled:opacity-60">{option.option_text}</button>
-          );
-        })}
+      {poll ? <>
+        <p className="mb-4 font-['Playfair_Display'] text-xl font-bold leading-tight text-[#f0ebe0]">{poll.question}</p>
+        <div className="flex flex-col gap-2">
+          {options.map(option => {
+            const count = results[option.id] ?? 0;
+            const percent = percentOf(count, total);
+            if (showResults) return (
+              <div key={option.id} className={"border p-3 " + (votedIds.has(option.id) ? "border-[#c9a84c]/70 bg-[#1a2e1a]" : "border-[#2d6a4f]/20 bg-[#0d1a0f]")}>
+                <div className="mb-2 flex justify-between gap-3 text-xs"><span className="text-[#f0ebe0]">{option.option_text}</span><span className="font-mono text-[#c9a84c]">{percent}%</span></div>
+                <div className="h-1.5 overflow-hidden bg-[#1a2e1a]"><div className="h-full bg-[#c9a84c]" style={{ width: percent + "%" }} /></div>
+              </div>
+            );
+            return <button key={option.id} type="button" disabled={busy === option.id} onClick={() => onVote(poll, option.id)} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-3 text-left text-sm text-[#f0ebe0] transition-colors hover:border-[#c9a84c]/60 disabled:opacity-60">{option.option_text}</button>;
+          })}
+        </div>
+        {!auth.loggedIn && poll.status === "open" && <p className="mt-3 font-mono text-[10px] text-[#c9a84c]">{fallback.login_required_label}</p>}
+        {error && <p role="alert" className="mt-3 text-xs text-[#e07a5f]">{error}</p>}
+      </> : <p className="text-sm leading-relaxed text-[#7a9a7a]">{fallback.empty_label}</p>}
+      <div className="mt-5 border-t border-[#2d6a4f]/20 pt-4">
+        {!creating ? <button type="button" data-create-poll onClick={() => auth.loggedIn ? setCreating(true) : navigate("login")} className="border border-[#c9a84c]/60 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] transition-colors hover:bg-[#c9a84c] hover:text-[#0d1a0f]">Criar Enquete</button> : (
+          <div className="flex flex-col gap-3" data-home-poll-form>
+            <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Pergunta<input value={question} onChange={event => setQuestion(event.target.value.slice(0, 180))} maxLength={180} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Escreva a pergunta" /></label>
+            <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Opções (uma por linha)<textarea value={optionsText} onChange={event => setOptionsText(event.target.value.slice(0, 800))} rows={4} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Uma opção por linha" /></label>
+            <div className="flex flex-wrap gap-2"><button type="button" disabled={submitting} onClick={submitNewPoll} className="border border-[#c9a84c] bg-[#c9a84c] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#0d1a0f] disabled:opacity-60">Enviar para moderação</button><button type="button" onClick={() => { setCreating(false); setCreateError(""); }} className="border border-[#2d6a4f]/35 px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Cancelar</button></div>
+          </div>
+        )}
+        {createMessage && <p role="status" className="mt-3 text-xs text-[#74c69d]">{createMessage}</p>}
+        {createError && <p role="alert" className="mt-3 text-xs text-[#e07a5f]">{createError}</p>}
       </div>
-      {!auth.loggedIn && poll.status === "open" && <p className="mt-3 font-mono text-[10px] text-[#c9a84c]">{fallback.login_required_label}</p>}
-      {error && <p role="alert" className="mt-3 text-xs text-[#e07a5f]">{error}</p>}
     </div>
+  );
+}
+
+function HomeRegisteredPeopleGrid({ people, onOpenPerson }: { people: DbPerson[]; onOpenPerson: (person: DbPerson) => void }) {
+  return (
+    <section data-home-registered-people className="border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><Users size={17} /></div>
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">Pessoas cadastradas</h3>
+      </div>
+      {people.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {people.map(person => (
+          <button key={person.id} type="button" data-home-registered-person onClick={() => onOpenPerson(person)} className="flex min-w-0 flex-col items-center gap-2 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3 text-center transition-colors hover:border-[#c9a84c]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
+            <AlumniAvatar person={person} dimension={48} />
+            <span className="w-full truncate text-xs font-semibold text-[#f0ebe0]">{person.display_name || person.full_name}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-[#7a9a7a]">{person.class_group ? `Turma ${getHomeClassGroup(person.class_group) ?? person.class_group}` : "Turma não informada"}</span>
+          </button>
+        ))}
+      </div> : <p className="text-sm text-[#7a9a7a]">Nenhum perfil cadastrado disponível para exibição.</p>}
+    </section>
   );
 }
 
@@ -3209,7 +3262,6 @@ function AboutSection({
 }) {
   const extendedContent = getExtendedHomeContent(content);
   const aboutCopy = parseHomeJsonObject<HomeAboutOverviewCopy>(extendedContent.home_about_overview_json, {});
-  const hasRequiredAboutCopy = Boolean(content.about_eyebrow && content.about_title && content.about_body_1 && content.about_body_2);
   const nostalgiaItems = parseHomeJsonArray<NostalgiaTimelineItemContent>(extendedContent.home_nostalgia_timeline_json, []);
   const profileConfigs = parseHomeJsonArray<HomeProfileStatConfig>(extendedContent.home_profile_stats_json, []);
   const mapConfigs = parseHomeJsonArray<HomeMapStatConfig>(extendedContent.home_map_stats_json, []);
@@ -3220,6 +3272,8 @@ function AboutSection({
     if (group) counts[group] = (counts[group] ?? 0) + 1;
     return counts;
   }, {}), [visiblePeople]);
+  const [registeredPeople, setRegisteredPeople] = useState<DbPerson[]>([]);
+  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
   const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
   const [locations, setLocations] = useState<LocationStat[]>([]);
   const [poll, setPoll] = useState<(DbPoll & { poll_options?: DbPollOption[] }) | null>(null);
@@ -3227,6 +3281,10 @@ function AboutSection({
   const [pollVotes, setPollVotes] = useState<DbPollVote[]>([]);
   const [pollBusy, setPollBusy] = useState<string | null>(null);
   const [pollError, setPollError] = useState("");
+
+  useEffect(() => {
+    setRegisteredPeople(getRegisteredHomePeople(people));
+  }, [people]);
 
   useEffect(() => {
     let active = true;
@@ -3266,24 +3324,10 @@ function AboutSection({
     }
   }
 
-  if (!hasRequiredAboutCopy) return null;
-
   return (
     <section data-home-section="about" className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:items-start">
-          <div>
-            <SectionLabel>{content.about_eyebrow}</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-5xl mb-6">{content.about_title}</DisplayTitle>
-            <GoldRule />
-            <p className="text-[#8ab89a] text-base leading-relaxed mb-4">{content.about_body_1}</p>
-            <p className="text-[#8ab89a] text-base leading-relaxed">{content.about_body_2}</p>
-            <div className="mt-10">
-              <div className="flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
-              <CompactNostalgiaTimeline items={nostalgiaItems} />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-8">
           <div className="flex flex-col gap-4">
             <div data-home-about-stats>
               <div className="flex items-end justify-between gap-4 border-b border-[#2d6a4f]/20 pb-5">
@@ -3295,15 +3339,22 @@ function AboutSection({
               </div>
             </div>
 
+            <HomeRegisteredPeopleGrid people={registeredPeople} onOpenPerson={setSelectedPerson} />
+            <div className="mt-3">
+              <div className="mb-3 flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
+              <CompactNostalgiaTimeline items={nostalgiaItems} />
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} /></HomeAboutCard>
+              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} navigate={navigate} auth={auth} /></HomeAboutCard>
               <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label} className="sm:col-span-2"><HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} /></HomeAboutCard>
-              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label} className="sm:col-span-2"><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} /></HomeAboutCard>
+              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label} className="sm:col-span-2"><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} onCreatePoll={(question, options) => submitPoll({ eventId: DEFAULT_EVENT_ID, question, options })} navigate={navigate} /></HomeAboutCard>
               <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label} className="sm:col-span-2"><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>
             </div>
           </div>
         </div>
 
+        {selectedPerson && <PersonDetailModal person={selectedPerson} onClose={() => setSelectedPerson(null)} />}
         <div className="mt-10 md:mt-12 flex justify-center">
           {aboutCopy.view_all_label && (
             <Btn onClick={() => navigate("curiosities")}>
@@ -3693,7 +3744,7 @@ function LandingPage({
     // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
     // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
     timeline: null,
-    faq: <FAQSection content={content} />,
+    faq: null,
   };
 
   return (
@@ -6726,7 +6777,8 @@ function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
       setMessage("Memória enviada para moderação.");
       await loadMemories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar memória.");
+      const message = err instanceof Error ? err.message : "Erro ao enviar memória.";
+      setError(message.includes("profile_registration_required") ? "Conclua seu cadastro antes de enviar uma memória." : message);
     } finally { setBusy(false); }
   }
 
@@ -10353,4 +10405,3 @@ export default function App() {
     </div>
   );
 }
-

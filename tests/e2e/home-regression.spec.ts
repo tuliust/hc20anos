@@ -80,14 +80,86 @@ test("imagem da timeline aparece à direita somente no marco expandido", async (
   expect(imageBox!.x).toBeGreaterThan(descriptionBox!.x);
 });
 
-test("seção Sobre obrigatória incompleta fica oculta sem fallback", async ({ page }) => {
+test("conte\u00fado legado sobre o cancelamento e FAQ n\u00e3o s\u00e3o exibidos na Home", async ({ page }) => {
   await installHomeFixtures(page, { mutateHome: row => {
-    row.about_title = "";
+    row.about_eyebrow = "INFORMA\u00c7\u00d5ES";
+    row.about_title = "Sobre o site e o cancelamento";
+    row.faq_title = "FAQ exibido na Home";
   }});
 
-  await page.goto("/");
-  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator("[data-home-section='about']")).toHaveCount(0);
+  await loadHome(page);
+  await expect(page.getByText("Sobre o site e o cancelamento", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("FAQ exibido na Home", { exact: true })).toHaveCount(0);
+  await expect(page.locator("[data-home-section='about']")).toBeVisible();
+});
+
+test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enquete", async ({ page }) => {
+  await installHomeFixtures(page, { authenticated: true });
+  await loadHome(page);
+
+  await expect(page.getByRole("button", { name: /Entrar para acompanhar|Acompanhar reembolso/i })).toHaveCount(0);
+  await expect(page.getByText("Comunicado sobre o encontro de 2026")).toBeVisible();
+  await expect(page.locator("[data-add-memory]")).toContainText("Adicionar mem\u00f3ria");
+  await expect(page.locator("[data-create-poll]")).toContainText("Criar Enquete");
+  await page.locator("[data-create-poll]").click();
+  await expect(page.locator("[data-home-poll-form]")).toBeVisible();
+  await page.getByPlaceholder("Escreva a pergunta").fill("Qual atividade rever a seguir?");
+  await page.getByPlaceholder("Uma opção por linha").fill("Café da manhã\nVisita à escola");
+  const pollRequestPromise = page.waitForRequest(request => new URL(request.url()).pathname.endsWith("/rpc/submit_poll"));
+  await page.getByRole("button", { name: /Enviar para modera/ }).click();
+  const pollRequest = await pollRequestPromise;
+  expect(JSON.parse(pollRequest.postData() ?? "{}")).toMatchObject({
+    p_event_id: "00000000-0000-0000-0000-000000000001",
+    p_question: "Qual atividade rever a seguir?",
+    p_options: ["Café da manhã", "Visita à escola"],
+  });
+  await expect(page.getByRole("status")).toContainText("Enquete enviada para moderação.");
+});
+
+test("bot\u00e3o Criar Enquete continua dispon\u00edvel sem enquete aberta", async ({ page }) => {
+  await installHomeFixtures(page, { polls: [], authenticated: true });
+  await loadHome(page);
+
+  await expect(page.locator("[data-home-poll]")).toContainText("Nenhuma enquete aberta.");
+  await expect(page.locator("[data-create-poll]")).toBeVisible();
+  await page.locator("[data-create-poll]").click();
+  await expect(page.locator("[data-home-poll-form]")).toBeVisible();
+});
+
+test("Adicionar mem\u00f3ria reaproveita a p\u00e1gina de envio existente", async ({ page }) => {
+  await installHomeFixtures(page, { authenticated: true });
+  await loadHome(page);
+
+  await page.locator("[data-add-memory]").click();
+  await expect(page).toHaveURL(/\/nossa-historia\/memorias$/);
+  await expect(page.getByText("Enviar mem\u00f3ria", { exact: true })).toBeVisible();
+});
+
+test("Home exibe somente pessoas com perfil cadastrado e abre o modal de perfil sobre a Home", async ({ page }) => {
+  await installHomeFixtures(page, { people: peopleFixture.map((person, index) => ({
+    ...person,
+    avatar_url: index === 7 ? "https://example.test/privado.jpg" : null,
+    contact_email: "privado-" + (index + 1) + "@example.test",
+    contact_phone: "+551199999000" + index,
+    private_notes: "nota privada " + (index + 1),
+  })) });
+  await loadHome(page);
+
+  const box = page.locator("[data-home-registered-people]");
+  await expect(box.locator("[data-home-registered-person]")).toHaveCount(6);
+  await expect(box).toContainText("Perfil cadastrado 1");
+  await expect(box.locator("[data-home-registered-person]").first()).toContainText("Turma A");
+  await expect(box.locator("img").first()).toHaveAttribute("src", "https://example.test/public-avatar.jpg");
+  await expect(box).not.toContainText("Pessoa 8");
+  await expect(box).not.toContainText("privado-");
+  await expect(box).not.toContainText("+5511");
+  await expect(box).not.toContainText("nota privada");
+
+  const currentUrl = page.url();
+  await box.locator("[data-home-registered-person]").first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("Perfil cadastrado 1");
+  expect(page.url()).toBe(currentUrl);
 });
 
 test("seções ocultas no CMS não são montadas", async ({ page }) => {
@@ -214,7 +286,7 @@ test("carrossel de memorias avanca, volta e preserva anonimato", async ({ page }
 
   const carousel = page.locator("[data-home-memory-carousel]");
   await expect(carousel).toContainText("A primeira memória da turma.");
-  await expect(carousel.locator("[data-memory-author]")).toHaveText("Pessoa 1");
+  await expect(carousel.locator("[data-memory-author]")).toHaveText("Perfil 1");
   await expect(carousel.locator("[data-memory-class]")).toHaveText("Turma A");
   await carousel.getByRole("button", { name: "Próxima memória" }).click();
   await expect(carousel).toContainText("A segunda memória da turma.");

@@ -69,6 +69,7 @@ export const CONSUMED_RPC_NAMES = [
   "submit_photo_comment",
   "submit_photo_removal_request",
   "submit_photo_tag",
+  "submit_poll",
   "update_my_public_profile"
 ] as const satisfies readonly PublicRpcName[];
 
@@ -329,6 +330,10 @@ export type SubmitPhotoRemovalRequestRow = RpcRow<"submit_photo_removal_request"
 export type SubmitPhotoTagArgs = RpcArgs<"submit_photo_tag">;
 export type SubmitPhotoTagReturns = RpcReturns<"submit_photo_tag">;
 export type SubmitPhotoTagRow = RpcRow<"submit_photo_tag">;
+
+export type SubmitPollArgs = RpcArgs<"submit_poll">;
+export type SubmitPollReturns = RpcReturns<"submit_poll">;
+export type SubmitPollRow = RpcRow<"submit_poll">;
 
 export type UpdateMyPublicProfileArgs = RpcArgs<"update_my_public_profile">;
 export type UpdateMyPublicProfileReturns = RpcReturns<"update_my_public_profile">;
