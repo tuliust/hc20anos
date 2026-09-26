@@ -54,7 +54,6 @@ import { installRequestedFollowupsHC050910 } from './requestedFollowupsHC050910'
 import { installSiteAnalyticsTracker } from './siteAnalyticsTracker';
 import { installTicketProductModelEnhancement } from './ticketProductModelEnhancement';
 import { installTicketsCatalogLayoutEnhancements } from './ticketsCatalogLayoutEnhancements';
-import { installTimelineSequentialActivation } from './timelineSequentialActivation';
 import { installEventProgramEnhancements } from './eventProgramEnhancements';
 import { installEventStage4Enhancements } from './eventStage4Enhancements';
 import { installAdminEventAttractionImages } from './adminEventAttractionImages';
@@ -167,7 +166,6 @@ if (!isStandaloneRoute && !isRedirectingRetiredRoute) {
   installHistoryPhotoRefreshEnhancement();
   installPhotoUploadModalEnhancement();
   installPostEventClosedMessageEnhancements();
-  installTimelineSequentialActivation();
   installEventProgramEnhancements();
   installEventStage4Enhancements();
   installAdminEventAttractionImages();

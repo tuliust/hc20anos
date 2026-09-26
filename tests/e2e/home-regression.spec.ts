@@ -304,7 +304,7 @@ test("carrossel de memorias avanca automaticamente a cada tres segundos", async 
   await expect(carousel).toContainText("A segunda memória da turma.", { timeout: 4_000 });
 });
 
-test("timeline mostra ano completo e mantem somente um marco aberto", async ({ page }) => {
+test("timeline mantem todos os marcos sempre abertos", async ({ page }) => {
   await installHomeFixtures(page);
   await loadHome(page);
 
@@ -312,14 +312,11 @@ test("timeline mostra ano completo e mantem somente um marco aberto", async ({ p
   const items = timeline.locator("[data-timeline-index]");
   await expect(items.nth(0)).toContainText("1996");
   await expect(items.nth(1)).toContainText("2006");
-  if (await items.nth(0).getAttribute("data-timeline-active") !== "true") {
-    await items.nth(0).getByRole("button").evaluate(element => (element as HTMLButtonElement).click());
-  }
-  await expect(timeline.locator("[data-timeline-active='true']")).toHaveCount(1);
-  await expect(items.nth(0)).toHaveAttribute("data-timeline-active", "true");
-  await items.nth(1).getByRole("button").evaluate(element => (element as HTMLButtonElement).click());
-  await expect(items.nth(0)).toHaveAttribute("data-timeline-active", "false");
-  await expect(items.nth(1)).toHaveAttribute("data-timeline-active", "true");
+  await expect(timeline.locator("[data-timeline-active='true']")).toHaveCount(2);
+  await expect(items.nth(0)).toContainText("Um marco da turma.");
+  await expect(items.nth(1)).toContainText("O fim de um ciclo.");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(timeline.locator("[data-timeline-active='true']")).toHaveCount(2);
 });
 
 test("timeline ordena os marcos cronologicamente mesmo quando o CMS salva fora de ordem", async ({ page }) => {

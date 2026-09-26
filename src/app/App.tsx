@@ -2767,26 +2767,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
 }
 
 function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemContent[] }) {
-  const [openIndex, setOpenIndex] = useState(-1);
-  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const manualSelectionUntilRef = useRef(0);
   const visibleItems = sortNostalgiaTimelineItems(items.filter(item => item.is_visible !== false && item.year && (item.title || item.label)));
-
-  useEffect(() => {
-    if (!("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver(entries => {
-      if (performance.now() < manualSelectionUntilRef.current) return;
-      const activeEntry = entries
-        .filter(entry => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!activeEntry) return;
-      const index = Number((activeEntry.target as HTMLElement).dataset.timelineIndex);
-      if (Number.isInteger(index)) setOpenIndex(index);
-    }, { rootMargin: "-32% 0px -42% 0px", threshold: [0.2, 0.5, 0.8] });
-
-    itemRefs.current.slice(0, visibleItems.length).forEach(node => node && observer.observe(node));
-    return () => observer.disconnect();
-  }, [visibleItems.length]);
 
   if (!visibleItems.length) return null;
 
@@ -2794,38 +2775,26 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
     <div data-home-nostalgia-timeline className="mt-10 lg:pr-4">
       <div className="relative ml-7 border-l border-[#2d6a4f]/35 pl-10">
         {visibleItems.map((item, index) => {
-          const open = openIndex === index;
           const title = item.title || item.label || "";
           const description = item.description || item.desc || "";
           return (
             <div
               key={`${item.year}-${title}`}
-              ref={node => { itemRefs.current[index] = node; }}
               data-timeline-index={index}
-              data-timeline-active={open ? "true" : "false"}
-              className={`relative transition-[padding] duration-500 motion-reduce:transition-none ${index < visibleItems.length - 1 ? (open ? "pb-12" : "pb-7") : ""}`}
+              data-timeline-active="true"
+              className={`relative ${index < visibleItems.length - 1 ? "pb-12" : ""}`}
             >
-              <div className={`absolute -left-[70px] top-0 flex items-center justify-center rounded-full border bg-[#0d1a0f] font-mono font-bold text-[#c9a84c] transition-all duration-500 motion-reduce:transition-none ${open ? "h-16 w-16 -translate-x-1 border-[#c9a84c] text-sm shadow-[0_0_28px_rgba(201,168,76,0.16)]" : "h-14 w-14 border-[#2d6a4f]/50 text-xs"}`}>
+              <div className="absolute -left-[70px] top-0 flex h-16 w-16 -translate-x-1 items-center justify-center rounded-full border border-[#c9a84c] bg-[#0d1a0f] font-mono text-sm font-bold text-[#c9a84c] shadow-[0_0_28px_rgba(201,168,76,0.16)]">
                 {item.year}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  manualSelectionUntilRef.current = performance.now() + 1000;
-                  setOpenIndex(open ? -1 : index);
-                }}
-                className={`group min-h-14 w-full text-left transition-transform duration-500 motion-reduce:transition-none ${open ? "translate-x-2" : ""}`}
-                aria-expanded={open}
-              >
-                <span className={`block font-['Playfair_Display'] font-bold leading-tight text-[#f0ebe0] transition-all duration-500 group-hover:text-[#c9a84c] motion-reduce:transition-none ${open ? "text-2xl md:text-3xl" : "text-lg md:text-xl"}`}>{title}</span>
-              </button>
-              <div aria-hidden={!open} className={`grid transition-[grid-template-rows,opacity,transform] duration-500 motion-reduce:transition-none ${open && (description || item.image_url) ? "visible grid-rows-[1fr] translate-x-2 opacity-100" : "invisible grid-rows-[0fr] opacity-0"}`}>
-                <div className="overflow-hidden">
+              <div className="translate-x-2">
+                <h3 className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0] md:text-3xl">{title}</h3>
+                {(description || item.image_url) && (
                   <div className={`mt-3 grid items-start gap-5 ${item.image_url ? "md:grid-cols-[minmax(0,1fr)_minmax(150px,0.72fr)]" : ""}`}>
                     {description && <p className="max-w-md text-base leading-relaxed text-[#8ab89a]">{description}</p>}
                     {item.image_url && <img src={item.image_url} alt={title} className="max-h-56 w-full object-contain object-center md:justify-self-end" />}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           );
