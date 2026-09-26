@@ -724,12 +724,34 @@ export async function getClassmates(classGroup?: string | null, currentPersonId?
       .select("*")
       .eq("class_group", classGroup)
       .eq("is_visible", true)
-      .order("full_name")
-      .limit(8);
+      .order("full_name");
     if (currentPersonId) q = q.neq("id", currentPersonId);
     const { data, error } = await q;
     if (error) throw error;
-    return (data as DbPerson[]) ?? [];
+    const classmates = (data as DbPerson[]) ?? [];
+    if (!classmates.length) return [];
+    const { data: profileCards } = await (supabase as any)
+      .from("public_profile_cards")
+      .select("person_id,display_name,avatar_url")
+      .in("person_id", classmates.map(person => person.id));
+    const cardsByPersonId = new Map(
+      ((profileCards ?? []) as Pick<PublicProfileCardRow, "person_id" | "display_name" | "avatar_url">[])
+        .map(card => [card.person_id, card]),
+    );
+    return classmates
+      .map(person => {
+        const card = cardsByPersonId.get(person.id);
+        return {
+          ...person,
+          has_registered_profile: Boolean(card),
+          ...(card ? {
+            display_name: card.display_name ?? person.display_name,
+            avatar_url: card.avatar_url,
+          } : {}),
+        };
+      })
+      .sort((a, b) => Number(b.has_registered_profile) - Number(a.has_registered_profile) || a.full_name.localeCompare(b.full_name, "pt-BR"))
+      .slice(0, 12);
   }, []);
 }
 

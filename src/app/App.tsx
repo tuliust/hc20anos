@@ -1339,7 +1339,7 @@ function SaveToast({ show }: { show: boolean }) {
   );
 }
 
-function AlumniCard({ alumni, onClaim, onOpen }: { alumni: Alumni; onClaim?: () => void; onOpen?: () => void }) {
+function AlumniCard({ alumni, onClaim, onOpen, showInviteButton = false }: { alumni: Alumni; onClaim?: () => void; onOpen?: () => void; showInviteButton?: boolean }) {
   const colors = ["#2d6a4f", "#1a4d2e", "#40916c", "#1e3a2f", "#0b3d2e"];
   const numericSeed = Number.parseInt(alumni.id.replace(/\D/g, "").slice(-4) || "0", 10);
   const color = colors[numericSeed % colors.length];
@@ -1382,7 +1382,11 @@ function AlumniCard({ alumni, onClaim, onOpen }: { alumni: Alumni; onClaim?: () 
       </div>
 
       <div className="flex items-center justify-between">
-        <StatusBadge status={alumni.status} />
+        {alumni.status === "unclaimed" && showInviteButton ? (
+          <button type="button" onClick={event => event.stopPropagation()} className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#c9a84c] border border-[#c9a84c]/50 px-3 py-1.5">
+            Enviar Convite
+          </button>
+        ) : <StatusBadge status={alumni.status} />}
         {alumni.status === "unclaimed" && onClaim && (
           <button
             onClick={(e) => { e.stopPropagation(); onClaim(); }}
@@ -4552,7 +4556,8 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       || (profileFilter === "registered" && status.hasCompletedRegistration)
       || (profileFilter === "unregistered" && !status.hasCompletedRegistration);
     return matchesSearch && matchesClass && matchesProfile;
-  });
+  }).sort((a, b) => Number(getDirectoryStatus(b).hasCompletedRegistration) - Number(getDirectoryStatus(a).hasCompletedRegistration)
+    || displayNameForPerson(a, getDirectoryStatus(a).displayName).localeCompare(displayNameForPerson(b, getDirectoryStatus(b).displayName), "pt-BR"));
 
   const registeredRows = publicDetailRows.filter(row => row.has_completed_registration);
   const photoRows = registeredRows.filter(row => Boolean(row.avatar_url));
@@ -4631,7 +4636,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filtered.map(person => {
                 const status = getDirectoryStatus(person);
-                return <AlumniCard key={person.id} alumni={personToAlumni(person, status.displayName, status.hasCompletedRegistration ? "claimed" : "unclaimed")} onOpen={() => setSelectedPerson(person)} onClaim={() => navigate("claim-profile")} />;
+                return <AlumniCard key={person.id} alumni={personToAlumni(person, status.displayName, status.hasCompletedRegistration ? "claimed" : "unclaimed")} onOpen={() => setSelectedPerson(person)} onClaim={() => navigate("claim-profile")} showInviteButton />;
               })}
             </div>
             {filtered.length === 0 && (
@@ -6938,6 +6943,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
   const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
   const [votes, setVotes] = useState<DbPollVote[]>([]);
   const [classmates, setClassmates] = useState<DbPerson[]>([]);
+  const [selectedClassmate, setSelectedClassmate] = useState<DbPerson | null>(null);
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -6996,6 +7002,8 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
   const votedPollIds = new Set(votes.map(vote => vote.poll_id));
 
   return (
+    <>
+    <PersonDetailModal person={selectedClassmate} onClose={() => setSelectedClassmate(null)} onClaim={() => { setSelectedClassmate(null); navigate("claim-profile"); }} />
     <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-start justify-between mb-10">
@@ -7093,16 +7101,16 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
               </div>
               {classmates.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {classmates.slice(0, 4).map(person => (
-                    <div key={person.id} className="flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0a120a] p-3">
+                  {classmates.slice(0, 12).map(person => (
+                    <button key={person.id} type="button" onClick={() => setSelectedClassmate(person)} aria-label={`Abrir perfil de ${person.display_name || person.full_name}`} className="flex items-center gap-3 border border-[#2d6a4f]/20 bg-[#0a120a] p-3 text-left transition-colors hover:border-[#c9a84c]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
                       <div className="w-11 h-11 bg-[#2d6a4f] flex items-center justify-center overflow-hidden text-[#f0ebe0] text-xs font-mono font-bold shrink-0">
                         {person.avatar_url ? <img src={person.avatar_url} alt={person.full_name} className="w-full h-full object-cover" /> : initials(person.full_name)}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[#f0ebe0] text-sm font-semibold truncate">{person.full_name}</p>
-                        <p className="text-[#7a9a7a] text-xs font-mono">{person.profile_status}</p>
+                        <p className="text-[#f0ebe0] text-sm font-semibold truncate">{person.display_name || person.full_name}</p>
+                        <p className="text-[#7a9a7a] text-xs font-mono">{person.has_registered_profile ? "Cadastrado no site" : person.profile_status}</p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -7114,6 +7122,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
       </div>
       <PhotoUploadModal open={photoUploadOpen} onClose={() => setPhotoUploadOpen(false)} auth={auth} navigate={navigate} />
     </div>
+    </>
   );
 }
 
