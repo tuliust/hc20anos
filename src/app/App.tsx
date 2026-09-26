@@ -2647,18 +2647,16 @@ function AlumniAvatar({ person, size = "sm", dimension }: { person: DbPerson; si
   );
 }
 
-function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: HomeAlumniOverviewCopy }) {
-  const classGroups = useMemo(() => Array.from(new Set(alumni.map(person => person.class_group).filter((group): group is string => Boolean(group)))).sort(), [alumni]);
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+function HomeClassTabsContent({ alumni, copy, activeGroup, onSelectGroup }: { alumni: DbPerson[]; copy: HomeAlumniOverviewCopy; activeGroup: string; onSelectGroup: (group: string) => void }) {
+  const classGroups = useMemo(() => Array.from(new Set(alumni.map(person => getHomeClassGroup(person.class_group)).filter((group): group is string => Boolean(group)))).sort(), [alumni]);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    setActiveGroup(current => current && classGroups.includes(current) ? current : classGroups[0] ?? null);
     setPage(0);
-  }, [classGroups]);
+  }, [activeGroup]);
 
   const classPeople = useMemo(() => alumni
-    .filter(person => person.class_group === activeGroup)
+    .filter(person => getHomeClassGroup(person.class_group) === activeGroup)
     .sort((a, b) => getHomeAlumniDisplayName(a).localeCompare(getHomeAlumniDisplayName(b), "pt-BR")), [activeGroup, alumni]);
   const totalPages = Math.max(1, Math.ceil(classPeople.length / 3));
   const visiblePeople = classPeople.slice(page * 3, page * 3 + 3);
@@ -2671,10 +2669,10 @@ function HomeClassTabsContent({ alumni, copy }: { alumni: DbPerson[]; copy: Home
     <>
       <div data-home-class-tabs className="mb-4 flex flex-wrap justify-center gap-1.5">
         {classGroups.map(group => {
-          const count = alumni.filter(person => person.class_group === group).length;
+          const count = alumni.filter(person => getHomeClassGroup(person.class_group) === group).length;
           const active = group === activeGroup;
           const label = applyTextTemplate(copy.class_tab_label_template, { group, count }) || `${group} (${count})`;
-          return <button key={group} type="button" aria-pressed={active} onClick={() => { setActiveGroup(group); setPage(0); }} className={`border px-2 py-1.5 text-[9px] font-mono uppercase tracking-[0.12em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
+          return <button key={group} type="button" aria-pressed={active} onClick={() => { onSelectGroup(group); setPage(0); }} className={`border px-2 py-1.5 text-[9px] font-mono uppercase tracking-[0.12em] transition-colors ${active ? "border-[#c9a84c]/80 text-[#c9a84c] bg-[#0d1a0f]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c]/50 hover:text-[#c9a84c]"}`}>{label}</button>;
         })}
       </div>
       <div className="mt-auto flex items-center gap-3">
@@ -2718,7 +2716,7 @@ function HomeConfirmedPresenceGrid({ confirmed, emptyLabel, limit }: { confirmed
   ) : emptyLabel ? <p data-home-confirmed-grid data-count="0" className="mt-auto text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel}</p> : null;
 }
 
-function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, navigate }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string>; content: HomePageContent; navigate: (page: Page) => void }) {
+function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, navigate, activeClassGroup, onSelectClassGroup }: { people: DbPerson[]; attendanceIntentPersonIds: Set<string>; content: HomePageContent; navigate: (page: Page) => void; activeClassGroup: string; onSelectClassGroup: (group: string) => void }) {
   const [seed, setSeed] = useState(1);
   const [directoryRows, setDirectoryRows] = useState<AlumniDirectoryStatusRow[] | null>(null);
   const alumni = useMemo(() => people.filter(person => person.class_year === 2006 && person.is_visible), [people]);
@@ -2761,7 +2759,7 @@ function HomeAlumniOverviewPanel({ people, attendanceIntentPersonIds, content, n
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.sample_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{applyTextTemplate(copy.sample_title_template, { total: alumni.length })}</p></div><Users size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mt-auto grid grid-cols-4 gap-3 sm:grid-cols-6">{samplePeople.map(person => <div key={person.id} data-home-alumni-person={getHomeAlumniDisplayName(person)} data-home-alumni-person-id={person.id} role="button" tabIndex={0} className="flex cursor-pointer flex-col items-center gap-2 text-center outline-none focus:ring-2 focus:ring-[#c9a84c]"><AlumniAvatar person={person} /><p className="line-clamp-2 text-[10px] leading-tight text-[#7a9a7a]">{getHomeAlumniDisplayName(person)}</p></div>)}</div></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.presence_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.presence_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><div className="mb-5 grid grid-cols-2 gap-3"><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{confirmed.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.confirmed_label}</p></div><div className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4"><p className="font-['Playfair_Display'] text-4xl font-black leading-none text-[#f0ebe0]">{intending.length}</p><p className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#7a9a7a]">{copy.intending_label}</p></div></div><div className="mt-auto"><div className="mb-2 flex items-center justify-between"><p className="text-xs text-[#7a9a7a]">{copy.progress_label}</p><p className="text-xs font-mono text-[#c9a84c]">{confirmedPercent}%</p></div><div className="h-2 overflow-hidden border border-[#2d6a4f]/25 bg-[#0d1a0f]"><div className="h-full bg-[#c9a84c]/80" style={{ width: `${confirmedPercent}%` }} /></div></div></div>
-          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.classes_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.classes_title}</p></div><GraduationCap size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeClassTabsContent alumni={alumni} copy={copy} /></div>
+          <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.classes_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.classes_title}</p></div><GraduationCap size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeClassTabsContent alumni={alumni} copy={copy} activeGroup={activeClassGroup} onSelectGroup={onSelectClassGroup} /></div>
           <div className="flex min-h-[260px] flex-col border border-[#2d6a4f]/25 bg-[#141f14] p-6"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#c9a84c]">{copy.confirmed_grid_label}</p><p className="font-['Playfair_Display'] text-2xl font-bold leading-tight text-[#f0ebe0]">{copy.confirmed_grid_title}</p></div><UserCheck size={22} className="shrink-0 text-[#c9a84c]" /></div><HomeConfirmedPresenceGrid confirmed={confirmed} emptyLabel={copy.confirmed_empty_label} limit={confirmedPreviewLimit} /></div>
         </div>
         <div className="mt-10 flex flex-col items-center gap-4 text-center">{copy.footer_note && <p className="text-sm font-mono text-[#7a9a7a]">{copy.footer_note}</p>}{(copy.view_all_label || extendedContent.confirmed_view_all_label) && <Btn variant="ghost" onClick={() => navigate("who-going")}>{copy.view_all_label || extendedContent.confirmed_view_all_label} <ArrowRight size={16} /></Btn>}</div>
@@ -3206,15 +3204,23 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
   );
 }
 
-function HomeRegisteredPeopleGrid({ people, onOpenPerson }: { people: DbPerson[]; onOpenPerson: (person: DbPerson) => void }) {
+function HomeRegisteredPeopleGrid({ people, classGroup, navigate, onOpenPerson }: { people: DbPerson[]; classGroup: string; navigate: (page: Page) => void; onOpenPerson: (person: DbPerson) => void }) {
+  const classPeople = people.filter(person => getHomeClassGroup(person.class_group) === classGroup);
   return (
     <section data-home-registered-people className="border border-[#2d6a4f]/25 bg-[#141f14] p-5 md:p-6">
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><Users size={17} /></div>
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">Pessoas cadastradas</h3>
+        <h3 className="flex-1 font-mono text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]">Pessoas cadastradas</h3>
+        <button type="button" onClick={() => {
+          window.history.pushState({}, "", `/ex-alunos?turma=${encodeURIComponent(classGroup)}`);
+          window.dispatchEvent(new Event("pushstate"));
+          navigate("ex-alumni");
+        }} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#7a9a7a] transition-colors hover:text-[#c9a84c]">
+          Ver Todos <ArrowRight size={13} />
+        </button>
       </div>
-      {people.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {people.map(person => (
+      {classPeople.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {classPeople.map(person => (
           <button key={person.id} type="button" data-home-registered-person onClick={() => onOpenPerson(person)} className="flex min-w-0 flex-col items-center gap-2 border border-[#2d6a4f]/20 bg-[#0d1a0f] p-3 text-center transition-colors hover:border-[#c9a84c]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
             <AlumniAvatar person={person} dimension={48} />
             <span className="w-full truncate text-xs font-semibold text-[#f0ebe0]">{person.display_name || person.full_name}</span>
@@ -3232,12 +3238,14 @@ function AboutSection({
   people,
   memories,
   auth,
+  activeClassGroup,
 }: {
   content: HomePageContent;
   navigate: (p: Page) => void;
   people: DbPerson[];
   memories: DbMemory[];
   auth: AuthState;
+  activeClassGroup: string;
 }) {
   const extendedContent = getExtendedHomeContent(content);
   const aboutCopy = parseHomeJsonObject<HomeAboutOverviewCopy>(extendedContent.home_about_overview_json, {});
@@ -3318,7 +3326,7 @@ function AboutSection({
               </div>
             </div>
 
-            <HomeRegisteredPeopleGrid people={registeredPeople} onOpenPerson={setSelectedPerson} />
+            <HomeRegisteredPeopleGrid people={registeredPeople} classGroup={activeClassGroup} navigate={navigate} onOpenPerson={setSelectedPerson} />
             <div className="mt-3">
               <div className="mb-3 flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
               <CompactNostalgiaTimeline items={nostalgiaItems} />
@@ -3637,8 +3645,8 @@ function TicketsPreview({
   );
 }
 
-function WhoGoingPreview({ navigate, people, content, attendanceIntentPersonIds }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent; attendanceIntentPersonIds: Set<string> }) {
-  return <HomeAlumniOverviewPanel navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />;
+function WhoGoingPreview({ navigate, people, content, attendanceIntentPersonIds, activeClassGroup, onSelectClassGroup }: { navigate: (p: Page) => void; people: DbPerson[]; content: HomePageContent; attendanceIntentPersonIds: Set<string>; activeClassGroup: string; onSelectClassGroup: (group: string) => void }) {
+  return <HomeAlumniOverviewPanel navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={onSelectClassGroup} />;
 }
 
 function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) => void; photos: DbPhoto[]; content: HomePageContent }) {
@@ -3712,13 +3720,14 @@ function LandingPage({
   attendanceIntentPersonIds: Set<string>;
   auth: AuthState;
 }) {
+  const [activeClassGroup, setActiveClassGroup] = useState("A");
   const sections = getHomeSections(content);
   const sectionRenderers: Record<HomeSectionKey, React.ReactNode> = {
     hero: <Hero navigate={navigate} content={content} event={event} auth={auth} />,
-    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} />,
+    about: <AboutSection content={content} navigate={navigate} people={people} memories={memories} auth={auth} activeClassGroup={activeClassGroup} />,
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
-    confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} />,
+    confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
     photos: null,
     // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
     // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
