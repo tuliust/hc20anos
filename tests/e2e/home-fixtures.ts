@@ -316,6 +316,7 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
   await page.route("**/rest/v1/**", async route => {
     const pathname = new URL(route.request().url()).pathname;
     const resource = pathname.split("/rest/v1/")[1]?.split("/")[0] ?? "";
+    const rpcName = pathname.split("/rest/v1/rpc/")[1] ?? "";
     if (resource === "home_page_content" && options.delayHomeMs) {
       await new Promise(resolve => setTimeout(resolve, options.delayHomeMs));
     }
@@ -378,7 +379,9 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
       status: 200,
       contentType: "application/json",
       headers: { "Content-Range": "0-0/1" },
-      body: JSON.stringify(payloads[resource] ?? []),
+      body: JSON.stringify(resource === "rpc" && rpcName === "get_public_memories"
+        ? memoriesFixture
+        : payloads[resource] ?? []),
     });
   });
 }

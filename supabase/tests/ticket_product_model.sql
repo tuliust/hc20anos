@@ -15,12 +15,13 @@ declare
   v_active_price_count integer;
   v_active_price integer;
   v_checkout_definition text;
+  v_reference_at timestamptz := '2026-09-16 12:00:00-03'::timestamptz;
 begin
   -- Em produção o evento está cancelado e o catálogo público deve estar vazio.
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)
     into v_codes, v_names
-  from public.get_public_ticket_catalog(v_event_id, now()) c;
+  from public.get_public_ticket_catalog(v_event_id, v_reference_at) c;
 
   if v_codes is not null or v_names is not null then
     raise exception 'Cancelled event must expose no public catalog: codes %, names %', v_codes, v_names;
@@ -40,10 +41,18 @@ begin
   set event_status = 'published', sales_status = 'open'
   where id = v_event_id;
 
+  -- A migration de produÃ§Ã£o usa now() no inÃ­cio do lote. Normalize a janela
+  -- da fixture para que o replay continue vÃ¡lido depois do encerramento real.
+  update public.ticket_lots
+  set starts_at = v_reference_at - interval '1 day',
+      ends_at = v_reference_at + interval '1 day'
+  where event_id = v_event_id
+    and status = 'open';
+
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)
     into v_codes, v_names
-  from public.get_public_ticket_catalog(v_event_id, now()) c;
+  from public.get_public_ticket_catalog(v_event_id, v_reference_at) c;
 
   if v_codes is distinct from array['simple']::text[] then
     raise exception 'Historical catalog must contain only the simple product when sales are explicitly reopened: %', v_codes;
@@ -64,7 +73,7 @@ begin
   end if;
 
   select l.id into v_current_lot_id
-  from public.get_current_ticket_lot(v_event_id, now()) l
+  from public.get_current_ticket_lot(v_event_id, v_reference_at) l
   limit 1;
 
   if v_current_lot_id is null then

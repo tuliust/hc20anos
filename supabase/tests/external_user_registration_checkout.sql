@@ -2,8 +2,18 @@ begin;
 
 -- Cadastro externo segue ativo, mas o checkout é legado; reabre vendas só para esta transação de teste.
 update public.events
-set event_status = 'published', sales_status = 'open'
+set event_status = 'published',
+    sales_status = 'open',
+    event_date = current_date + 1,
+    event_time = '14:00:00'::time
 where id = '00000000-0000-0000-0000-000000000001'::uuid;
+
+update public.ticket_lots
+set status = 'open',
+    starts_at = now() - interval '1 day',
+    ends_at = now() + interval '1 day'
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid
+  and code = 'single';
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
