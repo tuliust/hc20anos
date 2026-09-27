@@ -4557,31 +4557,29 @@ export type Database = {
       get_checkout_status_by_token: {
         Args: { p_public_token: string }
         Returns: {
-          currency_id: string
-          expires_at: string
-          order_id: string
-          paid_at: string
           payment_status: string
-          payment_status_detail: string
-          reservation_status: string
-          ticket_count: number
-          total_amount_cents: number
         }[]
       }
       get_contact_research_directory: {
         Args: never
         Returns: {
           class_group: string
-          email: string
           full_name: string
-          instagram: string
-          notes: string
           person_id: string
-          phone: string
           research_status: string
+          can_contribute: boolean
+        }[]
+      }
+      get_contact_research_private_details: {
+        Args: never
+        Returns: {
+          email: string | null
+          instagram: string | null
+          notes: string | null
+          person_id: string
+          phone: string | null
           source: string
           updated_at: string
-          updated_by: string
         }[]
       }
       get_current_ticket_catalog: {
@@ -4969,24 +4967,7 @@ export type Database = {
           p_phone?: string
           p_source?: string
         }
-        Returns: {
-          created_at: string
-          email: string | null
-          instagram: string | null
-          notes: string | null
-          person_id: string
-          phone: string | null
-          source: string
-          status: string
-          updated_at: string
-          updated_by: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "alumni_contact_research"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       search_external_guest_sponsors: {
         Args: { p_search?: string }

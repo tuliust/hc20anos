@@ -11,14 +11,14 @@ type DirectoryRow = {
   person_id: string;
   full_name: string;
   class_group: ClassGroup;
-  phone: string | null;
-  instagram: string | null;
-  email: string | null;
-  notes: string | null;
   research_status: ResearchStatus;
-  source: ResearchSource;
-  updated_by: string | null;
-  updated_at: string | null;
+  can_contribute: boolean;
+  phone?: string | null;
+  instagram?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  source?: ResearchSource;
+  updated_at?: string | null;
 };
 
 type Draft = {
@@ -151,6 +151,7 @@ function rowDraft(row: DirectoryRow): Draft {
 
 export function ContactResearchPage() {
   const [rows, setRows] = useState<DirectoryRow[]>([]);
+  const [canManage, setCanManage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeGroup, setActiveGroup] = useState<ClassGroup>("A");
@@ -176,7 +177,30 @@ export function ContactResearchPage() {
       return;
     }
 
-    setRows((data ?? []) as DirectoryRow[]);
+    const publicRows = (data ?? []) as DirectoryRow[];
+    const { data: sessionResult } = await supabase.auth.getSession();
+    if (!sessionResult.session) {
+      setCanManage(false);
+      setRows(publicRows);
+      setLoading(false);
+      return;
+    }
+    const { data: managerResult } = await db.rpc("can_manage_contact_research");
+    const manager = managerResult === true;
+    setCanManage(manager);
+    if (manager) {
+      const { data: privateRows, error: privateError } = await db.rpc("get_contact_research_private_details");
+      if (privateError) {
+        setRows(publicRows);
+        setError("A lista pública abriu, mas não foi possível carregar os detalhes autorizados.");
+        setLoading(false);
+        return;
+      }
+      const detailsByPerson = new Map((privateRows ?? []).map((row: any) => [row.person_id, row]));
+      setRows(publicRows.map((row) => ({ ...row, ...(detailsByPerson.get(row.person_id) ?? {}) })));
+    } else {
+      setRows(publicRows);
+    }
     setLoading(false);
   }
 
@@ -221,18 +245,19 @@ export function ContactResearchPage() {
       if (!normalized) return true;
 
       return normalizeSearch(row.full_name).includes(normalized)
-        || normalizeSearch(row.phone ?? "").includes(normalized)
+        || (canManage && (normalizeSearch(row.phone ?? "").includes(normalized)
         || normalizeSearch(row.instagram ?? "").includes(normalized)
-        || normalizeSearch(row.email ?? "").includes(normalized);
+        || normalizeSearch(row.email ?? "").includes(normalized)));
     });
-  }, [rows, activeGroup, statusFilter, query]);
+  }, [rows, activeGroup, statusFilter, query, canManage]);
 
   const shortcutCandidates = useMemo(
-    () => shortcutImport ? rankImportedContact(shortcutImport, rows) : [],
-    [shortcutImport, rows],
+    () => shortcutImport ? rankImportedContact(shortcutImport, rows.filter((row) => canManage || row.can_contribute)) : [],
+    [shortcutImport, rows, canManage],
   );
 
   function openEditor(row: DirectoryRow, imported?: ImportedContact) {
+    if (!canManage && !row.can_contribute) return;
     const base = rowDraft(row);
     setEditing(row);
     setActiveGroup(row.class_group);
@@ -248,7 +273,7 @@ export function ContactResearchPage() {
   useEffect(() => {
     if (shortcutProcessed || !shortcutImport || !rows.length) return;
 
-    const ranked = rankImportedContact(shortcutImport, rows);
+    const ranked = rankImportedContact(shortcutImport, rows.filter((row) => canManage || row.can_contribute));
     const top = ranked[0];
     const second = ranked[1];
     const confident = top && top.score >= 80 && (!second || top.score - second.score >= 10);
@@ -257,7 +282,7 @@ export function ContactResearchPage() {
     else if (shortcutImport.name) setQuery(shortcutImport.name.split(/\s+/)[0] ?? "");
 
     setShortcutProcessed(true);
-  }, [rows, shortcutImport, shortcutProcessed]);
+  }, [rows, shortcutImport, shortcutProcessed, canManage]);
 
   function closeEditor() {
     if (saving) return;
@@ -288,19 +313,32 @@ export function ContactResearchPage() {
     }
 
     const saved = Array.isArray(data) ? data[0] : data;
+    if (!saved?.ok) {
+      setError(saved?.code === "contact_already_recorded"
+        ? "Outra pessoa já registrou um contato para este colega. Atualize a lista para ver o status."
+        : saved?.code === "rate_limited"
+          ? "Muitas tentativas em pouco tempo. Tente novamente mais tarde."
+          : "Confira os dados informados e tente novamente.");
+      if (saved?.code === "contact_already_recorded") {
+        setRows((current) => current.map((row) => row.person_id === editing.person_id ? { ...row, can_contribute: false } : row));
+        setEditing(null);
+      }
+      setSaving(false);
+      return;
+    }
     const nextStatus = (saved?.status ?? (options?.noContact ? "no_contact" : "pending")) as ResearchStatus;
     const updatedAt = saved?.updated_at ?? new Date().toISOString();
 
     setRows((current) => current.map((row) => row.person_id === editing.person_id ? {
       ...row,
-      phone: saved?.phone ?? null,
-      instagram: saved?.instagram ?? null,
-      email: saved?.email ?? null,
-      notes: saved?.notes ?? null,
+      phone: canManage ? draft.phone || null : row.phone,
+      instagram: canManage ? draft.instagram || null : row.instagram,
+      email: canManage ? draft.email || null : row.email,
+      notes: canManage ? draft.notes || null : row.notes,
       research_status: nextStatus,
-      source: saved?.source ?? sourceBeingSaved,
-      updated_by: saved?.updated_by ?? null,
-      updated_at: updatedAt,
+      can_contribute: false,
+      source: canManage ? sourceBeingSaved : row.source,
+      updated_at: canManage ? updatedAt : row.updated_at,
     } : row));
 
     if (sourceBeingSaved === "ios_shortcut") setShortcutImport(null);
@@ -309,17 +347,18 @@ export function ContactResearchPage() {
   }
 
   function goToNextPending() {
-    const pending = rows.find((row) => row.class_group === activeGroup && row.research_status === "pending");
+    const canEditRow = (row: DirectoryRow) => canManage || row.can_contribute;
+    const pending = rows.find((row) => row.class_group === activeGroup && row.research_status === "pending" && canEditRow(row));
     if (pending) {
       openEditor(pending);
       return;
     }
 
-    const nextGroup = GROUPS.find((group) => rows.some((row) => row.class_group === group && row.research_status === "pending"));
+    const nextGroup = GROUPS.find((group) => rows.some((row) => row.class_group === group && row.research_status === "pending" && canEditRow(row)));
     if (!nextGroup) return;
 
     setActiveGroup(nextGroup);
-    const next = rows.find((row) => row.class_group === nextGroup && row.research_status === "pending");
+    const next = rows.find((row) => row.class_group === nextGroup && row.research_status === "pending" && canEditRow(row));
     if (next) setTimeout(() => openEditor(next), 0);
   }
 
@@ -421,7 +460,7 @@ export function ContactResearchPage() {
             <li>Escolha <strong>Enviar para HC 2006</strong>.</li>
             <li>O site procura o nome, preenche telefone e e-mail e pede sua confirmação antes de salvar.</li>
           </ol>
-          <p>O passo a passo para configurar o Atalho está logo abaixo.</p>
+          <p>O passo a passo para configurar o Atalho está logo abaixo. O atalho pode contribuir em registros ainda sem contato.</p>
         </article>
 
         <article className="contact-research-device-card">
@@ -429,11 +468,11 @@ export function ContactResearchPage() {
           <h3>Preencha manualmente</h3>
           <ol>
             <li>Procure o colega por nome ou turma.</li>
-            <li>Clique no nome para abrir o cadastro.</li>
-            <li>Digite ou cole Telefone, Instagram, e-mail e alguma observação útil.</li>
+            <li>Abra um registro pendente sem contato para contribuir.</li>
+            <li>Digite ou cole telefone, Instagram ou e-mail.</li>
             <li>Confira os dados e clique em <strong>Salvar</strong>.</li>
           </ol>
-          <p>Você não precisa ter todos os dados: Telefone, Instagram ou e-mail já é suficiente para marcar o colega como localizado.</p>
+          <p>Você não precisa ter todos os dados: telefone, Instagram ou e-mail já é suficiente para marcar o colega como localizado. Um registro existente só pode ser atualizado por um coletor autorizado.</p>
         </article>
       </div>
 
@@ -486,7 +525,7 @@ export function ContactResearchPage() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar por nome, telefone, @ ou e-mail"
+          placeholder={canManage ? "Buscar por nome, telefone, @ ou e-mail" : "Buscar por nome"}
           aria-label="Buscar ex-aluno"
         />
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} aria-label="Filtrar por status">
@@ -531,14 +570,16 @@ export function ContactResearchPage() {
 
       <div className="contact-research-table-wrap">
         <table className="contact-research-table">
-          <thead><tr><th>Nome</th><th>Telefone</th><th>Instagram</th><th>E-mail</th><th>Observação</th><th>Status</th></tr></thead>
+          <thead><tr><th>Nome</th>{canManage && <><th>Telefone</th><th>Instagram</th><th>E-mail</th><th>Observação</th></>}<th>Status</th></tr></thead>
           <tbody>
-            {filteredRows.map((row) => <tr key={row.person_id} onClick={() => openEditor(row, shortcutImport ?? undefined)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") openEditor(row, shortcutImport ?? undefined); }}>
-              <td data-label="Nome"><strong>{row.full_name}</strong>{row.updated_at && <small>Atualizado {formatUpdatedAt(row.updated_at)}</small>}</td>
-              <td data-label="Telefone">{row.phone || "—"}</td>
-              <td data-label="Instagram">{row.instagram || "—"}</td>
-              <td data-label="E-mail">{row.email || "—"}</td>
-              <td data-label="Observação">{row.notes || "—"}</td>
+            {filteredRows.map((row) => <tr key={row.person_id} onClick={canManage || row.can_contribute ? () => openEditor(row, shortcutImport ?? undefined) : undefined} tabIndex={canManage || row.can_contribute ? 0 : -1} onKeyDown={(event) => { if ((canManage || row.can_contribute) && event.key === "Enter") openEditor(row, shortcutImport ?? undefined); }}>
+              <td data-label="Nome"><strong>{row.full_name}</strong>{canManage && row.updated_at && <small>Atualizado {formatUpdatedAt(row.updated_at)}</small>}</td>
+              {canManage && <>
+                <td data-label="Telefone">{row.phone || "—"}</td>
+                <td data-label="Instagram">{row.instagram || "—"}</td>
+                <td data-label="E-mail">{row.email || "—"}</td>
+                <td data-label="Observação">{row.notes || "—"}</td>
+              </>}
               <td data-label="Status"><span className={`contact-research-status status-${row.research_status}`}>{statusLabel(row.research_status)}</span></td>
             </tr>)}
           </tbody>
@@ -569,11 +610,11 @@ export function ContactResearchPage() {
           <label>Telefone<input value={draft.phone} onChange={(event) => { setDraft({ ...draft, phone: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="tel" placeholder="(84) 99999-9999" /></label>
           <label>Instagram<input value={draft.instagram} onChange={(event) => { setDraft({ ...draft, instagram: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} placeholder="@usuario" autoCapitalize="none" /></label>
           <label>E-mail<input value={draft.email} onChange={(event) => { setDraft({ ...draft, email: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} inputMode="email" placeholder="nome@email.com" autoCapitalize="none" /></label>
-          <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>
+          {canManage && <label>Observação<textarea value={draft.notes} onChange={(event) => { setDraft({ ...draft, notes: event.target.value }); if (draftSource !== "ios_shortcut") setDraftSource("manual"); }} rows={3} placeholder="Ex.: número antigo, confirmar e-mail, contato via colega…" /></label>}
         </div>
 
         <div className="contact-research-editor-actions">
-          <button className="contact-research-no-contact" type="button" disabled={saving} onClick={() => void saveEditing({ noContact: true })}>Marcar sem contato</button>
+          {canManage && <button className="contact-research-no-contact" type="button" disabled={saving} onClick={() => void saveEditing({ noContact: true })}>Marcar sem contato</button>}
           <button className="contact-research-save" type="button" disabled={saving} onClick={() => void saveEditing()}>{saving ? "Salvando…" : "Salvar"}</button>
         </div>
       </section>
