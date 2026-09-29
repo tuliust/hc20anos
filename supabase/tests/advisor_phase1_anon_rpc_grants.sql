@@ -18,7 +18,7 @@ with checks as (
       'get_public_ticket_catalog(p_event_id uuid, p_at timestamp with time zone)',
       'has_structured_faq_items(p_event_id uuid)',
       'save_contact_research(p_person_id uuid, p_phone text, p_instagram text, p_email text, p_notes text, p_source text, p_mark_no_contact boolean)'
-    ]::text[]
+    ]::text[] as passed
   union all
   select 'anon_security_definer_surface_has_no_public_acl',
     not exists (
