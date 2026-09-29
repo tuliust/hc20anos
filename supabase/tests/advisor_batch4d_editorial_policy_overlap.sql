@@ -87,38 +87,50 @@ begin
     raise exception 'FAIL %_faq_insert_allowed', p_label;
   exception when insufficient_privilege then null; end;
 
-  update public.faq_items set question=question
-    where id=(select id from public.faq_items order by id limit 1);
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_faq_update_allowed', p_label; end if;
-  delete from public.faq_items
-    where id=(select id from public.faq_items order by id limit 1);
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_faq_delete_allowed', p_label; end if;
+  begin
+    update public.faq_items set question=question
+      where id=(select id from public.faq_items order by id limit 1);
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_faq_update_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.faq_items
+      where id=(select id from public.faq_items order by id limit 1);
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_faq_delete_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
 
   begin
     insert into public.home_page_content(event_id) values(event_uuid)
       on conflict (event_id) do nothing;
     raise exception 'FAIL %_home_insert_allowed', p_label;
   exception when insufficient_privilege then null; end;
-  update public.home_page_content set updated_at=updated_at where event_id=event_uuid;
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_home_update_allowed', p_label; end if;
-  delete from public.home_page_content where event_id=event_uuid;
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_home_delete_allowed', p_label; end if;
+  begin
+    update public.home_page_content set updated_at=updated_at where event_id=event_uuid;
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_home_update_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.home_page_content where event_id=event_uuid;
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_home_delete_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
 
   begin
     insert into public.event_archive_settings(event_id) values(event_uuid)
       on conflict (event_id) do nothing;
     raise exception 'FAIL %_archive_insert_allowed', p_label;
   exception when insufficient_privilege then null; end;
-  update public.event_archive_settings set updated_at=updated_at where event_id=event_uuid;
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_archive_update_allowed', p_label; end if;
-  delete from public.event_archive_settings where event_id=event_uuid;
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'FAIL %_archive_delete_allowed', p_label; end if;
+  begin
+    update public.event_archive_settings set updated_at=updated_at where event_id=event_uuid;
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_archive_update_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.event_archive_settings where event_id=event_uuid;
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'FAIL %_archive_delete_allowed', p_label; end if;
+  exception when insufficient_privilege then null; end;
 end;
 $$;
 
