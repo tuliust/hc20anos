@@ -2016,6 +2016,7 @@ function Header({ page, navigate, auth, logout, content }: {
   page: Page; navigate: (p: Page) => void; auth: AuthState; logout: () => void; content?: HomePageContent;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileHeaderHidden, setMobileHeaderHidden] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -2027,6 +2028,53 @@ function Header({ page, navigate, auth, logout, content }: {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const { toast, show, hide } = useToast();
   const headerContent = getExtendedHomeContent(content);
+
+  useEffect(() => {
+    const mobileMedia = window.matchMedia("(max-width: 767px)");
+    let lastY = Math.max(0, window.scrollY);
+    let accumulatedDelta = 0;
+
+    const revealHeader = () => setMobileHeaderHidden(false);
+    const onScroll = () => {
+      const currentY = Math.max(0, window.scrollY);
+      if (!mobileMedia.matches || menuOpen || currentY <= 48) {
+        revealHeader();
+        accumulatedDelta = 0;
+        lastY = currentY;
+        return;
+      }
+
+      const delta = currentY - lastY;
+      if ((delta > 0 && accumulatedDelta < 0) || (delta < 0 && accumulatedDelta > 0)) {
+        accumulatedDelta = delta;
+      } else {
+        accumulatedDelta += delta;
+      }
+
+      if (accumulatedDelta >= 18) {
+        setMobileHeaderHidden(true);
+        accumulatedDelta = 0;
+      } else if (accumulatedDelta <= -12) {
+        revealHeader();
+        accumulatedDelta = 0;
+      }
+      lastY = currentY;
+    };
+
+    const onMediaChange = () => {
+      lastY = Math.max(0, window.scrollY);
+      accumulatedDelta = 0;
+      if (!mobileMedia.matches) revealHeader();
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    mobileMedia.addEventListener("change", onMediaChange);
+    onScroll();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      mobileMedia.removeEventListener("change", onMediaChange);
+    };
+  }, [menuOpen]);
 
   const navLinks: { label: string; page: Page; visible: boolean }[] = ([
     { label: headerContent.nav_home_label, page: "home", visible: isContentVisible(headerContent.nav_home_visible) },
@@ -2185,7 +2233,7 @@ function Header({ page, navigate, auth, logout, content }: {
 
   return (
     <>
-      <header data-public-header className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
+      <header data-public-header data-mobile-header-hidden={mobileHeaderHidden ? "true" : "false"} className="fixed top-0 left-0 right-0 z-50 bg-[#080f08]/95 backdrop-blur-md border-b border-[#2d6a4f]/20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button data-public-header-logo onClick={() => go("home")} aria-label={`Início — ${headerContent.header_logo_alt}`} className="flex items-center gap-4 shrink-0 text-left">
             {headerLogoUrl ? (
@@ -2600,7 +2648,7 @@ function Hero({ navigate, content, auth }: { navigate: (p: Page) => void; conten
           </Btn>
         </div>
 
-        <div className="mx-auto mt-10 max-w-2xl border border-[#c9a84c]/25 bg-[#081008]/80 p-5 text-left md:p-6">
+        <div data-home-cancelled-notice="true" className="mx-auto mt-10 max-w-2xl border border-[#c9a84c]/25 bg-[#081008]/80 p-5 text-left md:p-6">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c9a84c]">Comunicado sobre o encontro de 2026</p>
           <p className="mt-3 text-sm leading-6 text-[#d8ddd8] md:text-base">
             O encontro previsto para setembro foi cancelado devido à baixa adesão. Os pagamentos realizados estão sendo reembolsados integralmente pelo Mercado Pago.
@@ -2829,8 +2877,33 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navig
     return () => window.clearInterval(intervalId);
   }, [memories.length]);
   const memory = memories[index];
-  const author = memory?.person_id ? people.find(person => person.id === memory.person_id) : undefined;
-  const authorName = memory?.is_anonymous ? "Anônimo" : author ? getHomeAlumniDisplayName(author) : memory?.author_name || "Ex-aluno(a)";
+  const memoryAuthorKey = normalizeHomeMetric(memory?.author_name);
+  const author = memory && !memory.is_anonymous
+    ? (memory.person_id ? people.find(person => person.id === memory.person_id) : undefined)
+      ?? (memoryAuthorKey
+        ? people.find(person =>
+            [person.display_name, person.full_name].some(name => normalizeHomeMetric(name) === memoryAuthorKey)
+          )
+        : undefined)
+    : undefined;
+  const [authorCard, setAuthorCard] = useState<PublicProfileCardRow | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setAuthorCard(null);
+    if (!memory?.person_id || memory.is_anonymous) return () => { active = false; };
+    getPublicProfileCardByPersonId(memory.person_id)
+      .then(card => { if (active) setAuthorCard(card); })
+      .catch(() => { if (active) setAuthorCard(null); });
+    return () => { active = false; };
+  }, [memory?.id, memory?.person_id, memory?.is_anonymous]);
+
+  const authorName = memory?.is_anonymous
+    ? "Anônimo"
+    : author
+      ? getHomeAlumniDisplayName(author)
+      : authorCard?.display_name || authorCard?.full_name || memory?.author_name || "Ex-aluno(a)";
+  const authorAvatarUrl = !memory?.is_anonymous ? (author?.avatar_url || authorCard?.avatar_url || null) : null;
   const classLabel = memory && !memory.is_anonymous && author?.class_group ? `Turma ${getHomeClassGroup(author.class_group) ?? author.class_group}` : null;
   const go = (delta: number) => setIndex(current => (current + delta + memories.length) % memories.length);
   return (
@@ -2844,7 +2917,18 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navig
           </div>
         </div>
         <div data-home-memory-avatar-column="true" className="flex justify-start sm:justify-end">
-          {author && !memory.is_anonymous ? <AlumniAvatar person={author} dimension={112} /> : <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>}
+          {authorAvatarUrl ? (
+            <img
+              data-home-memory-author-avatar="true"
+              src={authorAvatarUrl}
+              alt={`Foto de ${authorName}`}
+              className="h-28 w-28 shrink-0 rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] object-cover"
+            />
+          ) : author && !memory.is_anonymous ? (
+            <AlumniAvatar person={author} dimension={112} />
+          ) : (
+            <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>
+          )}
         </div>
       </div> : <p className="flex-1 py-6 text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>}
       <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
