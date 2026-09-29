@@ -1,65 +1,82 @@
--- Phase 4D: policy equivalence and role regression checks.
--- Local-only behavioral checks use deterministic identities from
--- supabase/tests/fixtures/local_test_context.sql. Transactions are rolled back.
+-- Phase 4D: final editorial-policy contract after P3 consolidation.
+-- Behavioral checks below continue exercising real RLS for anon, ordinary,
+-- viewer, moderator, admin, and superadmin identities.
 
 do $$
 begin
   if exists (
     select 1 from pg_policies
-    where schemaname='public' and tablename='faq_items'
+    where schemaname='public'
+      and tablename in ('faq_items','home_page_content','event_archive_settings','cms_assets','contact_collectors')
       and policyname in (
-        'faq_items_admin_insert','faq_items_admin_read',
-        'faq_items_admin_update','faq_items_superadmin_delete'
+        'faq_items_manage_admins','admin_panel_write','admin_panel_select',
+        'contact_collectors_admin_write','contact_collectors_authorized_read'
       )
-  ) then raise exception 'FAIL faq_items_redundant_admin_policies_removed'; end if;
+  ) then
+    raise exception 'FAIL legacy_editorial_policy_present';
+  end if;
 
-  if exists (
-    select 1 from pg_policies
-    where schemaname='public' and tablename='home_page_content'
-      and policyname in ('admin_panel_select','home_page_content_admin_write')
-  ) then raise exception 'FAIL home_page_content_redundant_policies_removed'; end if;
-
-  if exists (
-    select 1 from pg_policies
-    where schemaname='public' and tablename='event_archive_settings'
-      and policyname in ('admin_panel_select','event_archive_settings_admin_all')
-  ) then raise exception 'FAIL event_archive_settings_redundant_policies_removed'; end if;
+  if (select count(*) from pg_policies
+      where schemaname='public' and tablename='faq_items'
+        and policyname in ('p3_auth_select','p3_auth_insert','p3_auth_update','p3_auth_delete')
+        and roles=array['authenticated'::name]) <> 4 then
+    raise exception 'FAIL faq_items_consolidated_admin_matrix';
+  end if;
 
   if not exists (
     select 1 from pg_policies where schemaname='public'
-      and tablename='faq_items' and policyname='faq_items_manage_admins'
-      and cmd='ALL' and roles=array['authenticated'::name]
-  ) then raise exception 'FAIL faq_items_canonical_admin_policy'; end if;
+      and tablename='faq_items' and policyname='p3_auth_select'
+      and qual ilike '%admin_users%' and qual ilike '%is_visible%deleted_at%'
+  ) then
+    raise exception 'FAIL faq_items_authenticated_union_changed';
+  end if;
 
   if not exists (
     select 1 from pg_policies where schemaname='public'
       and tablename='faq_items' and policyname='faq_items_public_read'
-      and cmd='SELECT' and 'anon'::name = any(roles)
-  ) then raise exception 'FAIL faq_items_public_read_preserved'; end if;
+      and cmd='SELECT' and roles=array['anon'::name]
+  ) then
+    raise exception 'FAIL faq_items_public_read_preserved';
+  end if;
 
   if not exists (
     select 1 from pg_policies where schemaname='public'
       and tablename='home_page_content' and policyname='home_page_content_public_read'
-      and cmd='SELECT' and qual='true'
-  ) then raise exception 'FAIL home_page_content_public_read_preserved'; end if;
-
-  if not exists (
+      and cmd='SELECT' and roles=array['anon'::name] and qual='true'
+  ) or not exists (
     select 1 from pg_policies where schemaname='public'
       and tablename='event_archive_settings' and policyname='event_archive_settings_public_read'
-      and cmd='SELECT' and qual='true'
-  ) then raise exception 'FAIL event_archive_public_read_preserved'; end if;
+      and cmd='SELECT' and roles=array['anon'::name] and qual='true'
+  ) then
+    raise exception 'FAIL editorial_public_read_preserved';
+  end if;
+
+  if (select count(*) from pg_policies
+      where schemaname='public' and tablename='home_page_content'
+        and policyname in ('p3_auth_select','p3_auth_insert','p3_auth_update','p3_auth_delete')
+        and roles=array['authenticated'::name]) <> 4
+     or (select count(*) from pg_policies
+      where schemaname='public' and tablename='event_archive_settings'
+        and policyname in ('p3_auth_select','p3_auth_insert','p3_auth_update','p3_auth_delete')
+        and roles=array['authenticated'::name]) <> 4 then
+    raise exception 'FAIL editorial_authenticated_matrix';
+  end if;
 
   if not exists (
     select 1 from pg_policies where schemaname='public'
       and tablename='cms_assets' and policyname='cms_assets_select_active'
-      and qual='(is_active = true)'
-  ) then raise exception 'FAIL cms_assets_public_scope_unchanged'; end if;
+      and roles=array['anon'::name] and qual='(is_active = true)'
+  ) then
+    raise exception 'FAIL cms_assets_public_scope_unchanged';
+  end if;
 
   if not exists (
     select 1 from pg_policies where schemaname='public'
-      and tablename='contact_collectors' and policyname='contact_collectors_authorized_read'
-      and qual='can_manage_contact_research()'
-  ) then raise exception 'FAIL contact_collectors_authorized_read_unchanged'; end if;
+      and tablename='contact_collectors' and policyname='p3_auth_select'
+      and qual ilike '%can_manage_contact_research%'
+  ) then
+    raise exception 'FAIL contact_collectors_authorized_read_unchanged';
+  end if;
 end;
 $$;
 
