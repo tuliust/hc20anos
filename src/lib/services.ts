@@ -405,6 +405,52 @@ export async function updateEvent(id: string, patch: Partial<DbEvent>): Promise<
 
 // ─── PEOPLE ───────────────────────────────────────────────────────────────────
 
+type PublicPeopleDirectoryRow = {
+  id: string | null;
+  full_name: string | null;
+  class_year: number | null;
+  class_group: string | null;
+  nickname_at_school: string | null;
+  profile_status: DbPerson["profile_status"] | null;
+  is_visible: boolean | null;
+  avatar_url: string | null;
+  display_name: string | null;
+  gender: string | null;
+  is_claimed: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  person_type: string | null;
+};
+
+function normalizePublicDirectoryPeople(rows: PublicPeopleDirectoryRow[]): DbPerson[] {
+  return rows.flatMap(row => {
+    if (!row.id || !row.full_name || row.class_year == null || !row.profile_status || !row.created_at || !row.updated_at) return [];
+    return [{
+      id: row.id,
+      full_name: row.full_name,
+      class_year: row.class_year,
+      class_group: row.class_group,
+      nickname_at_school: row.nickname_at_school,
+      profile_status: row.profile_status,
+      claimed_by_user_id: null,
+      claimed_at: null,
+      is_visible: row.is_visible !== false,
+      private_notes: null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      avatar_url: row.avatar_url,
+      birth_year: null,
+      verification_status: null,
+      contact_email: null,
+      contact_phone: null,
+      display_name: row.display_name,
+      gender: row.gender as Gender | null,
+      person_type: row.person_type ?? "alumni",
+      has_registered_profile: Boolean(row.is_claimed),
+    } satisfies DbPerson];
+  });
+}
+
 export async function getPeople(filters?: {
   search?: string;
   status?: string;
@@ -454,12 +500,11 @@ export function getRegisteredHomePeople(people: DbPerson[]): DbPerson[] {
 export async function getPublicPeople(): Promise<DbPerson[]> {
   return withFallback(async () => {
     const { data, error } = await supabase
-      .from("people")
+      .from("public_people_directory")
       .select("*")
-      .eq("is_visible", true)
       .order("full_name");
     if (error) throw error;
-    return (data as DbPerson[]) ?? [];
+    return normalizePublicDirectoryPeople((data ?? []) as unknown as PublicPeopleDirectoryRow[]);
   }, MOCK_PEOPLE.filter(p => p.is_visible));
 }
 
@@ -706,15 +751,14 @@ export async function getClassmates(classGroup?: string | null, currentPersonId?
   if (!classGroup) return [];
   return withFallback(async () => {
     let q = supabase
-      .from("people")
+      .from("public_people_directory")
       .select("*")
       .eq("class_group", classGroup)
-      .eq("is_visible", true)
       .order("full_name");
     if (currentPersonId) q = q.neq("id", currentPersonId);
     const { data, error } = await q;
     if (error) throw error;
-    const classmates = (data as DbPerson[]) ?? [];
+    const classmates = normalizePublicDirectoryPeople((data ?? []) as unknown as PublicPeopleDirectoryRow[]);
     if (!classmates.length) return [];
     const { data: profileCards } = await (supabase as any)
       .from("public_profile_cards")
