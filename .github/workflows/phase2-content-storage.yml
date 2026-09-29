@@ -85,11 +85,15 @@ jobs:
       - name: Run SQL suites
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           while IFS= read -r test_file; do
             echo "===== ${test_file} ====="
+            set +e
             output="$(docker exec -i supabase_db_hc20anos psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -P pager=off < "${test_file}" 2>&1)"
+            status=$?
+            set -e
             printf '%s\n' "$output"
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
             if grep -Eq '(^|[^A-Z])FAIL([^A-Z]|$)' <<< "$output"; then exit 1; fi
           done < <(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort)
 
