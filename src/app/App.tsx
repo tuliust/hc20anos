@@ -6981,7 +6981,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
     setProfile(nextProfile);
 
     const personId = nextProfile?.person_id ?? "";
-    const classGroup = nextProfile?.people?.class_group ?? "";
+    const classGroup = nextProfile?.people?.class_group ?? nextProfile?.class_group ?? "";
     const [uploadedRes, taggedRes, memoriesRes, pollsRes, votesRes, classmatesRes] = await Promise.allSettled([
       getMyUploadedPhotos(auth.userId),
       personId ? getMyTaggedPhotos(personId) : Promise.resolve([]),
@@ -7013,15 +7013,59 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
 
   useEffect(() => { loadArea(); }, [auth.userId, auth.email]);
 
-  const displayName = profile?.display_name || profile?.people?.full_name || auth.name || auth.email?.split("@")[0] || "Ex-aluno";
+  const displayName = profile?.display_name || profile?.people?.display_name || profile?.people?.full_name || auth.name || auth.email?.split("@")[0] || "Ex-aluno";
   const firstNameRaw = displayName.split(/\s+/).find(Boolean) ?? displayName;
   const firstName = firstNameRaw.toLocaleLowerCase("pt-BR").replace(/^./, c => c.toLocaleUpperCase("pt-BR"));
-  const classLabel = profile?.people?.class_group ? `Turma ${profile.people.class_group}` : "Turma 2006";
+  const profileClassGroup = profile?.people?.class_group || profile?.class_group || "";
+  const profileClassYear = profile?.people?.class_year || profile?.class_year || 2006;
+  const classLabel = profileClassGroup ? `Turma ${profileClassGroup}` : `Turma ${profileClassYear}`;
   const avatarUrl = profile?.current_photo_url || profile?.people?.avatar_url || "";
-  const location = [profile?.current_city, profile?.current_state].filter(Boolean).join(", ");
+  const location = [profile?.current_city, profile?.current_state, profile?.current_country].filter(Boolean).join(", ");
   const allPhotos = [...uploadedPhotos, ...taggedPhotos].filter((photo, index, arr) => arr.findIndex(item => item.id === photo.id) === index).slice(0, 4);
   const openPolls = polls.filter(poll => poll.status === "open").slice(0, 3);
   const votedPollIds = new Set(votes.map(vote => vote.poll_id));
+
+  const profileValue = (value: string | number | null | undefined) => {
+    const text = String(value ?? "").trim();
+    return text || "Não informado";
+  };
+  const formatEnumValue = (value: string | null | undefined) => {
+    const text = String(value ?? "").trim();
+    if (!text) return "Não informado";
+    return text
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, character => character.toLocaleUpperCase("pt-BR"));
+  };
+  const relationshipLabel =
+    profile?.relationship_status === "single" ? "Solteiro(a)"
+      : profile?.relationship_status === "dating" ? "Namorando"
+        : profile?.relationship_status === "married" ? "Casado(a)"
+          : "Não informado";
+  const childrenLabel = profile?.has_children
+    ? profile.children_count === null || profile.children_count === undefined
+      ? "Sim"
+      : `Sim, ${profile.children_count} ${profile.children_count === 1 ? "filho" : "filhos"}`
+    : "Não";
+  const attendanceLabel =
+    profile?.intends_to_attend === true ? "Sim"
+      : profile?.intends_to_attend === false ? "Não"
+        : "Não informado";
+  const genderLabel =
+    profile?.people?.gender === "male" ? "Masculino"
+      : profile?.people?.gender === "female" ? "Feminino"
+        : "Não informado";
+  const personTypeLabel =
+    profile?.people?.person_type === "alumni" ? "Ex-aluno"
+      : profile?.people?.person_type === "external" ? "Usuário externo"
+        : formatEnumValue(profile?.people?.person_type);
+  const profileStatusLabel =
+    profile?.people?.profile_status === "unclaimed" ? "Não atualizado"
+      : profile?.people?.profile_status === "claimed" ? "Perfil completo"
+        : profile?.people?.profile_status === "preconfirmed" ? "Pré-confirmado"
+          : profile?.people?.profile_status === "confirmed" ? "Confirmado"
+            : formatEnumValue(profile?.people?.profile_status);
+  const contactEmail = profile?.contact_email || profile?.people?.contact_email || auth.email || "";
+  const contactPhone = profile?.contact_phone || profile?.people?.contact_phone || "";
 
   return (
     <>
@@ -7043,21 +7087,95 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
         {error && <ErrorState message={error} onRetry={loadArea} />}
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-5">Meu perfil</p>
-              <div className="flex items-center gap-4 mb-5">
-                <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-xl overflow-hidden shrink-0">
-                  {avatarUrl ? <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" /> : initials(displayName)}
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 md:p-8 lg:col-span-3">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Meu perfil</p>
+
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-5 min-w-0">
+                  <div className="w-28 h-28 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl overflow-hidden shrink-0">
+                    {avatarUrl ? <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" /> : initials(displayName)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-2xl md:text-3xl leading-tight">{displayName}</p>
+                    <p className="text-[#c9a84c] text-xs font-mono mt-2">{classLabel}</p>
+                    {location && <p className="text-[#8ab89a] text-sm mt-3">{location}</p>}
+                    {profile?.profession && <p className="text-[#8ab89a] text-sm mt-1">{profile.profession}</p>}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-xl truncate">{displayName}</p>
-                  <p className="text-[#c9a84c] text-xs font-mono mt-1">{classLabel}</p>
-                  {location && <p className="text-[#7a9a7a] text-xs mt-2">{location}</p>}
-                  {profile?.profession && <p className="text-[#8ab89a] text-sm mt-1">{profile.profession}</p>}
+                <div className="w-full lg:w-64 shrink-0">
+                  <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
                 </div>
               </div>
-              <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
-              {sectionErrors.profile && <p className="text-[#c9a84c] text-xs font-mono mt-3">{sectionErrors.profile}</p>}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Identificação</p>
+                  <dl className="space-y-3">
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome completo</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.people?.full_name)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome de exibição</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.display_name || profile?.people?.display_name)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Apelido no HC</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.people?.nickname_at_school)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Turma</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileClassGroup ? `Turma ${profileClassGroup}` : "Não informado"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Ano da turma</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profileClassYear)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Tipo de perfil</dt><dd className="text-[#f0ebe0] text-sm mt-1">{personTypeLabel}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Status do perfil</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileStatusLabel}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Verificação</dt><dd className="text-[#f0ebe0] text-sm mt-1">{formatEnumValue(profile?.people?.verification_status)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Ano de nascimento</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.people?.birth_year)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Gênero</dt><dd className="text-[#f0ebe0] text-sm mt-1">{genderLabel}</dd></div>
+                  </dl>
+                </section>
+
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Contato e localização</p>
+                  <dl className="space-y-3">
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">E-mail da conta</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-words">{profileValue(auth.email)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">E-mail de contato</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-words">{profileValue(contactEmail)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Telefone / WhatsApp</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(contactPhone)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Cidade</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.current_city)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Estado</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.current_state)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">País</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.current_country)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Instagram</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-all">{profileValue(profile?.instagram_url)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">LinkedIn</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-all">{profileValue(profile?.linkedin_url)}</dd></div>
+                  </dl>
+                </section>
+
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Vida atual</p>
+                  <dl className="space-y-3">
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Profissão</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.profession)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Relacionamento</dt><dd className="text-[#f0ebe0] text-sm mt-1">{relationshipLabel}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Filhos</dt><dd className="text-[#f0ebe0] text-sm mt-1">{childrenLabel}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Pretende participar</dt><dd className="text-[#f0ebe0] text-sm mt-1">{attendanceLabel}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Estudou no HC</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.studied_at_hc === true ? "Sim" : profile?.studied_at_hc === false ? "Não" : "Não informado"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Vínculo com a turma</dt><dd className="text-[#f0ebe0] text-sm mt-1">{formatEnumValue(profile?.relationship_to_class)}</dd></div>
+                  </dl>
+                </section>
+
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Privacidade</p>
+                  <dl className="space-y-3">
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Perfil na lista</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.people?.is_visible === false ? "Oculto" : "Visível"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Foto atual</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_current_photo ? "Visível" : "Oculta"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Cidade</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_city ? "Visível" : "Oculta"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Profissão</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_profession ? "Visível" : "Oculta"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Redes sociais</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_social_links ? "Visíveis" : "Ocultas"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Status de presença</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_confirmed_status ? "Visível" : "Oculto"}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Marcações em fotos</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.allow_photo_tags ? "Permitidas" : "Bloqueadas"}</dd></div>
+                  </dl>
+                </section>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Mini bio</p>
+                  <p className="text-[#f0ebe0] text-sm leading-relaxed whitespace-pre-line">{profileValue(profile?.bio)}</p>
+                </section>
+                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Lembrança do perfil</p>
+                  <p className="text-[#f0ebe0] text-sm leading-relaxed whitespace-pre-line">{profileValue(profile?.memory_text)}</p>
+                </section>
+              </div>
+
+              {sectionErrors.profile && <p className="text-[#c9a84c] text-xs font-mono mt-4">{sectionErrors.profile}</p>}
             </div>
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
@@ -7065,7 +7183,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
                 <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Minhas fotos</p>
                 <button onClick={() => navigate("photo-wall")} className="text-[#2d6a4f] text-xs font-mono uppercase hover:text-[#40916c]">Nossa História</button>
               </div>
-              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => setPhotoUploadOpen(true)}><Upload size={14} />Adicionar Fotos</Btn></div>
+              <div className="mb-4"><Btn full size="sm" variant="outline" onClick={() => setPhotoUploadOpen(true)}><Upload size={14} />Adicionar Fotos</Btn></div>
               {allPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {allPhotos.map(photo => (
@@ -7081,7 +7199,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-5">Minhas memórias</p>
-              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => navigate("memories")}><Send size={14} />Adicionar Memórias</Btn></div>
+              <div className="mb-4"><Btn full size="sm" variant="outline" onClick={() => navigate("memories")}><Send size={14} />Adicionar Memórias</Btn></div>
               {memories.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {memories.slice(0, 3).map(memory => (
@@ -7101,7 +7219,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-5">Enquetes</p>
-              <div className="mb-4"><Btn full size="sm" variant="ghost" onClick={() => { window.sessionStorage.setItem("hc20-open-poll-creator", "true"); navigate("home"); }}><BarChart3 size={14} />Criar Enquete</Btn></div>
+              <div className="mb-4"><Btn full size="sm" variant="outline" onClick={() => { window.sessionStorage.setItem("hc20-open-poll-creator", "true"); navigate("home"); }}><BarChart3 size={14} />Criar Enquete</Btn></div>
               {openPolls.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {openPolls.map(poll => (
