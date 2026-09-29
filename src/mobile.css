@@ -316,6 +316,70 @@
   }
 }
 
+
+  /* Home / shell público — ajustes solicitados apenas para mobile. */
+  [data-public-header] {
+    transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 360ms ease !important;
+    will-change: transform, opacity;
+  }
+
+  [data-public-header][data-mobile-header-hidden="true"] {
+    transform: translateY(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  [data-public-header] > div {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+  }
+
+  [data-public-header-logo] img {
+    height: 3rem !important;
+    width: min(31vw, 6.5rem) !important;
+  }
+
+  [data-home-cancelled-notice="true"] {
+    display: none !important;
+  }
+
+  [data-home-registered-people] button[data-home-registered-person]:nth-child(n + 13) {
+    display: none !important;
+  }
+
+  [data-home-memory-avatar-column="true"] img,
+  [data-home-memory-author-avatar="true"] {
+    display: block !important;
+    width: 7rem !important;
+    height: 7rem !important;
+    min-width: 7rem !important;
+    min-height: 7rem !important;
+    max-width: 7rem !important;
+    max-height: 7rem !important;
+    object-fit: cover !important;
+    border-radius: 9999px !important;
+  }
+
+  [data-home-photo-actions="true"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 0.45rem !important;
+  }
+
+  [data-home-photo-actions="true"] > [data-home-action-button="true"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.75rem !important;
+    padding: 0.6rem 0.3rem !important;
+    gap: 0.3rem !important;
+    font-size: 0.52rem !important;
+    letter-spacing: 0.055em !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+  }
+
 @media (max-width: 359px) {
   .min-h-screen.bg-\[\#080f08\] > .bg-\[\#080f08\].border-b > nav,
   .min-h-screen.bg-\[\#080f08\] > .flex.flex-wrap.gap-1.border-b,
