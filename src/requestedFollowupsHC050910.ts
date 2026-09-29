@@ -37,6 +37,14 @@ function enhancePasswordFields() {
     const parent = input.parentElement;
     if (!parent) return;
 
+    if (
+      input.getAttribute("data-native-password-visibility") === "true"
+      || parent.querySelector('[data-native-password-toggle="true"]')
+    ) {
+      parent.querySelectorAll('[data-hc-password-toggle="true"]').forEach(element => element.remove());
+      return;
+    }
+
     let wrapper: HTMLElement;
     if (parent.getAttribute(PASSWORD_WRAPPER_ATTRIBUTE) === "true") {
       wrapper = parent;
