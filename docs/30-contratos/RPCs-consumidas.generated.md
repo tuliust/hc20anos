@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-29
-last_verified_commit: e771767db3741949056cb2b4e8189040aeeb2aad
+last_verified_commit: 146902ec9307733eb864e9ca117ad6eebb7a667a
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 68 |
-| Ocorrências literais | 80 |
+| RPCs distintas | 70 |
+| Ocorrências literais | 82 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
