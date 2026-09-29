@@ -68,22 +68,54 @@
     background: transparent !important;
   }
 
-  [data-mobile-attendance-filter-row="true"] {
+  [data-mobile-attendance-filter-row="true"],
+  main section:has(input[placeholder="Buscar por nome..."]) > div:has(> button[data-ex-alumni-profile-filter="true"]) {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.5rem !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.4rem !important;
     width: 100% !important;
     overflow: visible !important;
     padding: 0 !important;
   }
 
-  [data-mobile-attendance-filter="true"] {
+  [data-mobile-attendance-filter="true"],
+  button[data-ex-alumni-profile-filter="true"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 5.25rem !important;
-    padding: 0.85rem !important;
+    min-height: 3.75rem !important;
+    padding: 0.6rem 0.25rem !important;
     white-space: normal !important;
-    text-align: left !important;
+    text-align: center !important;
+    overflow: hidden !important;
+  }
+
+  [data-mobile-attendance-filter="true"] > span:first-child,
+  button[data-ex-alumni-profile-filter="true"] > span:first-child {
+    font-size: clamp(0.56rem, 2.55vw, 0.68rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.025em !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+  }
+
+  [data-mobile-attendance-filter="true"] > span:last-child,
+  button[data-ex-alumni-profile-filter="true"] > span:last-child {
+    display: none !important;
+  }
+
+  button[data-ex-alumni-profile-filter-value="unregistered"] > span:first-child {
+    font-size: 0 !important;
+  }
+
+  button[data-ex-alumni-profile-filter-value="unregistered"] > span:first-child::after {
+    content: "Sem Perfil";
+    font-size: clamp(0.56rem, 2.55vw, 0.68rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.025em !important;
   }
 
   [data-mobile-alumni-name="true"] {
@@ -127,19 +159,6 @@
     font-size: clamp(0.5rem, 2.35vw, 0.64rem);
     line-height: 1;
     letter-spacing: 0.01em;
-  }
-
-  main section:has(input[placeholder="Buscar por nome..."]) > div.grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-2 {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.5rem !important;
-  }
-
-  main section:has(input[placeholder="Buscar por nome..."]) > div.grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-2 > button {
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 5.25rem !important;
-    padding: 0.85rem !important;
   }
 
   main section:has(input[placeholder="Buscar por nome..."]) + section [role="button"] p.truncate.font-semibold {
