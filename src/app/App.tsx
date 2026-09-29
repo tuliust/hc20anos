@@ -1748,7 +1748,7 @@ function AvatarCropUpload({
   }
 
   return (
-    <div className="flex flex-col gap-5 min-w-0">
+    <div data-avatar-crop-upload="true" className="flex flex-col gap-5 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 min-w-0">
         <div className="w-20 h-20 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0 overflow-hidden">
           {currentImageUrl ? <img src={currentImageUrl} alt="Foto de perfil" className="w-full h-full object-cover" /> : fallbackLabel}
@@ -2351,15 +2351,17 @@ function Header({ page, navigate, auth, logout, content }: {
       )}
 
       <Modal open={photoModalOpen} onClose={() => !avatarUploading && setPhotoModalOpen(false)} title="Alterar foto" wide>
-        <AvatarCropUpload
-          currentImageUrl={avatarUrl}
-          fallbackLabel={initials(shortName)}
-          uploading={avatarUploading}
-          disabled={avatarUploading}
-          onCroppedFile={handleAvatarUpload}
-          onRemove={avatarUrl ? handleAvatarRemove : undefined}
-          helperText="Escolha uma foto, ajuste o recorte com zoom e posição, e salve. Você pode apagar a foto atual se preferir."
-        />
+        <div data-header-avatar-modal-body="true">
+          <AvatarCropUpload
+            currentImageUrl={avatarUrl}
+            fallbackLabel={initials(shortName)}
+            uploading={avatarUploading}
+            disabled={avatarUploading}
+            onCroppedFile={handleAvatarUpload}
+            onRemove={avatarUrl ? handleAvatarRemove : undefined}
+            helperText="Escolha uma foto, ajuste o recorte com zoom e posição, e salve. Você pode apagar a foto atual se preferir."
+          />
+        </div>
       </Modal>
 
       <Modal open={passwordModalOpen} onClose={closePasswordModal} title="Mudar senha">
@@ -2916,7 +2918,7 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navig
     <div data-home-memory-carousel className="flex min-h-52 flex-col">
       {memory ? <div key={memory.id} className="grid flex-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
         <div className="min-w-0">
-          <blockquote className="font-['Playfair_Display'] text-xl leading-relaxed text-[#f0ebe0] md:text-2xl">“{memory.memory_text}”</blockquote>
+          <blockquote className="text-xl leading-relaxed text-[#f0ebe0] md:text-2xl">“{memory.memory_text}”</blockquote>
           <div className="mt-5 font-semibold text-[#f0ebe0]">
             <p data-memory-author className="text-sm">{authorName}</p>
             {classLabel && <p data-memory-class className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#c9a84c]">{classLabel}</p>}
@@ -5893,7 +5895,8 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
     try {
       await createPhotoComment({ photoId: photo.id, userId: auth.userId, authorName: auth.name, commentText: commentText.trim() });
       setCommentText("");
-      setMessage("Comentário enviado para moderação.");
+      await loadInteractions();
+      setMessage("Comentário enviado.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar comentário.");
     } finally { setBusy(""); }
@@ -5991,7 +5994,7 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
                 ))}
               </div>
               <FieldArea label="Novo comentário" value={commentText} onChange={setCommentText} rows={2} />
-              <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar para moderação</Btn>
+              <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar</Btn>
             </div>
 
             <div className="border-t border-[#2d6a4f]/20 pt-4">
