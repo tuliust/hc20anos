@@ -75,7 +75,11 @@ declare
 begin
   select event_id into event_uuid from public.home_page_content limit 1;
   select id,event_id,key,label into category from public.faq_categories
-    where event_id=event_uuid order by id limit 1;
+    where event_id=event_uuid
+      and is_visible = true
+      and deleted_at is null
+    order by id
+    limit 1;
   if event_uuid is null or category.id is null then
     raise exception 'FAIL %_editorial_fixture_missing', p_label;
   end if;
@@ -160,6 +164,8 @@ select
   'Phase 4D public fixture', 'Phase 4D public fixture', fc.id, true
 from public.faq_categories fc
 join public.home_page_content h on h.event_id = fc.event_id
+where fc.is_visible = true
+  and fc.deleted_at is null
 order by fc.id
 limit 1
 on conflict (event_id, slug) do update
@@ -175,6 +181,8 @@ select
   'Phase 4D private fixture', 'Phase 4D private fixture', fc.id, false
 from public.faq_categories fc
 join public.home_page_content h on h.event_id = fc.event_id
+where fc.is_visible = true
+  and fc.deleted_at is null
 order by fc.id
 limit 1
 on conflict (event_id, slug) do update
