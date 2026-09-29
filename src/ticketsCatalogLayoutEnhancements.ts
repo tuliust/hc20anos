@@ -58,14 +58,8 @@ async function fetchCatalogRows() {
     p_event_id: DEFAULT_EVENT_ID,
     p_at: new Date().toISOString(),
   });
-  if (!expanded.error) return Array.isArray(expanded.data) ? expanded.data as CatalogRow[] : [];
-
-  const compatibility = await supabase.rpc("get_current_ticket_catalog", {
-    p_event_id: DEFAULT_EVENT_ID,
-    p_at: new Date().toISOString(),
-  });
-  if (compatibility.error) throw compatibility.error;
-  return Array.isArray(compatibility.data) ? compatibility.data as CatalogRow[] : [];
+  if (expanded.error) throw expanded.error;
+  return Array.isArray(expanded.data) ? expanded.data as CatalogRow[] : [];
 }
 
 function loadRows(force = false) {
