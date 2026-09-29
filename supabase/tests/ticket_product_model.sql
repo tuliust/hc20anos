@@ -48,13 +48,13 @@ begin
   where id = v_event_id;
 
   update public.ticket_lots
-  set status = case when code = 'single' then 'open' else 'closed' end,
+  set status = case when code = 'single' then 'open'::public.ticket_status else 'closed'::public.ticket_status end,
       starts_at = case when code = 'single' then v_reference_at - interval '1 day' else starts_at end,
       ends_at = case when code = 'single' then v_reference_at + interval '1 day' else ends_at end
   where event_id = v_event_id;
 
   update public.ticket_types
-  set status = case when product_code = 'simple' then 'open' else 'closed' end
+  set status = case when product_code = 'simple' then 'open'::public.ticket_status else 'closed'::public.ticket_status end
   where event_id = v_event_id;
 
   update public.ticket_lot_prices lp
