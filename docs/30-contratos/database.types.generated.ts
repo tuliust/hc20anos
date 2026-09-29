@@ -4028,9 +4028,59 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_moderate_profile_claim: {
+        Args: { p_action: string; p_claim_id: string; p_reason?: string }
+        Returns: {
+          created_at: string
+          id: string
+          person_id: string
+          rejection_reason: string | null
+          requester_email: string
+          requester_name: string
+          requester_phone: string | null
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by_admin_id: string | null
+          status: Database["public"]["Enums"]["claim_status"]
+          updated_at: string
+          verification_score: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profile_claims"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_prepare_event_cancellation_refund: {
         Args: { p_order_id: string }
         Returns: string
+      }
+      admin_review_profile_claim_dispute: {
+        Args: { p_action: string; p_dispute_id: string; p_notes?: string }
+        Returns: {
+          admin_notes: string | null
+          created_at: string
+          current_claimant_user_id: string | null
+          evidence_text: string | null
+          id: string
+          person_id: string
+          reason: string
+          requester_email: string
+          requester_name: string
+          requester_phone: string | null
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by_admin_id: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profile_claim_disputes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_update_person_and_profile: {
         Args: { p_person?: Json; p_person_id: string; p_profile?: Json }
