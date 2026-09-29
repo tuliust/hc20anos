@@ -4672,16 +4672,41 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
           <section className="bg-[#141f14] border border-[#2d6a4f]/30 mb-8 p-4 md:p-5 flex flex-col gap-4">
             <div className="relative bg-[#0a120a] border border-[#2d6a4f]/20">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-              <input placeholder="Buscar por nome..." value={search} onChange={event => setSearch(event.target.value)} className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pl-12 pr-4 text-sm focus:outline-none" />
+              <input
+                data-ex-alumni-search="true"
+                placeholder="Buscar por nome..."
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                className="w-full bg-transparent text-[#f0ebe0] placeholder:text-[#3a5a3a] py-4 pr-4 text-sm focus:outline-none"
+                style={{ paddingLeft: "3.75rem" }}
+              />
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {classButtons.map(button => (
-                <button key={button.value} onClick={() => setClassFilter(button.value)} className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors whitespace-nowrap ${classFilter === button.value ? "bg-[#c9a84c] text-[#0d1a0f] border-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{button.label}</button>
+                <button
+                  key={button.value}
+                  data-ex-alumni-class-filter="true"
+                  onClick={() => setClassFilter(button.value)}
+                  className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-all duration-150 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a84c] ${classFilter === button.value
+                    ? "bg-[#c9a84c] text-[#0d1a0f] border-[#c9a84c] hover:bg-[#d7ba5a] hover:border-[#d7ba5a]"
+                    : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c] hover:bg-[#1a2e1a] hover:text-[#f0ebe0]"
+                  }`}
+                >
+                  {button.label}
+                </button>
               ))}
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {profileButtons.map(button => (
-                <button key={button.value} onClick={() => setProfileFilter(button.value)} className={`px-4 py-2 text-left border transition-colors whitespace-nowrap ${profileFilter === button.value ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>
+                <button
+                  key={button.value}
+                  data-ex-alumni-profile-filter="true"
+                  onClick={() => setProfileFilter(button.value)}
+                  className={`px-4 py-2 text-left border transition-all duration-150 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a84c] ${profileFilter === button.value
+                    ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f] hover:bg-[#40916c] hover:border-[#40916c]"
+                    : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:border-[#c9a84c] hover:bg-[#1a2e1a] hover:text-[#f0ebe0]"
+                  }`}
+                >
                   <span className="block text-xs font-mono uppercase tracking-wider">{button.label}</span>
                   <span className="block mt-1 text-[10px] opacity-75">{button.description}</span>
                 </button>
