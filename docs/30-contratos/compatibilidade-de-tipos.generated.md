@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-26
-last_verified_commit: 8a1715ea763972e1fc7dbecae92f66290608791b
+last_verified: 2026-09-29
+last_verified_commit: e1a3b045e7c8b9605efd29a86ea46e75c9dd0897
 generation_command: npm run docs:generate-type-compatibility
 source_files:
   - src/lib/database.types.ts
@@ -70,7 +70,7 @@ Mapeamentos com `Row: any`: `payment_events`.
 | Objeto | Interface manual | Campos ausentes no manual | Campos extras no manual |
 |---|---|---|---|
 | `events` | `DbEvent` | `event_timezone` | — |
-| `people` | `DbPerson` | `person_type` | — |
+| `people` | `DbPerson` | `person_type` | `has_registered_profile` |
 | `profiles` | `DbProfile` | `class_group`, `class_year`, `relationship_to_class`, `studied_at_hc` | — |
 | `ticket_types` | `DbTicketType` | `included_people_count`, `metadata_json`, `package_kind`, `participant_type`, `product_code` | — |
 | `orders` | `DbOrder` | `approved_inventory_applied_at`, `buyer_user_id`, `cancelled_at`, `checkout_idempotency_key`, `currency_id`, `extras_amount_cents`, `installments`, `lot_id`, `payment_environment`, `payment_provider_merchant_order_id`, `payment_status_detail`, `payment_type`, `public_token`, `refunded_at`, `reservation_released_at`, `reservation_status`, `subtotal_amount_cents` | — |
