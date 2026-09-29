@@ -2433,7 +2433,6 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
                   key={link.page}
                   href="/reivindicar-perfil"
                   data-footer-claim-profile="true"
-                  onClick={event => { event.preventDefault(); navigate("claim-profile"); }}
                   className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors"
                 >
                   {link.label}
@@ -3177,7 +3176,7 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
           </div>
 
           {selectedPeople.length > 0 ? (
-            <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
+            <div data-home-map-people-list="true" className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1 lg:min-h-0 lg:max-h-none lg:flex-1">
               {selectedPeople.map(person => (
                 <button
                   key={person.person_id}
