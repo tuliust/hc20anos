@@ -263,6 +263,32 @@ test("Home limita a grade inicial a 24 pessoas de todas as turmas", async ({ pag
   await expect(box).toContainText("Turma D");
 });
 
+test("filtros de perfil do diretório usam três colunas e rótulo Sem Perfil no mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installHomeFixtures(page);
+  await page.goto("/ex-alunos");
+  await expect(page.getByRole("heading", { name: "Ex-alunos" })).toBeVisible({ timeout: 20_000 });
+
+  const row = page.locator('[data-mobile-attendance-filter-row="true"]');
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  const buttons = row.locator('[data-mobile-attendance-filter="true"]');
+  await expect(buttons).toHaveCount(3);
+  await expect(buttons.nth(0)).toContainText("Todos");
+  await expect(buttons.nth(1)).toContainText("Cadastrados");
+  await expect(buttons.nth(2)).toContainText("Sem perfil");
+  await expect(buttons.nth(2)).not.toContainText("Ainda sem perfil");
+
+  const columns = await row.evaluate(element =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  expect(columns).toBe(3);
+
+  const boxes = await Promise.all(Array.from({ length: 3 }, (_, index) => buttons.nth(index).boundingBox()));
+  boxes.forEach(box => expect(box).not.toBeNull());
+  expect(boxes[0]!.x + boxes[0]!.width).toBeLessThanOrEqual(boxes[1]!.x + 1);
+  expect(boxes[1]!.x + boxes[1]!.width).toBeLessThanOrEqual(boxes[2]!.x + 1);
+});
+
 test("ações do diretório ficam alinhadas na mesma linha em viewport móvel", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   const unclaimedPeople = peopleFixture.map(person => ({ ...person, profile_status: "unclaimed" as const }));
