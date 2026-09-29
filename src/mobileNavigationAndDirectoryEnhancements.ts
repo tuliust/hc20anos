@@ -24,6 +24,18 @@ function hasClassFilterLabels(labels: string[]) {
   return hasAll && ["turma a", "turma b", "turma c", "turma d"].every(label => labels.includes(label));
 }
 
+function hasProfileFilterLabels(labels: string[]) {
+  const hasAll = labels.some(candidate => candidate === "todos" || candidate.startsWith("todos "));
+  const hasRegistered = labels.some(candidate => candidate === "cadastrados" || candidate.startsWith("cadastrados "));
+  const hasUnregistered = labels.some(candidate =>
+    candidate === "ainda sem perfil"
+    || candidate.startsWith("ainda sem perfil ")
+    || candidate === "sem perfil"
+    || candidate.startsWith("sem perfil ")
+  );
+  return hasAll && hasRegistered && hasUnregistered;
+}
+
 function restorePageOffsets() {
   document.querySelectorAll<HTMLElement>('[data-mobile-page-offset="true"]').forEach(root => {
     const original = root.dataset.mobileOriginalPaddingTop ?? "";
@@ -68,6 +80,7 @@ function clearDirectoryMarkers() {
     element.removeAttribute("data-mobile-attendance-filter-row");
     element.removeAttribute("data-mobile-class-filter");
     element.removeAttribute("data-mobile-attendance-filter");
+    element.removeAttribute("data-mobile-attendance-type");
     element.removeAttribute("data-mobile-alumni-name");
   });
 }
@@ -80,8 +93,7 @@ function findExAlumniFilterPanel() {
   while (current && current !== document.body) {
     const labels = Array.from(current.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
-    const hasAttendance = ["todos", "cadastrados", "ainda sem perfil"]
-      .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
+    const hasAttendance = hasProfileFilterLabels(labels);
     if (hasClassFilterLabels(labels) && hasAttendance) return current;
     current = current.parentElement;
   }
@@ -103,8 +115,7 @@ function markExAlumniMobileLayout() {
   const attendanceRow = directChildren.find(child => {
     const labels = Array.from(child.querySelectorAll<HTMLButtonElement>("button"))
       .map(button => normalizeText(button.textContent));
-    return ["todos", "cadastrados", "ainda sem perfil"]
-      .every(label => labels.some(candidate => candidate === label || candidate.startsWith(`${label} `)));
+    return hasProfileFilterLabels(labels);
   });
 
   if (classRow) {
@@ -117,8 +128,17 @@ function markExAlumniMobileLayout() {
 
   if (attendanceRow) {
     attendanceRow.setAttribute("data-mobile-attendance-filter-row", "true");
-    Array.from(attendanceRow.querySelectorAll<HTMLButtonElement>("button"))
-      .forEach(button => button.setAttribute("data-mobile-attendance-filter", "true"));
+    Array.from(attendanceRow.querySelectorAll<HTMLButtonElement>("button")).forEach(button => {
+      const labelElement = button.querySelector<HTMLElement>("span:first-child");
+      const label = normalizeText(labelElement?.textContent || button.textContent);
+      button.setAttribute("data-mobile-attendance-filter", "true");
+      if (label === "todos") button.setAttribute("data-mobile-attendance-type", "all");
+      else if (label === "cadastrados") button.setAttribute("data-mobile-attendance-type", "registered");
+      else if (label === "ainda sem perfil" || label === "sem perfil") {
+        button.setAttribute("data-mobile-attendance-type", "unregistered");
+        if (labelElement && labelElement.textContent !== "Sem perfil") labelElement.textContent = "Sem perfil";
+      }
+    });
   }
 
   const resultsSection = panel.nextElementSibling instanceof HTMLElement ? panel.nextElementSibling : null;
