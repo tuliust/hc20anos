@@ -127,6 +127,17 @@ $$;
 -- Keep one transaction open so the pg_temp helper survives between role cases;
 -- each case is isolated with a savepoint and rolled back before the next role.
 begin;
+
+-- The clean migration replay does not seed archive settings. Create a
+-- transactional fixture so public-read and admin CRUD checks do not depend on
+-- production content; the final ROLLBACK removes it.
+insert into public.event_archive_settings(event_id)
+select event_id
+from public.home_page_content
+order by event_id
+limit 1
+on conflict (event_id) do nothing;
+
 savepoint phase4d_anon;
 select set_config('request.jwt.claim.role','anon',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);
