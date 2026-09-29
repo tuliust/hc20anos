@@ -136,7 +136,7 @@ begin
     raise exception 'FAIL anonymous_editorial_public_select';
   end if;
   perform pg_temp.assert_no_editorial_mutation('anon');
-  select id into event_uuid from public.events order by id limit 1;
+  select event_id into event_uuid from public.home_page_content order by event_id limit 1;
   begin
     insert into public.faq_items(event_id,slug,category_key,category_label,question,answer,category_id)
     select fc.event_id,'phase4d-anon-'||gen_random_uuid()::text,fc.key,fc.label,
