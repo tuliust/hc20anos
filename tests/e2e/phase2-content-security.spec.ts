@@ -33,17 +33,11 @@ test.describe("Fase 2 — conteúdo e Storage", () => {
     expect(result.hasSensitiveMetadata).toBe(false);
   });
 
-  test("controle de anonimato pertence ao React e preserva a escolha", async ({ page }) => {
+  test("formulário de memórias não expõe controle de anonimato nem badge de aprovação", async ({ page }) => {
     await installEngagementFixtures(page);
     await page.goto("/nossa-historia/memorias");
-    const control = page.getByRole("switch", { name: "Enviar sem mostrar meu nome" });
-    await expect(control).toBeVisible({ timeout: 20_000 });
-    await expect(control).toHaveAttribute("aria-checked", "false");
-    await control.click();
-    await expect(control).toHaveAttribute("aria-checked", "true");
-    await page.waitForTimeout(500);
-    await expect(control).toHaveAttribute("aria-checked", "true");
-    await control.press("Space");
-    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("heading", { name: "O que ficou daquele tempo?" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("switch", { name: "Enviar sem mostrar meu nome" })).toHaveCount(0);
+    await expect(page.getByText("Aprovado", { exact: true })).toHaveCount(0);
   });
 });
