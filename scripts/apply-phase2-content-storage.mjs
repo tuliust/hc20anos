@@ -75,9 +75,13 @@ await update("src/lib/services.ts", source => {
       'import { DEV_MODE, supabase } from "./supabase";\nimport { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";',
     );
   }
-  const marker = 'const FUNCTIONS_BASE_URL = `${(import.meta.env.VITE_SUPABASE_URL as string).replace(/\\\/$/, "")}/functions/v1/server/make-server-62fab262`;';
-  const helper = `async function hydratePhotoUrls<T extends DbPhoto>(photos: T[]): Promise<T[]> {\n  const paths = Array.from(new Set(photos.map(photo => photo.storage_path).filter((value): value is string => Boolean(value))));\n  if (!paths.length) return photos;\n  const { data, error } = await supabase.storage.from("photos").createSignedUrls(paths, 3600);\n  if (error) throw error;\n  const urls = new Map((data ?? []).filter(item => item.signedUrl).map(item => [item.path, item.signedUrl]));\n  return photos.map(photo => {\n    const signedUrl = photo.storage_path ? urls.get(photo.storage_path) : null;\n    return signedUrl ? { ...photo, image_url: signedUrl, thumbnail_url: signedUrl } : photo;\n  });\n}\n\n${marker}`;
-  if (!next.includes("async function hydratePhotoUrls")) next = replaceRequired(next, marker, helper, "hidratação de URLs privadas");
+  if (!next.includes("async function hydratePhotoUrls")) {
+    const anchor = "export async function getHomePageContent";
+    const anchorIndex = next.indexOf(anchor);
+    if (anchorIndex < 0) throw new Error("services.ts: âncora getHomePageContent não encontrada");
+    const helper = `async function hydratePhotoUrls<T extends DbPhoto>(photos: T[]): Promise<T[]> {\n  const paths = Array.from(new Set(photos.map(photo => photo.storage_path).filter((value): value is string => Boolean(value))));\n  if (!paths.length) return photos;\n  const { data, error } = await supabase.storage.from("photos").createSignedUrls(paths, 3600);\n  if (error) throw error;\n  const urls = new Map((data ?? []).filter(item => item.signedUrl).map(item => [item.path, item.signedUrl]));\n  return photos.map(photo => {\n    const signedUrl = photo.storage_path ? urls.get(photo.storage_path) : null;\n    return signedUrl ? { ...photo, image_url: signedUrl, thumbnail_url: signedUrl } : photo;\n  });\n}\n\n`;
+    next = next.slice(0, anchorIndex) + helper + next.slice(anchorIndex);
+  }
 
   next = replaceFunction(next, "uploadCmsContentImage", `
 export async function uploadCmsContentImage(file: File, adminId: string, scope: string): Promise<string> {
