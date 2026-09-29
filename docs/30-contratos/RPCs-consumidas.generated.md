@@ -89,6 +89,8 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
 | `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:224` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
+| `record_client_audit_event` | `src/lib/services.ts:1317` | `RecordClientAuditEventArgs` | `RecordClientAuditEventReturns` |
+| `record_site_page_view` | `src/lib/services.ts:1304` | `RecordSitePageViewArgs` | `RecordSitePageViewReturns` |
 | `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
 | `reject_photo_removal_request` | `src/lib/services.ts:2009` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
