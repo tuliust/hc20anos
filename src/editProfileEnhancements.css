@@ -31,11 +31,14 @@
 [data-edit-profile-avatar-upload="true"],
 [data-edit-profile-avatar-delete="true"] {
   display: inline-flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  min-height: 3.125rem !important;
+  gap: 0.35rem !important;
+  height: 3.75rem !important;
+  min-height: 3.75rem !important;
   margin: 0 !important;
-  padding: 0.8rem 1.25rem !important;
+  padding: 0.55rem 1.25rem !important;
   border: 0 !important;
   background: #2d6a4f !important;
   color: #f0ebe0 !important;
@@ -53,6 +56,37 @@
 [data-edit-profile-avatar-delete="true"]:hover {
   background: #40916c !important;
   color: #f0ebe0 !important;
+}
+
+[data-edit-profile-privacy-card="true"] {
+  text-align: left !important;
+}
+
+[data-edit-profile-privacy-grid="true"] {
+  align-items: start !important;
+  justify-items: stretch !important;
+}
+
+[data-edit-profile-privacy-option="true"] {
+  display: grid !important;
+  grid-template-columns: 3rem minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-content: start !important;
+  justify-items: start !important;
+  width: 100% !important;
+  gap: 0.75rem !important;
+  text-align: left !important;
+}
+
+[data-edit-profile-privacy-option="true"] > span {
+  width: 100% !important;
+  text-align: left !important;
+  overflow-wrap: normal !important;
+}
+
+[data-edit-profile-privacy-switch="true"] {
+  justify-self: start !important;
+  margin: 0 !important;
 }
 
 [data-edit-profile-avatar-helper="true"] {
