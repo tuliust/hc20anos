@@ -1581,6 +1581,7 @@ function Modal({ open, onClose, title, children, wide = false }: {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
+        data-modal-scroll-owner="true"
         className={`bg-[#141f14] border border-[#2d6a4f]/40 w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100svh-1.5rem)] sm:max-h-[92vh] overflow-y-auto focus:outline-none`}
       >
         <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 sm:py-5 border-b border-[#2d6a4f]/20 sticky top-0 bg-[#141f14] z-20">
@@ -1595,7 +1596,7 @@ function Modal({ open, onClose, title, children, wide = false }: {
             <X size={22} />
           </button>
         </div>
-        <div className="p-5 sm:p-6">{children}</div>
+        <div data-modal-content="true" className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );
