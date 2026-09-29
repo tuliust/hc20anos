@@ -47,11 +47,21 @@ function getTags(photo: DbPhoto) {
     .filter(Boolean)));
 }
 
+function firstTwoNames(value: string | null | undefined) {
+  return String(value ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+}
+
 function createPhotoCard(photo: DbPhoto) {
+  const tags = getTags(photo);
   const card = document.createElement("article");
   card.setAttribute(INJECTED_ATTRIBUTE, photo.id);
-  card.setAttribute(TAGS_ATTRIBUTE, JSON.stringify(getTags(photo)));
-  card.className = "relative group overflow-hidden bg-[#1a2e1a] aspect-[4/3]";
+  card.setAttribute(TAGS_ATTRIBUTE, JSON.stringify(tags));
+  card.setAttribute("data-history-photo-card", "true");
+  card.className = "group bg-[#1a2e1a]";
+
+  const media = document.createElement("div");
+  media.setAttribute("data-history-photo-media", "true");
+  media.className = "relative overflow-hidden aspect-[4/3]";
 
   const button = document.createElement("button");
   button.type = "button";
@@ -80,7 +90,6 @@ function createPhotoCard(photo: DbPhoto) {
     location.textContent = photo.location_text;
     overlay.appendChild(location);
   }
-  const tags = getTags(photo);
   if (tags.length > 0) {
     const tagged = document.createElement("p");
     tagged.className = "text-[#c9a84c] text-[10px] font-mono mt-2";
@@ -88,14 +97,39 @@ function createPhotoCard(photo: DbPhoto) {
     overlay.appendChild(tagged);
   }
   button.appendChild(overlay);
-  card.appendChild(button);
+  media.appendChild(button);
 
   if (photo.year_approx) {
     const year = document.createElement("div");
+    year.setAttribute("data-history-photo-year-overlay", "true");
+    year.setAttribute("data-history-photo-year", String(photo.year_approx));
     year.className = "absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1";
     year.textContent = String(photo.year_approx);
-    card.appendChild(year);
+    media.appendChild(year);
   }
+
+  card.appendChild(media);
+
+  const mobileMeta = document.createElement("div");
+  mobileMeta.setAttribute("data-history-photo-mobile-meta", "true");
+  mobileMeta.className = "hidden";
+  if (photo.year_approx) {
+    const year = document.createElement("span");
+    year.setAttribute("data-history-mobile-year", "true");
+    year.textContent = String(photo.year_approx);
+    mobileMeta.appendChild(year);
+  }
+  if (tags.length) {
+    const names = document.createElement("div");
+    names.setAttribute("data-history-mobile-names", "true");
+    tags.slice(0, 3).forEach(name => {
+      const badge = document.createElement("span");
+      badge.textContent = firstTwoNames(name);
+      names.appendChild(badge);
+    });
+    mobileMeta.appendChild(names);
+  }
+  card.appendChild(mobileMeta);
   return card;
 }
 
