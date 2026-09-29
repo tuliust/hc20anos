@@ -150,6 +150,38 @@ order by event_id
 limit 1
 on conflict (event_id) do nothing;
 
+-- Seed one visible and one private FAQ row transactionally. The clean replay
+-- intentionally does not depend on production editorial content.
+insert into public.faq_items(
+  event_id, slug, category_key, category_label, question, answer, category_id, is_visible
+)
+select
+  fc.event_id, 'phase4d-public-fixture', fc.key, fc.label,
+  'Phase 4D public fixture', 'Phase 4D public fixture', fc.id, true
+from public.faq_categories fc
+join public.home_page_content h on h.event_id = fc.event_id
+order by fc.id
+limit 1
+on conflict (event_id, slug) do update
+set is_visible = true,
+    deleted_at = null,
+    updated_at = now();
+
+insert into public.faq_items(
+  event_id, slug, category_key, category_label, question, answer, category_id, is_visible
+)
+select
+  fc.event_id, 'phase4d-private-fixture', fc.key, fc.label,
+  'Phase 4D private fixture', 'Phase 4D private fixture', fc.id, false
+from public.faq_categories fc
+join public.home_page_content h on h.event_id = fc.event_id
+order by fc.id
+limit 1
+on conflict (event_id, slug) do update
+set is_visible = false,
+    deleted_at = null,
+    updated_at = now();
+
 savepoint phase4d_anon;
 select set_config('request.jwt.claim.role','anon',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);
