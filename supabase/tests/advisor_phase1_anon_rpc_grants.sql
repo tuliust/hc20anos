@@ -1,6 +1,6 @@
 -- Security advisor phase 1: RPC execution grant contract.
--- The three authenticated profile flows lose anon access only. Existing public
--- checkout, catalog, FAQ, memory, and /buscar RPCs remain public.
+-- Public SECURITY DEFINER endpoints must be intentional and explicit.
+-- The legacy current-ticket catalog is server-only; canonical public contracts remain available.
 
 with checks as (
   select 'anon_cannot_register_profile_v3'::text as check_name,
@@ -64,9 +64,10 @@ with checks as (
     has_function_privilege('anon', 'public.get_checkout_status_by_token(uuid)', 'EXECUTE')
     and has_function_privilege('authenticated', 'public.get_checkout_status_by_token(uuid)', 'EXECUTE')
   union all
-  select 'public_current_ticket_catalog_remains_available',
-    has_function_privilege('anon', 'public.get_current_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
-    and has_function_privilege('authenticated', 'public.get_current_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
+  select 'legacy_current_ticket_catalog_not_public',
+    not has_function_privilege('anon', 'public.get_current_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
+    and not has_function_privilege('authenticated', 'public.get_current_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
+    and has_function_privilege('service_role', 'public.get_current_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
   union all
   select 'public_ticket_catalog_remains_available',
     has_function_privilege('anon', 'public.get_public_ticket_catalog(uuid,timestamptz)', 'EXECUTE')
@@ -75,6 +76,28 @@ with checks as (
   select 'public_faq_rpc_remains_available',
     has_function_privilege('anon', 'public.has_structured_faq_items(uuid)', 'EXECUTE')
     and has_function_privilege('authenticated', 'public.has_structured_faq_items(uuid)', 'EXECUTE')
+  union all
+  select 'public_faq_rpc_has_no_public_grant',
+    not exists (
+      select 1
+      from pg_proc p
+      cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
+      where p.oid='public.has_structured_faq_items(uuid)'::regprocedure
+        and acl.grantee=0
+        and acl.privilege_type='EXECUTE'
+    )
+  union all
+  select 'future_public_functions_require_explicit_execute_grants',
+    not exists (
+      select 1
+      from pg_default_acl d
+      cross join lateral aclexplode(d.defaclacl) acl
+      where d.defaclrole='postgres'::regrole
+        and d.defaclobjtype='f'
+        and d.defaclnamespace='public'::regnamespace
+        and acl.privilege_type='EXECUTE'
+        and acl.grantee in (0, 'anon'::regrole::oid, 'authenticated'::regrole::oid)
+    )
   union all
   select 'public_memories_remain_available',
     has_function_privilege('anon', 'public.get_public_memories(uuid,boolean)', 'EXECUTE')
