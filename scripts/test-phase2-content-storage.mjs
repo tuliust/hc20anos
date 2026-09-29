@@ -144,7 +144,7 @@ try {
   await expectFunctionError(ordinary.token, new File(['<svg><script>alert(1)</script></svg>'], "malicious.png", { type: "image/png" }), "image_markup_detected");
   await expectFunctionError(ordinary.token, new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.png", { type: "image/png" }), "image_too_large");
 
-  console.log("3. Upload real, deduplicação concorrente, download e tags pending");
+  console.log("3. Upload real, publicação imediata, deduplicação concorrente, download e tags pending");
   const { data: person } = await service.from("people").select("id,full_name").limit(1).single();
   assert.ok(person?.id);
   const concurrent = await Promise.all(Array.from({ length: 3 }, (_, index) => functionRequest(
@@ -157,7 +157,7 @@ try {
   assert.equal(successes.length, 1, JSON.stringify(concurrent.map(item => ({ status: item.response.status, payload: item.payload }))));
   assert.equal(duplicates.length, 2);
   const photo = successes[0].payload.photo;
-  assert.equal(photo.status, "pending");
+  assert.equal(photo.status, "approved");
   assert.equal(photo.metadata_stripped, true);
   assert.equal(photo.caption, "Foto segura");
   assert.equal(photo.location_text, "Pátio do colégio");
@@ -202,24 +202,14 @@ try {
   assert.ifError(memorySubmit.error);
   assert.equal(memorySubmit.data.memory_text, "Uma memória segura da turma.");
   assert.equal(memorySubmit.data.is_anonymous, true);
-  assert.equal(memorySubmit.data.status, "pending");
-  const decisions = await Promise.all([
-    moderator.client.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: memorySubmit.data.id, p_status: "approved", p_notes: "decisão A" }),
-    moderator.client.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: memorySubmit.data.id, p_status: "rejected", p_notes: "decisão B" }),
-  ]);
-  assert.equal(decisions.filter(result => !result.error).length, 1, "Duas decisões concorrentes foram aceitas");
-  assert.equal(decisions.filter(result => result.error && /content_already_moderated/.test(result.error.message)).length, 1);
+  assert.equal(memorySubmit.data.status, "approved");
   const publicMemories = await anonymous.rpc("get_public_memories", { p_event_id: EVENT_ID, p_featured_only: false });
   assert.ifError(publicMemories.error);
   const publicMemory = publicMemories.data.find(row => row.id === memorySubmit.data.id);
-  const persisted = await service.from("memories").select("status").eq("id", memorySubmit.data.id).single();
-  assert.ifError(persisted.error);
-  if (persisted.data.status === "approved") {
-    assert.ok(publicMemory);
-    assert.equal(publicMemory.author_name, null);
-    assert.equal(publicMemory.user_id, null);
-    assert.equal(publicMemory.person_id, null);
-  }
+  assert.ok(publicMemory, "Memória publicada imediatamente não apareceu na leitura pública");
+  assert.equal(publicMemory.author_name, null);
+  assert.equal(publicMemory.user_id, null);
+  assert.equal(publicMemory.person_id, null);
 
   console.log("5. Sanitização e rate limiting sob concorrência");
   const initialComment = await ordinary.client.rpc("submit_photo_comment", { p_photo_id: photo.id, p_comment_text: "<img src=x onerror=alert(1)> Comentário <b>seguro</b>" });
