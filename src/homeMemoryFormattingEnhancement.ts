@@ -36,7 +36,7 @@ function injectStyle() {
       padding-left: 1.4rem;
       max-width: 58rem;
       color: #172218 !important;
-      font-family: Georgia, "Times New Roman", ui-serif, serif !important;
+      font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
       font-size: clamp(1rem, 1.2vw, 1.2rem) !important;
       font-style: normal !important;
       font-weight: 400 !important;
@@ -53,7 +53,7 @@ function injectStyle() {
       top: -0.08em;
       left: 0;
       color: #8a6d13;
-      font-family: Georgia, "Times New Roman", ui-serif, serif;
+      font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 2rem;
       line-height: 1;
     }
