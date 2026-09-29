@@ -1176,9 +1176,15 @@ function Field({ label, type = "text", placeholder, value, onChange, icon, hint 
     <div>
       <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">{label}</label>
       <div className="relative">
-        {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]">{icon}</div>}
-        <input type={type} placeholder={placeholder} value={value} onChange={e => onChange?.(e.target.value)}
-          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-14" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`} />
+        {icon && <div data-field-leading-icon="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#7a9a7a]">{icon}</div>}
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange?.(e.target.value)}
+          style={icon ? { paddingLeft: "3.5rem" } : undefined}
+          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-14" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`}
+        />
       </div>
       {hint && <p className="text-[#7a9a7a] text-xs mt-1.5">{hint}</p>}
     </div>
