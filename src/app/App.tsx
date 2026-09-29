@@ -1075,6 +1075,10 @@ function firstAndLastName(fullName?: string | null) {
   return `${parts[0]} ${parts[parts.length - 1]}`;
 }
 
+function firstTwoNames(fullName?: string | null) {
+  return (fullName ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+}
+
 function displayNameForPerson(person: Pick<DbPerson, "full_name" | "display_name">, profileDisplayName?: string | null) {
   return profileDisplayName?.trim() || person.display_name?.trim() || firstAndLastName(person.full_name) || person.full_name;
 }
@@ -5762,36 +5766,46 @@ function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
                 .filter(Boolean)
                 .slice(0, 3);
               return (
-                <div key={p.id} className="relative group overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
-                  <button data-history-photo-id={p.id} onClick={() => setLightboxPhoto(p)} className="absolute inset-0 text-left">
-                    <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                      <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
-                      <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location_text}</p>
-                      {tags.length > 0 && <p className="text-[#c9a84c] text-[10px] font-mono mt-2">Na foto: {tags.join(", ")}</p>}
-                    </div>
-                  </button>
-                  <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
-                  {p.is_featured && <div className="absolute top-3 right-3 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1 flex items-center gap-1"><Star size={10} />Destaque</div>}
-                  {tags.length > 0 && (
-                    <div className="absolute bottom-11 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none" aria-label={`Pessoas marcadas: ${tags.join(", ")}`}>
-                      {tags.map(name => (
-                        <span key={name} className="max-w-full truncate bg-[#0a120a]/90 border border-[#c9a84c]/35 px-2 py-1 text-[9px] font-mono font-bold text-[#f0d783] shadow-sm">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                    <div className="flex items-center gap-2 text-[#f0ebe0] text-xs font-mono bg-[#0a120a]/80 px-2 py-1">
-                      <Heart size={12} />{photoStats.likes_count}
-                      <MessageCircle size={12} />{photoStats.comments_count}
-                    </div>
-                    <button disabled={busyLike === p.id} onClick={(e) => { e.stopPropagation(); toggleLike(p.id); }} className={`pointer-events-auto border px-2 py-1 text-xs font-mono transition-colors ${liked ? "bg-[#c9a84c] border-[#c9a84c] text-[#0d1a0f]" : "bg-[#0a120a]/80 border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]"}`}>
-                      <Heart size={12} fill={liked ? "currentColor" : "none"} />
+                <article key={p.id} data-history-photo-card="true" className="group bg-[#1a2e1a]">
+                  <div data-history-photo-media="true" className="relative overflow-hidden aspect-[4/3]">
+                    <button data-history-photo-id={p.id} onClick={() => setLightboxPhoto(p)} className="absolute inset-0 text-left">
+                      <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#080f08] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                        <p className="text-[#f0ebe0] font-bold text-sm leading-tight">{p.caption}</p>
+                        <p className="text-[#7a9a7a] text-xs mt-1 flex items-center gap-1"><MapPin size={10} />{p.location_text}</p>
+                        {tags.length > 0 && <p className="text-[#c9a84c] text-[10px] font-mono mt-2">Na foto: {tags.join(", ")}</p>}
+                      </div>
                     </button>
+                    <div data-history-photo-year-overlay="true" data-history-photo-year={p.year_approx ?? undefined} className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>
+                    {p.is_featured && <div className="absolute top-3 right-3 bg-[#0d1a0f]/85 text-[#c9a84c] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1 flex items-center gap-1"><Star size={10} />Destaque</div>}
+                    {tags.length > 0 && (
+                      <div data-history-photo-tags-overlay="true" className="absolute bottom-11 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none" aria-label={`Pessoas marcadas: ${tags.join(", ")}`}>
+                        {tags.map(name => (
+                          <span key={name} className="max-w-full truncate bg-[#0a120a]/90 border border-[#c9a84c]/35 px-2 py-1 text-[9px] font-mono font-bold text-[#f0d783] shadow-sm">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                      <div className="flex items-center gap-2 text-[#f0ebe0] text-xs font-mono bg-[#0a120a]/80 px-2 py-1">
+                        <Heart size={12} />{photoStats.likes_count}
+                        <MessageCircle size={12} />{photoStats.comments_count}
+                      </div>
+                      <button disabled={busyLike === p.id} onClick={(e) => { e.stopPropagation(); toggleLike(p.id); }} className={`pointer-events-auto border px-2 py-1 text-xs font-mono transition-colors ${liked ? "bg-[#c9a84c] border-[#c9a84c] text-[#0d1a0f]" : "bg-[#0a120a]/80 border-[#2d6a4f]/40 text-[#f0ebe0] hover:border-[#c9a84c]"}`}>
+                        <Heart size={12} fill={liked ? "currentColor" : "none"} />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  <div data-history-photo-mobile-meta="true" className="hidden">
+                    {p.year_approx && <span data-history-mobile-year="true">{p.year_approx}</span>}
+                    {tags.length > 0 && (
+                      <div data-history-mobile-names="true">
+                        {tags.map(name => <span key={name}>{firstTwoNames(name)}</span>)}
+                      </div>
+                    )}
+                  </div>
+                </article>
               );
             })}
           </div>
