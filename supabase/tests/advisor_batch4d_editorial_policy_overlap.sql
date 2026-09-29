@@ -199,7 +199,7 @@ do $$ begin
     raise exception 'FAIL viewer_editorial_write_gate';
   end if;
   perform pg_temp.assert_no_editorial_mutation('viewer');
-end $;
+end $$;
 rollback to savepoint phase4d_viewer;
 
 savepoint phase4d_moderator;
@@ -213,7 +213,7 @@ do $$ begin
     raise exception 'FAIL moderator_editorial_write_gate';
   end if;
   perform pg_temp.assert_no_editorial_mutation('moderator');
-end $;
+end $$;
 rollback to savepoint phase4d_moderator;
 
 -- Admin and superadmin retain SELECT/INSERT/UPDATE/DELETE through the canonical
