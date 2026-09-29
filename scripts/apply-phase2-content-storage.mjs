@@ -51,12 +51,8 @@ await update("supabase/migrations/20260728000001_phase2_content_storage_security
   return next;
 });
 
-await update("src/app/App.tsx", source => replaceRequired(
-  source,
-  `            <label className="flex items-center justify-between cursor-pointer border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">\n              <span className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>\n              <button onClick={() => setIsAnonymous(v => !v)} className={\`relative w-12 h-6 transition-colors \${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}\`}>\n                <div className={\`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all \${isAnonymous ? "left-7" : "left-1"}\`} />\n              </button>\n            </label>`,
-  `            <div className="flex items-center justify-between border border-[#2d6a4f]/20 p-4 bg-[#0a120a]">\n              <span id="memory-anonymity-label" className="text-[#f0ebe0] text-sm">Enviar sem mostrar meu nome</span>\n              <button\n                type="button"\n                role="switch"\n                aria-labelledby="memory-anonymity-label"\n                aria-checked={isAnonymous}\n                onClick={() => setIsAnonymous(value => !value)}\n                className={\`relative w-12 h-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a84c] \${isAnonymous ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}\`}\n              >\n                <span aria-hidden="true" className={\`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all \${isAnonymous ? "left-7" : "left-1"}\`} />\n              </button>\n            </div>`,
-  "controle canônico de anonimato",
-));
+// O formulário público de memórias não oferece mais envio anônimo.
+ // A política de Storage da Fase 2 permanece válida sem exigir esse controle de UI.
 
 await update("src/historyContentEnhancements.ts", source => replaceFunction(source, "enhanceMemoriesForm", `
 function enhanceMemoriesForm() {
