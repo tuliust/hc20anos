@@ -30,6 +30,10 @@ function normalizeText(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
 }
 
+function firstTwoNames(value: string | null | undefined) {
+  return String(value ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+}
+
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
 }
@@ -133,7 +137,12 @@ function createApprovedPhotoCard(photo: DbPhoto) {
   const imageSource = getPhotoSource(photo);
   const card = document.createElement("article");
   card.setAttribute(INJECTED_PHOTO_ATTRIBUTE, photo.id);
-  card.className = "relative group overflow-hidden bg-[#1a2e1a] aspect-[4/3]";
+  card.setAttribute("data-history-photo-card", "true");
+  card.className = "group bg-[#1a2e1a]";
+
+  const media = document.createElement("div");
+  media.setAttribute("data-history-photo-media", "true");
+  media.className = "relative overflow-hidden aspect-[4/3]";
 
   const button = document.createElement("button");
   button.type = "button";
@@ -166,18 +175,21 @@ function createApprovedPhotoCard(photo: DbPhoto) {
   }
 
   button.appendChild(overlay);
-  card.appendChild(button);
+  media.appendChild(button);
 
   if (photo.year_approx) {
     const year = document.createElement("div");
+    year.setAttribute("data-history-photo-year-overlay", "true");
+    year.setAttribute("data-history-photo-year", String(photo.year_approx));
     year.className = "absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1";
     year.textContent = String(photo.year_approx);
-    card.appendChild(year);
+    media.appendChild(year);
   }
 
   const taggedNames = getApprovedPhotoTagNames(photo);
   if (taggedNames.length) {
     const tags = document.createElement("div");
+    tags.setAttribute("data-history-photo-tags-overlay", "true");
     tags.className = "absolute bottom-3 left-3 right-3 z-10 flex flex-wrap gap-1.5 pointer-events-none";
     tags.setAttribute("aria-label", `Pessoas marcadas: ${taggedNames.join(", ")}`);
     taggedNames.forEach(name => {
@@ -186,16 +198,38 @@ function createApprovedPhotoCard(photo: DbPhoto) {
       badge.textContent = name;
       tags.appendChild(badge);
     });
-    card.appendChild(tags);
+    media.appendChild(tags);
   }
+
+  card.appendChild(media);
+
+  const mobileMeta = document.createElement("div");
+  mobileMeta.setAttribute("data-history-photo-mobile-meta", "true");
+  mobileMeta.className = "hidden";
+  if (photo.year_approx) {
+    const year = document.createElement("span");
+    year.setAttribute("data-history-mobile-year", "true");
+    year.textContent = String(photo.year_approx);
+    mobileMeta.appendChild(year);
+  }
+  if (taggedNames.length) {
+    const names = document.createElement("div");
+    names.setAttribute("data-history-mobile-names", "true");
+    taggedNames.forEach(name => {
+      const badge = document.createElement("span");
+      badge.textContent = firstTwoNames(name);
+      names.appendChild(badge);
+    });
+    mobileMeta.appendChild(names);
+  }
+  card.appendChild(mobileMeta);
 
   return card;
 }
 
 function readPhotoCardYear(card: HTMLElement) {
-  const yearElement = Array.from(card.children)
-    .find((element): element is HTMLElement => element instanceof HTMLElement && /^20\d{2}$/.test(normalizeText(element.textContent)));
-  return yearElement ? normalizeText(yearElement.textContent) : null;
+  const yearElement = card.querySelector<HTMLElement>("[data-history-photo-year]");
+  return yearElement ? normalizeText(yearElement.getAttribute("data-history-photo-year") || yearElement.textContent) : null;
 }
 
 function restoreMobilePhotoCardVisibility() {
