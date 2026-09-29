@@ -7,7 +7,7 @@ import {
 import { TEST_USER_ID } from "./profile-claim-fixtures";
 
 test.describe("memórias e enquetes", () => {
-  test("preserva anonimato público e publica a memória imediatamente", async ({ page }) => {
+  test("publica memória identificada e mantém anonimato apenas em registros antigos", async ({ page }) => {
     const api = await installEngagementFixtures(page);
 
     await page.goto("/nossa-historia/memorias");
@@ -29,11 +29,8 @@ test.describe("memórias e enquetes", () => {
     expect(api.memoryCalls).toHaveLength(0);
 
     await memoryField.fill("Lembro das conversas no corredor antes da primeira aula.");
-    const anonymousControl = page.getByRole("switch", { name: "Enviar sem mostrar meu nome" });
-    await expect(anonymousControl).toBeVisible();
-    await expect(anonymousControl).toHaveAttribute("aria-checked", "false");
-    await anonymousControl.click();
-    await expect(anonymousControl).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("switch", { name: "Enviar sem mostrar meu nome" })).toHaveCount(0);
+    await expect(page.getByText("Aprovado", { exact: true })).toHaveCount(0);
     await submitMemory.click();
 
     await expect.poll(() => api.memoryCalls.length, { timeout: 20_000 }).toBe(1);
@@ -44,7 +41,7 @@ test.describe("memórias e enquetes", () => {
       event_id: "00000000-0000-0000-0000-000000000001",
       user_id: TEST_USER_ID,
       memory_text: "Lembro das conversas no corredor antes da primeira aula.",
-      is_anonymous: true,
+      is_anonymous: false,
       status: "approved",
       is_featured: false,
     });
