@@ -17,6 +17,7 @@ with checks as (
       'get_public_memories(p_event_id uuid, p_featured_only boolean)',
       'get_public_ticket_catalog(p_event_id uuid, p_at timestamp with time zone)',
       'has_structured_faq_items(p_event_id uuid)',
+      'record_site_page_view(p_event_id uuid, p_visitor_id text, p_session_id text, p_path text, p_query text, p_is_mobile boolean, p_referrer text)',
       'save_contact_research(p_person_id uuid, p_phone text, p_instagram text, p_email text, p_notes text, p_source text, p_mark_no_contact boolean)'
     ]::text[] as passed
   union all
