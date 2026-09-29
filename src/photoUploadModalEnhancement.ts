@@ -1,4 +1,4 @@
-import { getPeople, MOCK_PEOPLE } from "./lib/services";
+import { getPublicPeople, MOCK_PEOPLE } from "./lib/services";
 
 const CONSENT_FIXED_ATTRIBUTE = "data-photo-consent-fixed";
 const YEARS_FIXED_ATTRIBUTE = "data-photo-years-fixed";
@@ -51,7 +51,7 @@ function replaceButtonText(button: HTMLButtonElement) {
 function hydrateRealPeople() {
   if (peopleHydration) return peopleHydration;
 
-  peopleHydration = getPeople()
+  peopleHydration = getPublicPeople()
     .then(people => {
       const visiblePeople = people
         .filter(person => person.is_visible !== false)
