@@ -295,6 +295,43 @@ input[type="number"]::-webkit-inner-spin-button {
   box-shadow: 0 1px 0 rgba(13, 26, 15, 0.04);
 }
 
+/* Home — ações secundárias seguem o mesmo componente visual em todas as seções. */
+[data-home-action-button="true"] {
+  border-color: rgba(201, 168, 76, 0.72) !important;
+  background: transparent !important;
+  color: #c9a84c !important;
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+[data-home-section="about"] [data-home-action-button="true"] {
+  border-color: rgba(138, 109, 19, 0.72) !important;
+  color: #8a6d13 !important;
+}
+
+[data-home-action-button="true"]:hover {
+  border-color: #c9a84c !important;
+  background: #c9a84c !important;
+  color: #0d1a0f !important;
+  box-shadow: 0 6px 16px rgba(13, 26, 15, 0.16);
+  transform: translateY(-2px);
+}
+
+[data-home-action-button="true"]:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+[data-home-action-button="true"]:focus-visible {
+  outline: 2px solid #c9a84c !important;
+  outline-offset: 2px;
+}
+
+/* A galeria da Home usa o verde institucional em vez do fundo quase preto. */
+[data-home-section="photos"] {
+  background: #0d1a0f !important;
+}
+
 /* Home — feedback visual claro para elementos clicáveis da turma. */
 [data-home-section="about"] [data-home-about-stats] button[data-class-group],
 [data-home-section="about"] button[data-home-registered-person] {
