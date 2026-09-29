@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-26
-last_verified_commit: 2909e08b34d8f022d97fba5cf97b37d8fd4ab355
+last_verified: 2026-09-29
+last_verified_commit: 686c31e98427d1bda518f49625798d2f9cc50ae4
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -22,7 +22,7 @@ source_files:
 | Indicador | Resultado |
 |---|---:|
 | RPCs distintas | 66 |
-| Ocorrências literais | 81 |
+| Ocorrências literais | 78 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -36,16 +36,17 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_clear_person_profile` | `src/adminParticipantMaintenance.ts:422` | `AdminClearPersonProfileArgs` | `AdminClearPersonProfileReturns` |
 | `admin_delete_person_profile` | `src/adminParticipantMaintenance.ts:441` | `AdminDeletePersonProfileArgs` | `AdminDeletePersonProfileReturns` |
 | `admin_get_commerce_orders` | `src/app/AdminCommerceOrdersMount.tsx:248` | `AdminGetCommerceOrdersArgs` | `AdminGetCommerceOrdersReturns` |
-| `admin_get_person_details` | `src/lib/services.ts:568` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
+| `admin_get_person_details` | `src/lib/services.ts:599` | `AdminGetPersonDetailsArgs` | `AdminGetPersonDetailsReturns` |
 | `admin_get_profile_claim_disputes_with_identity` | `build/profileClaimIdentityTransform.mjs:141` | `AdminGetProfileClaimDisputesWithIdentityArgs` | `AdminGetProfileClaimDisputesWithIdentityReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
-| `admin_import_people` | `src/lib/services.ts:525` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
+| `admin_import_people` | `src/lib/services.ts:556` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
 | `admin_prepare_event_cancellation_refund` | `src/app/AdminCommerceOrdersMount.tsx:313` | `AdminPrepareEventCancellationRefundArgs` | `AdminPrepareEventCancellationRefundReturns` |
-| `admin_update_person_and_profile` | `src/lib/services.ts:581` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
+| `admin_update_person_and_profile` | `src/lib/services.ts:612` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
 | `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:253` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
 | `calculate_refund_quote` | `src/app/BuyerCommerceActions.tsx:37` | `CalculateRefundQuoteArgs` | `CalculateRefundQuoteReturns` |
+| `can_manage_contact_research` | `src/app/ContactResearchPage.tsx:188` | `CanManageContactResearchArgs` | `CanManageContactResearchReturns` |
 | `cancel_guest_approval_request` | `src/app/GuestApprovalPage.tsx:76` | `CancelGuestApprovalRequestArgs` | `CancelGuestApprovalRequestReturns` |
 | `cancel_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:91` | `CancelTicketTransferArgs` | `CancelTicketTransferReturns` |
 | `claim_notification_jobs` | `supabase/functions/notification-worker/index.ts:137` | `ClaimNotificationJobsArgs` | `ClaimNotificationJobsReturns` |
@@ -53,45 +54,41 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `complete_notification_job` | `supabase/functions/notification-worker/index.ts:147` | `CompleteNotificationJobArgs` | `CompleteNotificationJobReturns` |
 | `complete_photo_removal` | `supabase/functions/photo-storage/index.ts:240` | `CompletePhotoRemovalArgs` | `CompletePhotoRemovalReturns` |
 | `complete_profile_registration_v2` | `build/profileClaimIdentityTransform.mjs:119` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
-| `complete_profile_registration_v2` | `src/lib/services.ts:629` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
+| `complete_profile_registration_v2` | `src/lib/services.ts:660` | `CompleteProfileRegistrationV2Args` | `CompleteProfileRegistrationV2Returns` |
 | `complete_profile_registration_v3` | `build/profileClaimIdentityTransform.mjs:120` | `CompleteProfileRegistrationV3Args` | `CompleteProfileRegistrationV3Returns` |
 | `create_checkout_order` | `supabase/functions/checkout-create/index.ts:228` | `CreateCheckoutOrderArgs` | `CreateCheckoutOrderReturns` |
 | `create_guest_approval_request` | `src/app/GuestApprovalPage.tsx:53` | `CreateGuestApprovalRequestArgs` | `CreateGuestApprovalRequestReturns` |
 | `create_uploaded_photo` | `supabase/functions/photo-storage/index.ts:114` | `CreateUploadedPhotoArgs` | `CreateUploadedPhotoReturns` |
 | `export_checkin_report` | `src/app/OperationsReportingPanel.tsx:17` | `ExportCheckinReportArgs` | `ExportCheckinReportReturns` |
-| `fn_increment_sold` | `supabase/functions/server/index.ts:319` | `FnIncrementSoldArgs` | `FnIncrementSoldReturns` |
-| `get_admin_orders` | `src/lib/services.ts:1069` | `GetAdminOrdersArgs` | `GetAdminOrdersReturns` |
+| `get_admin_orders` | `src/lib/services.ts:1083` | `GetAdminOrdersArgs` | `GetAdminOrdersReturns` |
 | `get_admin_refund_requests` | `src/app/OperationsPage.tsx:44` | `GetAdminRefundRequestsArgs` | `GetAdminRefundRequestsReturns` |
 | `get_checkin_activity` | `src/app/OperationsReportingPanel.tsx:15` | `GetCheckinActivityArgs` | `GetCheckinActivityReturns` |
 | `get_checkin_dashboard` | `src/app/OperationsPage.tsx:35` | `GetCheckinDashboardArgs` | `GetCheckinDashboardReturns` |
 | `get_checkin_dashboard` | `src/app/OperationsPage.tsx:75` | `GetCheckinDashboardArgs` | `GetCheckinDashboardReturns` |
 | `get_checkin_operation_metrics` | `src/app/OperationsReportingPanel.tsx:15` | `GetCheckinOperationMetricsArgs` | `GetCheckinOperationMetricsReturns` |
 | `get_checkout_status_by_token` | `src/lib/checkout.ts:137` | `GetCheckoutStatusByTokenArgs` | `GetCheckoutStatusByTokenReturns` |
-| `get_contact_research_directory` | `src/app/ContactResearchPage.tsx:170` | `GetContactResearchDirectoryArgs` | `GetContactResearchDirectoryReturns` |
-| `get_current_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:136` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_current_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:119` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_current_ticket_catalog` | `src/lib/currentTicketCatalog.ts:71` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_current_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:63` | `GetCurrentTicketCatalogArgs` | `GetCurrentTicketCatalogReturns` |
-| `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:165` | `GetEventReportsArgs` | `GetEventReportsReturns` |
-| `get_event_reports` | `src/lib/services.ts:1373` | `GetEventReportsArgs` | `GetEventReportsReturns` |
+| `get_contact_research_directory` | `src/app/ContactResearchPage.tsx:171` | `GetContactResearchDirectoryArgs` | `GetContactResearchDirectoryReturns` |
+| `get_contact_research_private_details` | `src/app/ContactResearchPage.tsx:192` | `GetContactResearchPrivateDetailsArgs` | `GetContactResearchPrivateDetailsReturns` |
+| `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:159` | `GetEventReportsArgs` | `GetEventReportsReturns` |
+| `get_event_reports` | `src/lib/services.ts:1387` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:293` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
 | `get_my_guest_approval_requests` | `src/app/GuestApprovalPage.tsx:37` | `GetMyGuestApprovalRequestsArgs` | `GetMyGuestApprovalRequestsReturns` |
 | `get_my_ticket_transfers` | `src/app/BuyerCommerceActions.tsx:80` | `GetMyTicketTransfersArgs` | `GetMyTicketTransfersReturns` |
-| `get_public_memories` | `src/lib/services.ts:1653` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
+| `get_public_memories` | `src/lib/services.ts:1667` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
 | `get_public_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:130` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:112` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/lib/currentTicketCatalog.ts:65` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/ticketsCatalogLayoutEnhancements.ts:57` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `has_structured_faq_items` | `src/lib/faq.ts:201` | `HasStructuredFaqItemsArgs` | `HasStructuredFaqItemsReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1163` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1193` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1610` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1684` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1177` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1207` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1624` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1698` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
 | `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:224` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
 | `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
-| `reject_photo_removal_request` | `src/lib/services.ts:2021` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
+| `reject_photo_removal_request` | `src/lib/services.ts:2035` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
@@ -101,17 +98,17 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `restore_refunded_order_inventory` | `supabase/functions/refund-processor/index.ts:71` | `RestoreRefundedOrderInventoryArgs` | `RestoreRefundedOrderInventoryReturns` |
 | `retry_order_payment` | `src/app/BuyerCommerceActions.tsx:68` | `RetryOrderPaymentArgs` | `RetryOrderPaymentReturns` |
 | `review_refund_request` | `src/app/OperationsPage.tsx:103` | `ReviewRefundRequestArgs` | `ReviewRefundRequestReturns` |
-| `save_contact_research` | `src/app/ContactResearchPage.tsx:274` | `SaveContactResearchArgs` | `SaveContactResearchReturns` |
+| `save_contact_research` | `src/app/ContactResearchPage.tsx:299` | `SaveContactResearchArgs` | `SaveContactResearchReturns` |
 | `search_external_guest_sponsors` | `src/app/GuestApprovalPage.tsx:36` | `SearchExternalGuestSponsorsArgs` | `SearchExternalGuestSponsorsReturns` |
-| `set_content_featured` | `src/lib/services.ts:1639` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
-| `set_content_featured` | `src/lib/services.ts:1690` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
+| `set_content_featured` | `src/lib/services.ts:1653` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
+| `set_content_featured` | `src/lib/services.ts:1704` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
 | `set_participant_vouchers_delivered` | `src/app/OperationsPage.tsx:92` | `SetParticipantVouchersDeliveredArgs` | `SetParticipantVouchersDeliveredReturns` |
-| `submit_memory` | `src/lib/services.ts:1645` | `SubmitMemoryArgs` | `SubmitMemoryReturns` |
-| `submit_photo_comment` | `src/lib/services.ts:1579` | `SubmitPhotoCommentArgs` | `SubmitPhotoCommentReturns` |
-| `submit_photo_removal_request` | `src/lib/services.ts:2001` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
-| `submit_photo_tag` | `src/lib/services.ts:1199` | `SubmitPhotoTagArgs` | `SubmitPhotoTagReturns` |
-| `submit_poll` | `src/lib/services.ts:1796` | `SubmitPollArgs` | `SubmitPollReturns` |
-| `update_my_public_profile` | `src/lib/services.ts:910` | `UpdateMyPublicProfileArgs` | `UpdateMyPublicProfileReturns` |
+| `submit_memory` | `src/lib/services.ts:1659` | `SubmitMemoryArgs` | `SubmitMemoryReturns` |
+| `submit_photo_comment` | `src/lib/services.ts:1593` | `SubmitPhotoCommentArgs` | `SubmitPhotoCommentReturns` |
+| `submit_photo_removal_request` | `src/lib/services.ts:2015` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
+| `submit_photo_tag` | `src/lib/services.ts:1213` | `SubmitPhotoTagArgs` | `SubmitPhotoTagReturns` |
+| `submit_poll` | `src/lib/services.ts:1810` | `SubmitPollArgs` | `SubmitPollReturns` |
+| `update_my_public_profile` | `src/lib/services.ts:962` | `UpdateMyPublicProfileArgs` | `UpdateMyPublicProfileReturns` |
 
 ## Chamadas dinâmicas
 
