@@ -132,6 +132,16 @@ const moderator = await signedClient(createdUsers[1]);
 const admin = await signedClient(createdUsers[2]);
 const ordinaryId = ordinary.id;
 
+const PHASE2_PERSON_ID = "77777777-7777-4777-8777-777777777777";
+const registeredProfile = await service.from("profiles").insert({
+  person_id: PHASE2_PERSON_ID,
+  user_id: ordinaryId,
+  display_name: "Usuário Fase 2",
+}).select("id,user_id,person_id").single();
+assert.ifError(registeredProfile.error);
+assert.equal(registeredProfile.data.user_id, ordinaryId);
+assert.equal(registeredProfile.data.person_id, PHASE2_PERSON_ID);
+
 try {
   console.log("1. Políticas bloqueiam upload direto ao bucket privado");
   const directPath = `${ordinaryId}/direct-upload.png`;
