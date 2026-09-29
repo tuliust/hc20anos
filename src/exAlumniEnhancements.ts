@@ -90,10 +90,13 @@ function enhanceExAlumniAllFilter(pageRoot: HTMLElement) {
 
 function enhanceExAlumniEyebrow(pageRoot: HTMLElement) {
   const eyebrow = Array.from(pageRoot.querySelectorAll<HTMLElement>("p"))
-    .find(element => normalizeText(element.textContent) === "turma 2006 · diretório");
+    .find(element => {
+      const label = normalizeText(element.textContent);
+      return label === "turma 2006" || label === "turma 2006 · diretório";
+    });
 
-  if (eyebrow && eyebrow.textContent !== "Turma 2006 · Diretório") {
-    eyebrow.textContent = "Turma 2006 · Diretório";
+  if (eyebrow && eyebrow.textContent !== "Turma 2006") {
+    eyebrow.textContent = "Turma 2006";
   }
 }
 
