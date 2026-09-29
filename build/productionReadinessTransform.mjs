@@ -30,12 +30,6 @@ export function productionReadinessTransform() {
           'projeção segura de pessoas',
         );
 
-        code = replaceRequired(
-          code,
-          `.from("people")\n      .select("*")\n      .eq("is_visible", true)`,
-          `.from("people")\n      .select("id,full_name,class_year,class_group,nickname_at_school,profile_status,is_visible,avatar_url,display_name,gender,created_at,updated_at")\n      .eq("is_visible", true)`,
-          'projeção segura de pessoas públicas',
-        );
       }
 
       return code === source ? null : { code, map: null };
