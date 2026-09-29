@@ -72,23 +72,6 @@ const SCHOOL_PROFILE_QUESTIONS = [
       "Um pouco de tudo",
     ],
   },
-  {
-    id: "reunion_expectation",
-    title: "O que você quer viver no reencontro?",
-    options: [
-      "Rever quem fez parte da minha história",
-      "Matar a saudade",
-      "Dar boas risadas",
-      "Relembrar histórias antigas",
-      "Saber por onde anda todo mundo",
-      "Celebrar os 20 anos da turma",
-      "Reconectar com pessoas importantes",
-      "Mostrar quem me tornei",
-      "Viver uma noite leve",
-      "Criar novas memórias",
-      "Apenas aproveitar o momento",
-    ],
-  },
 ] as const;
 
 type QuestionnaireAnswers = Record<string, string[]>;
