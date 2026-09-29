@@ -29,7 +29,9 @@ test("Home ignora catálogo legado mesmo se uma fixture retornar produto", async
   await expect(page.locator("[data-public-ticket-catalog-home='true']")).toHaveCount(0);
   await expect(page.getByText("R$ 120,00", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Comprar agora", exact: true })).toHaveCount(0);
-  await expect(page.getByText(/Comunicado sobre o encontro de 2026/i)).toBeVisible();
+  const cancellationNotice = page.locator("[data-home-cancelled-notice='true']");
+  await expect(cancellationNotice).toBeVisible();
+  await expect(cancellationNotice).toContainText(/Comunicado sobre o encontro de 2026/i);
 });
 
 test("rota /ingressos redireciona e não expõe catálogo", async ({ page }) => {
@@ -38,8 +40,11 @@ test("rota /ingressos redireciona e não expõe catálogo", async ({ page }) => 
   await page.goto("/ingressos");
 
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("[data-public-ticket-catalog='true']")).toHaveCount(0);
-  await expect(page.getByText(/reembolsados integralmente pelo Mercado Pago/i)).toBeVisible({ timeout: 20_000 });
+  const cancellationNotice = page.locator("[data-home-cancelled-notice='true']");
+  await expect(cancellationNotice).toBeVisible();
+  await expect(cancellationNotice).toContainText(/reembolsados integralmente pelo Mercado Pago/i);
 });
 
 test("rota /checkout também permanece fechada sem parâmetros de retorno", async ({ page }) => {
