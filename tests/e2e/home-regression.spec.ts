@@ -99,8 +99,8 @@ test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enq
 
   await expect(page.getByRole("button", { name: /Entrar para acompanhar|Acompanhar reembolso/i })).toHaveCount(0);
   await expect(page.getByText("Comunicado sobre o encontro de 2026")).toBeVisible();
-  await expect(page.locator("[data-add-memory]")).toContainText("Adicionar mem\u00f3ria");
-  await expect(page.locator("[data-create-poll]")).toContainText("Criar Enquete");
+  await expect(page.locator("[data-add-memory]")).toContainText("Adicionar Mem\u00f3rias");
+  await expect(page.locator("[data-create-poll]")).toContainText("Criar Enquetes");
   await page.locator("[data-create-poll]").click();
   await expect(page.locator("[data-home-poll-form]")).toBeVisible();
   await page.getByPlaceholder("Escreva a pergunta").fill("Qual atividade rever a seguir?");
@@ -114,6 +114,36 @@ test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enq
     p_options: ["Café da manhã", "Visita à escola"],
   });
   await expect(page.getByRole("status")).toContainText("Enquete criada e publicada.");
+});
+
+test("ações da Home compartilham o mesmo visual e a seção Fotos oferece envio", async ({ page }) => {
+  await installHomeFixtures(page, { authenticated: true });
+  await loadHome(page);
+
+  const actions = [
+    page.locator('[data-home-people-view-all="true"]'),
+    page.locator('[data-add-memory]'),
+    page.locator('[data-create-poll]'),
+    page.locator('[data-home-photos-view-all="true"]'),
+    page.locator('[data-home-photos-upload="true"]'),
+  ];
+  for (const action of actions) {
+    await expect(action).toBeVisible();
+    await expect(action).toHaveAttribute("data-home-action-button", "true");
+  }
+
+  const photos = page.locator('[data-home-section="photos"]');
+  await expect(photos).toBeVisible();
+  await expect(photos).toHaveCSS("background-color", "rgb(13, 26, 15)");
+
+  const peopleViewAll = page.locator('[data-home-people-view-all="true"]');
+  const initialBackground = await peopleViewAll.evaluate(element => getComputedStyle(element).backgroundColor);
+  await peopleViewAll.hover();
+  await expect(peopleViewAll).not.toHaveCSS("background-color", initialBackground);
+
+  await expect(page.locator('[data-add-memory]')).toContainText("Adicionar Memórias");
+  await expect(page.locator('[data-create-poll]')).toContainText("Criar Enquetes");
+  await expect(page.locator('[data-home-photos-upload="true"]')).toContainText("Envie suas fotos");
 });
 
 test("os cards de turma filtram as pessoas cadastradas sem sair da Home", async ({ page }) => {
