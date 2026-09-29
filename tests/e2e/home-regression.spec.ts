@@ -166,6 +166,7 @@ test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enq
 });
 
 test("ações da Home compartilham o mesmo visual e a seção Fotos oferece envio", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await installHomeFixtures(page, { authenticated: true });
   await loadHome(page);
 
@@ -193,6 +194,11 @@ test("ações da Home compartilham o mesmo visual e a seção Fotos oferece envi
   await expect(page.locator('[data-add-memory]')).toContainText("Adicionar Memórias");
   await expect(page.locator('[data-create-poll]')).toContainText("Criar Enquetes");
   await expect(page.locator('[data-home-photos-upload="true"]')).toContainText("Envie suas fotos");
+
+  const photoActions = page.locator('[data-home-photo-actions="true"] > [data-home-action-button="true"]');
+  await expect(photoActions).toHaveCount(2);
+  await expect(photoActions.nth(0)).toHaveCSS("font-size", "12px");
+  await expect(photoActions.nth(1)).toHaveCSS("font-size", "12px");
 });
 
 test("os cards de turma filtram as pessoas cadastradas sem sair da Home", async ({ page }) => {
@@ -404,10 +410,14 @@ test("Sobre exibe total, turmas normalizadas e cards de dados sem Graficos", asy
 });
 
 test("mapa da turma navega de Mundo até Natal e revela as pessoas da região", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await installHomeFixtures(page);
   await loadHome(page);
 
   const map = page.locator("[data-home-map-chart]");
+  const peopleList = map.locator('[data-home-map-people-list="true"]');
+  await expect(peopleList).toHaveCSS("max-height", "none");
+  await expect(peopleList).toHaveCSS("flex-grow", "1");
   await expect(map).toHaveAttribute("data-map-level", "world");
   await expect(map).toContainText("Exterior");
   await expect(map).toContainText("Lisboa · Portugal");
