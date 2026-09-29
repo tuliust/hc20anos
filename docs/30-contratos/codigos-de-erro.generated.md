@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-29
-last_verified_commit: e2cc2a5d31cffbdb3980c3b021588a025bc2da34
+last_verified_commit: 765afa870a3a9118cd6e738ea2bc0f78d1e2171e
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
