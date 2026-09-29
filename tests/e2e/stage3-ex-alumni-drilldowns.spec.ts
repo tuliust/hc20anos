@@ -101,7 +101,8 @@ test("drill-down permanece utilizável em viewport móvel", async ({ page }) => 
 
 
 test("modal do diretório mantém uma única rolagem vertical", async ({ page }) => {
-  await openDirectory(page);\n  await openDrilldown(page, "registered");
+  await openDirectory(page);
+  await openDrilldown(page, "registered");
 
   const state = await page.getByRole("dialog", { name: "Cadastrados no site" }).evaluate(dialog => {
     const descendants = Array.from(dialog.querySelectorAll<HTMLElement>(".overflow-y-auto, .overflow-auto"));
