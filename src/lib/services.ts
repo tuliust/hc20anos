@@ -1374,9 +1374,9 @@ export async function updateTicketTypeFull(id: string, patch: Partial<DbTicketTy
 
 export async function getEventSettings(slug = "turma-2006-20-anos"): Promise<DbEvent | null> {
   return withFallback(async () => {
-    const { data, error } = await supabase.from("events").select("*").eq("slug", slug).single();
+    const { data, error } = await supabase.from("events").select("*").eq("slug", slug).maybeSingle();
     if (error) throw error;
-    return data as DbEvent;
+    return (data as DbEvent | null) ?? null;
   }, null);
 }
 
