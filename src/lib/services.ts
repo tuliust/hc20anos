@@ -264,20 +264,6 @@ async function hydratePhotoUrls<T extends DbPhoto>(photos: T[]): Promise<T[]> {
   });
 }
 
-const FUNCTIONS_BASE_URL = `${(import.meta.env.VITE_SUPABASE_URL as string).replace(/\/$/, "")}/functions/v1/server/make-server-62fab262`;
-
-async function callFunction<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
-  headers.set("apikey", import.meta.env.VITE_SUPABASE_ANON_KEY as string);
-  headers.set("Authorization", `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`);
-
-  const response = await fetch(`${FUNCTIONS_BASE_URL}${path}`, { ...init, headers });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.error ?? "Erro ao chamar funcao segura");
-  return payload as T;
-}
-
 export async function getHomePageContent(eventId = DEFAULT_HOME_EVENT_ID): Promise<HomePageContent> {
   return withFallback(async () => {
     const { data, error } = await supabase
@@ -1034,44 +1020,6 @@ export async function updateEventArchiveSettings(eventId: string, patch: Partial
     .upsert(payload, { onConflict: "event_id" }).select("*").single();
   if (error) throw error;
   return data as DbEventArchiveSettings;
-}
-
-export async function createCheckoutOrder(params: {
-  ticket_type_id: string;
-  buyer_name: string;
-  buyer_email: string;
-  buyer_phone?: string | null;
-  person_id?: string | null;
-  quantity?: number;
-}): Promise<DbOrder> {
-  const { order } = await callFunction<{ order: DbOrder }>("/orders", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-  return order;
-}
-
-export async function createPaymentPreference(orderId: string): Promise<{
-  preference_id: string;
-  init_point: string;
-  sandbox_init_point?: string;
-  dev_mode?: boolean;
-}> {
-  return callFunction("/mp/preference", {
-    method: "POST",
-    body: JSON.stringify({ orderId }),
-  });
-}
-
-export async function getCheckoutOrder(orderId: string): Promise<DbOrder & {
-  ticket_types?: Partial<DbTicketType> | null;
-  tickets?: { id: string; qr_code: string }[];
-}> {
-  const { order } = await callFunction<{ order: DbOrder & {
-    ticket_types?: Partial<DbTicketType> | null;
-    tickets?: { id: string; qr_code: string }[];
-  } }>(`/orders/${orderId}`);
-  return order;
 }
 
 export async function getMyOrder(email: string): Promise<DbOrder | null> {
