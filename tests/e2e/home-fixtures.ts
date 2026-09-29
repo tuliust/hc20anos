@@ -331,6 +331,7 @@ type InstallOptions = {
   photos?: unknown[];
   polls?: unknown[];
   authenticated?: boolean;
+  event?: Partial<typeof eventFixture>;
 };
 
 export async function installHomeFixtures(page: Page, options: InstallOptions = {}) {
@@ -367,7 +368,7 @@ export async function installHomeFixtures(page: Page, options: InstallOptions = 
     options.mutateHome?.(home);
     const payloads: Record<string, unknown> = {
       home_page_content: [home],
-      events: [eventFixture],
+      events: [{ ...eventFixture, ...(options.event ?? {}) }],
       people: options.people ?? peopleFixture,
       public_people_directory: (options.people ?? peopleFixture).map((person, index) => ({
         id: person.id,
