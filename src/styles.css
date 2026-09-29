@@ -221,6 +221,23 @@ header button.inline-flex.whitespace-nowrap {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+/* Modal: uma única rolagem vertical.
+   O painel principal é o único scroll owner; listas internas crescem junto com o conteúdo.
+   Isso evita duas barras verticais simultâneas em diretórios, curiosidades e demais modais. */
+[data-modal-root="true"] > [data-modal-scroll-owner="true"] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+[data-modal-root="true"] > [data-modal-scroll-owner="true"] [data-modal-content="true"] [class~="overflow-y-auto"],
+[data-modal-root="true"] > [data-modal-scroll-owner="true"] [data-modal-content="true"] [class~="overflow-auto"] {
+  max-height: none !important;
+  overflow-y: visible !important;
+  overscroll-behavior-y: auto !important;
+  scrollbar-gutter: auto !important;
+}
+
 /* Ajustes finos de campos numéricos em botões segmentados/formulários mobile. */
 input[type="number"] {
   appearance: textfield;
