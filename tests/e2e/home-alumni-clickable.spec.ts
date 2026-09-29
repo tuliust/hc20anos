@@ -98,6 +98,20 @@ test("diretório não exibe compra, confirmados ou intenção de presença", asy
   await expect(page.getByText(/Confirmados.*ingresso/i)).toHaveCount(0);
 });
 
+test("Cidades representadas abre modal no próprio diretório", async ({ page }) => {
+  await openHome(page);
+  await page.goto("/ex-alunos");
+  await expect(page.getByRole("heading", { name: "Ex-alunos" })).toBeVisible({ timeout: 20_000 });
+
+  const urlBefore = page.url();
+  await page.locator('[data-ex-alumni-drilldown="cities"]').click();
+
+  const modal = page.locator('[data-ex-alumni-drilldown-modal="cities"]');
+  await expect(modal).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("Cidades representadas");
+  expect(page.url()).toBe(urlBefore);
+});
+
 test("filtro de cadastro substitui os filtros de presença", async ({ page }) => {
   await openHome(page);
   await page.goto("/ex-alunos?perfil=registered");
