@@ -4845,6 +4845,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
                 <button
                   key={button.value}
                   data-ex-alumni-profile-filter="true"
+                  data-ex-alumni-profile-filter-value={button.value}
                   onClick={() => setProfileFilter(button.value)}
                   className={`px-4 py-2 text-left border transition-all duration-150 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a84c] ${profileFilter === button.value
                     ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f] hover:bg-[#40916c] hover:border-[#40916c]"
