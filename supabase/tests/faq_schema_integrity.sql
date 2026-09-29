@@ -8,7 +8,7 @@ with checks as (
     to_regclass('public.faq_items') is not null
   union all
   select 'faq_backup_table_exists',
-    to_regclass('public.faq_items_backup_20260716') is not null
+    to_regclass('archive.faq_items_backup_20260716') is not null
   union all
   select 'faq_icon_column_exists',
     exists(
@@ -74,7 +74,7 @@ with checks as (
     not exists(
       select 1
       from public.faq_items fi
-      left join public.faq_items_backup_20260716 backup on backup.id = fi.id
+      left join archive.faq_items_backup_20260716 backup on backup.id = fi.id
       where backup.id is null
     )
 )
