@@ -6,6 +6,84 @@ async function loadHome(page: Page) {
   await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
 }
 
+
+test("login separa ícone do e-mail e mantém apenas um controle de visibilidade da senha", async ({ page }) => {
+  await installHomeFixtures(page);
+  await page.goto("/login");
+
+  const email = page.getByPlaceholder("seu@email.com");
+  await expect(email).toBeVisible();
+  await expect(email).toHaveCSS("padding-left", "56px");
+
+  const password = page.getByPlaceholder("••••••••");
+  await expect(password).toBeVisible();
+  const passwordContainer = password.locator("..");
+  await expect(passwordContainer.locator('[data-native-password-toggle="true"]')).toHaveCount(1);
+  await expect(passwordContainer.locator('[data-hc-password-toggle="true"]')).toHaveCount(0);
+  await expect(passwordContainer.getByRole("button", { name: "Mostrar senha" })).toHaveCount(1);
+});
+
+test("cada foto abre uma URL com ID e o detalhe exibe as pessoas marcadas", async ({ page }) => {
+  const photoAId = "00000000-0000-0000-0008-000000000001";
+  const photoBId = "00000000-0000-0000-0008-000000000002";
+  const photos = [
+    {
+      id: photoAId,
+      event_id: "00000000-0000-0000-0000-000000000001",
+      image_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%232d6a4f'/%3E%3C/svg%3E",
+      thumbnail_url: null,
+      storage_path: null,
+      caption: "Foto A",
+      year_approx: 2004,
+      location_text: "Pátio",
+      status: "approved",
+      is_featured: true,
+      photo_tags: [
+        {
+          person_id: peopleFixture[0].id,
+          tagged_name_snapshot: peopleFixture[0].full_name,
+          status: "approved",
+        },
+      ],
+    },
+    {
+      id: photoBId,
+      event_id: "00000000-0000-0000-0000-000000000001",
+      image_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23c9a84c'/%3E%3C/svg%3E",
+      thumbnail_url: null,
+      storage_path: null,
+      caption: "Foto B",
+      year_approx: 2005,
+      location_text: "Perto da biblioteca",
+      status: "approved",
+      is_featured: true,
+      photo_tags: [
+        {
+          person_id: peopleFixture[1].id,
+          tagged_name_snapshot: peopleFixture[1].full_name,
+          status: "approved",
+        },
+      ],
+    },
+  ];
+
+  await installHomeFixtures(page, { photos });
+  await loadHome(page);
+
+  const photoBLink = page.locator(`[data-home-photo-id="${photoBId}"]`);
+  await expect(photoBLink).toHaveAttribute("href", `/foto/${photoBId}`);
+  await photoBLink.click();
+
+  await expect(page).toHaveURL(new RegExp(`/foto/${photoBId}$`));
+  await expect(page.getByRole("heading", { name: "Foto B" })).toBeVisible();
+  await expect(page.locator('[data-photo-approved-tags="true"]')).toContainText(peopleFixture[1].full_name);
+  await expect(page.getByText("Foto A", { exact: true })).toHaveCount(0);
+
+  await page.goto(`/foto/${photoAId}`);
+  await expect(page.getByRole("heading", { name: "Foto A" })).toBeVisible();
+  await expect(page.locator('[data-photo-approved-tags="true"]')).toContainText(peopleFixture[0].full_name);
+});
+
 test("não renderiza a Home antes do CMS e renderiza após a resposta", async ({ page }) => {
   await installHomeFixtures(page, { delayHomeMs: 3000 });
 
