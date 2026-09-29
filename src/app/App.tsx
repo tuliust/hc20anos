@@ -3328,16 +3328,29 @@ function AboutSection({
             </div>
 
             <HomeRegisteredPeopleGrid people={homePeople} classGroup={peopleClassFilter} navigate={navigate} onOpenPerson={setSelectedPerson} />
+
+            <div className="grid grid-cols-1 gap-4">
+              <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label}>
+                <HomeMapChart configs={mapConfigs} locations={locations} />
+              </HomeAboutCard>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label}>
+                  <HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} navigate={navigate} auth={auth} />
+                </HomeAboutCard>
+                <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label}>
+                  <HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} onCreatePoll={(question, options) => submitPoll({ eventId: DEFAULT_EVENT_ID, question, options })} navigate={navigate} />
+                </HomeAboutCard>
+              </div>
+
+              <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label}>
+                <HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} />
+              </HomeAboutCard>
+            </div>
+
             <div className="mt-3">
               <div className="mb-3 flex items-center gap-3 text-[#c9a84c]"><Clock size={18} /><p className="font-mono text-[10px] uppercase tracking-[0.28em]">{aboutCopy.timeline_label}</p></div>
               <CompactNostalgiaTimeline items={nostalgiaItems} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <HomeAboutCard icon={<MessageCircle size={17} />} label={aboutCopy.memories_label} className="sm:col-span-2"><HomeMemoriesCarousel memories={memories} people={visiblePeople} emptyLabel={aboutCopy.memories_empty_title} description={aboutCopy.memories_description} navigate={navigate} auth={auth} /></HomeAboutCard>
-              <HomeAboutCard icon={<Users size={17} />} label={aboutCopy.profile_label} className="sm:col-span-2"><HomeProfileMetrics configs={profileConfigs} people={visiblePeople} stats={profileStats} /></HomeAboutCard>
-              <HomeAboutCard icon={<CheckCircle2 size={17} />} label={aboutCopy.polls_label} className="sm:col-span-2"><HomePollCard poll={poll} results={pollResults} votes={pollVotes} auth={auth} fallback={pollFallback} busy={pollBusy} error={pollError} onVote={submitHomePollVote} onCreatePoll={(question, options) => submitPoll({ eventId: DEFAULT_EVENT_ID, question, options })} navigate={navigate} /></HomeAboutCard>
-              <HomeAboutCard icon={<MapPin size={17} />} label={aboutCopy.map_label} className="sm:col-span-2"><HomeMapChart configs={mapConfigs} locations={locations} /></HomeAboutCard>
             </div>
           </div>
         </div>
@@ -3729,7 +3742,7 @@ function LandingPage({
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
-    photos: null,
+    photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
     // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
     // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
     timeline: null,
