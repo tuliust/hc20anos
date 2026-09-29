@@ -72,11 +72,11 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `get_contact_research_directory` | `src/app/ContactResearchPage.tsx:171` | `GetContactResearchDirectoryArgs` | `GetContactResearchDirectoryReturns` |
 | `get_contact_research_private_details` | `src/app/ContactResearchPage.tsx:192` | `GetContactResearchPrivateDetailsArgs` | `GetContactResearchPrivateDetailsReturns` |
 | `get_event_reports` | `src/app/AdminOverviewDashboardMount.tsx:159` | `GetEventReportsArgs` | `GetEventReportsReturns` |
-| `get_event_reports` | `src/lib/services.ts:1387` | `GetEventReportsArgs` | `GetEventReportsReturns` |
+| `get_event_reports` | `src/lib/services.ts:1361` | `GetEventReportsArgs` | `GetEventReportsReturns` |
 | `get_my_commerce_orders` | `src/app/BuyerOrdersPage.tsx:293` | `GetMyCommerceOrdersArgs` | `GetMyCommerceOrdersReturns` |
 | `get_my_guest_approval_requests` | `src/app/GuestApprovalPage.tsx:37` | `GetMyGuestApprovalRequestsArgs` | `GetMyGuestApprovalRequestsReturns` |
 | `get_my_ticket_transfers` | `src/app/BuyerCommerceActions.tsx:80` | `GetMyTicketTransfersArgs` | `GetMyTicketTransfersReturns` |
-| `get_public_memories` | `src/lib/services.ts:1667` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
+| `get_public_memories` | `src/lib/services.ts:1641` | `GetPublicMemoriesArgs` | `GetPublicMemoriesReturns` |
 | `get_public_ticket_catalog` | `src/app/AdminOverviewDashboardMount.tsx:130` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/app/PublicTicketsCatalogMount.tsx:112` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
 | `get_public_ticket_catalog` | `src/lib/currentTicketCatalog.ts:65` | `GetPublicTicketCatalogArgs` | `GetPublicTicketCatalogReturns` |
@@ -84,13 +84,13 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `has_structured_faq_items` | `src/lib/faq.ts:201` | `HasStructuredFaqItemsArgs` | `HasStructuredFaqItemsReturns` |
 | `moderate_content_item` | `src/lib/services.ts:1177` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `moderate_content_item` | `src/lib/services.ts:1207` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1624` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
-| `moderate_content_item` | `src/lib/services.ts:1698` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1598` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
+| `moderate_content_item` | `src/lib/services.ts:1672` | `ModerateContentItemArgs` | `ModerateContentItemReturns` |
 | `move_faq_category_items` | `src/lib/faq.ts:522` | `MoveFaqCategoryItemsArgs` | `MoveFaqCategoryItemsReturns` |
 | `perform_ticket_checkin` | `src/app/OperationsPage.tsx:64` | `PerformTicketCheckinArgs` | `PerformTicketCheckinReturns` |
 | `prepare_photo_removal` | `supabase/functions/photo-storage/index.ts:224` | `PreparePhotoRemovalArgs` | `PreparePhotoRemovalReturns` |
 | `register_external_user_profile` | `src/externalUserFlowEnhancements.ts:113` | `RegisterExternalUserProfileArgs` | `RegisterExternalUserProfileReturns` |
-| `reject_photo_removal_request` | `src/lib/services.ts:2035` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
+| `reject_photo_removal_request` | `src/lib/services.ts:2009` | `RejectPhotoRemovalRequestArgs` | `RejectPhotoRemovalRequestReturns` |
 | `reject_ticket_transfer` | `src/app/BuyerCommerceActions.tsx:90` | `RejectTicketTransferArgs` | `RejectTicketTransferReturns` |
 | `reorder_faq_categories` | `src/lib/faq.ts:508` | `ReorderFaqCategoriesArgs` | `ReorderFaqCategoriesReturns` |
 | `reorder_faq_items` | `src/lib/faq.ts:492` | `ReorderFaqItemsArgs` | `ReorderFaqItemsReturns` |
@@ -102,14 +102,14 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `review_refund_request` | `src/app/OperationsPage.tsx:103` | `ReviewRefundRequestArgs` | `ReviewRefundRequestReturns` |
 | `save_contact_research` | `src/app/ContactResearchPage.tsx:299` | `SaveContactResearchArgs` | `SaveContactResearchReturns` |
 | `search_external_guest_sponsors` | `src/app/GuestApprovalPage.tsx:36` | `SearchExternalGuestSponsorsArgs` | `SearchExternalGuestSponsorsReturns` |
-| `set_content_featured` | `src/lib/services.ts:1653` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
-| `set_content_featured` | `src/lib/services.ts:1704` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
+| `set_content_featured` | `src/lib/services.ts:1627` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
+| `set_content_featured` | `src/lib/services.ts:1678` | `SetContentFeaturedArgs` | `SetContentFeaturedReturns` |
 | `set_participant_vouchers_delivered` | `src/app/OperationsPage.tsx:92` | `SetParticipantVouchersDeliveredArgs` | `SetParticipantVouchersDeliveredReturns` |
-| `submit_memory` | `src/lib/services.ts:1659` | `SubmitMemoryArgs` | `SubmitMemoryReturns` |
-| `submit_photo_comment` | `src/lib/services.ts:1593` | `SubmitPhotoCommentArgs` | `SubmitPhotoCommentReturns` |
-| `submit_photo_removal_request` | `src/lib/services.ts:2015` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
+| `submit_memory` | `src/lib/services.ts:1633` | `SubmitMemoryArgs` | `SubmitMemoryReturns` |
+| `submit_photo_comment` | `src/lib/services.ts:1567` | `SubmitPhotoCommentArgs` | `SubmitPhotoCommentReturns` |
+| `submit_photo_removal_request` | `src/lib/services.ts:1989` | `SubmitPhotoRemovalRequestArgs` | `SubmitPhotoRemovalRequestReturns` |
 | `submit_photo_tag` | `src/lib/services.ts:1213` | `SubmitPhotoTagArgs` | `SubmitPhotoTagReturns` |
-| `submit_poll` | `src/lib/services.ts:1810` | `SubmitPollArgs` | `SubmitPollReturns` |
+| `submit_poll` | `src/lib/services.ts:1784` | `SubmitPollArgs` | `SubmitPollReturns` |
 | `update_my_public_profile` | `src/lib/services.ts:962` | `UpdateMyPublicProfileArgs` | `UpdateMyPublicProfileReturns` |
 
 ## Chamadas dinâmicas
