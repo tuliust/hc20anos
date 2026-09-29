@@ -2384,7 +2384,6 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">{footerContent.footer_contact_title}</p>
             <div className="flex flex-col gap-3 text-sm text-[#7a9a7a]">
               {footerContent.footer_email && <p className="flex items-center gap-2"><Mail size={14} />{footerContent.footer_email}</p>}
-              {footerContent.footer_phone && <p className="flex items-center gap-2"><Phone size={14} />{footerContent.footer_phone}</p>}
               {footerContent.footer_location && <p className="flex items-center gap-2"><MapPin size={14} />{footerContent.footer_location}</p>}
             </div>
           </div>
@@ -2578,15 +2577,16 @@ function Hero({ navigate, content, auth }: { navigate: (p: Page) => void; conten
           {content.hero_tagline}
         </p>
         <div className="w-20 h-px bg-[#c9a84c] mx-auto my-4 md:my-5 opacity-50" />
-        {showSubtitle && <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mx-auto leading-relaxed mb-4">{content.hero_subtitle}</p>}
-        <p className="text-[#f0ebe0] font-mono text-xs md:text-sm tracking-[0.18em] uppercase opacity-70 mb-8">{content.hero_event_line}</p>
+        {showSubtitle
+          ? <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mx-auto leading-relaxed mb-8">{content.hero_subtitle}</p>
+          : <div className="mb-8" aria-hidden="true" />}
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Btn size="lg" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate("ex-alumni")}>
             {content.primary_cta_label || "Ver ex-alunos"}
           </Btn>
-          <Btn size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(profileDestination)}>
-            {content.secondary_cta_label || "Criar ou atualizar meu perfil"}
+          <Btn data-home-profile-cta="true" size="lg" variant="outline" className="max-sm:px-6 max-sm:py-3" onClick={() => navigate(profileDestination)}>
+            {auth.loggedIn ? "Atualizar perfil" : "Criar ou atualizar perfil"}
           </Btn>
         </div>
 
@@ -2833,7 +2833,7 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navig
             {classLabel && <p data-memory-class className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#c9a84c]">{classLabel}</p>}
           </div>
         </div>
-        <div className="flex justify-start sm:justify-end">
+        <div data-home-memory-avatar-column="true" className="flex justify-start sm:justify-end">
           {author && !memory.is_anonymous ? <AlumniAvatar person={author} dimension={112} /> : <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#2d6a4f]/40 bg-[#0d1a0f] text-[#c9a84c]"><User size={38} /></div>}
         </div>
       </div> : <p className="flex-1 py-6 text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>}
