@@ -97,7 +97,8 @@ test("drill-down de curiosidades funciona em viewport móvel", async ({ page }) 
 
 
 test("modal de curiosidades mantém uma única rolagem vertical", async ({ page }) => {
-  await openCuriosities(page);\n  await openDrilldown(page, "cities");
+  await openCuriosities(page);
+  await openDrilldown(page, "cities");
 
   const state = await page.getByRole("dialog", { name: "Cidades onde estão hoje" }).evaluate(dialog => {
     const descendants = Array.from(dialog.querySelectorAll<HTMLElement>(".overflow-y-auto, .overflow-auto"));
