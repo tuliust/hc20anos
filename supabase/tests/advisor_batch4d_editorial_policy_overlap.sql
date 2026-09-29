@@ -124,7 +124,10 @@ $$;
 
 -- Anonymous and ordinary authenticated users keep public reads but cannot
 -- create, update, or delete editorial records.
+-- Keep one transaction open so the pg_temp helper survives between role cases;
+-- each case is isolated with a savepoint and rolled back before the next role.
 begin;
+savepoint phase4d_anon;
 select set_config('request.jwt.claim.role','anon',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);
 set local role anon;
@@ -158,11 +161,11 @@ begin
     exception when insufficient_privilege then null; end;
   end if;
 end;
-$$;
-rollback;
+$;
+rollback to savepoint phase4d_anon;
 
 -- Ordinary user, viewer, and moderator: no admin/editorial write policies.
-begin;
+savepoint phase4d_ordinary;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}',true);
@@ -182,10 +185,10 @@ begin
   end if;
   perform pg_temp.assert_no_editorial_mutation('ordinary');
 end;
-$$;
-rollback;
+$;
+rollback to savepoint phase4d_ordinary;
 
-begin;
+savepoint phase4d_viewer;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}',true);
@@ -196,10 +199,10 @@ do $$ begin
     raise exception 'FAIL viewer_editorial_write_gate';
   end if;
   perform pg_temp.assert_no_editorial_mutation('viewer');
-end $$;
-rollback;
+end $;
+rollback to savepoint phase4d_viewer;
 
-begin;
+savepoint phase4d_moderator;
 select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated"}',true);
@@ -210,12 +213,12 @@ do $$ begin
     raise exception 'FAIL moderator_editorial_write_gate';
   end if;
   perform pg_temp.assert_no_editorial_mutation('moderator');
-end $$;
-rollback;
+end $;
+rollback to savepoint phase4d_moderator;
 
 -- Admin and superadmin retain SELECT/INSERT/UPDATE/DELETE through the canonical
 -- ALL policy. Synthetic FAQ writes and content updates are rolled back.
-begin;
+savepoint phase4d_admin;
 select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated"}',true);
@@ -262,10 +265,10 @@ begin
   get diagnostics affected=row_count;
   if affected<>1 then raise exception 'FAIL admin_archive_delete'; end if;
 end;
-$$;
-rollback;
+$;
+rollback to savepoint phase4d_admin;
 
-begin;
+savepoint phase4d_superadmin;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}',true);
@@ -292,5 +295,6 @@ begin
   get diagnostics affected=row_count;
   if affected<>1 then raise exception 'FAIL superadmin_archive_delete'; end if;
 end;
-$$;
+$;
+rollback to savepoint phase4d_superadmin;
 rollback;
