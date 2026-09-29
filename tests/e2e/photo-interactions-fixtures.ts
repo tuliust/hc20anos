@@ -120,6 +120,7 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
   const tagCalls: Record<string, unknown>[] = [];
   const removalCalls: Record<string, unknown>[] = [];
   let liked = false;
+  let submittedComment: Record<string, unknown> | null = null;
 
   await page.route("**/rest/v1/**", async route => {
     const request = route.request();
@@ -135,10 +136,18 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
         user_id: TEST_USER_ID,
         author_name: "Maria Cabeção",
         comment_text: body.p_comment_text,
-        status: "pending",
+        status: "approved",
+      };
+      submittedComment = {
+        id: "00000000-0000-4000-8000-000000000912",
+        ...mapped,
+        approved_by_admin_id: null,
+        approved_at: "2026-07-27T20:30:00Z",
+        created_at: "2026-07-27T20:30:00Z",
+        updated_at: "2026-07-27T20:30:00Z",
       };
       commentCalls.push(mapped);
-      await fulfillJson(route, { id: "00000000-0000-4000-8000-000000000912", ...mapped, approved_by_admin_id: null, approved_at: null, created_at: "2026-07-27T20:30:00Z", updated_at: "2026-07-27T20:30:00Z" });
+      await fulfillJson(route, submittedComment);
       return;
     }
 
@@ -209,7 +218,11 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
     if (resource === "photo_comments") {
       if (method === "GET") {
         const select = url.searchParams.get("select") ?? "";
-        await fulfillJson(route, select === "photo_id" ? [{ photo_id: TEST_PHOTO_ID }] : [approvedComment]);
+        const comments = submittedComment ? [approvedComment, submittedComment] : [approvedComment];
+        await fulfillJson(
+          route,
+          select === "photo_id" ? comments.map(() => ({ photo_id: TEST_PHOTO_ID })) : comments,
+        );
         return;
       }
 
