@@ -104,17 +104,32 @@ test("rodapé envia Criar meu perfil para a reivindicação de perfil", async ({
   await expect(page).toHaveURL(/\/reivindicar-perfil$/);
 });
 
-test("Hero simplifica perfil, memórias removem divisor e rodapé esconde telefone", async ({ page }) => {
+test("Hero ocupa a viewport e rodapé mantém identidade simplificada", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
   await installHomeFixtures(page, { mutateHome: row => {
     row.hero_event_line = "Colégio Henrique Castriciano · Natal/RN · Turma 2006";
     row.secondary_cta_label = "Criar ou atualizar meu perfil";
     row.footer_phone = "(51) 98992-6830";
+    row.footer_eyebrow = "2006 — 2026";
+    row.footer_title = "Turma 2006";
+    row.footer_copyright = "© 2026 HC20Anos";
   }});
   await loadHome(page);
+
+  const hero = page.locator('[data-home-section="hero"]');
+  const heroBox = await hero.boundingBox();
+  expect(heroBox).not.toBeNull();
+  expect(Math.abs(heroBox!.width - 1280)).toBeLessThanOrEqual(1);
+  expect(Math.abs(heroBox!.height - 720)).toBeLessThanOrEqual(1);
 
   await expect(page.getByText("Colégio Henrique Castriciano · Natal/RN · Turma 2006", { exact: true })).toHaveCount(0);
   await expect(page.locator('[data-home-profile-cta="true"]')).toHaveText("Criar ou atualizar perfil");
   await expect(page.getByText("(51) 98992-6830", { exact: true })).toHaveCount(0);
+
+  const footer = page.locator("footer");
+  await expect(footer.getByText("2006 — 2026", { exact: true })).toBeVisible();
+  await expect(footer.getByText("Turma 2006", { exact: true })).toHaveCount(0);
+  await expect(footer.locator('[data-footer-email="true"]')).toHaveCSS("text-decoration-line", "none");
 
   const avatarColumn = page.locator('[data-home-memory-avatar-column="true"]');
   await expect(avatarColumn).toBeVisible();
@@ -268,6 +283,8 @@ test("filtros de perfil do diretório usam três colunas e rótulo Sem Perfil no
   await installHomeFixtures(page);
   await page.goto("/ex-alunos");
   await expect(page.getByRole("heading", { name: "Ex-alunos" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Turma 2006", { exact: true })).toBeVisible();
+  await expect(page.getByText("Turma 2006 · Diretório", { exact: true })).toHaveCount(0);
 
   const row = page.locator('[data-mobile-attendance-filter-row="true"]');
   await expect(row).toBeVisible({ timeout: 20_000 });
@@ -523,4 +540,5 @@ test("Curiosidades alinha introducao a esquerda e remove leitura por IA", async 
   await expect(page.getByText("Leitura por IA", { exact: true })).toHaveCount(0);
   await expect(page.getByText("O retrato da turma até agora", { exact: true })).toHaveCount(0);
   await expect(page.getByText("O que você quer viver no reencontro?", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Com exibição autorizada", { exact: true })).toHaveCount(0);
 });
