@@ -386,6 +386,46 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #ffffff !important;
 }
 
+/* Modais abertos a partir da seção Sobre mantêm o tema escuro.
+   Evita que o tema claro da Home seja aplicado aos cards do perfil. */
+[data-home-section="about"] [data-modal-root="true"] > [data-modal-scroll-owner="true"] {
+  background: #141f14 !important;
+  color: #f0ebe0 !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [data-profile-info="true"] {
+  background: #0a120a !important;
+  border-color: rgba(45, 106, 79, 0.32) !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [data-profile-info="true"] p:first-child {
+  color: #a6cfae !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [data-profile-info="true"] p:last-child {
+  color: #d4e8d6 !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [class~="text-[#f0ebe0]"]:not(button) {
+  color: #f0ebe0 !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [class~="text-[#c9a84c]"] {
+  color: #c9a84c !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [class~="text-[#7a9a7a]"] {
+  color: #7a9a7a !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [class~="bg-[#141f14]"] {
+  background: #141f14 !important;
+}
+
+[data-home-section="about"] [data-modal-root="true"] [class~="bg-[#1a2e1a]"] {
+  background: #1a2e1a !important;
+}
+
 [data-home-section="about"] [class*="border-[#2d6a4f]"] {
   border-color: rgba(45, 106, 79, 0.24) !important;
 }
