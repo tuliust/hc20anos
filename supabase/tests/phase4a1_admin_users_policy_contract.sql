@@ -1,19 +1,22 @@
 with checks as (
-  select 'redundant_superadmin_all_removed'::text as check_name,
-    not exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users' and policyname='admin_users_superadmin_all') as passed
+  select 'legacy_admin_user_policies_removed'::text as check_name,
+    not exists(
+      select 1 from pg_policies where schemaname='public' and tablename='admin_users'
+        and policyname in ('admin_users_superadmin_all','admin_users_superadmin_write','admin_users_admin_panel_select','admin_users_self_read')
+    ) as passed
   union all
   select 'superadmin_write_preserved',
     exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users'
-      and policyname='admin_users_superadmin_write' and cmd='ALL'
-      and qual='is_superadmin()' and with_check='is_superadmin()')
+      and policyname='p3_auth_insert' and with_check ilike '%is_superadmin%')
+    and exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users'
+      and policyname='p3_auth_update' and qual ilike '%is_superadmin%' and with_check ilike '%is_superadmin%')
+    and exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users'
+      and policyname='p3_auth_delete' and qual ilike '%is_superadmin%')
   union all
-  select 'admin_panel_select_preserved',
+  select 'admin_and_self_read_preserved',
     exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users'
-      and policyname='admin_users_admin_panel_select' and cmd='SELECT' and qual='is_admin_panel_user()')
-  union all
-  select 'self_read_preserved',
-    exists(select 1 from pg_policies where schemaname='public' and tablename='admin_users'
-      and policyname='admin_users_self_read' and cmd='SELECT' and qual like '%auth.uid%')
+      and policyname='p3_auth_select' and roles=array['authenticated'::name]
+      and qual ilike '%is_admin_panel_user%' and qual ilike '%user_id%auth.uid%' and qual ilike '%is_superadmin%')
   union all
   select 'role_helpers_remain_equivalent',
     pg_get_functiondef('public.is_superadmin(uuid)'::regprocedure) like '%au.role = ''superadmin''%'
