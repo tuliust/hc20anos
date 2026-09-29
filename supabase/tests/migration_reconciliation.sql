@@ -76,7 +76,7 @@ checks as (
   union all
   select 'faq_objects_exist',
     to_regclass('public.faq_categories') is not null
-    and to_regclass('public.faq_items_backup_20260716') is not null
+    and to_regclass('archive.faq_items_backup_20260716') is not null
     and to_regprocedure('public.move_faq_category_items(uuid,uuid,uuid)') is not null
   union all
   select 'operational_objects_exist',
