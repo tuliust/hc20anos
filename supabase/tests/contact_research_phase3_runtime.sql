@@ -10,6 +10,15 @@ where not exists (select 1 from public.alumni_contact_research r where r.person_
 order by roster.person_id
 limit 2;
 grant select on phase3_fixture to anon, authenticated;
+
+-- The clean local fixture does not ship a contact collector. Create one
+-- transactionally so the manager path is deterministic and disappears on rollback.
+insert into public.contact_collectors(user_id, is_active)
+values ('22222222-2222-4222-8222-222222222222'::uuid, true)
+on conflict (user_id) do update
+set is_active = true,
+    updated_at = now();
+
 create temporary table phase3_actor(user_id uuid) on commit drop;
 insert into phase3_actor
 select u.id from auth.users u
@@ -19,7 +28,11 @@ limit 1;
 grant select on phase3_actor to authenticated;
 create temporary table phase3_manager(user_id uuid) on commit drop;
 insert into phase3_manager
-select c.user_id from public.contact_collectors c where c.is_active limit 1;
+select c.user_id
+from public.contact_collectors c
+where c.user_id = '22222222-2222-4222-8222-222222222222'::uuid
+  and c.is_active
+limit 1;
 grant select on phase3_manager to authenticated;
 
 set local role anon;
