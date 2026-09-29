@@ -7,7 +7,7 @@ import {
 import { TEST_USER_ID } from "./profile-claim-fixtures";
 
 test.describe("interações em fotos", () => {
-  test("mantém escritas pendentes e permite marcar pessoa elegível", async ({ page }) => {
+  test("publica comentários diretamente e permite marcar pessoa elegível", async ({ page }) => {
     const api = await installPhotoInteractionsFixtures(page);
 
     await page.goto("/nossa-historia");
@@ -36,14 +36,15 @@ test.describe("interações em fotos", () => {
     const commentField = page.locator("textarea").first();
     await expect(commentField).toBeVisible();
     await commentField.fill("Também lembro desse dia.");
-    await page.getByRole("button", { name: "Enviar para moderação", exact: true }).click();
+    await page.getByRole("button", { name: "Enviar", exact: true }).click();
     await expect.poll(() => api.commentCalls.length, { timeout: 20_000 }).toBe(1);
-    await expect(page.getByText("Comentário enviado para moderação.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Comentário enviado.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Também lembro desse dia.", { exact: true })).toBeVisible();
     expect(api.commentCalls[0]).toMatchObject({
       photo_id: TEST_PHOTO_ID,
       user_id: TEST_USER_ID,
       comment_text: "Também lembro desse dia.",
-      status: "pending",
+      status: "approved",
     });
 
     await page.getByPlaceholder("Marcar alguém da turma...").fill("João");
