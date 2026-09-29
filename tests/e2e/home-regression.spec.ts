@@ -93,6 +93,29 @@ test("conte\u00fado legado sobre o cancelamento e FAQ n\u00e3o s\u00e3o exibidos
   await expect(page.locator("[data-home-section='about']")).toBeVisible();
 });
 
+test("Hero simplifica perfil, memórias removem divisor e rodapé esconde telefone", async ({ page }) => {
+  await installHomeFixtures(page, { mutateHome: row => {
+    row.hero_event_line = "Colégio Henrique Castriciano · Natal/RN · Turma 2006";
+    row.secondary_cta_label = "Criar ou atualizar meu perfil";
+    row.footer_phone = "(51) 98992-6830";
+  }});
+  await loadHome(page);
+
+  await expect(page.getByText("Colégio Henrique Castriciano · Natal/RN · Turma 2006", { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-home-profile-cta="true"]')).toHaveText("Criar ou atualizar perfil");
+  await expect(page.getByText("(51) 98992-6830", { exact: true })).toHaveCount(0);
+
+  const avatarColumn = page.locator('[data-home-memory-avatar-column="true"]');
+  await expect(avatarColumn).toBeVisible();
+  await expect(avatarColumn).toHaveCSS("border-left-width", "0px");
+});
+
+test("Hero mostra Atualizar perfil para usuário autenticado", async ({ page }) => {
+  await installHomeFixtures(page, { authenticated: true });
+  await loadHome(page);
+  await expect(page.locator('[data-home-profile-cta="true"]')).toHaveText("Atualizar perfil");
+});
+
 test("Home remove CTA de reembolso e mostra os bot\u00f5es de mem\u00f3ria e enquete", async ({ page }) => {
   await installHomeFixtures(page, { authenticated: true });
   await loadHome(page);
