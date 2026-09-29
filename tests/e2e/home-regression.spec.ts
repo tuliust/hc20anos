@@ -93,6 +93,17 @@ test("conte\u00fado legado sobre o cancelamento e FAQ n\u00e3o s\u00e3o exibidos
   await expect(page.locator("[data-home-section='about']")).toBeVisible();
 });
 
+test("rodapé envia Criar meu perfil para a reivindicação de perfil", async ({ page }) => {
+  await installHomeFixtures(page);
+  await loadHome(page);
+
+  const claimLink = page.locator('[data-footer-claim-profile="true"]');
+  await expect(claimLink).toBeVisible();
+  await expect(claimLink).toHaveAttribute("href", "/reivindicar-perfil");
+  await claimLink.click();
+  await expect(page).toHaveURL(/\/reivindicar-perfil$/);
+});
+
 test("Hero simplifica perfil, memórias removem divisor e rodapé esconde telefone", async ({ page }) => {
   await installHomeFixtures(page, { mutateHome: row => {
     row.hero_event_line = "Colégio Henrique Castriciano · Natal/RN · Turma 2006";
