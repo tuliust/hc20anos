@@ -171,7 +171,7 @@ function collectQuestionnaireAnswers(section: HTMLElement) {
 
       return { id, question, options };
     })
-    .filter(answer => answer.id && answer.question);
+    .filter(answer => answer.id && answer.question && answer.id !== "reunion_expectation");
 }
 
 async function loadCurrentProfile() {
