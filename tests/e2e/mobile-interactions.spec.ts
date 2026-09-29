@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installHomeFixtures } from "./home-fixtures";
+import { installHomeFixtures, peopleFixture } from "./home-fixtures";
 
 const viewports = [
   { width: 320, height: 568 },
@@ -103,3 +103,56 @@ for (const viewport of viewports) {
     });
   });
 }
+
+
+test("Home mobile compacta header, limita pessoas e mantém ações em duas colunas", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const extendedPeople = [
+    ...peopleFixture,
+    ...Array.from({ length: 8 }, (_, index) => ({
+      ...peopleFixture[index % peopleFixture.length],
+      id: `00000000-0000-0000-0012-${String(index + 1).padStart(12, "0")}`,
+      full_name: `Pessoa Extra ${index + 1}`,
+      display_name: `Extra ${index + 1}`,
+      class_group: "A",
+      avatar_url: null,
+    })),
+  ];
+  await installHomeFixtures(page, { people: extendedPeople });
+  await page.goto("/");
+  await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
+
+  const header = page.locator("[data-public-header]");
+  const headerInner = header.locator(":scope > div").first();
+  await expect(header).toHaveAttribute("data-mobile-header-hidden", "false");
+  const headerHeight = await headerInner.evaluate(element => element.getBoundingClientRect().height);
+  expect(headerHeight).toBeLessThanOrEqual(57);
+
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await expect(header).toHaveAttribute("data-mobile-header-hidden", "true");
+  const transitionDuration = await header.evaluate(element => getComputedStyle(element).transitionDuration);
+  expect(transitionDuration).toContain("0.46s");
+
+  await page.evaluate(() => window.scrollBy(0, -120));
+  await expect(header).toHaveAttribute("data-mobile-header-hidden", "false");
+
+  await expect(page.locator('[data-home-cancelled-notice="true"]')).toBeHidden();
+
+  const peopleSection = page.locator("[data-home-registered-people]");
+  await peopleSection.scrollIntoViewIfNeeded();
+  const visiblePeople = peopleSection.locator('button[data-home-registered-person]:visible');
+  await expect(visiblePeople).toHaveCount(12);
+
+  const memoryAvatar = page.locator('[data-home-memory-author-avatar="true"]');
+  await expect(memoryAvatar).toBeVisible({ timeout: 20_000 });
+  await expect(memoryAvatar).toHaveAttribute("src", /public-avatar\.jpg/);
+
+  const photoActions = page.locator('[data-home-photo-actions="true"]');
+  await photoActions.scrollIntoViewIfNeeded();
+  const columns = await photoActions.evaluate(element =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
+  );
+  expect(columns).toBe(2);
+  const actionButtons = photoActions.locator('[data-home-action-button="true"]');
+  await expect(actionButtons).toHaveCount(2);
+});
