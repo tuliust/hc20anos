@@ -44,10 +44,10 @@ begin
   -- A migration de produÃ§Ã£o usa now() no inÃ­cio do lote. Normalize a janela
   -- da fixture para que o replay continue vÃ¡lido depois do encerramento real.
   update public.ticket_lots
-  set starts_at = v_reference_at - interval '1 day',
-      ends_at = v_reference_at + interval '1 day'
-  where event_id = v_event_id
-    and status = 'open';
+  set status = case when code = 'single' then 'open' else 'closed' end,
+      starts_at = case when code = 'single' then v_reference_at - interval '1 day' else starts_at end,
+      ends_at = case when code = 'single' then v_reference_at + interval '1 day' else ends_at end
+  where event_id = v_event_id;
 
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)

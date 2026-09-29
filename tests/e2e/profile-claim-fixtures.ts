@@ -245,6 +245,24 @@ export async function installAuthenticatedProfileClaimFixtures(
       case "people":
         rows = [personRow];
         break;
+      case "public_people_directory":
+        rows = [{
+          id: personRow.id,
+          full_name: personRow.full_name,
+          class_year: personRow.class_year,
+          class_group: personRow.class_group,
+          nickname_at_school: personRow.nickname_at_school,
+          profile_status: personRow.profile_status,
+          is_visible: personRow.is_visible,
+          avatar_url: personRow.avatar_url,
+          display_name: personRow.display_name,
+          gender: personRow.gender,
+          is_claimed: personRow.profile_status !== "unclaimed",
+          created_at: personRow.created_at,
+          updated_at: personRow.updated_at,
+          person_type: "alumni",
+        }];
+        break;
       case "profiles":
         rows = [profileRow];
         break;
