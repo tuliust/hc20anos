@@ -66,14 +66,8 @@ async function fetchCatalogRpc(eventId: string): Promise<unknown[]> {
     p_event_id: eventId,
     p_at: new Date().toISOString(),
   });
-  if (!expanded.error) return Array.isArray(expanded.data) ? expanded.data : [];
-
-  const compatibility = await supabase.rpc("get_current_ticket_catalog", {
-    p_event_id: eventId,
-    p_at: new Date().toISOString(),
-  });
-  if (compatibility.error) throw compatibility.error;
-  return Array.isArray(compatibility.data) ? compatibility.data : [];
+  if (expanded.error) throw expanded.error;
+  return Array.isArray(expanded.data) ? expanded.data : [];
 }
 
 export async function getCurrentTicketCatalog(
