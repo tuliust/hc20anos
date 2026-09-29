@@ -5,7 +5,7 @@ const HERO_SCROLL_ATTRIBUTE = "data-mobile-hero-scroll";
 const MOBILE_MENU_ATTRIBUTE = "data-mobile-public-menu";
 const MOBILE_NAV_GRID_ATTRIBUTE = "data-mobile-nav-grid";
 const MOBILE_NAV_CARD_ATTRIBUTE = "data-mobile-nav-card";
-const MOBILE_HEADER_OFFSET = 64;
+const MOBILE_HEADER_OFFSET = 56;
 
 function normalizeLabel(value: string | null | undefined) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
