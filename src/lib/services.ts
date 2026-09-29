@@ -1264,38 +1264,12 @@ export async function moderateClaim(
   adminId: string,
   reason?: string
 ) {
-  if (action === "approved") {
-    // 1. Aprova a solicitação
-    const { data: claim, error: claimError } = await supabase
-      .from("profile_claims")
-      .update({ status: "approved", reviewed_by_admin_id: adminId, reviewed_at: new Date().toISOString() })
-      .eq("id", claimId)
-      .select("person_id, requester_user_id, requester_name")
-      .single();
-    if (claimError) throw claimError;
-
-    // 2. Vincula o perfil ao usuário
-    await supabase.from("people").update({
-      profile_status:      "claimed",
-      claimed_by_user_id:  (claim as any).requester_user_id,
-      claimed_at:          new Date().toISOString(),
-    }).eq("id", (claim as any).person_id);
-
-    // 3. Cria o profile básico
-    await supabase.from("profiles").upsert({
-      person_id:    (claim as any).person_id,
-      user_id:      (claim as any).requester_user_id,
-      display_name: (claim as any).requester_name,
-    }, { onConflict: "user_id" });
-
-  } else {
-    await supabase.from("profile_claims").update({
-      status:              "rejected",
-      reviewed_by_admin_id: adminId,
-      reviewed_at:         new Date().toISOString(),
-      rejection_reason:    reason ?? null,
-    }).eq("id", claimId);
-  }
+  const { error } = await supabase.rpc("admin_moderate_profile_claim", {
+    p_claim_id: claimId,
+    p_action: action,
+    p_reason: reason ?? null,
+  });
+  if (error) throw error;
   await writeAudit(`claim_${action}`, "profile_claims", claimId, { admin_id: adminId });
 }
 
@@ -2078,20 +2052,12 @@ export async function getProfileClaimDisputes(status?: string): Promise<(DbProfi
 }
 
 export async function reviewProfileClaimDispute(id: string, action: "approved" | "rejected", adminId: string, notes?: string) {
-  const { data: dispute, error: dErr } = await supabase.from("profile_claim_disputes")
-    .update({ status: action, reviewed_by_admin_id: adminId, reviewed_at: new Date().toISOString(), admin_notes: notes ?? null })
-    .eq("id", id).select("person_id, requester_user_id, current_claimant_user_id").single();
-  if (dErr) throw dErr;
-  if (action === "approved") {
-    const d = dispute as any;
-    // Transfer ownership
-    await supabase.from("people").update({
-      claimed_by_user_id: d.requester_user_id,
-      claimed_at:         new Date().toISOString(),
-    }).eq("id", d.person_id);
-    // Update profile user_id if exists
-    await supabase.from("profiles").update({ user_id: d.requester_user_id }).eq("person_id", d.person_id);
-  }
+  const { error } = await supabase.rpc("admin_review_profile_claim_dispute", {
+    p_dispute_id: id,
+    p_action: action,
+    p_notes: notes ?? null,
+  });
+  if (error) throw error;
   await writeAudit(`dispute_${action}`, "profile_claim_disputes", id, { admin_id: adminId, notes });
 }
 
