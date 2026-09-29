@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-26
-last_verified_commit: 2909e08b34d8f022d97fba5cf97b37d8fd4ab355
+last_verified: 2026-09-29
+last_verified_commit: 686c31e98427d1bda518f49625798d2f9cc50ae4
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -19,7 +19,6 @@ source_files:
 | Código | Ocorrências |
 |---|---|
 | `admin_required` | `supabase/functions/photo-storage/index.ts:167`<br>`supabase/functions/refund-processor/index.ts:30` |
-| `already_used` | `supabase/functions/server/index.ts:449` |
 | `authentication_required` | `api/checkout-create.ts:46`<br>`src/lib/checkout.ts:153`<br>`supabase/functions/checkout-create/index.ts:112`<br>`supabase/functions/checkout-create/index.ts:118`<br>`supabase/functions/payment-webhook/index.ts:339`<br>`supabase/functions/payment-webhook/index.ts:46`<br>`supabase/functions/payment-webhook/index.ts:49`<br>`supabase/functions/photo-storage/index.ts:51`<br>`supabase/functions/photo-storage/index.ts:57`<br>`supabase/functions/refund-processor/index.ts:26` |
 | `buyer_email_invalid` | `supabase/functions/checkout-create/index.ts:74` |
 | `buyer_name_required` | `supabase/functions/checkout-create/index.ts:73` |
@@ -33,21 +32,21 @@ source_files:
 | `event_id_required` | `supabase/functions/photo-storage/index.ts:103` |
 | `exactly_one_alumni_required` | `supabase/functions/checkout-create/index.ts:99` |
 | `forbidden` | `supabase/functions/payment-webhook/index.ts:299` |
-| `forbidden_origin` | `api/generate-profile-bio.ts:239` |
+| `forbidden_origin` | `api/generate-profile-bio.ts:242` |
 | `idempotency_key_required` | `supabase/functions/checkout-create/index.ts:76` |
 | `image_required` | `supabase/functions/photo-storage/index.ts:159`<br>`supabase/functions/photo-storage/index.ts:82` |
-| `internal` | `supabase/functions/server/index.ts:340` |
 | `internal_error` | `supabase/functions/checkout-create/index.ts:348` |
 | `invalid_action` | `supabase/functions/photo-storage/index.ts:259` |
 | `invalid_asset_target` | `supabase/functions/photo-storage/index.ts:163` |
 | `invalid_checkout_response` | `api/checkout-create.ts:96` |
-| `invalid_openai_response` | `api/generate-profile-bio.ts:340` |
+| `invalid_openai_response` | `api/generate-profile-bio.ts:343` |
 | `invalid_payload` | `supabase/functions/checkout-create/index.ts:72` |
 | `invalid_photo_tags` | `supabase/functions/photo-storage/index.ts:39`<br>`supabase/functions/photo-storage/index.ts:41`<br>`supabase/functions/photo-storage/index.ts:99` |
 | `invalid_public_storage_origin` | `supabase/functions/photo-storage/index.ts:200` |
-| `invalid_request` | `api/generate-profile-bio.ts:248` |
-| `invalid_signature` | `supabase/functions/payment-webhook/index.ts:348`<br>`supabase/functions/server/index.ts:225` |
+| `invalid_request` | `api/generate-profile-bio.ts:251` |
+| `invalid_signature` | `supabase/functions/payment-webhook/index.ts:348` |
 | `invalid_transaction_amount` | `supabase/functions/payment-webhook/index.ts:248` |
+| `legacy_function_retired` | `supabase/functions/server/index.ts:6` |
 | `mercado_pago_checkout_url_missing` | `supabase/functions/checkout-create/index.ts:292` |
 | `mercado_pago_environment_invalid` | `supabase/functions/checkout-create/index.ts:58` |
 | `mercado_pago_not_configured` | `supabase/functions/checkout-create/index.ts:223` |
@@ -58,12 +57,12 @@ source_files:
 | `merchant_order_not_found_for_payment` | `supabase/functions/payment-webhook/index.ts:240` |
 | `merchant_order_payment_mismatch` | `supabase/functions/payment-webhook/index.ts:207` |
 | `merchant_order_preference_required` | `supabase/functions/payment-webhook/index.ts:211` |
-| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:235`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:133`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
+| `method_not_allowed` | `api/checkout-create.ts:30`<br>`api/generate-profile-bio.ts:238`<br>`supabase/functions/checkout-create/index.ts:220`<br>`supabase/functions/notification-worker/index.ts:133`<br>`supabase/functions/payment-webhook/index.ts:273`<br>`supabase/functions/photo-storage/index.ts:252`<br>`supabase/functions/refund-processor/index.ts:15` |
 | `missing_access_token` | `supabase/functions/payment-webhook/index.ts:165` |
 | `missing_or_invalid_external_reference` | `supabase/functions/payment-webhook/index.ts:192` |
-| `openai_not_configured` | `api/generate-profile-bio.ts:274` |
-| `openai_request_failed` | `api/generate-profile-bio.ts:312`<br>`api/generate-profile-bio.ts:328` |
-| `openai_service_unavailable` | `api/generate-profile-bio.ts:346` |
+| `openai_not_configured` | `api/generate-profile-bio.ts:277` |
+| `openai_request_failed` | `api/generate-profile-bio.ts:315`<br>`api/generate-profile-bio.ts:331` |
+| `openai_service_unavailable` | `api/generate-profile-bio.ts:349` |
 | `order_creation_failed` | `supabase/functions/checkout-create/index.ts:245` |
 | `order_not_found` | `supabase/functions/payment-webhook/index.ts:291`<br>`supabase/functions/payment-webhook/index.ts:340` |
 | `order_not_found_after_creation` | `supabase/functions/checkout-create/index.ts:252` |
@@ -78,7 +77,7 @@ source_files:
 | `payment_id_missing` | `supabase/functions/refund-processor/index.ts:42` |
 | `photo_authorization_required` | `supabase/functions/photo-storage/index.ts:84` |
 | `public_token_mismatch` | `supabase/functions/payment-webhook/index.ts:304` |
-| `rate_limit_exceeded` | `api/generate-profile-bio.ts:243` |
+| `rate_limit_exceeded` | `api/generate-profile-bio.ts:246` |
 | `recipient_email_missing` | `supabase/functions/notification-worker/index.ts:106` |
 | `reconciliation_failed` | `supabase/functions/payment-webhook/index.ts:341` |
 | `refund_not_approved` | `supabase/functions/refund-processor/index.ts:38` |
