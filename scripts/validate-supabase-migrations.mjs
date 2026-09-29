@@ -34,6 +34,53 @@ function collectMatches(pattern, text) {
   return matches
 }
 
+function isOptionalArchiveMoveReference(sql, index, backupName) {
+  const statementStart = sql.lastIndexOf(';', index - 1) + 1
+  const nextSemicolon = sql.indexOf(';', index)
+  const statementEnd = nextSemicolon === -1 ? sql.length : nextSemicolon
+  const statement = sql.slice(statementStart, statementEnd).trim()
+  const escapedName = backupName.replace(/[.*+?^${}()|[\]\\]/g, '\\function collectMatches(pattern, text) {
+  const matches = []
+  pattern.lastIndex = 0
+  for (const match of text.matchAll(pattern)) {
+    matches.push(match[0])
+  }
+  return matches
+}
+')
+  return new RegExp(
+    `^alter\\s+table\\s+if\\s+exists\\s+public\\.${escapedName}\\s+set\\s+schema\\s+archiveimport { readdir, readFile } from 'node:fs/promises'
+import path from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const projectRoot = path.resolve(__dirname, '..')
+const migrationsDir = path.join(projectRoot, 'supabase', 'migrations')
+
+const validFilenamePattern = /^(\d{14})_([a-z0-9][a-z0-9_]*)\.sql$/
+const destructiveAllowance = /--\s*migration-audit:\s*allow-destructive\b/i
+// TRUNCATE só é destrutivo quando seguido de uma relação. A forma anterior
+// também casava com `REVOKE ..., TRUNCATE, ...`, que apenas revoga privilégio.
+const destructiveSqlPattern = /\b(?:delete\s+from|drop\s+table|truncate\s+(?:table\s+)?(?:public\.)?[a-z_"][a-z0-9_"]*)\b/gi
+const demoEventUuidPattern = /00000000-0000-0000-0000-000000000001/gi
+const backupReferencePattern = /(?:to_regclass\s*\(\s*'public\.([a-z0-9_]*backup[a-z0-9_]*)'\s*\)|public\.([a-z0-9_]*backup[a-z0-9_]*))/gi
+const backupCreationPattern = /create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-z0-9_]*backup[a-z0-9_]*)/gi
+
+function stripSqlCommentsAndLiterals(sql) {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/--[^\r\n]*/g, ' ')
+    .replace(/\$[a-zA-Z0-9_]*\$[\s\S]*?\$[a-zA-Z0-9_]*\$/g, ' ')
+    .replace(/'(?:''|[^'])*'/g, "''")
+}
+
+,
+    'i',
+  ).test(statement)
+}
+
 function formatFinding(finding) {
   const location = finding.file ? ` [${finding.file}]` : ''
   return `${finding.level.toUpperCase()}: ${finding.message}${location}`
@@ -79,6 +126,12 @@ for (const filename of entries) {
   for (const backupMatch of sql.matchAll(backupReferencePattern)) {
     const backupName = backupMatch[1] ?? backupMatch[2]
     if (!backupName) continue
+
+    // A remote-only legacy backup may be moved out of the exposed schema with
+    // ALTER TABLE IF EXISTS ... SET SCHEMA archive. This is intentionally safe
+    // on clean replay when the legacy table never existed locally.
+    if (isOptionalArchiveMoveReference(sql, backupMatch.index ?? 0, backupName)) continue
+
     const references = referencedBackupTables.get(backupName) ?? []
     references.push(filename)
     referencedBackupTables.set(backupName, references)
