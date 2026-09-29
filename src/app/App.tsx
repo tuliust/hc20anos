@@ -72,7 +72,7 @@ import {
   Hash, CheckCircle2, XCircle, AlertTriangle,
   Settings, Tag, FileText, Key, Save,
   UserCheck, UserX, ToggleRight, ToggleLeft,
-  Info, Package, Pencil, Heart, MessageCircle, Star, Send, Venus, Baby
+  Info, Package, Pencil, Heart, MessageCircle, Star, Send, Venus, Baby, Trash2
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
@@ -724,23 +724,6 @@ const SCHOOL_PROFILE_QUESTIONS: SchoolProfileQuestion[] = [
       "Um pouco de tudo",
     ],
   },
-  {
-    id: "reunion_expectation",
-    title: "O que você quer viver no reencontro?",
-    options: [
-      "Rever quem fez parte da minha história",
-      "Matar a saudade",
-      "Dar boas risadas",
-      "Relembrar histórias antigas",
-      "Saber por onde anda todo mundo",
-      "Celebrar os 20 anos da turma",
-      "Reconectar com pessoas importantes",
-      "Mostrar quem me tornei",
-      "Viver uma noite leve",
-      "Criar novas memórias",
-      "Apenas aproveitar o momento",
-    ],
-  },
 ];
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────────
@@ -1383,7 +1366,7 @@ function AlumniCard({ alumni, onClaim, onOpen, showInviteButton = false }: { alu
 
       <div className="flex w-full min-w-0 items-center gap-1">
         {alumni.status === "unclaimed" && showInviteButton ? (
-          <button type="button" onClick={event => event.stopPropagation()} style={{ fontSize: "clamp(7px, 1vw, 10px)", letterSpacing: "-0.04em" }} className="inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap border border-[#2d6a4f]/50 bg-[#1a3a2a] px-0 py-1 font-mono font-bold uppercase text-[#74c69d] sm:px-2 sm:tracking-wider">
+          <button type="button" onClick={event => event.stopPropagation()} style={{ fontSize: "clamp(7px, 1vw, 10px)", letterSpacing: "-0.04em" }} className="inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap border border-[#c9a84c] bg-[#c9a84c] px-0 py-1 font-mono font-bold uppercase text-[#0d1a0f] transition-colors hover:border-[#d7ba5a] hover:bg-[#d7ba5a] sm:px-2 sm:tracking-wider">
             Enviar Convite
           </button>
         ) : <StatusBadge status={alumni.status} />}
@@ -1778,8 +1761,12 @@ function AvatarCropUpload({
             />
           </label>
           {currentImageUrl && onRemove && (
-            <button onClick={onRemove} className="block mt-3 text-[#7a9a7a] hover:text-[#f0ebe0] text-xs font-mono">
-              Apagar foto
+            <button
+              type="button"
+              onClick={onRemove}
+              className="inline-flex min-h-[3.125rem] items-center justify-center gap-2 bg-[#2d6a4f] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-[#f0ebe0] transition-all hover:bg-[#40916c]"
+            >
+              <Trash2 size={14} />Apagar foto
             </button>
           )}
           <p className="text-[#7a9a7a] text-xs font-mono mt-2">{helperText}</p>
@@ -4432,7 +4419,7 @@ function TheClassPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
 type AlumniClassFilter = "all" | "A" | "B" | "C" | "D";
 type AlumniProfileFilter = "all" | "registered" | "unregistered";
-type ExAlumniDrilldownKind = "registered" | "photo";
+type ExAlumniDrilldownKind = "registered" | "photo" | "cities";
 
 function ExAlumniDrilldownModal({
   kind,
@@ -4459,6 +4446,7 @@ function ExAlumniDrilldownModal({
   const config = kind ? {
     registered: { title: "Cadastrados no site", description: "Ex-alunos que concluíram o cadastro e atualizaram seu perfil." },
     photo: { title: "Com foto atual", description: "Ex-alunos que adicionaram uma foto atual ao perfil público." },
+    cities: { title: "Cidades representadas", description: "Cidades informadas nos perfis públicos dos ex-alunos cadastrados." },
   }[kind] : null;
 
   const normalizedQuery = normalizeLoose(query);
@@ -4466,7 +4454,26 @@ function ExAlumniDrilldownModal({
     !normalizedQuery
     || normalizeLoose(row.display_name).includes(normalizedQuery)
     || normalizeLoose(row.class_group).includes(normalizedQuery)
+    || normalizeLoose(row.current_city).includes(normalizedQuery)
+    || normalizeLoose(row.current_state).includes(normalizedQuery)
+    || normalizeLoose(row.current_country).includes(normalizedQuery)
   );
+
+  const cityGroups = useMemo(() => {
+    const groups = new Map<string, { label: string; rows: PublicCuriosityProfileDetailRow[] }>();
+    filteredRows
+      .filter(row => Boolean(row.current_city))
+      .forEach(row => {
+        const label = [row.current_city, row.current_state, row.current_country].filter(Boolean).join(" · ");
+        const key = normalizeLoose(label);
+        const group = groups.get(key) ?? { label, rows: [] };
+        group.rows.push(row);
+        groups.set(key, group);
+      });
+    return Array.from(groups.values())
+      .map(group => ({ ...group, rows: group.rows.sort((a, b) => a.display_name.localeCompare(b.display_name, "pt-BR")) }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [filteredRows]);
 
   return (
     <Modal open={Boolean(kind)} onClose={onClose} title={config?.title ?? "Ex-alunos"} wide>
@@ -4486,8 +4493,34 @@ function ExAlumniDrilldownModal({
           </label>
         )}
 
-        <div className="max-h-[min(62svh,34rem)] overflow-y-auto pr-1 -mr-1 flex flex-col gap-2">
-          {filteredRows.map(row => {
+        <div className="max-h-[min(62svh,34rem)] overflow-y-auto pr-1 -mr-1 flex flex-col gap-3">
+          {kind === "cities" ? cityGroups.map(group => (
+            <section key={group.label} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-[#f0ebe0] font-semibold">{group.label}</h3>
+                <span className="text-[#c9a84c] font-mono text-xs">{group.rows.length} {group.rows.length === 1 ? "perfil" : "perfis"}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {group.rows.map(row => {
+                  const person = peopleById.get(row.person_id);
+                  if (!person) return null;
+                  return (
+                    <button key={row.person_id} type="button" data-person-id={row.person_id} onClick={() => onOpenPerson(person)} className="flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0a120a] p-3 text-left hover:border-[#c9a84c]/60">
+                      {row.avatar_url ? (
+                        <img src={row.avatar_url} alt={row.display_name || person.full_name} className="h-11 w-11 shrink-0 object-cover" />
+                      ) : (
+                        <div className="h-11 w-11 shrink-0 bg-[#2d6a4f] flex items-center justify-center text-xs font-mono font-bold text-[#f0ebe0]">{initials(row.display_name || person.full_name)}</div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-[#f0ebe0]">{row.display_name || person.full_name}</p>
+                        <p className="mt-1 text-xs font-mono text-[#7a9a7a]">{row.class_group ? `Turma ${row.class_group}` : "Turma não informada"}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )) : filteredRows.map(row => {
             const person = peopleById.get(row.person_id);
             if (!person) return null;
             return (
@@ -4504,7 +4537,7 @@ function ExAlumniDrilldownModal({
               </button>
             );
           })}
-          {!loading && filteredRows.length === 0 && <p className="py-8 text-center text-sm text-[#7a9a7a]">Nenhum perfil encontrado.</p>}
+          {!loading && (kind === "cities" ? cityGroups.length === 0 : filteredRows.length === 0) && <p className="py-8 text-center text-sm text-[#7a9a7a]">Nenhum perfil encontrado.</p>}
         </div>
       </div>
     </Modal>
@@ -4585,7 +4618,8 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
   const photoRows = registeredRows.filter(row => Boolean(row.avatar_url));
   const cityKeys = new Set(registeredRows.filter(row => row.current_city).map(row => [row.current_city, row.current_state, row.current_country].filter(Boolean).join("|").toLocaleLowerCase("pt-BR")));
   const registeredCount = visiblePeople.filter(person => getDirectoryStatus(person).hasCompletedRegistration).length;
-  const drilldownRows = activeDrilldown === "registered" ? registeredRows : activeDrilldown === "photo" ? photoRows : [];
+  const cityRows = registeredRows.filter(row => Boolean(row.current_city));
+  const drilldownRows = activeDrilldown === "registered" ? registeredRows : activeDrilldown === "photo" ? photoRows : activeDrilldown === "cities" ? cityRows : [];
 
   const classButtons: { value: AlumniClassFilter; label: string }[] = [
     { value: "all", label: "Todas" },
@@ -4627,7 +4661,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
                 <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : photoRows.length}</p>
                 <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Com foto atual</p>
               </button>
-              <button type="button" onClick={() => navigate("curiosities")} disabled={loadingPublicDetails} className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 disabled:cursor-wait">
+              <button type="button" data-ex-alumni-drilldown="cities" onClick={() => setActiveDrilldown("cities")} disabled={loadingPublicDetails} className="bg-[#141f14] border border-[#2d6a4f]/30 p-4 text-left hover:border-[#c9a84c]/70 disabled:cursor-wait">
                 <p className="text-[#c9a84c] font-mono text-2xl font-bold">{loadingPublicDetails ? "—" : cityKeys.size}</p>
                 <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-1">Cidades representadas</p>
               </button>
@@ -4794,14 +4828,11 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
       selectedByQuestion.school_vibe?.length
         ? `Sua vibe na turma era de ${formatBioList(selectedByQuestion.school_vibe)}.`
         : "",
-      selectedByQuestion.reunion_expectation?.length
-        ? `No reencontro, quer ${formatBioList(selectedByQuestion.reunion_expectation)}.`
-        : "",
     ].filter(Boolean);
 
     const generatedBio = sentences.length > 0
       ? sentences.join(" ").slice(0, 500)
-      : `${name} está atualizando seu perfil para reencontrar a turma, relembrar os tempos de HC e viver uma noite de boas histórias.`;
+      : `${name} está atualizando seu perfil para relembrar os tempos de HC e contar um pouco sobre quem se tornou.`;
 
     setProfileDraft(f => ({ ...f, bio: generatedBio }));
     setBioGenerated(true);
@@ -5083,7 +5114,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
             <div>
               <p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Mini bio</p>
               <Btn variant="gold" onClick={openBioAssistant} className="w-full sm:w-auto">
-                <MessageCircle size={16} />{profileDraft.bio.trim() ? "Refazer mini bio com 5 perguntas" : "Apresente seu perfil com apenas 5 perguntas"}
+                <MessageCircle size={16} />{profileDraft.bio.trim() ? "Refazer mini bio com 4 perguntas" : "Apresente seu perfil com apenas 4 perguntas"}
               </Btn>
               <p className="text-[#7a9a7a] text-xs mt-2">A integração com IA será ativada depois. Por enquanto, o modal prepara uma prévia editável a partir das respostas.</p>
               {(bioGenerated || profileDraft.bio.trim()) && (
@@ -5183,7 +5214,7 @@ function ClaimProfilePage({ navigate, people, auth }: { navigate: (p: Page) => v
           </div>
         )}
 
-        <Modal open={bioAssistantOpen} onClose={() => setBioAssistantOpen(false)} title="Mini bio em 5 perguntas" wide>
+        <Modal open={bioAssistantOpen} onClose={() => setBioAssistantOpen(false)} title="Mini bio em 4 perguntas" wide>
           {(() => {
             const currentQuestion = SCHOOL_PROFILE_QUESTIONS[bioAssistantStep];
             const selectedOptions = bioAssistantAnswers[currentQuestion.id] ?? [];
@@ -6181,7 +6212,7 @@ function CuriositiesPage({ navigate, auth, people }: { navigate: (p: Page) => vo
                 <div>
                   <SectionLabel>Tempos de escola</SectionLabel>
                   <DisplayTitle className="text-4xl md:text-5xl">O que a turma contou no cadastro</DisplayTitle>
-                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 5 etapas da mini bio.</p>
+                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 4 etapas da mini bio.</p>
                   <p data-questionnaire-sample className="text-[#c9a84c] font-mono text-xs mt-2">{questionnaireResponseStats?.respondent_count ?? 0} {(questionnaireResponseStats?.respondent_count ?? 0) === 1 ? "pessoa respondeu" : "pessoas responderam"} o questionário</p>
                 </div>
                 <Btn variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Responder questionário</Btn>
@@ -7552,9 +7583,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               <Field label="Instagram" value={form.instagram} onChange={v => setForm(f => ({ ...f, instagram: v }))} placeholder="https://instagram.com/" icon={<Instagram size={14} />} />
               <Field label="LinkedIn" value={form.linkedin} onChange={v => setForm(f => ({ ...f, linkedin: v }))} placeholder="https://linkedin.com/in/" icon={<Linkedin size={14} />} />
             </div>
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Privacidade</p>
-              <div className="flex flex-col gap-4">
+            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-left">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6 text-left">Privacidade</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                 {([
                   ["showInList",     "Aparecer no diretório de ex-alunos"],
                   ["showCurrentPhoto", "Exibir foto atual"],
@@ -7563,12 +7594,14 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
                   ["showSocial",     "Exibir redes sociais"],
                   ["allowTagging",   "Permitir marcações em fotos"],
                 ] as [keyof typeof privacy, string][]).map(([key, label]) => (
-                  <label key={key} className="flex items-center justify-between cursor-pointer">
-                    <span className="text-[#f0ebe0] text-sm">{label}</span>
-                    <button onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
-                      className={`relative w-12 h-6 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
+                  <label key={key} className="flex items-center justify-start gap-3 cursor-pointer text-left">
+                    <button type="button" onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
+                      aria-pressed={privacy[key]}
+                      aria-label={label}
+                      className={`relative w-12 h-6 shrink-0 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
                       <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${privacy[key] ? "left-7" : "left-1"}`} />
                     </button>
+                    <span className="text-[#f0ebe0] text-sm text-left leading-snug">{label}</span>
                   </label>
                 ))}
               </div>
