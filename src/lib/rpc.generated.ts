@@ -267,6 +267,14 @@ export type PreparePhotoRemovalArgs = RpcArgs<"prepare_photo_removal">;
 export type PreparePhotoRemovalReturns = RpcReturns<"prepare_photo_removal">;
 export type PreparePhotoRemovalRow = RpcRow<"prepare_photo_removal">;
 
+export type RecordClientAuditEventArgs = RpcArgs<"record_client_audit_event">;
+export type RecordClientAuditEventReturns = RpcReturns<"record_client_audit_event">;
+export type RecordClientAuditEventRow = RpcRow<"record_client_audit_event">;
+
+export type RecordSitePageViewArgs = RpcArgs<"record_site_page_view">;
+export type RecordSitePageViewReturns = RpcReturns<"record_site_page_view">;
+export type RecordSitePageViewRow = RpcRow<"record_site_page_view">;
+
 export type RegisterExternalUserProfileArgs = RpcArgs<"register_external_user_profile">;
 export type RegisterExternalUserProfileReturns = RpcReturns<"register_external_user_profile">;
 export type RegisterExternalUserProfileRow = RpcRow<"register_external_user_profile">;
