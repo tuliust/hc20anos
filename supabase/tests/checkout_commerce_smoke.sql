@@ -8,6 +8,28 @@ update public.events
 set event_status = 'published', sales_status = 'open'
 where id = '00000000-0000-0000-0000-000000000001'::uuid;
 
+update public.ticket_lots
+set status = case
+      when code = 'single' then 'open'::public.ticket_status
+      else 'closed'::public.ticket_status
+    end,
+    starts_at = case
+      when code = 'single' then '2026-09-01 00:00:00-03'::timestamptz
+      else starts_at
+    end,
+    ends_at = case
+      when code = 'single' then '2026-09-26 14:00:00-03'::timestamptz
+      else ends_at
+    end
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid;
+
+update public.ticket_types
+set status = case
+      when product_code = 'simple' then 'open'::public.ticket_status
+      else 'closed'::public.ticket_status
+    end
+where event_id = '00000000-0000-0000-0000-000000000001'::uuid;
+
 -- Canonical event date and timezone.
 do $$
 declare
