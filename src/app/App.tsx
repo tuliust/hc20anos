@@ -6955,6 +6955,7 @@ function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth:
 
 // ─── EDIT PROFILE ─────────────────────────────────────────────────────────────
 
+// Minha Área: perfil completo em destaque e ações editoriais alinhadas ao botão Editar perfil.
 function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: Page) => void; auth: AuthState; onSelectPhoto: (photo: DbPhoto) => void }) {
   type AreaProfile = DbProfile & { people?: Partial<DbPerson> | null };
   const [profile, setProfile] = useState<AreaProfile | null>(null);
