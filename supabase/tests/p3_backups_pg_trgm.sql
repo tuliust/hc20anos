@@ -19,6 +19,19 @@ with checks as (
     not has_schema_privilege('anon','archive','USAGE')
     and not has_schema_privilege('authenticated','archive','USAGE')
   union all
+  select 'archive_backups_have_explicit_deny_policies',
+    (
+      select count(*)=5
+      from pg_policies
+      where schemaname='archive'
+        and policyname='archive_client_deny_all'
+        and permissive='RESTRICTIVE'
+        and cmd='ALL'
+        and roles @> array['anon'::name,'authenticated'::name]
+        and qual='false'
+        and with_check='false'
+    )
+  union all
   select 'pg_trgm_in_extensions',
     exists (
       select 1
