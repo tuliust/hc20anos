@@ -69,7 +69,7 @@ function transformApp(source) {
       `<Field label="Apelido, nickname ou ex-perfil do Fotolog" value={profileDraft.nickname} onChange={v => setProfileDraft(f => ({ ...f, nickname: v }))} />`,
       "label do apelido no cadastro",
     ],
-    [`>Mini bio</p>`, `>Meu perfil</p>`, "título da seção"],
+    [`<p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Mini bio</p>`, `<p className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Meu perfil</p>`, "título da seção"],
     [
       `{profileDraft.bio.trim() ? "Refazer mini bio com 4 perguntas" : "Apresente seu perfil com apenas 4 perguntas"}`,
       `Responda 4 perguntas`,
