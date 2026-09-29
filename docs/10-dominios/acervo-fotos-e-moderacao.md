@@ -46,7 +46,7 @@ Registra interações de curtida, normalmente associadas a usuários autenticado
 
 ### `photo_comments`
 
-Armazena comentários sujeitos a validação e moderação. Comentários pendentes ou rejeitados não são públicos.
+Armazena comentários associados às fotos. No fluxo público vigente, comentários autenticados em fotos aprovadas são gravados diretamente como `approved` e ficam visíveis sem etapa manual de moderação. Estados legados ou administrativos continuam podendo ser usados para ocultação e auditoria.
 
 ### `photo_removal_requests`
 
@@ -111,11 +111,11 @@ Curtidas devem ser idempotentes por usuário e foto. A contagem pública não de
 
 Comentários devem:
 
-- exigir os dados mínimos definidos pelo contrato;
-- limitar tamanho;
+- exigir autenticação e os dados mínimos definidos pelo contrato;
+- limitar tamanho e manter o rate limit do RPC;
 - neutralizar conteúdo executável;
-- passar por moderação quando configurado;
-- respeitar estados de remoção;
+- ser publicados imediatamente como `approved` quando enviados pelo fluxo público vigente;
+- respeitar estados de remoção ou ocultação posterior;
 - não expor e-mail ou identificadores internos do autor.
 
 ## Solicitação de remoção
@@ -162,10 +162,10 @@ A execução comprova, com fixtures HTTP isoladas:
 - carregamento de foto aprovada e selecionada pela organização;
 - exibição de comentário aprovado e contadores agregados;
 - curtida autenticada vinculada à foto e ao usuário;
-- novo comentário persistido como `pending`;
+- novo comentário publicado diretamente como `approved` e recarregado na interface;
 - nova marcação persistida como `pending` para pessoa elegível;
 - solicitação de remoção com motivo e identidade autenticada;
-- ausência de publicação direta nas escritas colaborativas.
+- publicação direta restrita aos comentários; marcações e remoções mantêm seus fluxos próprios.
 
 ### Moderação editorial
 
@@ -190,7 +190,7 @@ Esses testes não substituem Storage real, RLS, grants, antivírus, inspeção d
 - foto removida desaparece de mural e destaques;
 - pessoa invisível não é exposta por marcação;
 - curtida duplicada não aumenta contagem;
-- comentário pendente não é público;
+- comentário enviado pelo fluxo público aparece imediatamente como aprovado;
 - solicitação de remoção pode ocultar preventivamente;
 - usuário comum não modera conteúdo;
 - exclusão ou falha de Storage não deixa registro público quebrado.
