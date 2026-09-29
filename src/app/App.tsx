@@ -2795,6 +2795,8 @@ function CompactNostalgiaTimeline({ items }: { items: NostalgiaTimelineItemConte
   );
 }
 
+const HOME_ACTION_BUTTON_CLASS = "inline-flex min-h-10 items-center justify-center gap-2 border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent";
+
 function HomeAboutCard({ icon, label, children, className = "" }: { icon: React.ReactNode; label?: string; children: React.ReactNode; className?: string }) {
   if (!label) return null;
   return (
@@ -2836,7 +2838,7 @@ function HomeMemoriesCarousel({ memories, people, emptyLabel, description, navig
         </div>
       </div> : <p className="flex-1 py-6 text-sm leading-relaxed text-[#7a9a7a]">{emptyLabel || description}</p>}
       <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#2d6a4f]/20 pt-4">
-        <button type="button" data-add-memory onClick={() => navigate(auth.loggedIn ? "memories" : "login")} className="border border-[#c9a84c]/60 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] transition-colors hover:bg-[#c9a84c] hover:text-[#0d1a0f]">Adicionar memória</button>
+        <button type="button" data-add-memory data-home-action-button="true" onClick={() => navigate(auth.loggedIn ? "memories" : "login")} className={HOME_ACTION_BUTTON_CLASS}>Adicionar Memórias</button>
         {memories.length > 1 && <div className="flex items-center gap-3">
         <p className="font-mono text-[10px] text-[#3a5a3a]">{index + 1} / {memories.length}</p>
         <div className="flex gap-2">
@@ -3179,7 +3181,7 @@ function HomePollCard({ poll, results, votes, auth, fallback, busy, error, onVot
         {error && <p role="alert" className="mt-3 text-xs text-[#e07a5f]">{error}</p>}
       </> : <p className="text-sm leading-relaxed text-[#7a9a7a]">{fallback.empty_label}</p>}
       <div className="mt-5 border-t border-[#2d6a4f]/20 pt-4">
-        {!creating ? <button type="button" data-create-poll onClick={() => auth.loggedIn ? setCreating(true) : navigate("login")} className="border border-[#c9a84c]/60 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] transition-colors hover:bg-[#c9a84c] hover:text-[#0d1a0f]">Criar Enquete</button> : (
+        {!creating ? <button type="button" data-create-poll data-home-action-button="true" onClick={() => auth.loggedIn ? setCreating(true) : navigate("login")} className={HOME_ACTION_BUTTON_CLASS}>Criar Enquetes</button> : (
           <div className="flex flex-col gap-3" data-home-poll-form>
             <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Pergunta<input value={question} onChange={event => setQuestion(event.target.value.slice(0, 180))} maxLength={180} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Escreva a pergunta" /></label>
             <label className="font-mono text-[10px] uppercase tracking-wider text-[#7a9a7a]">Opções (uma por linha)<textarea value={optionsText} onChange={event => setOptionsText(event.target.value.slice(0, 800))} rows={4} className="mt-2 w-full border border-[#2d6a4f]/30 bg-[#0d1a0f] p-3 font-sans text-sm normal-case tracking-normal text-[#f0ebe0] outline-none focus:border-[#c9a84c]" placeholder="Uma opção por linha" /></label>
@@ -3205,7 +3207,7 @@ function HomeRegisteredPeopleGrid({ people, classGroup, navigate, onOpenPerson }
           window.history.pushState({}, "", target);
           window.dispatchEvent(new Event("pushstate"));
           navigate("ex-alumni");
-        }} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#7a9a7a] transition-colors hover:text-[#c9a84c]">
+        }} data-home-action-button="true" data-home-people-view-all="true" className={`${HOME_ACTION_BUTTON_CLASS} shrink-0`}>
           Ver Todos <ArrowRight size={13} />
         </button>
       </div>
@@ -3667,13 +3669,30 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
   const extendedContent = getExtendedHomeContent(content);
   const previewPhotos = photos.slice(0, parsePositiveInteger(extendedContent.photos_preview_limit, 6));
   return (
-    <section className="home-section bg-[#080f08]">
+    <section data-home-section="photos" className="home-section bg-[#0d1a0f]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-12">
           <div><SectionLabel>{content.photos_eyebrow}</SectionLabel><DisplayTitle className="text-4xl md:text-5xl">{content.photos_title}</DisplayTitle></div>
         </div>
         {previewPhotos.length === 0 ? (
-          <EmptyState title={extendedContent.photos_empty_title} subtitle={extendedContent.photos_empty_subtitle} action={<Btn variant="outline" onClick={() => navigate("photo-wall")}>{extendedContent.photos_empty_cta_label}</Btn>} />
+          <EmptyState
+            title={extendedContent.photos_empty_title}
+            subtitle={extendedContent.photos_empty_subtitle}
+            action={
+              <button
+                type="button"
+                data-home-action-button="true"
+                data-home-photos-upload="true"
+                className={HOME_ACTION_BUTTON_CLASS}
+                onClick={() => {
+                  window.sessionStorage.setItem("hc20-open-photo-uploader", "true");
+                  navigate("photo-wall");
+                }}
+              >
+                <Upload size={14} />Envie suas fotos
+              </button>
+            }
+          />
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
@@ -3688,8 +3707,22 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
                 </div>
               ))}
             </div>
-            <div className="mt-10 text-center">
-              <Btn variant="ghost" onClick={() => navigate("photo-wall")}>{extendedContent.photos_view_all_label} <ArrowRight size={16} /></Btn>
+            <div data-home-photo-actions="true" className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              <button type="button" data-home-action-button="true" data-home-photos-view-all="true" className={HOME_ACTION_BUTTON_CLASS} onClick={() => navigate("photo-wall")}>
+                {extendedContent.photos_view_all_label} <ArrowRight size={14} />
+              </button>
+              <button
+                type="button"
+                data-home-action-button="true"
+                data-home-photos-upload="true"
+                className={HOME_ACTION_BUTTON_CLASS}
+                onClick={() => {
+                  window.sessionStorage.setItem("hc20-open-photo-uploader", "true");
+                  navigate("photo-wall");
+                }}
+              >
+                <Upload size={14} />Envie suas fotos
+              </button>
             </div>
           </>
         )}
@@ -5454,6 +5487,12 @@ function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
   }
 
   useEffect(() => { loadStats().catch(() => {}); }, [photos, auth.loggedIn, auth.userId]);
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem("hc20-open-photo-uploader") !== "true") return;
+    window.sessionStorage.removeItem("hc20-open-photo-uploader");
+    setUploadOpen(true);
+  }, []);
 
   useEffect(() => {
     function handleLegacyOpen(event: Event) {
