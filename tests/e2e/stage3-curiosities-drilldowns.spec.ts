@@ -94,3 +94,31 @@ test("drill-down de curiosidades funciona em viewport móvel", async ({ page }) 
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 });
+
+
+test("modal de curiosidades mantém uma única rolagem vertical", async ({ page }) => {
+  await openCuriosities(page);\n  await openDrilldown(page, "cities");
+
+  const state = await page.getByRole("dialog", { name: "Cidades onde estão hoje" }).evaluate(dialog => {
+    const descendants = Array.from(dialog.querySelectorAll<HTMLElement>(".overflow-y-auto, .overflow-auto"));
+    return {
+      owner: dialog.getAttribute("data-modal-scroll-owner"),
+      dialogOverflowY: getComputedStyle(dialog).overflowY,
+      nested: descendants.map(element => ({
+        overflowY: getComputedStyle(element).overflowY,
+        maxHeight: getComputedStyle(element).maxHeight,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      })),
+    };
+  });
+
+  expect(state.owner).toBe("true");
+  expect(["auto", "scroll"]).toContain(state.dialogOverflowY);
+  expect(state.nested.length).toBeGreaterThan(0);
+  for (const nested of state.nested) {
+    expect(["auto", "scroll"]).not.toContain(nested.overflowY);
+    expect(nested.maxHeight).toBe("none");
+    expect(nested.scrollHeight).toBeLessThanOrEqual(nested.clientHeight + 1);
+  }
+});
