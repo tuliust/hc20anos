@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-26
-last_verified_commit: 2909e08b34d8f022d97fba5cf97b37d8fd4ab355
+last_verified: 2026-09-29
+last_verified_commit: 686c31e98427d1bda518f49625798d2f9cc50ae4
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -64,7 +64,7 @@ source_files:
 
 - **Arquivo:** `supabase/functions/server/index.ts`
 - **Métodos detectados:** não inferidos estaticamente
-- **Sinais de autenticação:** service role, assinatura Mercado Pago
-- **Variáveis:** `FUNCTIONS_PUBLIC_URL`, `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_URL`, `SUPABASE_FUNCTIONS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `TRANSACTIONAL_FROM_EMAIL`
-- **RPCs chamadas:** `fn_increment_sold`
+- **Sinais de autenticação:** nenhum sinal estático identificado
+- **Variáveis:** nenhuma
+- **RPCs chamadas:** nenhuma
 
