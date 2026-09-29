@@ -59,7 +59,7 @@ function sanitizeRequest(body: unknown): ProfileBioRequest | null {
   const name = normalizeText(parsed.name, 120);
   if (!name) return null;
 
-  const rawAnswers = Array.isArray(parsed.answers) ? parsed.answers.slice(0, 5) : [];
+  const rawAnswers = Array.isArray(parsed.answers) ? parsed.answers : [];
   const answers = rawAnswers.map(item => {
     const answer = item && typeof item === "object" ? item as Record<string, unknown> : {};
     const options = Array.isArray(answer.options)
@@ -71,7 +71,9 @@ function sanitizeRequest(body: unknown): ProfileBioRequest | null {
       question: normalizeText(answer.question, 220),
       options,
     };
-  }).filter(answer => answer.id && answer.question);
+  })
+    .filter(answer => answer.id && answer.question && answer.id !== "reunion_expectation")
+    .slice(0, 4);
 
   const hasChildren = typeof parsed.hasChildren === "boolean" ? parsed.hasChildren : undefined;
 
@@ -165,7 +167,7 @@ function childrenLabel(hasChildren?: boolean, childrenCount?: number) {
   return null;
 }
 
-const PROFILE_BIO_INSTRUCTIONS = `Você escreve perfis curtos para o site privado de um reencontro escolar de 20 anos.
+const PROFILE_BIO_INSTRUCTIONS = `Você escreve perfis curtos para o site da Turma 2006, vinte anos após a formatura.
 
 Regras obrigatórias:
 - escreva em português do Brasil;
@@ -178,6 +180,7 @@ Regras obrigatórias:
 - não inclua dados de contato, data de nascimento ou qualquer informação sensível;
 - não use hashtags, emojis ou listas;
 - evite clichês excessivos e preserve a individualidade das respostas;
+- trate o site como um acervo e espaço de memória da turma; não fale de encontro, festa, reencontro futuro ou expectativa de presença;
 - relacionamento e filhos podem ser mencionados naturalmente, mas somente quando tiverem sido informados;
 - quando uma pergunta não tiver resposta, simplesmente ignore esse tema.`;
 
