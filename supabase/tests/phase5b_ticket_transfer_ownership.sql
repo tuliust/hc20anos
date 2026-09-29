@@ -1,5 +1,6 @@
 -- Transactional ownership/state checks for ticket-transfer RPCs.
--- Run as database owner; all fixtures, ticket changes, notifications and audit rows roll back.
+-- Self-contained local fixture: all synthetic orders, tickets, transfers,
+-- notifications and audit rows are rolled back at the end.
 begin;
 
 create temporary table phase5b_results(check_name text, passed boolean) on commit drop;
