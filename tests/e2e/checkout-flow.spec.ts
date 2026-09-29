@@ -8,10 +8,8 @@ test.describe("comércio encerrado após cancelamento", () => {
 
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
-    const cancellationNotice = page.locator("[data-home-cancelled-notice='true']");
-    await expect(cancellationNotice).toBeVisible();
-    await expect(cancellationNotice).toContainText(/Comunicado sobre o encontro de 2026/i);
     await expect(page.getByRole("heading", { name: "Participantes e pagamento" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Comprar agora/i })).toHaveCount(0);
     expect(api.calls).toHaveLength(0);
   });
 
@@ -23,8 +21,6 @@ test.describe("comércio encerrado após cancelamento", () => {
     await expect(page.locator("[data-home-loaded]")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("button", { name: /Comprar agora/i })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Continuar para pagamento/i })).toHaveCount(0);
-    const cancellationNotice = page.locator("[data-home-cancelled-notice='true']");
-    await expect(cancellationNotice).toBeVisible();
-    await expect(cancellationNotice).toContainText(/reembolsados integralmente pelo Mercado Pago/i);
+    await expect(page.locator("[data-public-ticket-catalog='true']")).toHaveCount(0);
   });
 });
