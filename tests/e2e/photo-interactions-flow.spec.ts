@@ -21,7 +21,7 @@ test.describe("interações em fotos", () => {
     await expect(lightbox).toBeVisible();
     await lightbox.getByRole("button", { name: "Ver detalhes e interagir", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/foto$/);
+    await expect(page).toHaveURL(new RegExp(`/foto/${TEST_PHOTO_ID}$`));
     await expect(page.getByRole("heading", { name: "Gincana no pátio" })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Essa gincana foi inesquecível.", { exact: true })).toBeVisible();
 
