@@ -217,6 +217,9 @@ test("ações do diretório ficam alinhadas na mesma linha em viewport móvel", 
   const noOverlap = inviteBox!.x + inviteBox!.width <= claimBox!.x + 1 || claimBox!.x + claimBox!.width <= inviteBox!.x + 1;
   expect(noOverlap).toBe(true);
   await expect(invite).toHaveCSS("font-size", "7px");
+  await expect(invite).toHaveCSS("background-color", "rgb(201, 168, 76)");
+  await expect(invite).toHaveCSS("color", "rgb(13, 26, 15)");
+  await expect(claim).not.toHaveCSS("background-color", "rgb(201, 168, 76)");
 });
 
 test("seções ocultas no CMS não são montadas", async ({ page }) => {
@@ -429,4 +432,5 @@ test("Curiosidades alinha introducao a esquerda e remove leitura por IA", async 
   expect(Math.abs((titleBox?.x ?? 0) - (subtitleBox?.x ?? 0))).toBeLessThanOrEqual(1);
   await expect(page.getByText("Leitura por IA", { exact: true })).toHaveCount(0);
   await expect(page.getByText("O retrato da turma até agora", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("O que você quer viver no reencontro?", { exact: true })).toHaveCount(0);
 });
