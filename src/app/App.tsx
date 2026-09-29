@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment, useMemo, useRef, useCallback } from "rea
 import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
-  getPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
+  getPeople, getPublicPeople, getTicketTypes, getOrdersByStatus, getCurrentAdminUser, writeAudit, MOCK_PEOPLE,
   getTicketTypesAdmin, updateTicketTypeStatus, updateTicketTypeFull, createTicketType,
   getEventSettings, updateEventSettings,
   getReports, exportToCsv, exportPeopleCSV, exportOrdersCSV, exportTicketsCSV,
@@ -10167,7 +10167,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    getPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
+    getPublicPeople().then(setPeople).catch(() => DEV_MODE && setPeople(MOCK_PEOPLE));
     getApprovedPhotos(DEFAULT_EVENT_ID).then(setApprovedPhotos).catch(() => DEV_MODE && setApprovedPhotos([]));
     getApprovedMemories(DEFAULT_EVENT_ID).then(setApprovedMemories).catch(() => DEV_MODE && setApprovedMemories([]));
     getAttendanceIntentPersonIds().then(setAttendanceIntentPersonIds).catch(() => setAttendanceIntentPersonIds(new Set()));
