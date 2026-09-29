@@ -7119,32 +7119,56 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
         {error && <ErrorState message={error} onRetry={loadArea} />}
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 md:p-8 lg:col-span-3">
-              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6">Meu perfil</p>
+            <div data-alumni-profile-card="true" className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 md:p-8 xl:p-10 lg:col-span-3">
+              <div className="flex items-center justify-between gap-4 mb-7">
+                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">Meu perfil</p>
+                <span className="hidden sm:inline text-[#7a9a7a] font-mono text-[10px] uppercase tracking-wider">Dados da sua conta</span>
+              </div>
 
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-5 min-w-0">
-                  <div className="w-28 h-28 bg-[#2d6a4f] flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl overflow-hidden shrink-0">
-                    {avatarUrl ? <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" /> : initials(displayName)}
+              <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 lg:gap-8">
+                <div
+                  className="w-32 h-32 md:w-40 md:h-40 bg-[#2d6a4f] overflow-hidden flex items-center justify-center text-[#f0ebe0] font-bold font-mono text-2xl shrink-0"
+                  style={{ width: "clamp(8rem, 12vw, 10rem)", height: "clamp(8rem, 12vw, 10rem)", aspectRatio: "1 / 1" }}
+                >
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt={displayName} className="block w-full h-full object-cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : initials(displayName)}
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="max-w-3xl text-[#f0ebe0] font-['Playfair_Display'] font-bold text-3xl md:text-4xl xl:text-5xl leading-[1.05] break-normal">
+                    {displayName}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <span className="inline-flex items-center min-h-7 border border-[#c9a84c]/45 bg-[#c9a84c]/10 px-3 text-[#c9a84c] font-mono text-[10px] uppercase tracking-wider">
+                      {classLabel}
+                    </span>
+                    <span className="inline-flex items-center min-h-7 border border-[#2d6a4f]/35 bg-[#0a120a] px-3 text-[#8ab89a] font-mono text-[10px] uppercase tracking-wider">
+                      {profileStatusLabel}
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[#f0ebe0] font-['Playfair_Display'] font-bold text-2xl md:text-3xl leading-tight">{displayName}</p>
-                    <p className="text-[#c9a84c] text-xs font-mono mt-2">{classLabel}</p>
-                    {location && <p className="text-[#8ab89a] text-sm mt-3">{location}</p>}
-                    {profile?.profession && <p className="text-[#8ab89a] text-sm mt-1">{profile.profession}</p>}
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 mt-4 text-[#8ab89a] text-sm">
+                    {location && <span>{location}</span>}
+                    {profile?.profession && <span>{profile.profession}</span>}
                   </div>
                 </div>
-                <div className="w-full lg:w-64 shrink-0">
+
+                <div className="w-full lg:w-64 lg:self-start">
                   <Btn full size="sm" variant="outline" onClick={() => navigate("edit-profile")}><Edit3 size={14} />Editar perfil</Btn>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Identificação</p>
-                  <dl className="space-y-3">
-                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome completo</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.people?.full_name)}</dd></div>
-                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome de exibição</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.display_name || profile?.people?.display_name)}</dd></div>
+              <div className="h-px bg-[#2d6a4f]/25 my-8" />
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6">
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">Identificação</p>
+                    <span className="text-[#7a9a7a] font-mono text-[10px]">{profileClassYear}</span>
+                  </div>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome completo</dt><dd className="text-[#f0ebe0] text-sm mt-1 leading-relaxed">{profileValue(profile?.people?.full_name)}</dd></div>
+                    <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Nome de exibição</dt><dd className="text-[#f0ebe0] text-sm mt-1 leading-relaxed">{profileValue(profile?.display_name || profile?.people?.display_name)}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Apelido no HC</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.people?.nickname_at_school)}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Turma</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileClassGroup ? `Turma ${profileClassGroup}` : "Não informado"}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Ano da turma</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profileClassYear)}</dd></div>
@@ -7156,9 +7180,9 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
                   </dl>
                 </section>
 
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Contato e localização</p>
-                  <dl className="space-y-3">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-5">Contato e localização</p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">E-mail da conta</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-words">{profileValue(auth.email)}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">E-mail de contato</dt><dd className="text-[#f0ebe0] text-sm mt-1 break-words">{profileValue(contactEmail)}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Telefone / WhatsApp</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(contactPhone)}</dd></div>
@@ -7170,9 +7194,9 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
                   </dl>
                 </section>
 
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Vida atual</p>
-                  <dl className="space-y-3">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-5">Vida atual</p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Profissão</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profileValue(profile?.profession)}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Relacionamento</dt><dd className="text-[#f0ebe0] text-sm mt-1">{relationshipLabel}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Filhos</dt><dd className="text-[#f0ebe0] text-sm mt-1">{childrenLabel}</dd></div>
@@ -7182,9 +7206,9 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
                   </dl>
                 </section>
 
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Privacidade</p>
-                  <dl className="space-y-3">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6">
+                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-5">Privacidade</p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Perfil na lista</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.people?.is_visible === false ? "Oculto" : "Visível"}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Foto atual</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_current_photo ? "Visível" : "Oculta"}</dd></div>
                     <div><dt className="text-[#7a9a7a] text-[10px] font-mono uppercase">Cidade</dt><dd className="text-[#f0ebe0] text-sm mt-1">{profile?.show_city ? "Visível" : "Oculta"}</dd></div>
@@ -7196,18 +7220,18 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
                 </section>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6 min-h-[8rem]">
                   <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Mini bio</p>
-                  <p className="text-[#f0ebe0] text-sm leading-relaxed whitespace-pre-line">{profileValue(profile?.bio)}</p>
+                  <p className="text-[#f0ebe0] text-sm leading-7 whitespace-pre-line">{profileValue(profile?.bio)}</p>
                 </section>
-                <section className="border border-[#2d6a4f]/20 bg-[#0a120a] p-5">
+                <section className="border border-[#2d6a4f]/25 bg-[#0a120a] p-5 md:p-6 min-h-[8rem]">
                   <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Lembrança do perfil</p>
-                  <p className="text-[#f0ebe0] text-sm leading-relaxed whitespace-pre-line">{profileValue(profile?.memory_text)}</p>
+                  <p className="text-[#f0ebe0] text-sm leading-7 whitespace-pre-line">{profileValue(profile?.memory_text)}</p>
                 </section>
               </div>
 
-              {sectionErrors.profile && <p className="text-[#c9a84c] text-xs font-mono mt-4">{sectionErrors.profile}</p>}
+              {sectionErrors.profile && <p className="text-[#c9a84c] text-xs font-mono mt-5">{sectionErrors.profile}</p>}
             </div>
 
             <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
