@@ -14,7 +14,7 @@ function assertMarkers(code) {
   const required = [
     "Apelido, nickname ou ex-perfil do Fotolog",
     "Meu perfil",
-    "Responda 5 perguntas",
+    "Responda 4 perguntas",
     "Gerando perfil com IA",
     "Eu vou!",
     "Não sei ainda...",
@@ -30,6 +30,10 @@ function assertMarkers(code) {
     "Mini bio em 5 perguntas",
     "Apresente seu perfil com apenas 5 perguntas",
     "Refazer mini bio com 5 perguntas",
+    "Mini bio em 4 perguntas",
+    "Apresente seu perfil com apenas 4 perguntas",
+    "Refazer mini bio com 4 perguntas",
+    "O que você quer viver no reencontro?",
     "Gerar prévia",
   ];
 
@@ -67,8 +71,8 @@ function transformApp(source) {
     ],
     [`>Mini bio</p>`, `>Meu perfil</p>`, "título da seção"],
     [
-      `{profileDraft.bio.trim() ? "Refazer mini bio com 5 perguntas" : "Apresente seu perfil com apenas 5 perguntas"}`,
-      `Responda 5 perguntas`,
+      `{profileDraft.bio.trim() ? "Refazer mini bio com 4 perguntas" : "Apresente seu perfil com apenas 4 perguntas"}`,
+      `Responda 4 perguntas`,
       "texto do botão",
     ],
     [
@@ -97,7 +101,7 @@ function transformApp(source) {
       `<OptionButton selected={profileDraft.intendsToAttend === "no"} onClick={() => setProfileDraft(f => ({ ...f, intendsToAttend: "no" }))}>Não sei ainda...</OptionButton>`,
       "label presença indefinida",
     ],
-    [`title="Mini bio em 5 perguntas"`, `title="Gerando perfil com IA"`, "título do modal"],
+    [`title="Mini bio em 4 perguntas"`, `title="Gerando perfil com IA"`, "título do modal"],
     [
       `const advance = () => isLastQuestion ? finishBioAssistant() : goToBioAssistantStep(bioAssistantStep + 1);`,
       `const advance = () => {\n              if (bioGenerating) return;\n              if (isLastQuestion) { void finishBioAssistant(); return; }\n              goToBioAssistantStep(bioAssistantStep + 1);\n            };`,
