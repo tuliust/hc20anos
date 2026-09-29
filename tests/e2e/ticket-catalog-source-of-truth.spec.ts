@@ -15,11 +15,9 @@ const legacyCatalogRows = [{
 }];
 
 async function installCatalogFixture(page: Page) {
-  for (const endpoint of ["get_public_ticket_catalog", "get_current_ticket_catalog"]) {
-    await page.route(`**/rest/v1/rpc/${endpoint}`, async route => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(legacyCatalogRows) });
-    });
-  }
+  await page.route("**/rest/v1/rpc/get_public_ticket_catalog", async route => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(legacyCatalogRows) });
+  });
 }
 
 test("Home ignora catálogo legado mesmo se uma fixture retornar produto", async ({ page }) => {
