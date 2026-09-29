@@ -17,12 +17,10 @@ candidates as (
 )
 select
   a.actor_id,
-  max(c.id) filter (where c.rn=1) as candidate_id,
-  max(c.id) filter (where c.rn=2) as third_id,
-  max(c.id) filter (where c.rn=3) as ordinary_id
-from actor a
-left join candidates c on true
-group by a.actor_id;
+  (select c.id from candidates c where c.rn=1) as candidate_id,
+  (select c.id from candidates c where c.rn=2) as third_id,
+  (select c.id from candidates c where c.rn=3) as ordinary_id
+from actor a;
 
 -- The shared local fixture now seeds viewer/check-in/moderator/admin roles too.
 -- Isolate this matrix to exactly one pre-existing superadmin; all deletes roll back.
