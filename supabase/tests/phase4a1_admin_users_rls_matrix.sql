@@ -63,27 +63,50 @@ begin
 end $$;
 grant execute on function pg_temp.assert_non_superadmin(integer) to anon,authenticated;
 
--- anon: no visible rows and no DML, despite table grants.
+-- anon: no visible rows and no DML. Denial may happen either at the
+-- table-privilege layer or through RLS; both are valid security outcomes.
 select set_config('request.jwt.claim.sub','',true);
 select set_config('request.jwt.claim.role','anon',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);
 set local role anon;
-do $$ declare n integer; affected integer; denied boolean:=false;
+do $
+declare
+  n integer := 0;
+  affected integer := 0;
+  denied boolean := false;
 begin
-  select count(*) into n from public.admin_users;
-  if n<>0 then raise exception 'anon_admin_users_select_changed'; end if;
-  begin insert into public.admin_users(user_id,role)
+  begin
+    select count(*) into n from public.admin_users;
+    if n<>0 then raise exception 'anon_admin_users_select_changed'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  begin
+    insert into public.admin_users(user_id,role)
     values((select third_id from phase4_ctx),'viewer'::public.admin_role);
-  exception when insufficient_privilege then denied:=true; end;
+  exception when insufficient_privilege then
+    denied:=true;
+  end;
   if not denied then raise exception 'anon_admin_users_insert_not_denied'; end if;
-  update public.admin_users set role='admin'::public.admin_role
-    where user_id=(select actor_id from phase4_ctx);
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'anon_admin_users_update_changed'; end if;
-  delete from public.admin_users where user_id=(select actor_id from phase4_ctx);
-  get diagnostics affected=row_count;
-  if affected<>0 then raise exception 'anon_admin_users_delete_changed'; end if;
-end $$;
+
+  begin
+    update public.admin_users set role='admin'::public.admin_role
+      where user_id=(select actor_id from phase4_ctx);
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'anon_admin_users_update_changed'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  begin
+    delete from public.admin_users where user_id=(select actor_id from phase4_ctx);
+    get diagnostics affected=row_count;
+    if affected<>0 then raise exception 'anon_admin_users_delete_changed'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
+end $;
 reset role;
 
 -- ordinary authenticated user has no admin_users row.
