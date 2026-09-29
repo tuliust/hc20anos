@@ -2419,7 +2419,9 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
             <p className="text-[#c9a84c] font-mono text-[10px] tracking-[0.4em] uppercase mb-2">{footerContent.footer_eyebrow}</p>
-            <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-2xl uppercase mb-4">{footerContent.footer_title}</p>
+            {normalizeLoose(footerContent.footer_title) !== "turma 2006" && (
+              <p className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-2xl uppercase mb-4">{footerContent.footer_title}</p>
+            )}
             <p className="text-[#7a9a7a] text-sm leading-relaxed">{footerContent.footer_body}</p>
           </div>
           <div>
@@ -2445,7 +2447,7 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
           <div>
             <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-widest mb-4">{footerContent.footer_contact_title}</p>
             <div className="flex flex-col gap-3 text-sm text-[#7a9a7a]">
-              {footerContent.footer_email && <p className="flex items-center gap-2"><Mail size={14} />{footerContent.footer_email}</p>}
+              {footerContent.footer_email && <p data-footer-email="true" className="flex items-center gap-2 no-underline"><Mail size={14} /><span>{footerContent.footer_email}</span></p>}
               {footerContent.footer_location && <p className="flex items-center gap-2"><MapPin size={14} />{footerContent.footer_location}</p>}
             </div>
           </div>
@@ -2618,7 +2620,7 @@ function Hero({ navigate, content, auth }: { navigate: (p: Page) => void; conten
   return (
     <section
       data-home-section="hero"
-      className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden pt-24 pb-12 md:pt-28 md:pb-16"
+      className="relative h-[100svh] min-h-[100svh] w-screen max-w-[100vw] flex flex-col items-center justify-center overflow-hidden pt-24 pb-12 md:pt-28 md:pb-16"
       style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}
     >
       <div
@@ -4788,7 +4790,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
         <div className="max-w-7xl mx-auto px-4">
           <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 items-end mb-10">
             <div>
-              <SectionLabel>Turma 2006 · Diretório</SectionLabel>
+              <SectionLabel>Turma 2006</SectionLabel>
               <DisplayTitle className="text-5xl md:text-7xl">Ex-alunos</DisplayTitle>
               <p className="text-[#8ab89a] mt-4 max-w-3xl leading-relaxed">Uma visão da Turma 2006, de quem já entrou no site, atualizou seu perfil e compartilhou um pouco de como a vida seguiu nesses 20 anos.</p>
             </div>
@@ -6389,7 +6391,7 @@ function CuriositiesPage({ navigate, auth, people }: { navigate: (p: Page) => vo
           <>
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" data-curiosities-summary>
               <StatCard label="Ex-alunos 2006" value={publicDetails.length} icon={<Users size={28} />} drilldown="alumni" onClick={() => setActiveDrilldown("alumni")} />
-              <StatCard label="Cidades onde estão hoje" value={locations.length} hint="Com exibição autorizada" icon={<MapPin size={28} />} drilldown="cities" onClick={() => setActiveDrilldown("cities")} />
+              <StatCard label="Cidades onde estão hoje" value={locations.length} icon={<MapPin size={28} />} drilldown="cities" onClick={() => setActiveDrilldown("cities")} />
               <StatCard label="Áreas profissionais" value={professionRows.filter(row => row.label !== "Não informado" && row.count > 0).length || "—"} icon={<BriefcaseIcon />} drilldown="professions" onClick={() => setActiveDrilldown("professions")} />
               <StatCard label="Total de filhos dos ex-alunos" value={profileStats?.total_children_declared ?? "—"} icon={<Baby size={28} />} drilldown="children" onClick={() => setActiveDrilldown("children")} />
             </section>
