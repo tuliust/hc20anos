@@ -1,17 +1,34 @@
 -- Temporary role simulation for public.admin_users. All writes roll back.
 begin;
 create temporary table phase4_ctx as
+with actor as (
+  select user_id as actor_id
+  from public.admin_users
+  where role='superadmin'::public.admin_role
+  order by user_id
+  limit 1
+),
+candidates as (
+  select u.id,
+         row_number() over (order by u.id) as rn
+  from auth.users u
+  cross join actor a
+  where u.id <> a.actor_id
+)
 select
-  (select user_id from public.admin_users where role='superadmin'::public.admin_role limit 1) actor_id,
-  (select u.id from auth.users u where not exists(select 1 from public.admin_users a where a.user_id=u.id) limit 1) candidate_id,
-  (select u.id from auth.users u where not exists(select 1 from public.admin_users a where a.user_id=u.id)
-     and u.id <> (select x.id from auth.users x where not exists(select 1 from public.admin_users a where a.user_id=x.id) limit 1) limit 1) third_id,
-  (select u.id from auth.users u where not exists(select 1 from public.admin_users a where a.user_id=u.id)
-     and u.id not in (
-       (select x.id from auth.users x where not exists(select 1 from public.admin_users a where a.user_id=x.id) limit 1),
-       (select x.id from auth.users x where not exists(select 1 from public.admin_users a where a.user_id=x.id)
-          and x.id <> (select y.id from auth.users y where not exists(select 1 from public.admin_users a where a.user_id=y.id) limit 1) limit 1)
-     ) limit 1) ordinary_id;
+  a.actor_id,
+  max(c.id) filter (where c.rn=1) as candidate_id,
+  max(c.id) filter (where c.rn=2) as third_id,
+  max(c.id) filter (where c.rn=3) as ordinary_id
+from actor a
+left join candidates c on true
+group by a.actor_id;
+
+-- The shared local fixture now seeds viewer/check-in/moderator/admin roles too.
+-- Isolate this matrix to exactly one pre-existing superadmin; all deletes roll back.
+delete from public.admin_users
+where user_id <> (select actor_id from phase4_ctx);
+
 grant select on phase4_ctx to anon,authenticated;
 
 do $$ begin
