@@ -4842,6 +4842,27 @@ export type Database = {
         Args: { value: string }
         Returns: string
       }
+      record_client_audit_event: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_type: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      record_site_page_view: {
+        Args: {
+          p_event_id: string
+          p_is_mobile?: boolean
+          p_path: string
+          p_query?: string
+          p_referrer?: string
+          p_session_id: string
+          p_visitor_id: string
+        }
+        Returns: string
+      }
       record_content_moderation: {
         Args: {
           p_action: string
