@@ -37,17 +37,44 @@ begin
   end if;
 
   -- Reabre apenas dentro desta transação para continuar validando o modelo histórico.
+  -- Outros testes da suíte podem exercitar o fechamento automático do comércio;
+  -- por isso a fixture restaura explicitamente o estado vendável sem criar dados.
   update public.events
-  set event_status = 'published', sales_status = 'open'
+  set event_status = 'published',
+      sales_status = 'open',
+      event_date = date '2026-09-26',
+      event_time = time '14:00:00',
+      event_timezone = 'America/Sao_Paulo'
   where id = v_event_id;
 
-  -- A migration de produÃ§Ã£o usa now() no inÃ­cio do lote. Normalize a janela
-  -- da fixture para que o replay continue vÃ¡lido depois do encerramento real.
   update public.ticket_lots
-  set starts_at = v_reference_at - interval '1 day',
-      ends_at = v_reference_at + interval '1 day'
-  where event_id = v_event_id
-    and status = 'open';
+  set status = case when code = 'single' then 'open' else 'closed' end,
+      starts_at = case when code = 'single' then v_reference_at - interval '1 day' else starts_at end,
+      ends_at = case when code = 'single' then v_reference_at + interval '1 day' else ends_at end
+  where event_id = v_event_id;
+
+  update public.ticket_types
+  set status = case when product_code = 'simple' then 'open' else 'closed' end
+  where event_id = v_event_id;
+
+  update public.ticket_lot_prices lp
+  set is_active = (
+    exists (
+      select 1
+      from public.ticket_lots l
+      join public.ticket_types tt on tt.id = lp.ticket_type_id
+      where l.id = lp.lot_id
+        and l.event_id = v_event_id
+        and l.code = 'single'
+        and tt.product_code = 'simple'
+    )
+  )
+  where exists (
+    select 1
+    from public.ticket_lots l
+    where l.id = lp.lot_id
+      and l.event_id = v_event_id
+  );
 
   select array_agg(c.product_code order by c.product_code),
          array_agg(c.product_name order by c.product_code)
