@@ -6,9 +6,25 @@ create temporary table phase3_fixture(person_id uuid) on commit drop;
 insert into phase3_fixture
 select roster.person_id
 from public.contact_research_roster roster
-where not exists (select 1 from public.alumni_contact_research r where r.person_id=roster.person_id)
 order by roster.person_id
 limit 2;
+
+do $$
+begin
+  if (select count(*) from phase3_fixture) <> 2 then
+    raise exception 'phase3_test_prerequisites_missing';
+  end if;
+end;
+$$;
+
+-- Keep the runtime fixture deterministic even when seeded data already contains
+-- contact research for every roster entry. These deletes are transactional.
+delete from public.alumni_contact_research
+where person_id in (select person_id from phase3_fixture);
+
+delete from public.rate_limit_buckets
+where action='contact_research_save';
+
 grant select on phase3_fixture to anon, authenticated;
 
 -- The clean local fixture does not ship a contact collector. Create one
