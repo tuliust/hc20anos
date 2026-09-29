@@ -295,6 +295,41 @@ input[type="number"]::-webkit-inner-spin-button {
   box-shadow: 0 1px 0 rgba(13, 26, 15, 0.04);
 }
 
+/* Home — feedback visual claro para elementos clicáveis da turma. */
+[data-home-section="about"] [data-home-about-stats] button[data-class-group],
+[data-home-section="about"] button[data-home-registered-person] {
+  cursor: pointer !important;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease !important;
+}
+
+[data-home-section="about"] [data-home-about-stats] button[data-class-group]:hover,
+[data-home-section="about"] button[data-home-registered-person]:hover {
+  border-color: rgba(138, 109, 19, 0.72) !important;
+  background: #f7f1dc !important;
+  box-shadow: 0 6px 16px rgba(13, 26, 15, 0.10) !important;
+  transform: translateY(-2px);
+}
+
+[data-home-section="about"] [data-home-about-stats] button[data-class-group]:focus-visible,
+[data-home-section="about"] button[data-home-registered-person]:focus-visible {
+  outline: 2px solid #8a6d13 !important;
+  outline-offset: 2px;
+}
+
+[data-home-section="about"] [data-home-about-stats] button[data-class-group][aria-pressed="true"] {
+  border-color: rgba(138, 109, 19, 0.72) !important;
+  background: #f3ead0 !important;
+}
+
+[data-home-section="about"] [data-home-about-stats] button[data-class-group][aria-pressed="true"]:hover {
+  background: #ebdfb9 !important;
+}
+
 /* Elementos sobrepostos ao mapa continuam escuros para garantir legibilidade. */
 [data-home-section="about"] [class~="bg-[#0d1a0f]/90"][class~="text-[#c9a84c]"],
 [data-home-section="about"] [class~="bg-[#0d1a0f]/90"] [class~="text-[#c9a84c]"] {
