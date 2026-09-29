@@ -1,6 +1,6 @@
 @media (max-width: 767px) {
   :root {
-    --hc-mobile-public-header-height: 6.25rem;
+    --hc-mobile-public-header-height: 3.5rem;
   }
 
   [data-public-header] {
@@ -14,8 +14,8 @@
   }
 
   [data-public-header-logo] img {
-    width: min(36vw, 7.5rem) !important;
-    height: 4rem !important;
+    width: min(31vw, 6.5rem) !important;
+    height: 3rem !important;
   }
 
   [data-mobile-public-menu="true"] {
@@ -99,6 +99,70 @@
 
   [data-mobile-history-person-dropdown="true"] > button {
     width: 100% !important;
+  }
+
+
+  /* Fotos da Nossa História: metadados ficam abaixo da imagem no mobile. */
+  [data-history-photo-card="true"] {
+    overflow: visible !important;
+    aspect-ratio: auto !important;
+  }
+
+  [data-history-photo-media="true"] {
+    width: 100% !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+
+  [data-history-photo-year-overlay="true"],
+  [data-history-photo-tags-overlay="true"] {
+    display: none !important;
+  }
+
+  [data-history-photo-mobile-meta="true"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.4rem !important;
+    padding-top: 0.5rem !important;
+    background: #080f08 !important;
+  }
+
+  [data-history-mobile-year="true"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    background: #c9a84c !important;
+    color: #0d1a0f !important;
+    padding: 0.3rem 0.55rem !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 0.64rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+
+  [data-history-mobile-names="true"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.3rem !important;
+    width: 100% !important;
+  }
+
+  [data-history-mobile-names="true"] > span {
+    display: block !important;
+    max-width: 100% !important;
+    background: #0a120a !important;
+    border: 1px solid rgba(201, 168, 76, 0.35) !important;
+    color: #f0d783 !important;
+    padding: 0.35rem 0.55rem !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 0.64rem !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 }
 
