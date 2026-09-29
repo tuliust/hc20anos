@@ -179,6 +179,26 @@ export async function installPhotoInteractionsFixtures(page: Page): Promise<Phot
       return;
     }
 
+    if (resource === "public_people_directory" && method === "GET") {
+      await fulfillJson(route, peopleRows.map(person => ({
+        id: person.id,
+        full_name: person.full_name,
+        class_year: person.class_year,
+        class_group: person.class_group,
+        nickname_at_school: person.nickname_at_school,
+        profile_status: person.profile_status,
+        is_visible: person.is_visible,
+        avatar_url: person.avatar_url,
+        display_name: person.display_name,
+        gender: person.gender,
+        is_claimed: Boolean(person.claimed_by_user_id),
+        created_at: person.created_at,
+        updated_at: person.updated_at,
+        person_type: "alumni",
+      })));
+      return;
+    }
+
     if (resource === "people" && method === "GET") {
       await fulfillJson(route, peopleRows);
       return;

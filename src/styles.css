@@ -450,6 +450,13 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #0d1a0f !important;
 }
 
+/* Home / Fotos — no desktop, os dois CTAs abaixo da galeria precisam de leitura mais confortável. */
+@media (min-width: 1024px) {
+  [data-home-photo-actions="true"] > [data-home-action-button="true"] {
+    font-size: 0.75rem !important;
+  }
+}
+
 /* Home — feedback visual claro para elementos clicáveis da turma. */
 [data-home-section="about"] [data-home-about-stats] button[data-class-group],
 [data-home-section="about"] button[data-home-registered-person] {

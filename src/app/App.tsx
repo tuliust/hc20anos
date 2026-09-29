@@ -1178,7 +1178,7 @@ function Field({ label, type = "text", placeholder, value, onChange, icon, hint 
       <div className="relative">
         {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]">{icon}</div>}
         <input type={type} placeholder={placeholder} value={value} onChange={e => onChange?.(e.target.value)}
-          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-12" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`} />
+          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-14" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`} />
       </div>
       {hint && <p className="text-[#7a9a7a] text-xs mt-1.5">{hint}</p>}
     </div>
@@ -2433,7 +2433,6 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
                   key={link.page}
                   href="/reivindicar-perfil"
                   data-footer-claim-profile="true"
-                  onClick={event => { event.preventDefault(); navigate("claim-profile"); }}
                   className="text-left text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors"
                 >
                   {link.label}
@@ -2569,13 +2568,21 @@ function LoginPage({ navigate, onLogin }: {
                 <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
                 <input
                   type={showPw ? "text" : "password"}
+                  data-native-password-visibility="true"
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && submit()}
                   className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
                 />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]">
+                <button
+                  type="button"
+                  data-native-password-toggle="true"
+                  aria-label={showPw ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={showPw}
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]"
+                >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -3177,7 +3184,7 @@ function HomeMapChart({ configs, locations }: { configs: HomeMapStatConfig[]; lo
           </div>
 
           {selectedPeople.length > 0 ? (
-            <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
+            <div data-home-map-people-list="true" className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1 lg:min-h-0 lg:max-h-none lg:flex-1">
               {selectedPeople.map(person => (
                 <button
                   key={person.person_id}
@@ -3766,7 +3773,7 @@ function WhoGoingPreview({ navigate, people, content, attendanceIntentPersonIds,
   return <HomeAlumniOverviewPanel navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={onSelectClassGroup} />;
 }
 
-function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) => void; photos: DbPhoto[]; content: HomePageContent }) {
+function PhotoWallPreview({ navigate, photos, content, onOpenPhoto }: { navigate: (p: Page) => void; photos: DbPhoto[]; content: HomePageContent; onOpenPhoto: (photo: DbPhoto) => void }) {
   const extendedContent = getExtendedHomeContent(content);
   const previewPhotos = photos.slice(0, parsePositiveInteger(extendedContent.photos_preview_limit, 6));
   return (
@@ -3798,14 +3805,20 @@ function PhotoWallPreview({ navigate, photos, content }: { navigate: (p: Page) =
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
               {previewPhotos.map(p => (
-                <div key={p.id} onClick={() => navigate("photo-detail")} className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3]">
+                <a
+                  key={p.id}
+                  href={photoPath(p.id)}
+                  data-home-photo-id={p.id}
+                  onClick={event => { event.preventDefault(); onOpenPhoto(p); }}
+                  className="relative group cursor-pointer overflow-hidden bg-[#1a2e1a] aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
+                >
                   <img src={p.thumbnail_url ?? p.image_url} alt={p.caption ?? "Foto da turma"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a120a] via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                     <p className="text-[#f0ebe0] font-bold text-sm">{p.caption ?? "Memória da turma"}</p>
                     <p className="text-[#c9a84c] font-mono text-xs">{p.year_approx ?? "HC"}</p>
                   </div>
                   {p.year_approx && <div className="absolute top-3 left-3 bg-[#c9a84c] text-[#0d1a0f] font-mono font-bold text-[9px] uppercase tracking-wider px-2 py-1">{p.year_approx}</div>}
-                </div>
+                </a>
               ))}
             </div>
             <div data-home-photo-actions="true" className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -3853,6 +3866,7 @@ function LandingPage({
   event,
   ticketTypes,
   onSelectTicket,
+  onOpenPhoto,
   memories,
   attendanceIntentPersonIds,
   auth,
@@ -3864,6 +3878,7 @@ function LandingPage({
   event: DbEvent | null;
   ticketTypes: DbTicketType[];
   onSelectTicket: (id: string) => void;
+  onOpenPhoto: (photo: DbPhoto) => void;
   memories: DbMemory[];
   attendanceIntentPersonIds: Set<string>;
   auth: AuthState;
@@ -3876,7 +3891,7 @@ function LandingPage({
     info: <EventInfoSection content={content} event={event} navigate={navigate} />,
     tickets: <TicketsPreview navigate={navigate} content={content} ticketTypes={ticketTypes} onSelectTicket={onSelectTicket} />,
     confirmed: <WhoGoingPreview navigate={navigate} people={people} content={content} attendanceIntentPersonIds={attendanceIntentPersonIds} activeClassGroup={activeClassGroup} onSelectClassGroup={setActiveClassGroup} />,
-    photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} />,
+    photos: <PhotoWallPreview navigate={navigate} photos={photos} content={content} onOpenPhoto={onOpenPhoto} />,
     // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
     // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
     timeline: null,
@@ -5149,12 +5164,12 @@ function HistoryPhotoLightbox({
   );
 }
 
-function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
+function PhotoWallPage({ navigate, auth, photos, people, onOpenPhoto }: {
   navigate: (p: Page) => void;
   auth: AuthState;
   photos: DbPhoto[];
   people: DbPerson[];
-  onSelectPhoto: (id: string) => void;
+  onOpenPhoto: (photo: DbPhoto) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedPersonFilters, setSelectedPersonFilters] = useState<string[]>([]);
@@ -5223,9 +5238,8 @@ function PhotoWallPage({ navigate, auth, photos, people, onSelectPhoto }: {
   }
 
   function openPhotoDetails(photo: DbPhoto) {
-    onSelectPhoto(photo.id);
     setLightboxPhoto(null);
-    navigate("photo-detail");
+    onOpenPhoto(photo);
   }
 
   async function toggleLike(photoId: string) {
@@ -5467,6 +5481,19 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
   const tagResults = people.filter(a =>
     a.full_name.toLowerCase().includes(tagSearch.toLowerCase()) && tagSearch.length > 1
   ).slice(0, 4);
+  const approvedTaggedPeople = useMemo(() => {
+    if (!photo) return [];
+    const peopleById = new Map(people.map(person => [person.id, person]));
+    const seen = new Set<string>();
+    return getApprovedPublicPhotoTags(photo).flatMap(tag => {
+      const person = tag.person_id ? peopleById.get(tag.person_id) : null;
+      const label = person?.full_name || tag.tagged_name_snapshot || "";
+      const key = tag.person_id || label;
+      if (!label || !key || seen.has(key)) return [];
+      seen.add(key);
+      return [{ personId: tag.person_id ?? null, label }];
+    });
+  }, [photo, people]);
 
   async function loadInteractions() {
     if (!photo) return;
@@ -5603,6 +5630,25 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
               </div>
               <FieldArea label="Novo comentário" value={commentText} onChange={setCommentText} rows={2} />
               <Btn full size="sm" onClick={submitComment} disabled={busy === "comment"}><Send size={14} />Enviar</Btn>
+            </div>
+
+            <div data-photo-approved-tags="true" className="border-t border-[#2d6a4f]/20 pt-4">
+              <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-wider mb-3">Pessoas nesta foto</p>
+              {approvedTaggedPeople.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {approvedTaggedPeople.map(tag => (
+                    <span
+                      key={tag.personId ?? tag.label}
+                      data-photo-tag-person-id={tag.personId ?? undefined}
+                      className="border border-[#2d6a4f]/40 bg-[#141f14] px-3 py-2 text-xs text-[#f0ebe0]"
+                    >
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#7a9a7a] text-sm">Nenhuma pessoa marcada nesta foto.</p>
+              )}
             </div>
 
             <div className="border-t border-[#2d6a4f]/20 pt-4">
@@ -7028,7 +7074,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
               {allPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {allPhotos.map(photo => (
-                    <button key={photo.id} type="button" onClick={() => { onSelectPhoto(photo); navigate("photo-detail"); }} aria-label={`Abrir foto ${photo.caption ?? "da turma"}`} className="overflow-hidden bg-[#1a2e1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
+                    <button key={photo.id} type="button" onClick={() => onSelectPhoto(photo)} aria-label={`Abrir foto ${photo.caption ?? "da turma"}`} className="overflow-hidden bg-[#1a2e1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]">
                       <img src={photo.thumbnail_url ?? photo.image_url} alt={photo.caption ?? "Foto"} className="aspect-square w-full object-cover transition-transform hover:scale-105" />
                     </button>
                   ))}
@@ -9992,8 +10038,24 @@ const PAGE_PATHS: Record<Page, string> = {
   privacy: "/privacidade",
 };
 
+function photoIdFromPathname(pathname: string): string | null {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  const match = normalized.match(/^\/foto\/([^/]+)$/);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
+function photoPath(photoId: string) {
+  return `/foto/${encodeURIComponent(photoId)}`;
+}
+
 function pageFromPathname(pathname: string): Page {
   const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (photoIdFromPathname(normalized)) return "photo-detail";
   const legacyRoutes: Record<string, Page> = {
     "/fotos": "photo-wall",
     "/memorias": "memories",
@@ -10058,6 +10120,7 @@ export default function App() {
   const [approvedMemories, setApprovedMemories] = useState<DbMemory[]>([]);
   const [attendanceIntentPersonIds, setAttendanceIntentPersonIds] = useState<Set<string>>(() => new Set());
   const [selectedPhoto, setSelectedPhoto] = useState<DbPhoto | null>(null);
+  const [routePhotoId, setRoutePhotoId] = useState<string | null>(() => photoIdFromPathname(window.location.pathname));
   const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
   const [homeContentLoaded, setHomeContentLoaded] = useState(false);
   const [homeContentError, setHomeContentError] = useState<string | null>(null);
@@ -10175,6 +10238,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (page !== "photo-detail" || !routePhotoId || approvedPhotos.length === 0) return;
+    setSelectedPhoto(approvedPhotos.find(photo => photo.id === routePhotoId) ?? null);
+  }, [page, routePhotoId, approvedPhotos]);
+
+  useEffect(() => {
     const rememberBrowserUrl = () => {
       currentBrowserUrlRef.current = `${window.location.pathname}${window.location.search}`;
     };
@@ -10182,6 +10250,7 @@ export default function App() {
       if (allowNextPopstateRef.current) {
         allowNextPopstateRef.current = false;
         rememberBrowserUrl();
+        setRoutePhotoId(photoIdFromPathname(window.location.pathname));
         setPage(pageFromPathname(window.location.pathname));
         return;
       }
@@ -10198,6 +10267,7 @@ export default function App() {
       }
 
       rememberBrowserUrl();
+      setRoutePhotoId(photoIdFromPathname(window.location.pathname));
       setPage(pageFromPathname(window.location.pathname));
     };
     window.addEventListener("popstate", onPopState);
@@ -10237,8 +10307,21 @@ export default function App() {
     if (PROTECTED_ADMIN.includes(p)  && !auth.isAdmin)  { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
     if (PROTECTED_ALUMNI.includes(p) && !auth.loggedIn) { setReturnPage(p); setPage("login"); updateBrowserPath("login"); window.scrollTo(0, 0); return; }
     if (p === "home") refreshPublicEventData();
+    if (p !== "photo-detail") setRoutePhotoId(null);
     setPage(p);
     updateBrowserPath(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openPhoto(photo: DbPhoto) {
+    const nextPath = photoPath(photo.id);
+    setSelectedPhoto(photo);
+    setRoutePhotoId(photo.id);
+    setPage("photo-detail");
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+      window.dispatchEvent(new Event("pushstate"));
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -10319,7 +10402,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
-        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
+        {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} onOpenPhoto={openPhoto} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
         {page === "checkout"      && <SecureCheckoutPage navigate={navigate} auth={auth} ticketTypes={ticketTypes} selectedTicketTypeId={selectedTicketTypeId} checkoutReturn={checkoutReturn} />}
@@ -10328,15 +10411,15 @@ export default function App() {
         {page === "the-class"     && <TheClassPage      navigate={navigate} people={people}                       />}
         {page === "ex-alumni"     && <ExAlumniPage      navigate={navigate} people={people}                       />}
         {page === "claim-profile" && <ClaimProfilePage  navigate={navigate} people={people} auth={auth}           />}
-        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onSelectPhoto={id => setSelectedPhoto(approvedPhotos.find(photo => photo.id === id) ?? null)} />}
-        {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={selectedPhoto ?? approvedPhotos[0] ?? null} />}
+        {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onOpenPhoto={openPhoto} />}
+        {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={selectedPhoto} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
         {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth} people={people}              />}
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
         {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
-        {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth} onSelectPhoto={setSelectedPhoto} />}
+        {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth} onSelectPhoto={openPhoto} />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} registerNavigationGuard={registerAdminNavigationGuard} />}
         {page === "checkin"       && <CheckinPage        navigate={navigate} auth={auth}                           />}

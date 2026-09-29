@@ -1,5 +1,6 @@
 const ENHANCED = "data-hc-password-visibility";
 const BUTTON_ATTRIBUTE = "data-hc-password-toggle";
+const NATIVE_BUTTON_ATTRIBUTE = "data-native-password-toggle";
 const STYLE_ID = "hc-password-visibility-style";
 
 let frameId: number | null = null;
@@ -53,10 +54,17 @@ function positionToggle(input: HTMLInputElement, button: HTMLButtonElement) {
 }
 
 function enhanceInput(input: HTMLInputElement) {
-  if (input.getAttribute(ENHANCED) === "true") return;
   const parent = input.parentElement;
   if (!(parent instanceof HTMLElement)) return;
 
+  const nativeButton = parent.querySelector<HTMLButtonElement>(`[${NATIVE_BUTTON_ATTRIBUTE}="true"]`);
+  if (nativeButton) {
+    input.removeAttribute(ENHANCED);
+    parent.querySelector<HTMLButtonElement>(`[${BUTTON_ATTRIBUTE}]`)?.remove();
+    return;
+  }
+
+  if (input.getAttribute(ENHANCED) === "true") return;
   input.setAttribute(ENHANCED, "true");
 
   const button = document.createElement("button");
