@@ -23,6 +23,18 @@ body {
   overflow-x: clip;
 }
 
+/* O shell começa exatamente no topo da viewport.
+   O espaçamento sob o header fixo continua pertencendo a cada página (pt-24/hero),
+   portanto esta correção remove a faixa vazia sem esconder conteúdo atrás do header. */
+html,
+body,
+#root,
+#root > div,
+#root > div > main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 main,
 main > div {
   min-width: 0;
@@ -219,6 +231,94 @@ header button.inline-flex.whitespace-nowrap {
 [data-modal-root] {
   padding-top: max(0.75rem, env(safe-area-inset-top));
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Modal "Alterar foto" do menu da conta: preview organizado e ações equivalentes. */
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child {
+  display: grid !important;
+  grid-template-columns: 5.75rem minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+}
+
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:first-child {
+  width: 5.75rem !important;
+  height: 5.75rem !important;
+  min-width: 5.75rem !important;
+  min-height: 5.75rem !important;
+  align-self: center !important;
+}
+
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > label,
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > button {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 4rem !important;
+  margin: 0 !important;
+  padding: 0.6rem 0.75rem !important;
+  border: 0 !important;
+  background: #2d6a4f !important;
+  color: #f0ebe0 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  line-height: 1.05 !important;
+  letter-spacing: 0.12em !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  transition: background-color 160ms ease, transform 160ms ease !important;
+}
+
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > label:hover,
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > button:hover {
+  background: #40916c !important;
+  transform: translateY(-1px);
+}
+
+[data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > p {
+  grid-column: 1 / -1 !important;
+  margin: 0.15rem 0 0 !important;
+  line-height: 1.5 !important;
+}
+
+@media (max-width: 479px) {
+  [data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child {
+    grid-template-columns: 4.5rem minmax(0, 1fr) !important;
+    gap: 0.85rem !important;
+  }
+
+  [data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:first-child {
+    width: 4.5rem !important;
+    height: 4.5rem !important;
+    min-width: 4.5rem !important;
+    min-height: 4.5rem !important;
+  }
+
+  [data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) {
+    gap: 0.45rem !important;
+  }
+
+  [data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > label,
+  [data-header-avatar-modal-body="true"] [data-avatar-crop-upload="true"] > div:first-child > div:nth-child(2) > button {
+    min-height: 3.75rem !important;
+    padding: 0.5rem 0.35rem !important;
+    font-size: 0.58rem !important;
+    letter-spacing: 0.08em !important;
+  }
 }
 
 /* Modal: uma única rolagem vertical.
