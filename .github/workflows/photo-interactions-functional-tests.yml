@@ -123,10 +123,10 @@ jobs:
           - galeria pública carrega foto aprovada e selecionada pela organização;
           - detalhe exibe comentário aprovado e contadores agregados;
           - curtida autenticada envia somente foto e usuário;
-          - novo comentário é enviado como \`pending\`;
-          - nova marcação é enviada como \`pending\`;
+          - novo comentário é publicado diretamente como \`approved\`;
+          - nova marcação continua sendo enviada como \`pending\`;
           - solicitação de remoção registra motivo e identidade autenticada;
-          - nenhuma dessas escritas publica conteúdo diretamente.
+          - comentários aparecem imediatamente; marcações e remoções preservam seus fluxos próprios.
 
           ## Interpretação
 
