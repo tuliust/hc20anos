@@ -7,130 +7,63 @@ with checks as (
     has_function_privilege('anon','public.save_contact_research(uuid,text,text,text,text,text,boolean)','EXECUTE')
   union all
   select 'event_page_public_read_preserved',
-    exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='event_page_content'
-        and policyname='event_page_content_select_public'
-        and cmd='SELECT'
-        and qual='true'
-    )
+    exists (select 1 from pg_policies where schemaname='public' and tablename='event_page_content'
+      and policyname='event_page_content_select_public' and cmd='SELECT' and qual='true')
   union all
   select 'public_page_public_read_preserved',
-    exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='public_page_content'
-        and policyname='public_page_content_select_public'
-        and cmd='SELECT'
-        and qual='true'
-    )
+    exists (select 1 from pg_policies where schemaname='public' and tablename='public_page_content'
+      and policyname='public_page_content_select_public' and cmd='SELECT' and qual='true')
   union all
   select 'event_page_legacy_all_removed',
-    not exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='event_page_content'
-        and policyname='event_page_content_manage_admins'
-    )
+    not exists (select 1 from pg_policies where schemaname='public' and tablename='event_page_content'
+      and policyname='event_page_content_manage_admins')
   union all
   select 'public_page_legacy_all_removed',
-    not exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='public_page_content'
-        and policyname='public_page_content_manage_admins'
-    )
+    not exists (select 1 from pg_policies where schemaname='public' and tablename='public_page_content'
+      and policyname='public_page_content_manage_admins')
   union all
   select 'moderation_write_all_removed',
-    not exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='content_moderation_settings'
-        and policyname='content_moderation_settings_admin_write'
-    )
+    not exists (select 1 from pg_policies where schemaname='public' and tablename='content_moderation_settings'
+      and policyname='content_moderation_settings_admin_write')
   union all
   select 'moderation_write_split_complete',
-    (
-      select count(*) = 3
-      from pg_policies
-      where schemaname='public'
-        and tablename='content_moderation_settings'
-        and policyname in (
-          'content_moderation_settings_admin_insert',
-          'content_moderation_settings_admin_update',
-          'content_moderation_settings_admin_delete'
-        )
-    )
+    (select count(*)=3 from pg_policies where schemaname='public'
+      and tablename='content_moderation_settings'
+      and policyname in ('content_moderation_settings_admin_insert','content_moderation_settings_admin_update','content_moderation_settings_admin_delete'))
   union all
   select 'event_page_write_split_complete',
-    (
-      select count(*) = 3
-      from pg_policies
-      where schemaname='public'
-        and tablename='event_page_content'
-        and policyname in (
-          'event_page_content_admin_insert',
-          'event_page_content_admin_update',
-          'event_page_content_admin_delete'
-        )
-    )
+    (select count(*)=3 from pg_policies where schemaname='public' and tablename='event_page_content'
+      and policyname in ('event_page_content_admin_insert','event_page_content_admin_update','event_page_content_admin_delete'))
   union all
   select 'public_page_write_split_complete',
-    (
-      select count(*) = 3
-      from pg_policies
-      where schemaname='public'
-        and tablename='public_page_content'
-        and policyname in (
-          'public_page_content_admin_insert',
-          'public_page_content_admin_update',
-          'public_page_content_admin_delete'
-        )
-    )
+    (select count(*)=3 from pg_policies where schemaname='public' and tablename='public_page_content'
+      and policyname in ('public_page_content_admin_insert','public_page_content_admin_update','public_page_content_admin_delete'))
   union all
-  select 'photo_removal_owner_authenticated_only',
-    exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='photo_removal_requests'
-        and policyname='removal_requests_owner_read'
-        and roles=array['authenticated'::name]
-    )
+  select 'photo_removal_owner_path_preserved',
+    exists (select 1 from pg_policies where schemaname='public' and tablename='photo_removal_requests'
+      and policyname='p3_auth_select' and roles=array['authenticated'::name]
+      and qual ilike '%requester_user_id%auth.uid%')
   union all
   select 'faq_manage_policy_replayable',
-    exists (
-      select 1 from pg_policies
-      where schemaname='public'
-        and tablename='faq_items'
-        and policyname='faq_items_manage_admins'
-        and roles=array['authenticated'::name]
-    )
+    (select count(*)=4 from pg_policies where schemaname='public' and tablename='faq_items'
+      and policyname in ('p3_auth_select','p3_auth_insert','p3_auth_update','p3_auth_delete')
+      and roles=array['authenticated'::name])
   union all
-  select 'faq_category_fk_index',
-    to_regclass('public.faq_items_category_id_idx') is not null
+  select 'faq_category_fk_index', to_regclass('public.faq_items_category_id_idx') is not null
   union all
-  select 'photo_tag_creator_fk_index',
-    to_regclass('public.photo_tags_created_by_user_id_idx') is not null
+  select 'photo_tag_creator_fk_index', to_regclass('public.photo_tags_created_by_user_id_idx') is not null
   union all
-  select 'photo_removal_requester_fk_index',
-    to_regclass('public.photo_removal_requests_requester_user_id_idx') is not null
+  select 'photo_removal_requester_fk_index', to_regclass('public.photo_removal_requests_requester_user_id_idx') is not null
   union all
-  select 'guest_request_sponsor_fk_index',
-    to_regclass('public.guest_approval_requests_sponsor_user_id_idx') is not null
+  select 'guest_request_sponsor_fk_index', to_regclass('public.guest_approval_requests_sponsor_user_id_idx') is not null
   union all
-  select 'refund_ticket_fk_index',
-    to_regclass('public.refund_requests_ticket_id_idx') is not null
+  select 'refund_ticket_fk_index', to_regclass('public.refund_requests_ticket_id_idx') is not null
   union all
-  select 'transfer_to_user_fk_index',
-    to_regclass('public.ticket_transfers_to_user_id_idx') is not null
+  select 'transfer_to_user_fk_index', to_regclass('public.ticket_transfers_to_user_id_idx') is not null
   union all
-  select 'voucher_delivery_fk_index',
-    to_regclass('public.tickets_physical_vouchers_delivered_by_idx') is not null
+  select 'voucher_delivery_fk_index', to_regclass('public.tickets_physical_vouchers_delivered_by_idx') is not null
   union all
-  select 'moderation_actor_fk_index',
-    to_regclass('public.content_moderation_events_actor_user_id_idx') is not null
+  select 'moderation_actor_fk_index', to_regclass('public.content_moderation_events_actor_user_id_idx') is not null
 )
 select check_name, case when passed then 'PASS' else 'FAIL' end result
-from checks
-order by check_name;
+from checks order by check_name;
