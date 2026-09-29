@@ -161,7 +161,7 @@ begin
     exception when insufficient_privilege then null; end;
   end if;
 end;
-$;
+$$;
 rollback to savepoint phase4d_anon;
 
 -- Ordinary user, viewer, and moderator: no admin/editorial write policies.
@@ -185,7 +185,7 @@ begin
   end if;
   perform pg_temp.assert_no_editorial_mutation('ordinary');
 end;
-$;
+$$;
 rollback to savepoint phase4d_ordinary;
 
 savepoint phase4d_viewer;
@@ -265,7 +265,7 @@ begin
   get diagnostics affected=row_count;
   if affected<>1 then raise exception 'FAIL admin_archive_delete'; end if;
 end;
-$;
+$$;
 rollback to savepoint phase4d_admin;
 
 savepoint phase4d_superadmin;
@@ -295,6 +295,6 @@ begin
   get diagnostics affected=row_count;
   if affected<>1 then raise exception 'FAIL superadmin_archive_delete'; end if;
 end;
-$;
+$$;
 rollback to savepoint phase4d_superadmin;
 rollback;
