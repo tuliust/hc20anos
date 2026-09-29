@@ -281,7 +281,7 @@ set local role authenticated;
 insert into phase5b_results
 select 'unrelated_user_sees_no_transfers',count(*)=0
 from public.get_my_ticket_transfers();
-do $
+do $$
 begin
   begin
     perform public.request_ticket_resend((select request_ticket_id from phase5b_actor_fixture));
