@@ -123,8 +123,8 @@ with checks(version, component, object_name, present, details) as (
     ),
     'Ícone controlado por categoria'
   union all
-  select '20260716000102', 'faq_mapping_fix', 'public.faq_items_backup_20260716',
-    to_regclass('public.faq_items_backup_20260716') is not null,
+  select '20260716000102', 'faq_mapping_fix', 'archive.faq_items_backup_20260716',
+    to_regclass('archive.faq_items_backup_20260716') is not null,
     'Backup usado pela correção de mapeamento'
   union all
   select '20260716000103', 'faq_admin_rpc', 'public.move_faq_category_items(uuid,uuid,uuid)',
