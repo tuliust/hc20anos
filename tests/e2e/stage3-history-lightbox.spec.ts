@@ -22,7 +22,7 @@ const photoFixture = {
   photo_tags: [
     {
       person_id: peopleFixture[0].id,
-      tagged_name_snapshot: "Marca aprovada",
+      tagged_name_snapshot: "Silvia Helena Gomes de Souza",
       status: "approved",
     },
     {
@@ -83,6 +83,29 @@ test("pessoa marcada abre o perfil correto por person_id", async ({ page }) => {
   const profile = page.getByRole("dialog", { name: "Perfil da turma" });
   await expect(profile).toBeVisible();
   await expect(profile).toContainText(peopleFixture[0].full_name);
+});
+
+test("mobile exibe ano e nomes abaixo da foto usando apenas os dois primeiros nomes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHistory(page);
+
+  const card = page.locator(`[data-history-photo-id="${photoId}"]`).first().locator("xpath=ancestor::*[@data-history-photo-card='true'][1]");
+  await expect(card).toBeVisible();
+
+  const media = card.locator('[data-history-photo-media="true"]');
+  const meta = card.locator('[data-history-photo-mobile-meta="true"]');
+  await expect(meta).toBeVisible();
+  await expect(card.locator('[data-history-photo-year-overlay="true"]')).toBeHidden();
+  await expect(card.locator('[data-history-photo-tags-overlay="true"]')).toBeHidden();
+  await expect(meta.locator('[data-history-mobile-year="true"]')).toHaveText("2006");
+  await expect(meta.locator('[data-history-mobile-names="true"]')).toContainText("Silvia Helena");
+  await expect(meta.locator('[data-history-mobile-names="true"]')).not.toContainText("Gomes de Souza");
+
+  const mediaBox = await media.boundingBox();
+  const metaBox = await meta.boundingBox();
+  expect(mediaBox).not.toBeNull();
+  expect(metaBox).not.toBeNull();
+  expect(metaBox!.y).toBeGreaterThanOrEqual(mediaBox!.y + mediaBox!.height - 1);
 });
 
 test("lightbox fecha por Esc e cabe em viewport móvel", async ({ page }) => {
