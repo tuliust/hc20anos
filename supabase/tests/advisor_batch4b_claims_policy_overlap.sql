@@ -1,11 +1,6 @@
--- Run after the local test context and the 4B migration.
--- Checks that only duplicated admin SELECT paths were removed and that each
--- remaining owner/requester/moderator/admin command path retains its predicate.
+-- Final P3 claim-policy contract after permissive-policy consolidation.
 do $$
-declare
-  policy_count integer;
 begin
-  -- No permissive policy grants anon access to these identity/claim tables.
   if exists (
     select 1 from pg_policy p
     where p.polrelid in (
@@ -13,63 +8,68 @@ begin
       'public.profile_claim_answers'::regclass,
       'public.profile_claim_disputes'::regclass,
       'public.profile_school_questionnaire_answers'::regclass
-    ) and (0 = any(p.polroles) or 'anon'::regrole::oid = any(p.polroles))
+    ) and (0=any(p.polroles) or 'anon'::regrole::oid=any(p.polroles))
   ) then
     raise exception 'FAIL anon_claim_policy_present';
   end if;
 
-  -- Each claim parent retains authenticated requester INSERT and owner SELECT,
-  -- plus the moderator/admin UPDATE path and admin ALL path.
-  if not exists (select 1 from pg_policy where polrelid='public.profile_claims'::regclass and polname='claims_auth_insert' and polcmd='a'
-      and pg_get_expr(polwithcheck, polrelid) ilike '%requester_user_id%auth.uid%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claims'::regclass and polname='claims_owner_read' and polcmd='r'
-      and pg_get_expr(polqual, polrelid) ilike '%requester_user_id%auth.uid%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claims'::regclass and polname='claims_moderator_write' and polcmd='w'
-      and pg_get_expr(polqual, polrelid) ilike '%moderator%' and pg_get_expr(polwithcheck, polrelid) ilike '%moderator%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claims'::regclass and polname='admin_panel_write' and polcmd='*'
-      and pg_get_expr(polqual, polrelid) ilike '%is_admin_panel_user%' and pg_get_expr(polwithcheck, polrelid) ilike '%is_admin_panel_user%') then
-    raise exception 'FAIL profile_claims_policy_matrix_changed';
-  end if;
-  if exists (select 1 from pg_policy where polrelid='public.profile_claims'::regclass and polname in ('admin_panel_select','claims_admin_read')) then
-    raise exception 'FAIL duplicate_profile_claims_admin_read_remains';
-  end if;
-
-  -- Claim answers retain admin ALL, requester INSERT and requester SELECT.
-  if not exists (select 1 from pg_policy where polrelid='public.profile_claim_answers'::regclass and polname='admin_panel_write' and polcmd='*'
-      and pg_get_expr(polqual, polrelid) ilike '%is_admin_panel_user%' and pg_get_expr(polwithcheck, polrelid) ilike '%is_admin_panel_user%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claim_answers'::regclass and polname='claim_answers_auth_insert' and polcmd='a'
-      and pg_get_expr(polwithcheck, polrelid) ilike '%profile_claims%requester_user_id%auth.uid%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claim_answers'::regclass and polname='claim_answers_owner_read' and polcmd='r'
-      and pg_get_expr(polqual, polrelid) ilike '%profile_claims%requester_user_id%auth.uid%') then
-    raise exception 'FAIL profile_claim_answers_policy_matrix_changed';
-  end if;
-  if exists (select 1 from pg_policy where polrelid='public.profile_claim_answers'::regclass and polname in ('admin_panel_select','claim_answers_admin_all')) then
-    raise exception 'FAIL duplicate_profile_claim_answers_admin_policy_remains';
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claims'
+      and policyname='p3_auth_insert' and with_check ilike '%requester_user_id%auth.uid%'
+      and with_check ilike '%is_admin_panel_user%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claims'
+      and policyname='p3_auth_select' and qual ilike '%requester_user_id%auth.uid%'
+      and qual ilike '%is_admin_panel_user%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claims'
+      and policyname='p3_auth_update' and qual ilike '%moderator%'
+      and with_check ilike '%moderator%' and qual ilike '%is_admin_panel_user%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claims'
+      and policyname='p3_auth_delete' and qual ilike '%is_admin_panel_user%'
+  ) then
+    raise exception 'FAIL profile_claims_consolidated_matrix_changed';
   end if;
 
-  -- Disputes keep authenticated requester INSERT, owner SELECT, moderator/admin
-  -- UPDATE and admin ALL. The two admin-only read policies are redundant.
-  if not exists (select 1 from pg_policy where polrelid='public.profile_claim_disputes'::regclass and polname='disputes_auth_insert' and polcmd='a'
-      and pg_get_expr(polwithcheck, polrelid) ilike '%requester_user_id%auth.uid%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claim_disputes'::regclass and polname='disputes_owner_read' and polcmd='r'
-      and pg_get_expr(polqual, polrelid) ilike '%requester_user_id%auth.uid%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claim_disputes'::regclass and polname='disputes_moderator_write' and polcmd='w'
-      and pg_get_expr(polqual, polrelid) ilike '%moderator%' and pg_get_expr(polwithcheck, polrelid) ilike '%moderator%')
-     or not exists (select 1 from pg_policy where polrelid='public.profile_claim_disputes'::regclass and polname='admin_panel_write' and polcmd='*'
-      and pg_get_expr(polqual, polrelid) ilike '%is_admin_panel_user%' and pg_get_expr(polwithcheck, polrelid) ilike '%is_admin_panel_user%') then
-    raise exception 'FAIL profile_claim_disputes_policy_matrix_changed';
-  end if;
-  if exists (select 1 from pg_policy where polrelid='public.profile_claim_disputes'::regclass and polname in ('admin_panel_select','disputes_admin_read')) then
-    raise exception 'FAIL duplicate_profile_claim_disputes_admin_read_remains';
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claim_answers'
+      and policyname='p3_auth_insert' and with_check ilike '%profile_claims%requester_user_id%auth.uid%'
+      and with_check ilike '%is_admin_panel_user%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claim_answers'
+      and policyname='p3_auth_select' and qual ilike '%profile_claims%requester_user_id%auth.uid%'
+      and qual ilike '%is_admin_panel_user%'
+  ) then
+    raise exception 'FAIL profile_claim_answers_consolidated_matrix_changed';
   end if;
 
-  -- Questionnaire owner paths and the independent admin manage path are kept.
-  select count(*) into policy_count from pg_policy
-  where polrelid='public.profile_school_questionnaire_answers'::regclass
-    and polname in ('profile_school_questionnaire_answers_admin_manage',
-                    'profile_school_questionnaire_answers_insert_own',
-                    'profile_school_questionnaire_answers_select_own',
-                    'profile_school_questionnaire_answers_update_own');
-  if policy_count <> 4 then raise exception 'FAIL questionnaire_policy_paths_changed'; end if;
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claim_disputes'
+      and policyname='p3_auth_insert' and with_check ilike '%requester_user_id%auth.uid%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claim_disputes'
+      and policyname='p3_auth_select' and qual ilike '%requester_user_id%auth.uid%'
+  ) or not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='profile_claim_disputes'
+      and policyname='p3_auth_update' and qual ilike '%moderator%'
+      and with_check ilike '%moderator%'
+  ) then
+    raise exception 'FAIL profile_claim_disputes_consolidated_matrix_changed';
+  end if;
+
+  if (select count(*) from pg_policies
+      where schemaname='public' and tablename='profile_school_questionnaire_answers'
+        and policyname in ('p3_auth_select','p3_auth_insert','p3_auth_update','p3_auth_delete')
+        and roles=array['authenticated'::name]) <> 4
+     or not exists (
+       select 1 from pg_policies where schemaname='public'
+         and tablename='profile_school_questionnaire_answers'
+         and policyname='p3_auth_select'
+         and qual ilike '%admin_users%' and qual ilike '%profiles%auth.uid%'
+     )
+  then
+    raise exception 'FAIL questionnaire_consolidated_matrix_changed';
+  end if;
 end;
 $$;
