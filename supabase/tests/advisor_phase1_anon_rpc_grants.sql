@@ -3,7 +3,37 @@
 -- The legacy current-ticket catalog is server-only; canonical public contracts remain available.
 
 with checks as (
-  select 'anon_cannot_register_profile_v3'::text as check_name,
+  select 'anon_security_definer_surface_is_exact'::text as check_name,
+    (
+      select array_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' order by p.proname, pg_get_function_identity_arguments(p.oid))
+      from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public'
+        and p.prosecdef
+        and has_function_privilege('anon',p.oid,'EXECUTE')
+    ) = array[
+      'get_checkout_status_by_token(p_public_token uuid)',
+      'get_contact_research_directory()',
+      'get_public_memories(p_event_id uuid, p_featured_only boolean)',
+      'get_public_ticket_catalog(p_event_id uuid, p_at timestamp with time zone)',
+      'has_structured_faq_items(p_event_id uuid)',
+      'save_contact_research(p_person_id uuid, p_phone text, p_instagram text, p_email text, p_notes text, p_source text, p_mark_no_contact boolean)'
+    ]::text[]
+  union all
+  select 'anon_security_definer_surface_has_no_public_acl',
+    not exists (
+      select 1
+      from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+      cross join lateral aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) acl
+      where n.nspname='public'
+        and p.prosecdef
+        and has_function_privilege('anon',p.oid,'EXECUTE')
+        and acl.grantee=0
+        and acl.privilege_type='EXECUTE'
+    )
+  union all
+  select 'anon_cannot_register_profile_v3',
     not has_function_privilege(
       'anon',
       'public.complete_profile_registration_v3(uuid,text,text,date,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,boolean,integer,boolean,boolean,boolean,boolean,boolean,boolean,boolean)',
