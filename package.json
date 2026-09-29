@@ -49,7 +49,8 @@
     "audit:reproducibility": "node scripts/check-reproducibility.mjs",
     "test:build-transforms": "node --test tests/unit/build-transform-utils.test.mjs",
     "ci:verify": "npm run audit:reproducibility && npm run audit:migrations && npm run audit:docs && npm run docs:check-contracts && npm run docs:check-routes && npm run docs:check-type-compatibility && npm run docs:check-type-consumers && npm run docs:check-rpc-usage && npm run audit:technical-debt && npm run test:build-transforms && npm run build",
-    "audit:technical-debt": "node scripts/audit-technical-debt.mjs"
+    "audit:technical-debt": "node scripts/audit-technical-debt.mjs",
+    "audit:security": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
