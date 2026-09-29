@@ -100,7 +100,7 @@ async function loadProfileBio(fullName: string) {
     if (!personId) return null;
 
     const { data: profiles, error: profilesError } = await (supabase as any)
-      .from("profiles")
+      .from("public_profile_bios")
       .select("bio,updated_at")
       .eq("person_id", personId)
       .order("updated_at", { ascending: false })
