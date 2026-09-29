@@ -118,6 +118,18 @@ export async function installEditorialModerationFixtures(page: Page): Promise<Ed
       return;
     }
 
+    if (restPath === "rpc/record_client_audit_event" && method === "POST") {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      auditCalls.push({
+        action: body.p_action,
+        entity_type: body.p_entity_type,
+        entity_id: body.p_entity_id ?? null,
+        metadata: body.p_metadata ?? {},
+      });
+      await fulfillJson(route, null);
+      return;
+    }
+
     if (resource === "audit_logs" && method === "POST") {
       auditCalls.push((request.postDataJSON() ?? {}) as Record<string, unknown>);
       await fulfillJson(route, [], 201);
