@@ -3895,7 +3895,7 @@ function LandingPage({
     // The canonical timeline and memory carousel live inside AboutSection, immediately below the hero.
     // Keep the legacy standalone timeline slot disabled even if an older CMS payload marks it visible.
     timeline: null,
-    faq: null,
+    faq: <FAQSection content={content} />,
   };
 
   return (
