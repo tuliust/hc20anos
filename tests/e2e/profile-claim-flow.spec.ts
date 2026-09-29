@@ -73,7 +73,7 @@ test.describe("reivindicação de perfil", () => {
     await installAuthenticatedProfileClaimFixtures(page);
 
     let aiRequest: Record<string, any> | null = null;
-    const generatedBio = "Maria era conhecida pela comunicação fácil e pela presença marcante na turma. Hoje está namorando, tem dois filhos e volta ao reencontro pronta para rever pessoas e criar novas memórias.";
+    const generatedBio = "Eu era conhecida pela comunicação fácil e pela presença marcante na turma. Hoje estou namorando, tenho dois filhos e gosto de lembrar das histórias que marcaram os tempos de HC.";
 
     await page.route("**/api/generate-profile-bio", async route => {
       aiRequest = (route.request().postDataJSON() ?? {}) as Record<string, any>;
@@ -96,7 +96,7 @@ test.describe("reivindicação de perfil", () => {
 
     await expect(page.getByText("Apelido, nickname ou ex-perfil do Fotolog", { exact: true })).toBeVisible();
     await expect(page.getByText("Meu perfil", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Responda 5 perguntas/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Responda 4 perguntas/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Eu vou!", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Não sei ainda...", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Solteiro (a)", exact: true })).toBeVisible();
@@ -108,11 +108,11 @@ test.describe("reivindicação de perfil", () => {
     await page.getByRole("button", { name: "Tenho filhos", exact: true }).click();
     await inputBelowText(page, "Quantidade de filhos").fill("2");
 
-    await page.getByRole("button", { name: /Responda 5 perguntas/ }).click();
+    await page.getByRole("button", { name: /Responda 4 perguntas/ }).click();
     await expect(page.getByText("Gerando perfil com IA", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Adorava me comunicar", exact: true }).click();
 
-    for (let step = 0; step < 4; step += 1) {
+    for (let step = 0; step < 3; step += 1) {
       await page.getByRole("button", { name: "Continuar", exact: true }).last().click();
     }
 
@@ -134,6 +134,8 @@ test.describe("reivindicação de perfil", () => {
     });
 
     const serializedRequest = JSON.stringify(aiRequest);
+    expect(serializedRequest).not.toContain("reunion_expectation");
+    expect(serializedRequest).not.toContain("O que você quer viver no reencontro?");
     expect(serializedRequest).not.toContain("1988-04-03");
     expect(serializedRequest).not.toContain("claimant@example.com");
     expect(serializedRequest).not.toContain("84999999999");
