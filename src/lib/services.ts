@@ -5,6 +5,7 @@
 // ================================================================
 
 import { DEV_MODE, supabase } from "./supabase";
+import type { Json } from "./database.generated";
 import { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";
 import type {
   AlumniDirectoryStatusRow,
@@ -1299,14 +1300,27 @@ export async function writeAudit(
   metadata: Record<string, unknown> = {}
 ) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      user_id:       user?.id ?? null,
-      action,
-      entity_type:   entityType,
-      entity_id:     entityId ?? undefined,
-      metadata_json: metadata,
+    if (action === "site_page_view" && entityType === "site") {
+      const { error } = await supabase.rpc("record_site_page_view", {
+        p_event_id: typeof metadata.event_id === "string" ? metadata.event_id : DEFAULT_HOME_EVENT_ID,
+        p_visitor_id: String(metadata.visitor_id ?? ""),
+        p_session_id: String(metadata.session_id ?? ""),
+        p_path: String(metadata.path ?? "/"),
+        p_query: typeof metadata.query === "string" ? metadata.query : undefined,
+        p_is_mobile: metadata.is_mobile === true,
+        p_referrer: typeof metadata.referrer === "string" ? metadata.referrer : undefined,
+      });
+      if (error) throw error;
+      return;
+    }
+
+    const { error } = await supabase.rpc("record_client_audit_event", {
+      p_action: action,
+      p_entity_type: entityType,
+      p_entity_id: entityId ?? undefined,
+      p_metadata: metadata as Json,
     });
+    if (error) throw error;
   } catch {
     // Falha silenciosa — audit log não deve quebrar o fluxo principal
   }
