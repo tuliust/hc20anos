@@ -7608,9 +7608,9 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
               <Field label="Instagram" value={form.instagram} onChange={v => setForm(f => ({ ...f, instagram: v }))} placeholder="https://instagram.com/" icon={<Instagram size={14} />} />
               <Field label="LinkedIn" value={form.linkedin} onChange={v => setForm(f => ({ ...f, linkedin: v }))} placeholder="https://linkedin.com/in/" icon={<Linkedin size={14} />} />
             </div>
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-left">
+            <div data-edit-profile-privacy-card="true" className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 text-left">
               <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-6 text-left">Privacidade</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+              <div data-edit-profile-privacy-grid="true" className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                 {([
                   ["showInList",     "Aparecer no diretório de ex-alunos"],
                   ["showCurrentPhoto", "Exibir foto atual"],
@@ -7619,10 +7619,11 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
                   ["showSocial",     "Exibir redes sociais"],
                   ["allowTagging",   "Permitir marcações em fotos"],
                 ] as [keyof typeof privacy, string][]).map(([key, label]) => (
-                  <label key={key} className="flex items-center justify-start gap-3 cursor-pointer text-left">
+                  <label key={key} data-edit-profile-privacy-option="true" className="flex items-center justify-start gap-3 cursor-pointer text-left">
                     <button type="button" onClick={() => setPrivacy(p => ({ ...p, [key]: !p[key] }))}
                       aria-pressed={privacy[key]}
                       aria-label={label}
+                      data-edit-profile-privacy-switch="true"
                       className={`relative w-12 h-6 shrink-0 transition-colors ${privacy[key] ? "bg-[#2d6a4f]" : "bg-[#1a2e1a] border border-[#2d6a4f]/30"}`}>
                       <div className={`absolute top-1 w-4 h-4 bg-[#f0ebe0] transition-all ${privacy[key] ? "left-7" : "left-1"}`} />
                     </button>
