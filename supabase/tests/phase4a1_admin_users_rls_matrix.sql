@@ -69,7 +69,7 @@ select set_config('request.jwt.claim.sub','',true);
 select set_config('request.jwt.claim.role','anon',true);
 select set_config('request.jwt.claims','{"role":"anon"}',true);
 set local role anon;
-do $
+do $$
 declare
   n integer := 0;
   affected integer := 0;
@@ -106,7 +106,7 @@ begin
   exception when insufficient_privilege then
     null;
   end;
-end $;
+end $$;
 reset role;
 
 -- ordinary authenticated user has no admin_users row.
