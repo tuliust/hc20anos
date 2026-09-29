@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-09-29
-last_verified_commit: 686c31e98427d1bda518f49625798d2f9cc50ae4
+last_verified_commit: e771767db3741949056cb2b4e8189040aeeb2aad
 generation_command: npm run docs:generate-rpc-usage
 source_files:
   - src/
@@ -21,8 +21,8 @@ source_files:
 
 | Indicador | Resultado |
 |---|---:|
-| RPCs distintas | 66 |
-| Ocorrências literais | 78 |
+| RPCs distintas | 68 |
+| Ocorrências literais | 80 |
 | Chamadas dinâmicas | 0 |
 
 As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `src/lib/rpc.generated.ts` faz o TypeScript validar cada nome contra a baseline reproduzida do Supabase.
@@ -41,7 +41,9 @@ As assinaturas são derivadas de `Database["public"]["Functions"]`. O arquivo `s
 | `admin_get_ticket_lots` | `src/app/AdminTicketLotsMount.tsx:216` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_get_ticket_lots` | `src/app/AdminTicketProductCopyMount.tsx:67` | `AdminGetTicketLotsArgs` | `AdminGetTicketLotsReturns` |
 | `admin_import_people` | `src/lib/services.ts:556` | `AdminImportPeopleArgs` | `AdminImportPeopleReturns` |
+| `admin_moderate_profile_claim` | `src/lib/services.ts:1267` | `AdminModerateProfileClaimArgs` | `AdminModerateProfileClaimReturns` |
 | `admin_prepare_event_cancellation_refund` | `src/app/AdminCommerceOrdersMount.tsx:313` | `AdminPrepareEventCancellationRefundArgs` | `AdminPrepareEventCancellationRefundReturns` |
+| `admin_review_profile_claim_dispute` | `src/lib/services.ts:2055` | `AdminReviewProfileClaimDisputeArgs` | `AdminReviewProfileClaimDisputeReturns` |
 | `admin_update_person_and_profile` | `src/lib/services.ts:612` | `AdminUpdatePersonAndProfileArgs` | `AdminUpdatePersonAndProfileReturns` |
 | `admin_upsert_ticket_lot` | `src/app/AdminTicketLotsMount.tsx:289` | `AdminUpsertTicketLotArgs` | `AdminUpsertTicketLotReturns` |
 | `apply_mercado_pago_payment` | `supabase/functions/payment-webhook/index.ts:253` | `ApplyMercadoPagoPaymentArgs` | `ApplyMercadoPagoPaymentReturns` |
