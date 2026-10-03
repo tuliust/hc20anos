@@ -1,11 +1,12 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-29
-last_verified_commit: 757503d9a2ebf2bc9fbc331d5af0707361c61e85
+last_verified: 2026-10-03
+last_verified_commit: c6076a1364f42cfe81a7f372e62df5443b980444
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
+  - src/app/app.types.ts
   - src/main.tsx
   - build/buyerOrdersSharedRouteTransform.mjs
   - vite.config.ts
