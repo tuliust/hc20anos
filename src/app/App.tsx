@@ -49,17 +49,18 @@ import type { DbOrder, DbTicketType, PaymentStatus, TicketStatus, TicketWithDeta
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../lib/engagement.types";
 import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
-import { CmsAssetsPanel } from "./CmsAdminPanels";
-import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import type { AuthState, Page } from "./app.types";
 import { Btn, DisplayTitle, Field, FieldArea, GoldRule, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
-import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
+import type { FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
 
 const LoginPage = lazy(() => import("./pages/LoginPage").then(module => ({ default: module.LoginPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage").then(module => ({ default: module.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ default: module.PrivacyPage })));
+const SecureCheckoutPage = lazy(() => import("./SecureCheckoutPage").then(module => ({ default: module.SecureCheckoutPage })));
+const CmsAssetsPanel = lazy(() => import("./CmsAdminPanels").then(module => ({ default: module.CmsAssetsPanel })));
+const AdminFaqPanel = lazy(() => import("./admin/faq/AdminFaqPanel").then(module => ({ default: module.AdminFaqPanel })));
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
