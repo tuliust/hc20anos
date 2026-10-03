@@ -61,7 +61,13 @@ export type CheckoutRequestCapture = {
 
 export async function installCommerceFixtures(page: Page): Promise<CheckoutRequestCapture> {
   await installAuthenticatedProfileClaimFixtures(page);
-  await installHomeFixtures(page);
+  await installHomeFixtures(page, {
+    event: {
+      event_status: "cancelled",
+      sales_status: "closed",
+      refund_policy: "Evento cancelado por baixa adesão. Os pagamentos aprovados serão reembolsados integralmente pelo Mercado Pago para o meio de pagamento original.",
+    },
+  });
 
   await page.route("**/rest/v1/rpc/get_public_ticket_catalog", route => fulfillJson(route, commerceCatalogRows));
   await page.route("**/rest/v1/ticket_types*", route => fulfillJson(route, [{ id: SIMPLE_TICKET_TYPE_ID }]));

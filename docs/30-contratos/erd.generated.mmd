@@ -1,6 +1,6 @@
 %% status: generated
-%% last_verified: 2026-09-26
-%% last_verified_commit: 1bd37de0172b63e05005ae5f059c9384017f5b25
+%% last_verified: 2026-09-29
+%% last_verified_commit: cd27bb976a29fb4e95b0c5f7815e171250e54584
 %% generation_command: npm run docs:generate-db-contracts
 %% Não editar manualmente.
 erDiagram
@@ -186,25 +186,6 @@ erDiagram
     text icon_key
   }
   public_faq_items {
-    uuid id
-    uuid event_id
-    uuid category_id
-    text slug
-    text question
-    text answer
-    integer sort_order
-    boolean is_visible
-    boolean is_featured
-    timestamp_with_time_zone created_at
-    timestamp_with_time_zone updated_at
-    uuid created_by_admin_id
-    uuid updated_by_admin_id
-    timestamp_with_time_zone deleted_at
-    uuid deleted_by_admin_id
-    text category_key
-    text category_label
-  }
-  public_faq_items_backup_20260716 {
     uuid id
     uuid event_id
     uuid category_id

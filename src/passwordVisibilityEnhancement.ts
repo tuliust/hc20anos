@@ -60,7 +60,13 @@ function enhanceInput(input: HTMLInputElement) {
   const nativeButton = parent.querySelector<HTMLButtonElement>(`[${NATIVE_BUTTON_ATTRIBUTE}="true"]`);
   if (nativeButton) {
     input.removeAttribute(ENHANCED);
-    parent.querySelector<HTMLButtonElement>(`[${BUTTON_ATTRIBUTE}]`)?.remove();
+    parent.querySelectorAll<HTMLButtonElement>(`[${BUTTON_ATTRIBUTE}]`).forEach(button => button.remove());
+    return;
+  }
+
+  const existingButton = parent.querySelector<HTMLButtonElement>(`[${BUTTON_ATTRIBUTE}]`);
+  if (existingButton) {
+    input.setAttribute(ENHANCED, "true");
     return;
   }
 

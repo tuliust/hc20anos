@@ -2,20 +2,54 @@
 -- removes the sample contact, rate-limit bucket, and audit rows.
 begin;
 select set_config('request.headers', '{"x-forwarded-for":"203.0.113.89"}', true);
-create temporary table phase3_fixture(person_id uuid) on commit drop;
-insert into phase3_fixture
-select roster.person_id
-from public.contact_research_roster roster
-order by roster.person_id
-limit 2;
+-- Build the two roster entries inside the test transaction. A clean migration
+-- replay intentionally has no production alumni seed when the roster snapshot
+-- migration runs, so this test must not depend on pre-existing roster rows.
+create temporary table phase3_fixture(person_id uuid primary key) on commit drop;
 
-do $$
-begin
-  if (select count(*) from phase3_fixture) <> 2 then
-    raise exception 'phase3_test_prerequisites_missing';
-  end if;
-end;
-$$;
+insert into public.people (
+  id,
+  full_name,
+  class_year,
+  class_group,
+  is_visible,
+  person_type
+)
+values
+  (
+    '88888888-8888-4888-8888-888888888881'::uuid,
+    'Contato sintético da Fase 3 A',
+    2006,
+    'A',
+    false,
+    'alumni'
+  ),
+  (
+    '88888888-8888-4888-8888-888888888882'::uuid,
+    'Contato sintético da Fase 3 B',
+    2006,
+    'B',
+    false,
+    'alumni'
+  )
+on conflict (id) do update
+set full_name = excluded.full_name,
+    class_year = excluded.class_year,
+    class_group = excluded.class_group,
+    is_visible = excluded.is_visible,
+    person_type = excluded.person_type,
+    updated_at = now();
+
+insert into public.contact_research_roster (person_id)
+values
+  ('88888888-8888-4888-8888-888888888881'::uuid),
+  ('88888888-8888-4888-8888-888888888882'::uuid)
+on conflict (person_id) do nothing;
+
+insert into phase3_fixture(person_id)
+values
+  ('88888888-8888-4888-8888-888888888881'::uuid),
+  ('88888888-8888-4888-8888-888888888882'::uuid);
 
 -- Keep the runtime fixture deterministic even when seeded data already contains
 -- contact research for every roster entry. These deletes are transactional.

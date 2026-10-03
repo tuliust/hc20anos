@@ -14,6 +14,13 @@ test("login separa ícone do e-mail e mantém apenas um controle de visibilidade
   const email = page.getByPlaceholder("seu@email.com");
   await expect(email).toBeVisible();
   await expect(email).toHaveCSS("padding-left", "56px");
+  const emailIcon = email.locator("..").locator('[data-field-leading-icon="true"]');
+  await expect(emailIcon).toHaveCount(1);
+  const emailBox = await email.boundingBox();
+  const iconBox = await emailIcon.boundingBox();
+  expect(emailBox).not.toBeNull();
+  expect(iconBox).not.toBeNull();
+  expect(iconBox!.x + iconBox!.width).toBeLessThan(emailBox!.x + 56);
 
   const password = page.getByPlaceholder("••••••••");
   await expect(password).toBeVisible();
@@ -335,8 +342,12 @@ test("Home inicia com até 24 pessoas, prioriza perfis cadastrados e abre o moda
   await box.locator("[data-home-registered-person]").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("Perfil cadastrado 1");
-  await expect(page.getByRole("dialog").locator("h3")).toHaveClass(/text-\[\#c9a84c\]/);
-  await expect(page.getByRole("dialog").locator("[data-profile-info]").first().locator("p").last()).toHaveCSS("color", "rgb(212, 232, 214)");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator("h3")).toHaveClass(/text-\[\#c9a84c\]/);
+  await expect(dialog).toHaveCSS("background-color", "rgb(20, 31, 20)");
+  const profileInfo = dialog.locator("[data-profile-info]").first();
+  await expect(profileInfo).toHaveCSS("background-color", "rgb(10, 18, 10)");
+  await expect(profileInfo.locator("p").last()).toHaveCSS("color", "rgb(212, 232, 214)");
   expect(page.url()).toBe(currentUrl);
 });
 
