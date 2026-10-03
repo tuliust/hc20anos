@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, Fragment, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
@@ -53,12 +53,13 @@ import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import type { AuthState, Page } from "./app.types";
 import { Btn, DisplayTitle, Field, FieldArea, GoldRule, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
-import { LoginPage } from "./pages/LoginPage";
-import { TermsPage } from "./pages/TermsPage";
-import { PrivacyPage } from "./pages/PrivacyPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
+
+const LoginPage = lazy(() => import("./pages/LoginPage").then(module => ({ default: module.LoginPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage").then(module => ({ default: module.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ default: module.PrivacyPage })));
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -10027,6 +10028,11 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
+        <Suspense fallback={
+          <div className="min-h-[40vh] flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} onOpenPhoto={openPhoto} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
@@ -10051,6 +10057,7 @@ export default function App() {
         {page === "login"         && <LoginPage          navigate={navigate} onLogin={handleLogin}                 />}
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
         {page === "privacy"       && <PrivacyPage        navigate={navigate}                                        />}
+        </Suspense>
       </main>
       {!isFullscreen && <Footer navigate={navigate} content={homeContent ?? undefined} />}
     </div>
