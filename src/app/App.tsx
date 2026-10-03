@@ -52,8 +52,10 @@ import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem,
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
 import type { AuthState, Page } from "./app.types";
-import { Btn, DisplayTitle, Field } from "./components/AppPrimitives";
+import { Btn, DisplayTitle, Field, FieldArea, GoldRule, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
 import { LoginPage } from "./pages/LoginPage";
+import { TermsPage } from "./pages/TermsPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
@@ -1083,94 +1085,6 @@ function personToAlumni(p: DbPerson, displayName?: string | null, statusOverride
 }
 
 // ─── PRIMITIVES ────────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string }> = {
-    unclaimed:    { label: "Não cadastrado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    claimed:      { label: "Cadastrado",      color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
-    preconfirmed: { label: "Pré-confirmado",  color: "bg-[#1a2e1a] text-[#c9a84c] border border-[#c9a84c]/30"     },
-    confirmed:    { label: "Confirmado",      color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    pending:      { label: "Pendente",         color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    in_process:   { label: "Em processamento", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    approved:     { label: "Aprovado",         color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    rejected:     { label: "Rejeitado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    removed:      { label: "Removido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    hidden:       { label: "Oculto",           color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    paused:       { label: "Pausado",          color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    draft:        { label: "Rascunho",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    viewer:       { label: "Leitura",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    moderator:    { label: "Moderador",        color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    admin:        { label: "Admin",            color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    superadmin:   { label: "Superadmin",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    checkin_staff:{ label: "Check-in",         color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
-    declined:     { label: "Recusado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    valid:        { label: "Válido",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    used:         { label: "Já utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    invalid:      { label: "Inválido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    cancelled:    { label: "Cancelado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    refunded:     { label: "Reembolsado",      color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    expired:      { label: "Expirado",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    charged_back: { label: "Contestação",      color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    checked_in:   { label: "Check-in feito",   color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    unauthorized: { label: "Login necessário", color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    forbidden:    { label: "Sem permissão",    color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    success:      { label: "Sucesso",          color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    open:         { label: "Aberto",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    closed:       { label: "Fechado",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    archived:     { label: "Arquivado",        color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-  };
-  const s = map[status] || map.unclaimed;
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider ${s.color}`}>
-      {s.label}
-    </span>
-  );
-}
-
-function FieldArea({ label, placeholder, value, onChange, rows = 3 }: {
-  label: string; placeholder?: string; value?: string; onChange?: (v: string) => void; rows?: number;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">{label}</label>
-      <textarea rows={rows} placeholder={placeholder} value={value} onChange={e => onChange?.(e.target.value)}
-        className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f] resize-none" />
-    </div>
-  );
-}
-
-
-function OptionButton({ selected, onClick, children }: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left px-4 py-3 border text-sm transition-colors ${
-        selected
-          ? "bg-[#2d6a4f] border-[#2d6a4f] text-[#f0ebe0]"
-          : "border-[#2d6a4f]/30 text-[#8ab89a] hover:border-[#2d6a4f]/70"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[#c9a84c] tracking-[0.32em] text-xs md:text-sm font-mono font-bold uppercase mb-5">{children}</p>;
-}
-
-function GoldRule() {
-  return <div className="w-16 h-px bg-[#c9a84c] opacity-60 my-6" />;
-}
 
 // ─── UX PRIMITIVES ────────────────────────────────────────────────────────────
 
@@ -9711,83 +9625,6 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
             </button>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─── TERMS PAGE ───────────────────────────────────────────────────────────────
-
-function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
-  const sections = [
-    { title: "1. Aceitação dos Termos", body: "Ao utilizar o HC20Anos, espaço digital da Turma 2006 do Henrique Castriciano, você concorda com estes Termos de Uso e com as regras de convivência e privacidade da plataforma." },
-    { title: "2. Cancelamento do encontro e pagamentos", body: "O encontro de 20 anos previsto para 2026 foi cancelado. Novas vendas de ingressos estão encerradas. Os pagamentos aprovados realizados antes do cancelamento serão reembolsados integralmente pela organização por meio do Mercado Pago." },
-    { title: "3. Dados Pessoais", body: "A coleta e o uso de dados pessoais estão descritos na Política de Privacidade. Ao criar ou atualizar um perfil, você concorda com o tratamento dos dados para as finalidades descritas nessa política." },
-    { title: "4. Fotos e Imagens", body: "Ao enviar uma foto, você declara ter o direito de compartilhá-la e autoriza a exibição no site. Fotos ofensivas, inadequadas ou que violem direitos de terceiros poderão ser removidas. Qualquer pessoa pode solicitar a remoção da própria imagem." },
-    { title: "5. Perfis de Ex-Alunos", body: "A lista da Turma 2006 foi criada com base em registros históricos. Cada ex-aluno pode reivindicar ou atualizar seu perfil por meio do processo de verificação disponível no site. Informações falsas ou uso indevido podem resultar na suspensão do acesso." },
-    { title: "6. Participação e convivência", body: "O HC20Anos existe para registrar memórias, perfis, fotos, curiosidades e informações sobre a turma. Conteúdos ofensivos, discriminatórios, falsos ou que violem direitos de terceiros não são permitidos." },
-    { title: "7. Histórico de pedidos e reembolsos", body: "Pedidos e ingressos já emitidos permanecem acessíveis aos respectivos usuários como registro da compra e para acompanhamento do reembolso. Esses registros não representam ingresso válido para um evento futuro." },
-    { title: "8. Conteúdo publicado", body: "Fotos, memórias e enquetes são publicadas automaticamente. A administração pode ocultar ou remover conteúdo que viole estes termos ou a Política de Privacidade." },
-    { title: "9. Continuidade do site", body: "O cancelamento do encontro não encerra o HC20Anos. A plataforma pode continuar disponível como acervo e espaço de atualização da Turma 2006, com funcionalidades ajustadas ao longo do tempo." },
-    { title: "10. Contato", body: "Dúvidas sobre o site, pagamentos ou reembolsos podem ser encaminhadas para hc20anos@gmail.com." },
-  ];
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-3">Termos de Uso</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026</p>
-        <div className="flex flex-col gap-8">
-          {sections.map(section => (
-            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-12 flex flex-wrap gap-4">
-          <Btn variant="outline" onClick={() => navigate("privacy")}><FileText size={16} />Política de Privacidade</Btn>
-          <Btn variant="ghost" onClick={() => navigate("home")}>Voltar ao site</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PRIVACY PAGE ─────────────────────────────────────────────────────────────
-
-function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
-  const sections = [
-    { title: "1. Dados que coletamos", body: "Podemos tratar nome, e-mail, telefone/WhatsApp, cidade, profissão, fotos enviadas voluntariamente, data de nascimento declarada, respostas de verificação de identidade, informações de perfil e dados técnicos de navegação. Dados associados a pedidos antigos, inclusive identificadores necessários ao pagamento, permanecem vinculados ao histórico comercial e ao reembolso." },
-    { title: "2. Como usamos seus dados", body: "Os dados são usados para identificar ex-alunos, permitir criação e atualização de perfis, exibir informações autorizadas no diretório e nas curiosidades, administrar conteúdo publicado, operar a conta do usuário e, quando aplicável, manter o histórico de pagamentos e processar reembolsos." },
-    { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas informações necessárias para identificar integrantes da turma. O ex-aluno pode reivindicar, corrigir ou solicitar a remoção do próprio perfil." },
-    { title: "4. Dados de pagamento e reembolso", body: "Os pagamentos foram processados pelo Mercado Pago. O HC20Anos não armazena dados completos de cartão. Identificadores de pedidos e pagamentos podem ser mantidos para conciliação, auditoria e execução dos reembolsos decorrentes do cancelamento do encontro." },
-    { title: "5. Fotos e marcações", body: "Fotos enviadas são armazenadas com segurança e exibidas imediatamente. Qualquer pessoa pode solicitar a remoção da própria imagem ou de uma marcação." },
-    { title: "6. Controles de privacidade", body: "Você pode escolher exibir ou ocultar informações como cidade, profissão, redes sociais e presença no diretório público. Também pode controlar permissões relacionadas a marcações em fotos." },
-    { title: "7. Solicitações de remoção", body: "Você pode solicitar correção ou remoção de informações e imagens pelos recursos disponíveis na plataforma ou pelo contato informado abaixo. Solicitações serão analisadas conforme a natureza do dado e as obrigações legais aplicáveis." },
-    { title: "8. Seus direitos (LGPD)", body: "Nos termos da Lei 13.709/2018 (LGPD), você pode solicitar acesso, correção, informações sobre tratamento, revogação de consentimento e exclusão quando juridicamente aplicável. Registros que precisem ser mantidos por obrigação legal ou para defesa de direitos poderão ser preservados pelo prazo necessário." },
-    { title: "9. Contato", body: "Para exercer seus direitos ou tirar dúvidas sobre privacidade, escreva para hc20anos@gmail.com." },
-  ];
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-3">Política de Privacidade</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026 · Em conformidade com a LGPD</p>
-        <div className="flex flex-col gap-8">
-          {sections.map(section => (
-            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-12 flex flex-wrap gap-4">
-          <Btn variant="outline" onClick={() => navigate("terms")}><FileText size={16} />Termos de Uso</Btn>
-          <Btn variant="ghost" onClick={() => navigate("home")}>Voltar ao site</Btn>
-        </div>
       </div>
     </div>
   );
