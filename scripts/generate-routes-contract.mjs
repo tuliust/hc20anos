@@ -9,6 +9,7 @@ const CHECK_MODE = process.argv.includes("--check");
 const OUTPUT = "docs/30-contratos/rotas.generated.md";
 const SOURCE_PATHS = [
   "src/app/App.tsx",
+  "src/app/app.types.ts",
   "src/main.tsx",
   "build/buyerOrdersSharedRouteTransform.mjs",
   "vite.config.ts",
