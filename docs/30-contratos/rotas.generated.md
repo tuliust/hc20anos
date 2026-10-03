@@ -2,7 +2,7 @@
 status: generated
 owner: tuliust
 last_verified: 2026-10-03
-last_verified_commit: c6076a1364f42cfe81a7f372e62df5443b980444
+last_verified_commit: 5759fa643e44b676a3efd835fd110b874d5855d2
 generation_command: npm run docs:generate-routes
 source_files:
   - src/app/App.tsx
