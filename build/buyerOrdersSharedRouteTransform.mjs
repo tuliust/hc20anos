@@ -8,8 +8,8 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `import { SecureCheckoutPage } from "./SecureCheckoutPage";`,
-    `import { SecureCheckoutPage } from "./SecureCheckoutPage";\nimport { BuyerOrdersPage } from "./BuyerOrdersPage";`,
+    `import type { AuthState, Page } from "./app.types";`,
+    `import type { AuthState, Page } from "./app.types";\nimport { BuyerOrdersPage } from "./BuyerOrdersPage";`,
     "importação da página de pedidos",
   );
 
