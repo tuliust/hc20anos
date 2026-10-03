@@ -133,11 +133,13 @@ const admin = await signedClient(createdUsers[2]);
 const ordinaryId = ordinary.id;
 
 const PHASE2_PERSON_ID = "77777777-7777-4777-8777-777777777777";
-const registeredProfile = await service.from("profiles").insert({
-  person_id: PHASE2_PERSON_ID,
-  user_id: ordinaryId,
-  display_name: "Usuário Fase 2",
-}).select("id,user_id,person_id").single();
+const registeredProfile = await ordinary.client.rpc("complete_profile_registration_v3", {
+  p_person_id: PHASE2_PERSON_ID,
+  p_penultimate_surname: "Fase",
+  p_class_group_confirmation: "Teste",
+  p_declared_birth_date: "1988-01-01",
+  p_display_name: "Usuário Fase 2",
+});
 assert.ifError(registeredProfile.error);
 assert.equal(registeredProfile.data.user_id, ordinaryId);
 assert.equal(registeredProfile.data.person_id, PHASE2_PERSON_ID);
