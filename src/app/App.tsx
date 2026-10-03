@@ -50,6 +50,8 @@ import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../
 import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
 import type { AuthState, Page } from "./app.types";
+import { DEFAULT_EVENT_ID, FALLBACK_EVENT_DATE_TIME } from "./app.constants";
+import { eventDateTimeLabel, formatDateBR, formatDateShortBR, formatDateTimeBR, getEventDateTime, ticketPaymentStatus, ticketTypeName } from "./appFormatters";
 import { Btn, DisplayTitle, EmptyState, ErrorState, Field, FieldArea, GoldRule, InfoRow, LoadingState, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import type { FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
@@ -61,6 +63,10 @@ const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ d
 const SecureCheckoutPage = lazy(() => import("./SecureCheckoutPage").then(module => ({ default: module.SecureCheckoutPage })));
 const CmsAssetsPanel = lazy(() => import("./CmsAdminPanels").then(module => ({ default: module.CmsAssetsPanel })));
 const AdminFaqPanel = lazy(() => import("./admin/faq/AdminFaqPanel").then(module => ({ default: module.AdminFaqPanel })));
+const ShareInvitePage = lazy(() => import("./pages/ShareInvitePage").then(module => ({ default: module.ShareInvitePage })));
+const MyTicketPage = lazy(() => import("./pages/MyTicketPage").then(module => ({ default: module.MyTicketPage })));
+const ArchivePage = lazy(() => import("./pages/ArchivePage").then(module => ({ default: module.ArchivePage })));
+const MemoriesPage = lazy(() => import("./pages/MemoriesPage").then(module => ({ default: module.MemoriesPage })));
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -114,9 +120,6 @@ interface TagModItem {
 }
 
 // ─── DATA ──────────────────────────────────────────────────────────────────────
-
-const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";
-const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ALUMNI: Alumni[] = [
   { id: "1",  name: "Ana Paula Oliveira",  nickname: "Aninha",    sala: "A", city: "Natal, RN",          profession: "Médica",           status: "confirmed" },
@@ -716,14 +719,6 @@ const SCHOOL_PROFILE_QUESTIONS: SchoolProfileQuestion[] = [
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────────
 
-function getEventDateTime(event?: DbEvent | null): Date {
-  const datePart = event?.event_date || "2026-10-17";
-  const rawTime = event?.event_time || "19:00:00";
-  const timePart = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
-  const candidate = new Date(`${datePart}T${timePart}-03:00`);
-  return Number.isNaN(candidate.getTime()) ? new Date(FALLBACK_EVENT_DATE_TIME) : candidate;
-}
-
 function getTimeLeft(targetDate: Date) {
   const diff = targetDate.getTime() - Date.now();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -792,21 +787,6 @@ function getTicketDescriptionItems(description?: string | null) {
 
 function initials(name: string) {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
-}
-
-function formatDateBR(value?: string | null) {
-  if (!value) return "Data a confirmar";
-  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-
-function formatDateShortBR(value?: string | null) {
-  if (!value) return "";
-  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
 function relationshipStatusLabel(value?: RelationshipStatus | null, gender?: Gender | null) {
@@ -1026,28 +1006,6 @@ async function parseParticipantImportFile(file: File) {
   if (name.endsWith(".csv")) return parseParticipantsCsv(await file.text());
   if (name.endsWith(".xlsx")) return parseParticipantsXlsx(file);
   throw new Error("Envie um arquivo .xlsx ou .csv.");
-}
-
-function formatDateTimeBR(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-function eventDateTimeLabel(event?: DbEvent | null) {
-  if (!event) return "17 out 2026 · 19h";
-  const date = formatDateBR(event.event_date);
-  const time = event.event_time?.slice(0, 5)?.replace(":", "h") ?? "19h";
-  return `${date} · ${time}`;
-}
-
-function ticketTypeName(ticket?: TicketWithDetails | null) {
-  return ticket?.ticket_types?.name ?? "Ingresso do reencontro";
-}
-
-function ticketPaymentStatus(ticket?: TicketWithDetails | null) {
-  return ticket?.orders?.payment_status ?? "pending";
 }
 
 function formatWhatsappInput(value: string) {
@@ -5990,375 +5948,6 @@ function WhereNowPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 
 // ─── SHARE INVITE ─────────────────────────────────────────────────────────────
 
-function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [useName, setUseName] = useState(true);
-  const [event, setEvent] = useState<DbEvent | null>(null);
-  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    async function loadInviteData() {
-      setLoading(true);
-      try {
-        const [eventData, ticketData] = await Promise.all([
-          getEventSettings().catch(() => null),
-          auth.loggedIn ? getMyTickets(auth.userId, auth.email).catch(() => []) : Promise.resolve([]),
-        ]);
-        if (!active) return;
-        setEvent(eventData);
-        setTickets(ticketData);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadInviteData();
-    return () => { active = false; };
-  }, [auth.loggedIn, auth.userId, auth.email]);
-
-  const hasApprovedTicket = tickets.some(t => ticketPaymentStatus(t) === "approved");
-  const dateLabel = eventDateTimeLabel(event);
-  const locationLabel = event?.location_name ?? "Natal, Rio Grande do Norte";
-  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. ${dateLabel}, em ${locationLabel}. Vamos juntos?`;
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
-
-  async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(inviteText);
-      setMessage("Texto copiado.");
-    } catch {
-      setMessage("Copie manualmente o texto do convite.");
-    }
-  }
-
-  async function nativeShare() {
-    const nav = navigator as Navigator & { share?: (data: { title?: string; text?: string }) => Promise<void> };
-    if (nav.share) {
-      await nav.share({ title: "Reencontro Turma 2006", text: inviteText });
-    } else {
-      window.open(whatsappUrl, "_blank");
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
-          <div>
-            <SectionLabel>Convite compartilhável</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-6xl mb-4">Chame a turma para o reencontro</DisplayTitle>
-            <p className="text-[#7a9a7a] leading-relaxed mb-6">Use este cartão para divulgar o reencontro. A versão sem nome preserva sua privacidade.</p>
-            {loading && <LoadingState message="Carregando dados do convite..." />}
-            {!loading && auth.loggedIn && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <StatusBadge status={hasApprovedTicket ? "approved" : "pending"} />
-                <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">{hasApprovedTicket ? "Ingresso aprovado" : "Ingresso não localizado/aprovado"}</span>
-              </div>
-            )}
-            <label className="flex items-center gap-3 bg-[#141f14] border border-[#2d6a4f]/30 p-4 mb-4 cursor-pointer">
-              <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" disabled={!auth.loggedIn} />
-              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite {auth.loggedIn ? "" : "(faça login para ativar)"}</span>
-            </label>
-            {message && <p className="text-[#74c69d] text-sm font-mono mb-4">{message}</p>}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-              <Btn onClick={nativeShare}><Send size={16} />Compartilhar</Btn>
-              <Btn variant="outline" onClick={() => window.open(whatsappUrl, "_blank")}><Phone size={16} />WhatsApp</Btn>
-              <Btn variant="ghost" onClick={copyInvite}><FileText size={16} />Copiar texto</Btn>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {auth.loggedIn && <Btn variant="ghost" onClick={() => navigate("my-ticket")}><Ticket size={16} />Meu ingresso</Btn>}
-              <Btn variant="ghost" onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-            </div>
-            <p className="text-[#7a9a7a] text-xs font-mono mt-6">Compartilhamento disponivel por texto, Web Share API e WhatsApp.</p>
-          </div>
-
-          <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
-            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-8">Colégio Henrique Castriciano</p>
-            <h3 className="font-['Playfair_Display'] text-4xl font-black leading-none mb-6">Eu vou ao reencontro da Turma 2006</h3>
-            {useName && auth.loggedIn && <p className="text-[#2d6a4f] font-bold text-lg mb-6">{auth.name}</p>}
-            <div className="h-px bg-[#c9a84c] my-6" />
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">{dateLabel.split(" · ")[0]}</p></div>
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">{dateLabel.split(" · ")[1] ?? "19h"}</p></div>
-              <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">{locationLabel}</p></div>
-            </div>
-            <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histórias, fotos antigas e vínculos que atravessaram o tempo.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// ─── MY TICKET PAGE ───────────────────────────────────────────────────────────
-
-function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  async function loadTicket() {
-    setLoading(true);
-    setError("");
-    try {
-      const ticketData = await getMyTickets(auth.userId, auth.email);
-      setTickets(ticketData);
-      if (!selectedId && ticketData[0]) setSelectedId(ticketData[0].id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar seus ingressos.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { loadTicket(); }, [auth.userId, auth.email]);
-
-  const ticket = tickets.find(item => item.id === selectedId) ?? tickets[0] ?? null;
-  const paymentStatus = ticketPaymentStatus(ticket);
-  const refundTitle = paymentStatus === "refunded"
-    ? "Reembolso concluído"
-    : paymentStatus === "approved"
-      ? "Reembolso integral em processamento"
-      : "Pagamento sem cobrança adicional";
-  const refundBody = paymentStatus === "refunded"
-    ? "O Mercado Pago confirmou o reembolso deste pagamento. O prazo para o valor aparecer na conta ou na fatura depende da instituição financeira e do meio de pagamento."
-    : paymentStatus === "approved"
-      ? "O evento foi cancelado e a organização está processando a devolução integral do valor pago pelo Mercado Pago. Você não precisa solicitar o reembolso."
-      : "O evento foi cancelado e não haverá novas cobranças. Se você acredita que houve um pagamento não identificado, entre em contato com a organização.";
-
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} />Minha área</button>
-
-        <SectionLabel>Pagamento e reembolso</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-6xl mb-4">Meus ingressos</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-8">O encontro de 2026 foi cancelado. Esta área permanece disponível para você consultar o ingresso, o pagamento original e o andamento do reembolso.</p>
-
-        <div className="mb-8 border border-[#c9a84c]/35 bg-[#141f14] p-5 md:p-6">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#c9a84c]">Evento cancelado</p>
-          <p className="mt-2 text-sm leading-6 text-[#d8ddd8]">Todos os pagamentos aprovados serão devolvidos integralmente pela organização.</p>
-          <button type="button" onClick={() => window.location.assign("/meus-pedidos")} className="mt-4 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">Ver meus pedidos e pagamentos →</button>
-        </div>
-
-        {loading && <LoadingState message="Carregando ingressos..." />}
-        {error && <ErrorState message={error} onRetry={loadTicket} />}
-
-        {!loading && !error && tickets.length === 0 && (
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos pagamentos ou ingressos vinculados ao seu e-mail de login." />
-            <div className="mt-6 flex justify-center"><Btn variant="outline" onClick={() => window.location.assign("/meus-pedidos")}><FileText size={16} />Consultar meus pedidos</Btn></div>
-          </div>
-        )}
-
-        {!loading && !error && ticket && (
-          <div className="flex flex-col gap-6">
-            {tickets.length > 1 && (
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-3">Selecionar ingresso</p>
-                <div className="flex flex-wrap gap-2">
-                  {tickets.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`px-4 py-2 text-xs font-mono border ${item.id === ticket.id ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{item.attendee_name}</button>)}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6">
-              <div className="bg-[#141f14] border border-[#c9a84c]/35 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Situação</p>
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{refundTitle}</h2>
-                <p className="mt-4 text-[#8ab89a] text-sm leading-6">{refundBody}</p>
-                <div className="mt-5 flex flex-wrap gap-2"><StatusBadge status={paymentStatus} /><StatusBadge status="cancelled" /></div>
-              </div>
-
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Dados do ingresso e do pagamento</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <InfoRow label="Participante" value={ticket.attendee_name} />
-                  <InfoRow label="Tipo" value={ticketTypeName(ticket)} />
-                  <InfoRow label="Pagamento" value={paymentStatus === "refunded" ? "Reembolsado" : paymentStatus === "approved" ? "Aprovado — aguardando devolução" : paymentStatus} />
-                  <InfoRow label="Método" value={ticket.orders?.payment_method ?? "Não informado"} />
-                  <InfoRow label="Data do pagamento" value={formatDateTimeBR(ticket.orders?.paid_at) || "Sem confirmação"} />
-                  <InfoRow label="Pedido" value={ticket.order_id} />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Sobre o QR Code</p>
-              <p className="text-[#8ab89a] text-sm leading-6">O ingresso permanece registrado como comprovante histórico da compra, mas não haverá check-in nem uso do QR Code porque o evento foi cancelado.</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
-
-function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
-  const [event, setEvent] = useState<DbEvent | null>(null);
-  const [settings, setSettings] = useState<DbEventArchiveSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    async function loadArchive() {
-      setLoading(true);
-      setError("");
-      try {
-        const [eventData, settingsData] = await Promise.all([
-          getEventSettings().catch(() => null),
-          getEventArchiveSettings(DEFAULT_EVENT_ID).catch(() => null),
-        ]);
-        if (!active) return;
-        setEvent(eventData);
-        setSettings(settingsData);
-      } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : "Erro ao carregar acervo.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadArchive();
-    return () => { active = false; };
-  }, []);
-
-  const dateSource = event ? getEventDateTime(event) : new Date(FALLBACK_EVENT_DATE_TIME);
-  const archiveOpen = settings?.archive_enabled ?? Date.now() >= dateSource.getTime();
-
-  return (
-    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionLabel>{settings?.page_eyebrow || "Pós-festa"}</SectionLabel>
-          <DisplayTitle className="text-4xl md:text-7xl mb-4">{settings?.page_title || "Memórias do reencontro"}</DisplayTitle>
-          {loading && <LoadingState message="Carregando acervo..." />}
-          {error && <ErrorState message={error} />}
-
-          {!loading && !archiveOpen && (
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
-              <div className="max-w-3xl">
-                <StatusBadge status="closed" />
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">{settings?.closed_title || "O acervo será aberto depois do reencontro."}</h2>
-                <p className="text-[#8ab89a] leading-relaxed mb-8">{settings?.closed_text || "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização."}</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  {[
-                    ["Fotos oficiais", "Seleção da organização"],
-                    ["Memórias", "Relatos aprovados da turma"],
-                    ["Melhores momentos", "Vídeo e destaques pós-evento"],
-                  ].map(([title, body]) => <div key={title} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-5"><p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-2">{title}</p><p className="text-[#7a9a7a] text-sm">{body}</p></div>)}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-                  <Btn variant="outline" onClick={() => navigate("photo-wall")}><Camera size={16} />Ver fotos antigas</Btn>
-                  <Btn variant="ghost" onClick={() => navigate("memories")}><MessageCircle size={16} />Ver memórias</Btn>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!loading && archiveOpen && (
-            <div className="flex flex-col gap-10">
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">{settings?.message_label || "Mensagem da organização"}</p>
-                <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">
-                  {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-  );
-}
-
-// ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
-
-function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [memories, setMemories] = useState<DbMemory[]>([]);
-  const [memoryText, setMemoryText] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const maxChars = 420;
-
-  async function loadMemories() {
-    setLoading(true);
-    setError("");
-    try {
-      setMemories(await getApprovedMemories(DEFAULT_EVENT_ID));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar memórias.");
-    } finally { setLoading(false); }
-  }
-
-  useEffect(() => { loadMemories(); }, []);
-
-  async function submitMemory() {
-    if (!auth.loggedIn) { navigate("login"); return; }
-    if (memoryText.trim().length < 10) { setError("Escreva uma memória com pelo menos 10 caracteres."); return; }
-    setBusy(true); setError(""); setMessage("");
-    try {
-      await createMemory({
-        eventId: DEFAULT_EVENT_ID,
-        userId: auth.userId,
-        authorName: auth.name,
-        memoryText: memoryText.trim().slice(0, maxChars),
-        isAnonymous: false,
-      });
-      setMemoryText("");
-      setMessage("Memória adicionada à caixa de memórias.");
-      await loadMemories();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao enviar memória.";
-      setError(message.includes("profile_registration_required") ? "Conclua seu cadastro antes de enviar uma memória." : message);
-    } finally { setBusy(false); }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar à Nossa História</button>
-        <SectionLabel>Caixa de Memórias</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-6xl mb-4">O que ficou daquele tempo?</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembrança curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereça ficar no acervo do reencontro.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] gap-8">
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5 h-fit">
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
-            <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
-            <div className="text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span></div>
-            {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
-            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Adicionar memória</Btn>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {loading && <LoadingState message="Carregando memórias..." />}
-            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória ainda" subtitle="Compartilhe uma lembrança para ela aparecer aqui." />}
-            {memories.map(memory => (
-              <div key={memory.id} className={`bg-[#141f14] border p-6 ${memory.is_featured ? "border-[#c9a84c]/60" : "border-[#2d6a4f]/25"}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
-                  {memory.is_featured && <Star size={14} className="text-[#c9a84c]" />}
-                </div>
-                <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {formatDateShortBR(memory.created_at)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── ALUMNI AREA ──────────────────────────────────────────────────────────────
 
 function AlumniAreaPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
@@ -10008,7 +9597,7 @@ export default function App() {
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
-        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
+        {page === "archive"       && <ArchivePage        navigate={navigate} />}
         {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth} onSelectPhoto={openPhoto} />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} registerNavigationGuard={registerAdminNavigationGuard} />}
