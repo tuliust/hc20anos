@@ -15,13 +15,6 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `  | "my-ticket" | "archive";`,
-    `  | "my-ticket" | "buyer-orders" | "archive";`,
-    "tipo da rota de pedidos",
-  );
-
-  code = replaceRequired(
-    code,
     `const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket", "checkout"];`,
     `const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket", "buyer-orders", "checkout"];`,
     "proteção autenticada da rota",
@@ -51,6 +44,15 @@ function transformApp(source) {
   return code;
 }
 
+function transformAppTypes(source) {
+  return replaceRequired(
+    source,
+    `  | "my-ticket" | "archive";`,
+    `  | "my-ticket" | "buyer-orders" | "archive";`,
+    "tipo da rota de pedidos",
+  );
+}
+
 export function buyerOrdersSharedRouteTransform() {
   return {
     name: "buyer-orders-shared-route-transform",
@@ -58,6 +60,7 @@ export function buyerOrdersSharedRouteTransform() {
     transform(source, id) {
       const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
+      if (normalizedId.endsWith("/src/app/app.types.ts")) return { code: transformAppTypes(source), map: null };
       return null;
     },
   };
