@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 export function Btn({
   children,
@@ -173,5 +174,62 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function GoldRule() {
   return <div className="w-16 h-px bg-[#c9a84c] opacity-60 my-6" />;
+}
+
+export function EmptyState({ icon, title, subtitle, action }: {
+  icon?: ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+      {icon && <div className="text-[#3a5a3a]">{icon}</div>}
+      <p className="text-[#7a9a7a] font-mono text-sm uppercase tracking-wider">{title}</p>
+      {subtitle && <p className="text-[#3a5a3a] text-xs">{subtitle}</p>}
+      {action}
+    </div>
+  );
+}
+
+export function LoadingState({ message = "Carregando..." }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <RefreshCw size={28} className="text-[#2d6a4f] animate-spin" />
+      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">{message}</p>
+    </div>
+  );
+}
+
+export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+      <AlertCircle size={36} className="text-[#e74c3c]" />
+      <p className="text-[#e74c3c] font-mono text-sm">{message}</p>
+      {onRetry && <Btn size="sm" variant="ghost" onClick={onRetry}><RefreshCw size={14} />Tentar novamente</Btn>}
+    </div>
+  );
+}
+
+export function InfoRow({
+  label,
+  value,
+  icon,
+  profileContrast = false,
+}: {
+  label: string;
+  value: ReactNode;
+  icon?: ReactNode;
+  profileContrast?: boolean;
+}) {
+  return (
+    <div data-profile-info={profileContrast ? "true" : undefined} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
+      {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
+      <div>
+        <p className={`${profileContrast ? "text-[#a6cfae]" : "text-[#7a9a7a]"} font-mono text-[10px] uppercase tracking-widest mb-1`}>{label}</p>
+        <p className={`${profileContrast ? "text-[#d4e8d6]" : "text-[#fffaf0]"} text-sm font-semibold leading-relaxed break-words`}>{value}</p>
+      </div>
+    </div>
+  );
 }
 
