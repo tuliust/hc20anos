@@ -50,7 +50,7 @@ import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../
 import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
 import type { AuthState, Page } from "./app.types";
-import { Btn, DisplayTitle, Field, FieldArea, GoldRule, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
+import { Btn, DisplayTitle, EmptyState, ErrorState, Field, FieldArea, GoldRule, InfoRow, LoadingState, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import type { FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
@@ -1112,36 +1112,6 @@ function ToastNotification({ toast, onClose }: { toast: ToastState; onClose: () 
       {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <Info size={18} />}
       <p className="text-sm flex-1">{toast.message}</p>
       <button onClick={onClose} className="opacity-60 hover:opacity-100"><X size={14} /></button>
-    </div>
-  );
-}
-
-function EmptyState({ icon, title, subtitle, action }: { icon?: React.ReactNode; title: string; subtitle?: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-      {icon && <div className="text-[#3a5a3a]">{icon}</div>}
-      <p className="text-[#7a9a7a] font-mono text-sm uppercase tracking-wider">{title}</p>
-      {subtitle && <p className="text-[#3a5a3a] text-xs">{subtitle}</p>}
-      {action}
-    </div>
-  );
-}
-
-function LoadingState({ message = "Carregando..." }: { message?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <RefreshCw size={28} className="text-[#2d6a4f] animate-spin" />
-      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">{message}</p>
-    </div>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-      <AlertCircle size={36} className="text-[#e74c3c]" />
-      <p className="text-[#e74c3c] font-mono text-sm">{message}</p>
-      {onRetry && <Btn size="sm" variant="ghost" onClick={onRetry}><RefreshCw size={14} />Tentar novamente</Btn>}
     </div>
   );
 }
@@ -6223,18 +6193,6 @@ function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: A
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value, icon, profileContrast = false }: { label: string; value: React.ReactNode; icon?: React.ReactNode; profileContrast?: boolean }) {
-  return (
-    <div data-profile-info={profileContrast ? "true" : undefined} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
-      {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
-      <div>
-        <p className={`${profileContrast ? "text-[#a6cfae]" : "text-[#7a9a7a]"} font-mono text-[10px] uppercase tracking-widest mb-1`}>{label}</p>
-        <p className={`${profileContrast ? "text-[#d4e8d6]" : "text-[#fffaf0]"} text-sm font-semibold leading-relaxed break-words`}>{value}</p>
       </div>
     </div>
   );
