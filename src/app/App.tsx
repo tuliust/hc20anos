@@ -51,6 +51,9 @@ import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.type
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
 import { CmsAssetsPanel } from "./CmsAdminPanels";
 import { SecureCheckoutPage } from "./SecureCheckoutPage";
+import type { AuthState, Page } from "./app.types";
+import { Btn, DisplayTitle, Field } from "./components/AppPrimitives";
+import { LoginPage } from "./pages/LoginPage";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
 import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
@@ -75,24 +78,6 @@ import {
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
-
-type Page =
-  | "home" | "event" | "tickets" | "checkout" | "confirmation"
-  | "who-going" | "the-class" | "ex-alumni" | "claim-profile"
-  | "photo-wall" | "photo-detail" | "alumni-area"
-  | "edit-profile" | "admin" | "checkin"
-  | "login" | "terms" | "privacy" | "memories"
-  | "curiosities" | "polls" | "where-now" | "share-invite"
-  | "my-ticket" | "archive";
-
-interface AuthState {
-  loggedIn: boolean;
-  isAdmin: boolean;
-  name: string;
-  userId: string;
-  email?: string;
-  role?: AdminRole | null;
-}
 
 interface Alumni {
   id: string; name: string; nickname?: string; sala?: string;
@@ -1099,28 +1084,6 @@ function personToAlumni(p: DbPerson, displayName?: string | null, statusOverride
 
 // ─── PRIMITIVES ────────────────────────────────────────────────────────────────
 
-function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, full = false, className = "", ...buttonProps }: Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
-  children: React.ReactNode;
-  variant?: "primary" | "outline" | "ghost" | "gold" | "danger";
-  size?: "sm" | "md" | "lg";
-  full?: boolean;
-}) {
-  const sizes    = { sm: "px-5 py-2.5 text-xs", md: "px-8 py-4 text-sm", lg: "px-10 py-5 text-sm" };
-  const variants = {
-    primary: "bg-[#2d6a4f] text-[#f0ebe0] hover:bg-[#40916c]",
-    outline: "border border-[#f0ebe0] text-[#f0ebe0] hover:bg-[#f0ebe0] hover:text-[#0d1a0f]",
-    ghost:   "text-[#7a9a7a] hover:text-[#f0ebe0] hover:bg-[#1a2e1a]",
-    gold:    "bg-[#c9a84c] text-[#0d1a0f] hover:bg-[#e0bf6a]",
-    danger:  "bg-[#c0392b] text-[#f0ebe0] hover:bg-[#e74c3c]",
-  };
-  return (
-    <button {...buttonProps} onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.15em] transition-all duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${sizes[size]} ${variants[variant]} ${full ? "w-full" : ""} ${className}`}>
-      {children}
-    </button>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
     unclaimed:    { label: "Não cadastrado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
@@ -1168,29 +1131,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function Field({ label, type = "text", placeholder, value, onChange, icon, hint }: {
-  label: string; type?: string; placeholder?: string; value?: string;
-  onChange?: (v: string) => void; icon?: React.ReactNode; hint?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">{label}</label>
-      <div className="relative">
-        {icon && <div data-field-leading-icon="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#7a9a7a]">{icon}</div>}
-        <input
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={e => onChange?.(e.target.value)}
-          style={icon ? { paddingLeft: "3.5rem" } : undefined}
-          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-14" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`}
-        />
-      </div>
-      {hint && <p className="text-[#7a9a7a] text-xs mt-1.5">{hint}</p>}
-    </div>
-  );
-}
-
 function FieldArea({ label, placeholder, value, onChange, rows = 3 }: {
   label: string; placeholder?: string; value?: string; onChange?: (v: string) => void; rows?: number;
 }) {
@@ -1226,10 +1166,6 @@ function OptionButton({ selected, onClick, children }: {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="text-[#c9a84c] tracking-[0.32em] text-xs md:text-sm font-mono font-bold uppercase mb-5">{children}</p>;
-}
-
-function DisplayTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={`font-['Playfair_Display'] font-black text-[#f0ebe0] leading-tight ${className}`}>{children}</h2>;
 }
 
 function GoldRule() {
@@ -2468,160 +2404,6 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
         </div>
       </div>
     </footer>
-  );
-}
-
-// ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
-
-function LoginPage({ navigate, onLogin }: {
-  navigate: (p: Page) => void;
-  onLogin: (auth: AuthState) => void;
-}) {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-
-  async function submit() {
-    setError("");
-    setLoading(true);
-
-    try {
-      if (!email.includes("@")) {
-        setError("Informe um e-mail válido.");
-        setLoading(false);
-        return;
-      }
-
-      if (password.length < 4) {
-        setError("Senha muito curta. Use ao menos 4 caracteres.");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (authErr || !data.user) {
-        if (!DEV_MODE) {
-          setError("Credenciais inválidas.");
-          setLoading(false);
-          return;
-        }
-
-        const prefix = email.split("@")[0].split(".")[0].toLowerCase();
-        const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
-
-        onLogin({
-          loggedIn: true,
-          isAdmin: false,
-          name: match?.full_name || "Ana Paula Oliveira",
-          userId: "dev-user",
-          email,
-          role: null,
-        });
-
-        setLoading(false);
-        return;
-      }
-
-      const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
-      const adminUser = await getCurrentAdminUser(data.user.id).catch(() => null);
-
-      onLogin({
-        loggedIn: true,
-        isAdmin: !!adminUser,
-        name: displayName,
-        userId: data.user.id,
-        email: data.user.email,
-        role: adminUser?.role ?? null,
-      });
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
-    }
-
-    setLoading(false);
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20"
-      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">
-            Colégio Henrique Castriciano · Natal, RN
-          </p>
-          <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl uppercase mb-2">Turma 2006</h1>
-          <p className="font-['Playfair_Display'] italic text-[#c9a84c] text-xl">20 anos depois</p>
-        </div>
-
-        <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-          <div className="flex flex-col gap-5">
-            <DisplayTitle className="text-xl">Entrar como ex-aluno</DisplayTitle>
-
-            <Field
-              label="E-mail"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={setEmail}
-              icon={<Mail size={16} />}
-            />
-
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input
-                  type={showPw ? "text" : "password"}
-                  data-native-password-visibility="true"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && submit()}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
-                />
-                <button
-                  type="button"
-                  data-native-password-toggle="true"
-                  aria-label={showPw ? "Ocultar senha" : "Mostrar senha"}
-                  aria-pressed={showPw}
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]"
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-
-            <Btn full onClick={submit} disabled={loading}>
-              {loading ? <><RefreshCw size={16} className="animate-spin" />Entrando...</> : "Entrar"}
-            </Btn>
-
-            <p className="text-[#7a9a7a] text-xs text-center">
-              Ainda não tem conta?{" "}
-              <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
-                Criar meu perfil
-              </button>
-            </p>
-
-            {DEV_MODE && (
-              <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <button onClick={() => navigate("home")} className="text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors flex items-center gap-2 mx-auto">
-            <ArrowLeft size={16} />Voltar ao site
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
