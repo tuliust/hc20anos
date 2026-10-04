@@ -5,6 +5,11 @@
 // ================================================================
 
 import { DEV_MODE, supabase } from "./supabase";
+import { withFallback } from "./serviceFallback";
+export { getPeopleByPublicLocation, getPublicLocationStats } from "./locationService";
+export { getContentModerationSettings, updateContentModerationSettings } from "./contentModerationService";
+export type { ContentModerationSettings } from "./contentModerationService";
+export { getEventArchiveSettings, updateEventArchiveSettings } from "./eventArchiveService";
 import type { Json } from "./database.generated";
 import { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";
 import type {
@@ -13,8 +18,6 @@ import type {
   DbPerson,
   DbProfile,
   Gender,
-  LocationStat,
-  PublicLocationRow,
   PublicProfileCardRow,
   PublicCuriosityProfileDetailRow,
   SchoolQuestionnaireOptionStatRow,
@@ -34,7 +37,7 @@ import type {
 import type { DbOrder, DbTicket, DbTicketType, InsertOrder, TicketStatus, TicketWithDetails } from "./commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollResultRow, PollStatus } from "./engagement.types";
 import type { DbProfileClaim, DbProfileClaimAnswer, DbProfileClaimDispute } from "./identity.types";
-import type { DbAuditLog, DbEvent, DbEventArchiveSettings, DbEventPageContent, DbHomePageContent } from "./content.types";
+import type { DbAuditLog, DbEvent, DbEventPageContent, DbHomePageContent } from "./content.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;
@@ -144,13 +147,6 @@ export interface EventPageContent {
   updated_by_admin_id?: string | null;
 }
 
-export interface ContentModerationSettings {
-  event_id: string;
-  auto_approve_photos: boolean;
-  auto_approve_comments: boolean;
-  auto_approve_memories: boolean;
-}
-
 export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {
   event_id: DEFAULT_HOME_EVENT_ID,
   hero_eyebrow: "",
@@ -243,15 +239,6 @@ const MOCK_TICKET_TYPES: DbTicketType[] = [
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (DEV_MODE) return fallback;
-    throw error;
-  }
-}
 
 async function hydratePhotoUrls<T extends DbPhoto>(photos: T[]): Promise<T[]> {
   const paths = Array.from(new Set(photos.map(photo => photo.storage_path).filter((value): value is string => Boolean(value))));
@@ -363,26 +350,6 @@ export async function uploadCmsContentImage(file: File, adminId: string, scope: 
   await writeAudit("upload_cms_content_image", "cms_asset", DEFAULT_HOME_EVENT_ID, { path: uploaded.storagePath, scope, admin_id: adminId }).catch(() => {});
   return uploaded.publicUrl;
 }
-
-export async function getContentModerationSettings(eventId = DEFAULT_HOME_EVENT_ID): Promise<ContentModerationSettings> {
-  const fallback = { event_id: eventId, auto_approve_photos: false, auto_approve_comments: false, auto_approve_memories: false };
-  const { data, error } = await (supabase as any).from("content_moderation_settings").select("*").eq("event_id", eventId).maybeSingle();
-  if (error) return fallback;
-  return {
-    event_id: eventId,
-    auto_approve_photos: Boolean(data?.auto_approve_photos),
-    auto_approve_comments: Boolean(data?.auto_approve_comments),
-    auto_approve_memories: Boolean(data?.auto_approve_memories),
-  };
-}
-
-export async function updateContentModerationSettings(eventId: string, patch: Partial<ContentModerationSettings>): Promise<ContentModerationSettings> {
-  const { data, error } = await (supabase as any).from("content_moderation_settings")
-    .upsert({ event_id: eventId, ...patch }, { onConflict: "event_id" }).select("*").single();
-  if (error) throw error;
-  return data as ContentModerationSettings;
-}
-
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
 
@@ -1031,40 +998,6 @@ export async function createOrder(order: InsertOrder): Promise<DbOrder> {
   const { data, error } = await supabase.from("orders").insert(order).select().single();
   if (error) throw error;
   return data as DbOrder;
-}
-
-export async function getEventArchiveSettings(eventId: string): Promise<DbEventArchiveSettings | null> {
-  return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("event_archive_settings")
-      .select("*")
-      .eq("event_id", eventId)
-      .maybeSingle();
-    if (error) throw error;
-    return data as DbEventArchiveSettings | null;
-  }, null);
-}
-
-export async function updateEventArchiveSettings(eventId: string, patch: Partial<DbEventArchiveSettings>): Promise<DbEventArchiveSettings> {
-  const payload = {
-    event_id: eventId,
-    archive_enabled: patch.archive_enabled ?? false,
-    page_eyebrow: patch.page_eyebrow ?? "Pós-festa",
-    page_title: patch.page_title ?? "Memórias do reencontro",
-    message_label: patch.message_label ?? "Mensagem da organização",
-    closed_title: patch.closed_title ?? "O acervo será aberto depois do reencontro.",
-    closed_text: patch.closed_text ?? "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização.",
-    post_event_text: patch.post_event_text ?? null,
-    official_video_url: patch.official_video_url ?? null,
-    official_video_title: patch.official_video_title ?? null,
-    official_photo_ids: patch.official_photo_ids ?? [],
-    highlight_photo_ids: patch.highlight_photo_ids ?? [],
-    highlights_links: patch.highlights_links ?? [],
-  };
-  const { data, error } = await (supabase as any).from("event_archive_settings")
-    .upsert(payload, { onConflict: "event_id" }).select("*").single();
-  if (error) throw error;
-  return data as DbEventArchiveSettings;
 }
 
 export async function getMyOrder(email: string): Promise<DbOrder | null> {
@@ -1816,144 +1749,6 @@ export async function closePoll(id: string, adminId: string): Promise<void> {
 
 export async function archivePoll(id: string, adminId: string): Promise<void> {
   await updatePoll(id, { status: "archived" as PollStatus }, adminId);
-}
-
-// ─── PUBLIC LOCATION MAP ─────────────────────────────────────────────────────
-
-function compactLocationText(value?: string | null) {
-  return (value ?? "").replace(/\s+/g, " ").trim();
-}
-
-function foldLocationKey(value?: string | null) {
-  return compactLocationText(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR");
-}
-
-function titleCaseLocation(value: string) {
-  const compact = compactLocationText(value);
-  if (!compact) return compact;
-
-  const isUniformCase = compact === compact.toLocaleUpperCase("pt-BR")
-    || compact === compact.toLocaleLowerCase("pt-BR");
-  if (!isUniformCase) return compact;
-
-  const connectors = new Set(["da", "das", "de", "do", "dos", "e"]);
-  return compact
-    .toLocaleLowerCase("pt-BR")
-    .split(" ")
-    .map((part, index) => {
-      if (index > 0 && connectors.has(part)) return part;
-      return part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1);
-    })
-    .join(" ");
-}
-
-function normalizeCountry(value?: string | null) {
-  const compact = compactLocationText(value) || "Brasil";
-  const folded = foldLocationKey(compact);
-  if (folded === "brasil" || folded === "brazil") return "Brasil";
-  return titleCaseLocation(compact);
-}
-
-function normalizeState(value?: string | null) {
-  const compact = compactLocationText(value);
-  if (!compact) return null;
-  return /^[a-z]{2}$/i.test(compact) ? compact.toLocaleUpperCase("pt-BR") : titleCaseLocation(compact);
-}
-
-function normalizeCityAndState(cityValue: string, stateValue?: string | null) {
-  let city = compactLocationText(cityValue);
-  let state = normalizeState(stateValue);
-
-  const suffix = city.match(/^(.*?)(?:\s*[\/,-]\s*|\s+)([A-Za-z]{2})$/u);
-  if (suffix) {
-    const suffixState = suffix[2].toLocaleUpperCase("pt-BR");
-    if (!state || state.toLocaleUpperCase("pt-BR") === suffixState) {
-      city = compactLocationText(suffix[1]);
-      state = state ?? suffixState;
-    }
-  }
-
-  return {
-    city: titleCaseLocation(city),
-    state,
-  };
-}
-
-export async function getPublicLocationStats(): Promise<LocationStat[]> {
-  return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("public_profile_locations")
-      .select("*")
-      .order("current_country")
-      .order("current_state")
-      .order("current_city");
-    if (error) throw error;
-
-    const rows = (data ?? []) as PublicLocationRow[];
-    const normalizedRows = rows.map(row => {
-      const country = normalizeCountry(row.current_country);
-      const { city, state } = normalizeCityAndState(row.current_city, row.current_state);
-      return {
-        row,
-        city,
-        state,
-        country,
-        cityKey: foldLocationKey(city),
-        stateKey: foldLocationKey(state),
-        countryKey: foldLocationKey(country),
-      };
-    });
-
-    // Quando uma cidade aparece algumas vezes com UF e outras sem UF, usa a UF
-    // somente se houver uma única UF conhecida para aquela cidade/país.
-    const statesByCity = new Map<string, Set<string>>();
-    for (const item of normalizedRows) {
-      if (!item.state) continue;
-      const cityCountryKey = [item.cityKey, item.countryKey].join("|");
-      const states = statesByCity.get(cityCountryKey) ?? new Set<string>();
-      states.add(item.state);
-      statesByCity.set(cityCountryKey, states);
-    }
-
-    const map = new Map<string, LocationStat>();
-    for (const item of normalizedRows) {
-      let state = item.state;
-      if (!state) {
-        const inferred = statesByCity.get([item.cityKey, item.countryKey].join("|"));
-        if (inferred?.size === 1) state = Array.from(inferred)[0];
-      }
-
-      const stateKey = foldLocationKey(state);
-      const key = [item.cityKey, stateKey, item.countryKey].join("|");
-      const normalizedRow: PublicLocationRow = {
-        ...item.row,
-        current_city: item.city,
-        current_state: state,
-        current_country: item.country,
-      };
-      const current = map.get(key) ?? {
-        key,
-        city: item.city,
-        state,
-        country: item.country,
-        count: 0,
-        people: [],
-      };
-      current.count += 1;
-      current.people.push(normalizedRow);
-      map.set(key, current);
-    }
-
-    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.city.localeCompare(b.city, "pt-BR"));
-  }, []);
-}
-
-export async function getPeopleByPublicLocation(key: string): Promise<PublicLocationRow[]> {
-  const stats = await getPublicLocationStats();
-  return stats.find(item => item.key === key)?.people ?? [];
 }
 
 // ─── ADMIN USERS ─────────────────────────────────────────────────────────────

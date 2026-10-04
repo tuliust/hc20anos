@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, Fragment, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { DEV_MODE, supabase } from "../lib/supabase";
 import {
@@ -49,11 +49,25 @@ import type { DbOrder, DbTicketType, PaymentStatus, TicketStatus, TicketWithDeta
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollStatus } from "../lib/engagement.types";
 import type { DbProfileClaim, DbProfileClaimDispute } from "../lib/identity.types";
 import type { DbAuditLog, DbEvent, DbEventArchiveSettings, EventPageGalleryItem, EventPageInfoItem, EventPageScheduleItem } from "../lib/content.types";
-import { CmsAssetsPanel } from "./CmsAdminPanels";
-import { SecureCheckoutPage } from "./SecureCheckoutPage";
+import type { AuthState, Page } from "./app.types";
+import { DEFAULT_EVENT_ID, FALLBACK_EVENT_DATE_TIME } from "./app.constants";
+import { eventDateTimeLabel, formatDateBR, formatDateShortBR, formatDateTimeBR, getEventDateTime, ticketPaymentStatus, ticketTypeName } from "./appFormatters";
+import { Btn, DisplayTitle, EmptyState, ErrorState, Field, FieldArea, GoldRule, InfoRow, LoadingState, OptionButton, SectionLabel, StatusBadge } from "./components/AppPrimitives";
 import { HomeFaqSectionLoader } from "./home/HomeFaqSectionLoader";
-import { AdminFaqPanel, type FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
+import type { FaqSectionSettings } from "./admin/faq/AdminFaqPanel";
 import { formatLotLabel, selectPublicTicketCards } from "../lib/publicTicketCatalog";
+
+const LoginPage = lazy(() => import("./pages/LoginPage").then(module => ({ default: module.LoginPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage").then(module => ({ default: module.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ default: module.PrivacyPage })));
+const SecureCheckoutPage = lazy(() => import("./SecureCheckoutPage").then(module => ({ default: module.SecureCheckoutPage })));
+const CmsAssetsPanel = lazy(() => import("./CmsAdminPanels").then(module => ({ default: module.CmsAssetsPanel })));
+const AdminFaqPanel = lazy(() => import("./admin/faq/AdminFaqPanel").then(module => ({ default: module.AdminFaqPanel })));
+const ShareInvitePage = lazy(() => import("./pages/ShareInvitePage").then(module => ({ default: module.ShareInvitePage })));
+const MyTicketPage = lazy(() => import("./pages/MyTicketPage").then(module => ({ default: module.MyTicketPage })));
+const ArchivePage = lazy(() => import("./pages/ArchivePage").then(module => ({ default: module.ArchivePage })));
+const MemoriesPage = lazy(() => import("./pages/MemoriesPage").then(module => ({ default: module.MemoriesPage })));
+const CuriositiesPage = lazy(() => import("./pages/CuriositiesPage").then(module => ({ default: module.CuriositiesPage })));
 import mundoVerdeUrl from "../imports/maps/mundo-verde.png";
 import mundoInvertidoUrl from "../imports/maps/mundo-invertido.png";
 import brasilVerdeUrl from "../imports/maps/brasil-verde.png";
@@ -75,24 +89,6 @@ import {
 } from "lucide-react";
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
-
-type Page =
-  | "home" | "event" | "tickets" | "checkout" | "confirmation"
-  | "who-going" | "the-class" | "ex-alumni" | "claim-profile"
-  | "photo-wall" | "photo-detail" | "alumni-area"
-  | "edit-profile" | "admin" | "checkin"
-  | "login" | "terms" | "privacy" | "memories"
-  | "curiosities" | "polls" | "where-now" | "share-invite"
-  | "my-ticket" | "archive";
-
-interface AuthState {
-  loggedIn: boolean;
-  isAdmin: boolean;
-  name: string;
-  userId: string;
-  email?: string;
-  role?: AdminRole | null;
-}
 
 interface Alumni {
   id: string; name: string; nickname?: string; sala?: string;
@@ -125,9 +121,6 @@ interface TagModItem {
 }
 
 // ─── DATA ──────────────────────────────────────────────────────────────────────
-
-const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";
-const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ALUMNI: Alumni[] = [
   { id: "1",  name: "Ana Paula Oliveira",  nickname: "Aninha",    sala: "A", city: "Natal, RN",          profession: "Médica",           status: "confirmed" },
@@ -727,14 +720,6 @@ const SCHOOL_PROFILE_QUESTIONS: SchoolProfileQuestion[] = [
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────────
 
-function getEventDateTime(event?: DbEvent | null): Date {
-  const datePart = event?.event_date || "2026-10-17";
-  const rawTime = event?.event_time || "19:00:00";
-  const timePart = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
-  const candidate = new Date(`${datePart}T${timePart}-03:00`);
-  return Number.isNaN(candidate.getTime()) ? new Date(FALLBACK_EVENT_DATE_TIME) : candidate;
-}
-
 function getTimeLeft(targetDate: Date) {
   const diff = targetDate.getTime() - Date.now();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -803,21 +788,6 @@ function getTicketDescriptionItems(description?: string | null) {
 
 function initials(name: string) {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
-}
-
-function formatDateBR(value?: string | null) {
-  if (!value) return "Data a confirmar";
-  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-
-function formatDateShortBR(value?: string | null) {
-  if (!value) return "";
-  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00-03:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
 function relationshipStatusLabel(value?: RelationshipStatus | null, gender?: Gender | null) {
@@ -1039,28 +1009,6 @@ async function parseParticipantImportFile(file: File) {
   throw new Error("Envie um arquivo .xlsx ou .csv.");
 }
 
-function formatDateTimeBR(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-function eventDateTimeLabel(event?: DbEvent | null) {
-  if (!event) return "17 out 2026 · 19h";
-  const date = formatDateBR(event.event_date);
-  const time = event.event_time?.slice(0, 5)?.replace(":", "h") ?? "19h";
-  return `${date} · ${time}`;
-}
-
-function ticketTypeName(ticket?: TicketWithDetails | null) {
-  return ticket?.ticket_types?.name ?? "Ingresso do reencontro";
-}
-
-function ticketPaymentStatus(ticket?: TicketWithDetails | null) {
-  return ticket?.orders?.payment_status ?? "pending";
-}
-
 function formatWhatsappInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits ? `(${digits}` : "";
@@ -1099,143 +1047,6 @@ function personToAlumni(p: DbPerson, displayName?: string | null, statusOverride
 
 // ─── PRIMITIVES ────────────────────────────────────────────────────────────────
 
-function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, full = false, className = "", ...buttonProps }: Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
-  children: React.ReactNode;
-  variant?: "primary" | "outline" | "ghost" | "gold" | "danger";
-  size?: "sm" | "md" | "lg";
-  full?: boolean;
-}) {
-  const sizes    = { sm: "px-5 py-2.5 text-xs", md: "px-8 py-4 text-sm", lg: "px-10 py-5 text-sm" };
-  const variants = {
-    primary: "bg-[#2d6a4f] text-[#f0ebe0] hover:bg-[#40916c]",
-    outline: "border border-[#f0ebe0] text-[#f0ebe0] hover:bg-[#f0ebe0] hover:text-[#0d1a0f]",
-    ghost:   "text-[#7a9a7a] hover:text-[#f0ebe0] hover:bg-[#1a2e1a]",
-    gold:    "bg-[#c9a84c] text-[#0d1a0f] hover:bg-[#e0bf6a]",
-    danger:  "bg-[#c0392b] text-[#f0ebe0] hover:bg-[#e74c3c]",
-  };
-  return (
-    <button {...buttonProps} onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.15em] transition-all duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${sizes[size]} ${variants[variant]} ${full ? "w-full" : ""} ${className}`}>
-      {children}
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string }> = {
-    unclaimed:    { label: "Não cadastrado", color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    claimed:      { label: "Cadastrado",      color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
-    preconfirmed: { label: "Pré-confirmado",  color: "bg-[#1a2e1a] text-[#c9a84c] border border-[#c9a84c]/30"     },
-    confirmed:    { label: "Confirmado",      color: "bg-[#2d6a4f]/30 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    available:    { label: "Disponível",       color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    "last-units": { label: "Últimas unidades", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    "sold-out":   { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    sold_out:     { label: "Esgotado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    pending:      { label: "Pendente",         color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    in_process:   { label: "Em processamento", color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    approved:     { label: "Aprovado",         color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    rejected:     { label: "Rejeitado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    removed:      { label: "Removido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    hidden:       { label: "Oculto",           color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    paused:       { label: "Pausado",          color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    draft:        { label: "Rascunho",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    viewer:       { label: "Leitura",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    moderator:    { label: "Moderador",        color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    admin:        { label: "Admin",            color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    superadmin:   { label: "Superadmin",       color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    checkin_staff:{ label: "Check-in",         color: "bg-[#1a3a2a] text-[#74c69d] border border-[#2d6a4f]/50"     },
-    declined:     { label: "Recusado",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    valid:        { label: "Válido",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    used:         { label: "Já utilizado",     color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    invalid:      { label: "Inválido",         color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    cancelled:    { label: "Cancelado",        color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    refunded:     { label: "Reembolsado",      color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    expired:      { label: "Expirado",         color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    charged_back: { label: "Contestação",      color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    checked_in:   { label: "Check-in feito",   color: "bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40"  },
-    unauthorized: { label: "Login necessário", color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    forbidden:    { label: "Sem permissão",    color: "bg-[#c0392b]/20 text-[#e74c3c] border border-[#c0392b]/30"  },
-    success:      { label: "Sucesso",          color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    open:         { label: "Aberto",           color: "bg-[#2d6a4f]/30 text-[#74c69d] border border-[#2d6a4f]/50"  },
-    closed:       { label: "Fechado",          color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-    archived:     { label: "Arquivado",        color: "bg-[#1e2a1e] text-[#7a9a7a] border border-[#2d6a4f]/30"     },
-  };
-  const s = map[status] || map.unclaimed;
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider ${s.color}`}>
-      {s.label}
-    </span>
-  );
-}
-
-function Field({ label, type = "text", placeholder, value, onChange, icon, hint }: {
-  label: string; type?: string; placeholder?: string; value?: string;
-  onChange?: (v: string) => void; icon?: React.ReactNode; hint?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">{label}</label>
-      <div className="relative">
-        {icon && <div data-field-leading-icon="true" className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#7a9a7a]">{icon}</div>}
-        <input
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={e => onChange?.(e.target.value)}
-          style={icon ? { paddingLeft: "3.5rem" } : undefined}
-          className={`w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 ${icon ? "pl-14" : "pl-4"} pr-4 text-sm focus:outline-none focus:border-[#2d6a4f] transition-colors`}
-        />
-      </div>
-      {hint && <p className="text-[#7a9a7a] text-xs mt-1.5">{hint}</p>}
-    </div>
-  );
-}
-
-function FieldArea({ label, placeholder, value, onChange, rows = 3 }: {
-  label: string; placeholder?: string; value?: string; onChange?: (v: string) => void; rows?: number;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">{label}</label>
-      <textarea rows={rows} placeholder={placeholder} value={value} onChange={e => onChange?.(e.target.value)}
-        className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] placeholder:text-[#3a4a3a] py-4 px-4 text-sm focus:outline-none focus:border-[#2d6a4f] resize-none" />
-    </div>
-  );
-}
-
-
-function OptionButton({ selected, onClick, children }: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left px-4 py-3 border text-sm transition-colors ${
-        selected
-          ? "bg-[#2d6a4f] border-[#2d6a4f] text-[#f0ebe0]"
-          : "border-[#2d6a4f]/30 text-[#8ab89a] hover:border-[#2d6a4f]/70"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[#c9a84c] tracking-[0.32em] text-xs md:text-sm font-mono font-bold uppercase mb-5">{children}</p>;
-}
-
-function DisplayTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={`font-['Playfair_Display'] font-black text-[#f0ebe0] leading-tight ${className}`}>{children}</h2>;
-}
-
-function GoldRule() {
-  return <div className="w-16 h-px bg-[#c9a84c] opacity-60 my-6" />;
-}
-
 // ─── UX PRIMITIVES ────────────────────────────────────────────────────────────
 
 type ToastType = "success" | "error" | "info";
@@ -1260,36 +1071,6 @@ function ToastNotification({ toast, onClose }: { toast: ToastState; onClose: () 
       {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <Info size={18} />}
       <p className="text-sm flex-1">{toast.message}</p>
       <button onClick={onClose} className="opacity-60 hover:opacity-100"><X size={14} /></button>
-    </div>
-  );
-}
-
-function EmptyState({ icon, title, subtitle, action }: { icon?: React.ReactNode; title: string; subtitle?: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-      {icon && <div className="text-[#3a5a3a]">{icon}</div>}
-      <p className="text-[#7a9a7a] font-mono text-sm uppercase tracking-wider">{title}</p>
-      {subtitle && <p className="text-[#3a5a3a] text-xs">{subtitle}</p>}
-      {action}
-    </div>
-  );
-}
-
-function LoadingState({ message = "Carregando..." }: { message?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <RefreshCw size={28} className="text-[#2d6a4f] animate-spin" />
-      <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest">{message}</p>
-    </div>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-      <AlertCircle size={36} className="text-[#e74c3c]" />
-      <p className="text-[#e74c3c] font-mono text-sm">{message}</p>
-      {onRetry && <Btn size="sm" variant="ghost" onClick={onRetry}><RefreshCw size={14} />Tentar novamente</Btn>}
     </div>
   );
 }
@@ -2468,160 +2249,6 @@ function Footer({ navigate, content }: { navigate: (p: Page) => void; content?: 
         </div>
       </div>
     </footer>
-  );
-}
-
-// ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
-
-function LoginPage({ navigate, onLogin }: {
-  navigate: (p: Page) => void;
-  onLogin: (auth: AuthState) => void;
-}) {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-
-  async function submit() {
-    setError("");
-    setLoading(true);
-
-    try {
-      if (!email.includes("@")) {
-        setError("Informe um e-mail válido.");
-        setLoading(false);
-        return;
-      }
-
-      if (password.length < 4) {
-        setError("Senha muito curta. Use ao menos 4 caracteres.");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (authErr || !data.user) {
-        if (!DEV_MODE) {
-          setError("Credenciais inválidas.");
-          setLoading(false);
-          return;
-        }
-
-        const prefix = email.split("@")[0].split(".")[0].toLowerCase();
-        const match  = MOCK_PEOPLE.find((a: DbPerson) => a.full_name.toLowerCase().includes(prefix));
-
-        onLogin({
-          loggedIn: true,
-          isAdmin: false,
-          name: match?.full_name || "Ana Paula Oliveira",
-          userId: "dev-user",
-          email,
-          role: null,
-        });
-
-        setLoading(false);
-        return;
-      }
-
-      const displayName = data.user.user_metadata?.full_name ?? data.user.email ?? "Ex-aluno";
-      const adminUser = await getCurrentAdminUser(data.user.id).catch(() => null);
-
-      onLogin({
-        loggedIn: true,
-        isAdmin: !!adminUser,
-        name: displayName,
-        userId: data.user.id,
-        email: data.user.email,
-        role: adminUser?.role ?? null,
-      });
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
-    }
-
-    setLoading(false);
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20"
-      style={{ background: "radial-gradient(ellipse 100% 80% at 50% 20%, #1a4d2e 0%, #0a140b 70%)" }}>
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <p className="text-[#c9a84c] tracking-[0.4em] text-[10px] font-mono font-bold uppercase mb-4">
-            Colégio Henrique Castriciano · Natal, RN
-          </p>
-          <h1 className="font-['Playfair_Display'] font-black text-[#f0ebe0] text-4xl uppercase mb-2">Turma 2006</h1>
-          <p className="font-['Playfair_Display'] italic text-[#c9a84c] text-xl">20 anos depois</p>
-        </div>
-
-        <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-          <div className="flex flex-col gap-5">
-            <DisplayTitle className="text-xl">Entrar como ex-aluno</DisplayTitle>
-
-            <Field
-              label="E-mail"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={setEmail}
-              icon={<Mail size={16} />}
-            />
-
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#7a9a7a] mb-2">Senha</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input
-                  type={showPw ? "text" : "password"}
-                  data-native-password-visibility="true"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && submit()}
-                  className="w-full bg-[#1a2e1a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-[#2d6a4f]"
-                />
-                <button
-                  type="button"
-                  data-native-password-toggle="true"
-                  aria-label={showPw ? "Ocultar senha" : "Mostrar senha"}
-                  aria-pressed={showPw}
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a9a7a] hover:text-[#f0ebe0]"
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-
-            <Btn full onClick={submit} disabled={loading}>
-              {loading ? <><RefreshCw size={16} className="animate-spin" />Entrando...</> : "Entrar"}
-            </Btn>
-
-            <p className="text-[#7a9a7a] text-xs text-center">
-              Ainda não tem conta?{" "}
-              <button onClick={() => navigate("claim-profile")} className="text-[#2d6a4f] hover:text-[#40916c] underline">
-                Criar meu perfil
-              </button>
-            </p>
-
-            {DEV_MODE && (
-              <p className="text-[#3a5a3a] text-[10px] font-mono text-center border-t border-[#2d6a4f]/10 pt-4">
-                Modo desenvolvimento: qualquer e-mail + senha com 4+ caracteres
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <button onClick={() => navigate("home")} className="text-[#7a9a7a] text-sm hover:text-[#f0ebe0] transition-colors flex items-center gap-2 mx-auto">
-            <ArrowLeft size={16} />Voltar ao site
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -5701,495 +5328,6 @@ function PhotoDetailPage({ navigate, people, auth, photo }: {
 
 type CuriosityChartMode = "questionnaire" | "life";
 
-function StatCard({ label, value, hint, icon, onClick, drilldown }: {
-  label: string;
-  value: React.ReactNode;
-  hint?: string;
-  icon?: React.ReactNode;
-  onClick?: () => void;
-  drilldown?: string;
-}) {
-  const content = (
-    <>
-      <div>
-        <p className="text-[#c9a84c] font-mono text-3xl font-bold leading-none">{value}</p>
-        <p className="text-[#7a9a7a] text-[10px] font-mono uppercase tracking-wider mt-2">{label}</p>
-        {hint && <p className="text-[#3a5a3a] text-xs mt-2 leading-relaxed">{hint}</p>}
-      </div>
-      {icon && <div className="text-[#2d6a4f] shrink-0">{icon}</div>}
-    </>
-  );
-
-  if (!onClick) {
-    return <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4">{content}</div>;
-  }
-
-  return (
-    <button
-      type="button"
-      data-curiosities-drilldown={drilldown}
-      onClick={onClick}
-      className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 flex items-start justify-between gap-4 text-left hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] transition-colors"
-    >
-      {content}
-    </button>
-  );
-}
-
-function MiniBarChart({ title, description, rows, emptyLabel = "Dados ainda insuficientes." }: {
-  title: string;
-  description?: string;
-  rows: { label: string; count: number }[];
-  emptyLabel?: string;
-}) {
-  const cleanRows = rows.filter(row => row.count > 0).slice(0, 8);
-  const max = Math.max(...cleanRows.map(row => row.count), 1);
-  return (
-    <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-      <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Infográfico</p>
-      <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{title}</h3>
-      {description && <p className="text-[#7a9a7a] text-sm mt-2 mb-5 leading-relaxed">{description}</p>}
-      {!cleanRows.length ? (
-        <p className="text-[#7a9a7a] text-sm mt-5">{emptyLabel}</p>
-      ) : (
-        <div className="flex flex-col gap-4 mt-5">
-          {cleanRows.map(row => {
-            const width = Math.max(8, Math.round((row.count / max) * 100));
-            return (
-              <div key={row.label}>
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-                  <span className="text-[#f0ebe0] text-sm font-semibold">{row.label}</span>
-                  <span className="text-[#c9a84c] font-mono text-xs">{row.count}</span>
-                </div>
-                <div className="h-2.5 bg-[#0d1a0f] border border-[#2d6a4f]/20 overflow-hidden">
-                  <div className="h-full bg-[#2d6a4f]" style={{ width: `${width}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function getQuestionTitle(questionId: string) {
-  return SCHOOL_PROFILE_QUESTIONS.find(question => question.id === questionId)?.title ?? questionId;
-}
-
-function groupQuestionnaireStats(rows: SchoolQuestionnaireOptionStatRow[]) {
-  const grouped = new Map<string, { label: string; count: number }[]>();
-  for (const row of rows) {
-    const current = grouped.get(row.question_id) ?? [];
-    current.push({ label: row.option_label, count: row.answer_count });
-    grouped.set(row.question_id, current);
-  }
-  return SCHOOL_PROFILE_QUESTIONS.map(question => ({
-    id: question.id,
-    title: question.title,
-    rows: (grouped.get(question.id) ?? []).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR")),
-  }));
-}
-
-type CuriosityDrilldownKind = "alumni" | "cities" | "professions" | "children";
-
-function CuriosityDrilldownModal({
-  kind,
-  details,
-  locations,
-  professionRows,
-  childrenTotal,
-  people,
-  onClose,
-  onOpenPerson,
-}: {
-  kind: CuriosityDrilldownKind | null;
-  details: PublicCuriosityProfileDetailRow[];
-  locations: LocationStat[];
-  professionRows: { label: string; count: number }[];
-  childrenTotal: number;
-  people: DbPerson[];
-  onClose: () => void;
-  onOpenPerson: (person: DbPerson) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const peopleById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
-  const detailsById = useMemo(() => new Map(details.map(row => [row.person_id, row])), [details]);
-
-  useEffect(() => {
-    if (!kind) setQuery("");
-  }, [kind]);
-
-  const titles: Record<CuriosityDrilldownKind, string> = {
-    alumni: "Ex-alunos 2006",
-    cities: "Cidades onde estão hoje",
-    professions: "Áreas profissionais",
-    children: "Total de filhos dos ex-alunos",
-  };
-
-  function renderPerson(row: PublicCuriosityProfileDetailRow, suffix = "") {
-    const person = peopleById.get(row.person_id);
-    if (!person) return null;
-    return (
-      <button
-        type="button"
-        key={`${row.person_id}-${suffix}`}
-        data-curiosity-person-id={row.person_id}
-        onClick={() => onOpenPerson(person)}
-        className="w-full flex items-center gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-3 py-3 text-left transition-colors"
-      >
-        <div className="w-10 h-10 shrink-0 bg-[#2d6a4f] overflow-hidden flex items-center justify-center text-[#f0ebe0] font-mono font-bold text-xs">
-          {row.avatar_url ? <img src={row.avatar_url} alt="" className="w-full h-full object-cover" /> : initials(row.display_name)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[#f0ebe0] text-sm font-semibold truncate">{row.display_name}</p>
-          <p className="text-[#7a9a7a] text-[11px] font-mono mt-1">{row.class_group ? `Turma ${row.class_group}` : "Turma não informada"}</p>
-        </div>
-        <ChevronRight size={15} className="text-[#7a9a7a] shrink-0" />
-      </button>
-    );
-  }
-
-  const normalizedQuery = normalizeLoose(query);
-  const alumniRows = details.filter(row =>
-    !normalizedQuery || normalizeLoose(row.display_name).includes(normalizedQuery) || normalizeLoose(row.class_group).includes(normalizedQuery)
-  );
-  const childrenRows = details.filter(row => row.has_children === true);
-
-  return (
-    <Modal open={Boolean(kind)} onClose={onClose} title={kind ? titles[kind] : "Curiosidades"} wide>
-      <div data-curiosities-drilldown-modal={kind ?? undefined} className="flex flex-col gap-4">
-        {kind === "alumni" && (
-          <>
-            <p className="text-[#8ab89a] text-sm">{details.length} ex-aluno{details.length === 1 ? "" : "s"} na base pública viva de 2006.</p>
-            {details.length > 20 && (
-              <label className="relative block">
-                <span className="sr-only">Buscar ex-aluno</span>
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a9a7a]" />
-                <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por nome ou turma..." className="w-full bg-[#0a120a] border border-[#2d6a4f]/30 text-[#f0ebe0] py-3 pl-10 pr-3 text-sm focus:outline-none focus:border-[#c9a84c]" />
-              </label>
-            )}
-            <div className="max-h-[62svh] overflow-y-auto flex flex-col gap-2 pr-1">{alumniRows.map(row => renderPerson(row, "alumni"))}</div>
-          </>
-        )}
-
-        {kind === "cities" && (
-          <div className="max-h-[68svh] overflow-y-auto flex flex-col gap-4 pr-1">
-            {locations.map(location => {
-              const rows = location.people.map(person => detailsById.get(person.person_id)).filter(Boolean) as PublicCuriosityProfileDetailRow[];
-              return (
-                <section key={location.key} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <h3 className="text-[#f0ebe0] font-semibold">{location.city}{location.state ? ` · ${location.state}` : ""}{location.country ? ` · ${location.country}` : ""}</h3>
-                      <p className="text-[#7a9a7a] text-xs mt-1">Somente localização autorizada.</p>
-                    </div>
-                    <span className="text-[#c9a84c] font-mono text-sm">{location.count}</span>
-                  </div>
-                  <div className="flex flex-col gap-2">{rows.map(row => renderPerson(row, location.key))}</div>
-                </section>
-              );
-            })}
-          </div>
-        )}
-
-        {kind === "professions" && (
-          <div className="max-h-[68svh] overflow-y-auto flex flex-col gap-4 pr-1">
-            {professionRows.filter(row => row.label !== "Não informado" && row.count > 0).map(area => {
-              const rows = details.filter(row => row.profession_area === area.label);
-              return (
-                <section key={area.label} data-profession-area={area.label} className="border border-[#2d6a4f]/25 bg-[#0d1a0f] p-4">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <h3 className="text-[#f0ebe0] font-semibold">{area.label}</h3>
-                    <span className="text-[#c9a84c] font-mono text-sm">{area.count}</span>
-                  </div>
-                  <div className="flex flex-col gap-2">{rows.map(row => renderPerson(row, area.label))}</div>
-                </section>
-              );
-            })}
-          </div>
-        )}
-
-        {kind === "children" && (
-          <>
-            <div className="bg-[#0d1a0f] border border-[#c9a84c]/30 p-4">
-              <p className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Total agregado</p>
-              <p className="text-[#c9a84c] text-4xl font-mono font-bold mt-1">{childrenTotal}</p>
-            </div>
-            <div className="max-h-[58svh] overflow-y-auto flex flex-col gap-2 pr-1">
-              {childrenRows.map(row => {
-                const person = peopleById.get(row.person_id);
-                if (!person) return null;
-                return (
-                  <button
-                    type="button"
-                    key={row.person_id}
-                    data-curiosity-child-person-id={row.person_id}
-                    onClick={() => onOpenPerson(person)}
-                    className="w-full flex items-center justify-between gap-3 border border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#c9a84c]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] px-4 py-3 text-left"
-                  >
-                    <span className="text-[#f0ebe0] text-sm font-semibold">{row.display_name}</span>
-                    <span className="text-[#c9a84c] font-mono text-xs">{row.children_count ?? 0} filho{row.children_count === 1 ? "" : "s"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-function CuriositiesPage({ navigate, auth, people }: { navigate: (p: Page) => void; auth: AuthState; people: DbPerson[] }) {
-  const [polls, setPolls] = useState<(DbPoll & { poll_options?: DbPollOption[] })[]>([]);
-  const [results, setResults] = useState<Record<string, Record<string, number>>>({});
-  const [myVotes, setMyVotes] = useState<DbPollVote[]>([]);
-  const [locations, setLocations] = useState<LocationStat[]>([]);
-  const [questionnaireStats, setQuestionnaireStats] = useState<SchoolQuestionnaireOptionStatRow[]>([]);
-  const [questionnaireResponseStats, setQuestionnaireResponseStats] = useState<SchoolQuestionnaireResponseStatsRow | null>(null);
-  const [profileStats, setProfileStats] = useState<CuriosityProfileStatsRow | null>(null);
-  const [publicDetails, setPublicDetails] = useState<PublicCuriosityProfileDetailRow[]>([]);
-  const [activeDrilldown, setActiveDrilldown] = useState<CuriosityDrilldownKind | null>(null);
-  const [selectedPerson, setSelectedPerson] = useState<DbPerson | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-
-  async function loadCuriosities() {
-    setLoading(true);
-    setError("");
-    try {
-      const [pollData, questionnaireData, questionnaireResponseData, profileData, locationData, publicDetailData] = await Promise.all([
-        getPolls(DEFAULT_EVENT_ID),
-        getSchoolQuestionnaireOptionStats(DEFAULT_EVENT_ID).catch(() => []),
-        getSchoolQuestionnaireResponseStats(DEFAULT_EVENT_ID).catch(() => null),
-        getCuriosityProfileStats(DEFAULT_EVENT_ID).catch(() => null),
-        getPublicLocationStats().catch(() => []),
-        getPublicCuriosityProfileDetails().catch(() => []),
-      ]);
-      setPolls(pollData);
-      setQuestionnaireStats(questionnaireData);
-      setQuestionnaireResponseStats(questionnaireResponseData);
-      setProfileStats(profileData);
-      setLocations(locationData);
-      setPublicDetails(publicDetailData);
-
-      const nextResults: Record<string, Record<string, number>> = {};
-      for (const poll of pollData) nextResults[poll.id] = await getPollResults(poll.id);
-      setResults(nextResults);
-      if (auth.loggedIn) setMyVotes(await getMyPollVotes(auth.userId, pollData.map(p => p.id)));
-      else setMyVotes([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar curiosidades.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { loadCuriosities(); }, [auth.loggedIn, auth.userId]);
-
-  async function submitVote(poll: DbPoll & { poll_options?: DbPollOption[] }, optionId: string) {
-    if (!auth.loggedIn) { navigate("login"); return; }
-    setBusy(optionId);
-    setError("");
-    setMessage("");
-    try {
-      await votePoll({ pollId: poll.id, optionId, userId: auth.userId, allowMultiple: poll.allow_multiple_votes });
-      setMessage("Voto registrado.");
-      await loadCuriosities();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao registrar voto.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function totalVotes(pollId: string): number {
-    return Object.values(results[pollId] ?? {}).reduce<number>((sum, value) => sum + Number(value), 0);
-  }
-
-  const questionGroups = groupQuestionnaireStats(questionnaireStats);
-  const relationshipRows = profileStats?.relationship_status_counts ?? [];
-  const childrenRows = profileStats?.children_status_counts ?? [];
-  const professionRows = profileStats?.profession_area_counts ?? [];
-
-  function openCuriosityPerson(person: DbPerson) {
-    setActiveDrilldown(null);
-    setSelectedPerson(person);
-  }
-
-  return (
-    <>
-      <CuriosityDrilldownModal
-        kind={activeDrilldown}
-        details={publicDetails}
-        locations={locations}
-        professionRows={professionRows}
-        childrenTotal={profileStats?.total_children_declared ?? 0}
-        people={people}
-        onClose={() => setActiveDrilldown(null)}
-        onOpenPerson={openCuriosityPerson}
-      />
-      <PersonDetailModal
-        person={selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        onClaim={() => { setSelectedPerson(null); navigate("claim-profile"); }}
-      />
-      <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-7xl mx-auto px-4">
-        <section className="mb-10 w-full text-left">
-          <SectionLabel>Curiosidades da turma</SectionLabel>
-          <DisplayTitle className="text-5xl md:text-7xl">O raio-X da Turma 2006</DisplayTitle>
-          <p className="mt-4 max-w-[48rem] text-left leading-relaxed text-[#8ab89a]">
-            Dados, lembranças, mapa, profissões, relacionamentos e enquetes sobre quem a gente era no HC — e quem a turma se tornou 20 anos depois.
-          </p>
-        </section>
-
-        {error && <ErrorState message={error} onRetry={loadCuriosities} />}
-        {loading && <LoadingState message="Carregando curiosidades..." />}
-
-        {!loading && (
-          <>
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" data-curiosities-summary>
-              <StatCard label="Ex-alunos 2006" value={publicDetails.length} icon={<Users size={28} />} drilldown="alumni" onClick={() => setActiveDrilldown("alumni")} />
-              <StatCard label="Cidades onde estão hoje" value={locations.length} icon={<MapPin size={28} />} drilldown="cities" onClick={() => setActiveDrilldown("cities")} />
-              <StatCard label="Áreas profissionais" value={professionRows.filter(row => row.label !== "Não informado" && row.count > 0).length || "—"} icon={<BriefcaseIcon />} drilldown="professions" onClick={() => setActiveDrilldown("professions")} />
-              <StatCard label="Total de filhos dos ex-alunos" value={profileStats?.total_children_declared ?? "—"} icon={<Baby size={28} />} drilldown="children" onClick={() => setActiveDrilldown("children")} />
-            </section>
-
-            <section className="mb-12">
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-                <div>
-                  <SectionLabel>Tempos de escola</SectionLabel>
-                  <DisplayTitle className="text-4xl md:text-5xl">O que a turma contou no cadastro</DisplayTitle>
-                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Os gráficos usam respostas multisselecionáveis do questionário de 4 etapas da mini bio.</p>
-                  <p data-questionnaire-sample className="text-[#c9a84c] font-mono text-xs mt-2">{questionnaireResponseStats?.respondent_count ?? 0} {(questionnaireResponseStats?.respondent_count ?? 0) === 1 ? "pessoa respondeu" : "pessoas responderam"} o questionário</p>
-                </div>
-                <Btn variant="outline" onClick={() => navigate("claim-profile")}><UserCheck size={16} />Responder questionário</Btn>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {questionGroups.map(group => (
-                  <MiniBarChart key={group.id} title={group.title} rows={group.rows} emptyLabel="Ainda não há respostas suficientes para esta pergunta." />
-                ))}
-              </div>
-            </section>
-
-            <section className="mb-12">
-              <SectionLabel>Como a vida seguiu</SectionLabel>
-              <DisplayTitle className="text-4xl md:text-5xl mb-2">Relacionamentos, filhos e profissões</DisplayTitle>
-              <p data-profile-sample className="text-[#c9a84c] font-mono text-xs mb-6">Base dos gráficos: {profileStats?.total_registered ?? 0} pessoas cadastradas no site</p>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <MiniBarChart title="Relacionamentos" description="Distribuição agregada dos perfis cadastrados." rows={relationshipRows} />
-                <MiniBarChart title="Filhos" description="Dados declarados no cadastro, exibidos somente de forma agregada." rows={childrenRows} />
-                <MiniBarChart title="Profissões por área" description="Agrupamento aproximado das profissões informadas publicamente." rows={professionRows} />
-              </div>
-            </section>
-
-            <section className="mb-12">
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-                <div>
-                  <SectionLabel>Mapa da turma</SectionLabel>
-                  <DisplayTitle className="text-4xl md:text-5xl">Onde a turma está hoje</DisplayTitle>
-                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">Apenas cidades autorizadas nos perfis aparecem aqui.</p>
-                </div>
-                <Btn variant="outline" onClick={() => navigate("ex-alumni")}><Users size={16} />Ver ex-alunos</Btn>
-              </div>
-              {locations.length === 0 ? (
-                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-                  <EmptyState icon={<MapPin size={42} />} title="Mapa ainda sem dados públicos" subtitle="As cidades aparecerão conforme os ex-alunos autorizarem a exibição da localização." />
-                </div>
-              ) : (
-                <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-5 md:p-6">
-                  <HomeMapChart
-                    configs={[
-                      { key: "foreign", label: "Exterior" },
-                      { key: "other_state", label: "Outros estados" },
-                      { key: "interior", label: "Interior do RN" },
-                      { key: "natal", label: "Natal/RN" },
-                    ] as HomeMapStatConfig[]}
-                    locations={locations}
-                  />
-                </div>
-              )}
-            </section>
-
-            <section>
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-                <div>
-                  <SectionLabel>Enquetes da turma</SectionLabel>
-                  <DisplayTitle className="text-4xl md:text-5xl">Vote nas memórias da turma</DisplayTitle>
-                  <p className="text-[#7a9a7a] mt-3 max-w-2xl">As enquetes continuam aqui, agora dentro do painel de curiosidades.</p>
-                </div>
-              </div>
-
-              {message && <div className="mb-6 bg-[#0d2e1a] border border-[#2d6a4f] p-4 text-[#74c69d] text-sm font-mono">{message}</div>}
-              {polls.length === 0 && (
-                <EmptyState icon={<BarChart3 size={42} />} title="Nenhuma enquete aberta" subtitle="A organização ainda não abriu votações para a turma." />
-              )}
-
-              {polls.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {polls.map(poll => {
-                    const options = [...(poll.poll_options ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-                    const total = Math.max(totalVotes(poll.id), 1);
-                    const votedOptions = myVotes.filter(v => v.poll_id === poll.id).map(v => v.option_id);
-                    const hasVoted = votedOptions.length > 0;
-                    return (
-                      <div key={poll.id} className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-2">Enquete</p>
-                            <h3 className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl font-bold leading-tight">{poll.question}</h3>
-                            {poll.description && <p className="text-[#7a9a7a] text-sm mt-2">{poll.description}</p>}
-                          </div>
-                          <StatusBadge status={poll.status} />
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                          {options.map(option => {
-                            const count = results[poll.id]?.[option.id] ?? 0;
-                            const percent = Math.round((count / total) * 100);
-                            const voted = votedOptions.includes(option.id);
-                            const disabled = !auth.loggedIn || poll.status !== "open" || busy === option.id || (hasVoted && !poll.allow_multiple_votes);
-                            return (
-                              <button key={option.id} disabled={disabled} onClick={() => submitVote(poll, option.id)}
-                                className={`text-left border p-4 transition-colors disabled:cursor-not-allowed ${voted ? "border-[#c9a84c] bg-[#1a2e1a]" : "border-[#2d6a4f]/25 bg-[#0d1a0f] hover:border-[#2d6a4f]/60"}`}>
-                                <div className={`flex items-center justify-between gap-3 ${hasVoted ? "mb-2" : ""}`}>
-                                  <span className="text-[#f0ebe0] text-sm font-semibold">{option.option_text}</span>
-                                  {hasVoted && <span className="text-[#7a9a7a] font-mono text-xs">{count} voto{count === 1 ? "" : "s"}</span>}
-                                </div>
-                                {hasVoted && <>
-                                  <div className="h-2 bg-[#1a2e1a] overflow-hidden"><div className="h-full bg-[#2d6a4f]" style={{ width: `${percent}%` }} /></div>
-                                  <p className="text-[#7a9a7a] font-mono text-[10px] mt-2">{percent}%</p>
-                                </>}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {!auth.loggedIn && poll.status === "open" && <p className="text-[#c9a84c] text-xs font-mono">Faça login para votar e visualizar os resultados.</p>}
-                        {auth.loggedIn && !hasVoted && poll.status === "open" && <p className="text-[#7a9a7a] text-xs font-mono">Os resultados serão exibidos depois do seu voto.</p>}
-                        {poll.allow_multiple_votes && <p className="text-[#7a9a7a] text-xs font-mono">Esta enquete permite múltiplos votos.</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          </>
-        )}
-      </div>
-    </div>
-    </>
-  );
-}
-
-function BriefcaseIcon() {
-  return <FileText size={28} />;
-}
-
 // ─── WHERE NOW ────────────────────────────────────────────────────────────────
 
 function WhereNowPage({ navigate, people }: { navigate: (p: Page) => void; people: DbPerson[] }) {
@@ -6321,387 +5459,6 @@ function WhereNowPage({ navigate, people }: { navigate: (p: Page) => void; peopl
 }
 
 // ─── SHARE INVITE ─────────────────────────────────────────────────────────────
-
-function ShareInvitePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [useName, setUseName] = useState(true);
-  const [event, setEvent] = useState<DbEvent | null>(null);
-  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    async function loadInviteData() {
-      setLoading(true);
-      try {
-        const [eventData, ticketData] = await Promise.all([
-          getEventSettings().catch(() => null),
-          auth.loggedIn ? getMyTickets(auth.userId, auth.email).catch(() => []) : Promise.resolve([]),
-        ]);
-        if (!active) return;
-        setEvent(eventData);
-        setTickets(ticketData);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadInviteData();
-    return () => { active = false; };
-  }, [auth.loggedIn, auth.userId, auth.email]);
-
-  const hasApprovedTicket = tickets.some(t => ticketPaymentStatus(t) === "approved");
-  const dateLabel = eventDateTimeLabel(event);
-  const locationLabel = event?.location_name ?? "Natal, Rio Grande do Norte";
-  const inviteText = `${useName && auth.loggedIn ? auth.name + " vai ao" : "Eu vou ao"} reencontro da Turma 2006 do Colégio Henrique Castriciano — 20 anos depois. ${dateLabel}, em ${locationLabel}. Vamos juntos?`;
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
-
-  async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(inviteText);
-      setMessage("Texto copiado.");
-    } catch {
-      setMessage("Copie manualmente o texto do convite.");
-    }
-  }
-
-  async function nativeShare() {
-    const nav = navigator as Navigator & { share?: (data: { title?: string; text?: string }) => Promise<void> };
-    if (nav.share) {
-      await nav.share({ title: "Reencontro Turma 2006", text: inviteText });
-    } else {
-      window.open(whatsappUrl, "_blank");
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate(auth.loggedIn ? "alumni-area" : "home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
-          <div>
-            <SectionLabel>Convite compartilhável</SectionLabel>
-            <DisplayTitle className="text-4xl md:text-6xl mb-4">Chame a turma para o reencontro</DisplayTitle>
-            <p className="text-[#7a9a7a] leading-relaxed mb-6">Use este cartão para divulgar o reencontro. A versão sem nome preserva sua privacidade.</p>
-            {loading && <LoadingState message="Carregando dados do convite..." />}
-            {!loading && auth.loggedIn && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <StatusBadge status={hasApprovedTicket ? "approved" : "pending"} />
-                <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">{hasApprovedTicket ? "Ingresso aprovado" : "Ingresso não localizado/aprovado"}</span>
-              </div>
-            )}
-            <label className="flex items-center gap-3 bg-[#141f14] border border-[#2d6a4f]/30 p-4 mb-4 cursor-pointer">
-              <input type="checkbox" checked={useName} onChange={e => setUseName(e.target.checked)} className="accent-[#2d6a4f]" disabled={!auth.loggedIn} />
-              <span className="text-[#f0ebe0] text-sm">Usar meu nome no convite {auth.loggedIn ? "" : "(faça login para ativar)"}</span>
-            </label>
-            {message && <p className="text-[#74c69d] text-sm font-mono mb-4">{message}</p>}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-              <Btn onClick={nativeShare}><Send size={16} />Compartilhar</Btn>
-              <Btn variant="outline" onClick={() => window.open(whatsappUrl, "_blank")}><Phone size={16} />WhatsApp</Btn>
-              <Btn variant="ghost" onClick={copyInvite}><FileText size={16} />Copiar texto</Btn>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {auth.loggedIn && <Btn variant="ghost" onClick={() => navigate("my-ticket")}><Ticket size={16} />Meu ingresso</Btn>}
-              <Btn variant="ghost" onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-            </div>
-            <p className="text-[#7a9a7a] text-xs font-mono mt-6">Compartilhamento disponivel por texto, Web Share API e WhatsApp.</p>
-          </div>
-
-          <div className="bg-[#f0ebe0] text-[#0d1a0f] p-8 shadow-2xl border-8 border-[#c9a84c]">
-            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#2d6a4f] mb-8">Colégio Henrique Castriciano</p>
-            <h3 className="font-['Playfair_Display'] text-4xl font-black leading-none mb-6">Eu vou ao reencontro da Turma 2006</h3>
-            {useName && auth.loggedIn && <p className="text-[#2d6a4f] font-bold text-lg mb-6">{auth.name}</p>}
-            <div className="h-px bg-[#c9a84c] my-6" />
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Data</p><p className="font-bold">{dateLabel.split(" · ")[0]}</p></div>
-              <div><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Hora</p><p className="font-bold">{dateLabel.split(" · ")[1] ?? "19h"}</p></div>
-              <div className="col-span-2"><p className="font-mono text-[10px] uppercase tracking-widest text-[#66745B]">Local</p><p className="font-bold">{locationLabel}</p></div>
-            </div>
-            <p className="mt-8 text-xs leading-relaxed text-[#5b4636]">20 anos depois, a turma se reencontra para celebrar histórias, fotos antigas e vínculos que atravessaram o tempo.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// ─── MY TICKET PAGE ───────────────────────────────────────────────────────────
-
-function MyTicketPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [tickets, setTickets] = useState<TicketWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  async function loadTicket() {
-    setLoading(true);
-    setError("");
-    try {
-      const ticketData = await getMyTickets(auth.userId, auth.email);
-      setTickets(ticketData);
-      if (!selectedId && ticketData[0]) setSelectedId(ticketData[0].id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar seus ingressos.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { loadTicket(); }, [auth.userId, auth.email]);
-
-  const ticket = tickets.find(item => item.id === selectedId) ?? tickets[0] ?? null;
-  const paymentStatus = ticketPaymentStatus(ticket);
-  const refundTitle = paymentStatus === "refunded"
-    ? "Reembolso concluído"
-    : paymentStatus === "approved"
-      ? "Reembolso integral em processamento"
-      : "Pagamento sem cobrança adicional";
-  const refundBody = paymentStatus === "refunded"
-    ? "O Mercado Pago confirmou o reembolso deste pagamento. O prazo para o valor aparecer na conta ou na fatura depende da instituição financeira e do meio de pagamento."
-    : paymentStatus === "approved"
-      ? "O evento foi cancelado e a organização está processando a devolução integral do valor pago pelo Mercado Pago. Você não precisa solicitar o reembolso."
-      : "O evento foi cancelado e não haverá novas cobranças. Se você acredita que houve um pagamento não identificado, entre em contato com a organização.";
-
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("alumni-area")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} />Minha área</button>
-
-        <SectionLabel>Pagamento e reembolso</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-6xl mb-4">Meus ingressos</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-8">O encontro de 2026 foi cancelado. Esta área permanece disponível para você consultar o ingresso, o pagamento original e o andamento do reembolso.</p>
-
-        <div className="mb-8 border border-[#c9a84c]/35 bg-[#141f14] p-5 md:p-6">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#c9a84c]">Evento cancelado</p>
-          <p className="mt-2 text-sm leading-6 text-[#d8ddd8]">Todos os pagamentos aprovados serão devolvidos integralmente pela organização.</p>
-          <button type="button" onClick={() => window.location.assign("/meus-pedidos")} className="mt-4 font-mono text-[10px] font-bold uppercase tracking-wider text-[#c9a84c] hover:text-[#f0ebe0]">Ver meus pedidos e pagamentos →</button>
-        </div>
-
-        {loading && <LoadingState message="Carregando ingressos..." />}
-        {error && <ErrorState message={error} onRetry={loadTicket} />}
-
-        {!loading && !error && tickets.length === 0 && (
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-            <EmptyState title="Nenhum ingresso encontrado" subtitle="Não localizamos pagamentos ou ingressos vinculados ao seu e-mail de login." />
-            <div className="mt-6 flex justify-center"><Btn variant="outline" onClick={() => window.location.assign("/meus-pedidos")}><FileText size={16} />Consultar meus pedidos</Btn></div>
-          </div>
-        )}
-
-        {!loading && !error && ticket && (
-          <div className="flex flex-col gap-6">
-            {tickets.length > 1 && (
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-4">
-                <p className="text-[#7a9a7a] font-mono text-xs uppercase tracking-widest mb-3">Selecionar ingresso</p>
-                <div className="flex flex-wrap gap-2">
-                  {tickets.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`px-4 py-2 text-xs font-mono border ${item.id === ticket.id ? "bg-[#2d6a4f] text-[#f0ebe0] border-[#2d6a4f]" : "border-[#2d6a4f]/30 text-[#7a9a7a]"}`}>{item.attendee_name}</button>)}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6">
-              <div className="bg-[#141f14] border border-[#c9a84c]/35 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Situação</p>
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl font-bold">{refundTitle}</h2>
-                <p className="mt-4 text-[#8ab89a] text-sm leading-6">{refundBody}</p>
-                <div className="mt-5 flex flex-wrap gap-2"><StatusBadge status={paymentStatus} /><StatusBadge status="cancelled" /></div>
-              </div>
-
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6">
-                <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-4">Dados do ingresso e do pagamento</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <InfoRow label="Participante" value={ticket.attendee_name} />
-                  <InfoRow label="Tipo" value={ticketTypeName(ticket)} />
-                  <InfoRow label="Pagamento" value={paymentStatus === "refunded" ? "Reembolsado" : paymentStatus === "approved" ? "Aprovado — aguardando devolução" : paymentStatus} />
-                  <InfoRow label="Método" value={ticket.orders?.payment_method ?? "Não informado"} />
-                  <InfoRow label="Data do pagamento" value={formatDateTimeBR(ticket.orders?.paid_at) || "Sem confirmação"} />
-                  <InfoRow label="Pedido" value={ticket.order_id} />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#0a120a] border border-[#2d6a4f]/20 p-6">
-              <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest mb-3">Sobre o QR Code</p>
-              <p className="text-[#8ab89a] text-sm leading-6">O ingresso permanece registrado como comprovante histórico da compra, mas não haverá check-in nem uso do QR Code porque o evento foi cancelado.</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value, icon, profileContrast = false }: { label: string; value: React.ReactNode; icon?: React.ReactNode; profileContrast?: boolean }) {
-  return (
-    <div data-profile-info={profileContrast ? "true" : undefined} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-4 flex gap-3 items-start">
-      {icon && <div className="text-[#c9a84c] mt-0.5 shrink-0">{icon}</div>}
-      <div>
-        <p className={`${profileContrast ? "text-[#a6cfae]" : "text-[#7a9a7a]"} font-mono text-[10px] uppercase tracking-widest mb-1`}>{label}</p>
-        <p className={`${profileContrast ? "text-[#d4e8d6]" : "text-[#fffaf0]"} text-sm font-semibold leading-relaxed break-words`}>{value}</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
-
-function ArchivePage({ navigate }: { navigate: (p: Page) => void; auth: AuthState; photos: DbPhoto[]; people: DbPerson[] }) {
-  const [event, setEvent] = useState<DbEvent | null>(null);
-  const [settings, setSettings] = useState<DbEventArchiveSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    async function loadArchive() {
-      setLoading(true);
-      setError("");
-      try {
-        const [eventData, settingsData] = await Promise.all([
-          getEventSettings().catch(() => null),
-          getEventArchiveSettings(DEFAULT_EVENT_ID).catch(() => null),
-        ]);
-        if (!active) return;
-        setEvent(eventData);
-        setSettings(settingsData);
-      } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : "Erro ao carregar acervo.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadArchive();
-    return () => { active = false; };
-  }, []);
-
-  const dateSource = event ? getEventDateTime(event) : new Date(FALLBACK_EVENT_DATE_TIME);
-  const archiveOpen = settings?.archive_enabled ?? Date.now() >= dateSource.getTime();
-
-  return (
-    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionLabel>{settings?.page_eyebrow || "Pós-festa"}</SectionLabel>
-          <DisplayTitle className="text-4xl md:text-7xl mb-4">{settings?.page_title || "Memórias do reencontro"}</DisplayTitle>
-          {loading && <LoadingState message="Carregando acervo..." />}
-          {error && <ErrorState message={error} />}
-
-          {!loading && !archiveOpen && (
-            <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8 md:p-12">
-              <div className="max-w-3xl">
-                <StatusBadge status="closed" />
-                <h2 className="text-[#f0ebe0] font-['Playfair_Display'] text-3xl md:text-5xl font-bold mt-5 mb-4">{settings?.closed_title || "O acervo será aberto depois do reencontro."}</h2>
-                <p className="text-[#8ab89a] leading-relaxed mb-8">{settings?.closed_text || "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização."}</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  {[
-                    ["Fotos oficiais", "Seleção da organização"],
-                    ["Memórias", "Relatos aprovados da turma"],
-                    ["Melhores momentos", "Vídeo e destaques pós-evento"],
-                  ].map(([title, body]) => <div key={title} className="bg-[#0a120a] border border-[#2d6a4f]/20 p-5"><p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-2">{title}</p><p className="text-[#7a9a7a] text-sm">{body}</p></div>)}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Btn onClick={() => navigate("tickets")}><CreditCard size={16} />Comprar ingresso</Btn>
-                  <Btn variant="outline" onClick={() => navigate("photo-wall")}><Camera size={16} />Ver fotos antigas</Btn>
-                  <Btn variant="ghost" onClick={() => navigate("memories")}><MessageCircle size={16} />Ver memórias</Btn>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!loading && archiveOpen && (
-            <div className="flex flex-col gap-10">
-              <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-8">
-                <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider mb-3">{settings?.message_label || "Mensagem da organização"}</p>
-                <p className="text-[#f0ebe0] font-['Playfair_Display'] text-2xl leading-relaxed">
-                  {settings?.post_event_text?.trim() || "Obrigado por fazer parte deste reencontro. Este acervo preserva os registros da noite e as lembrancas que a turma escolheu dividir."}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-  );
-}
-
-// ─── MEMORIES PAGE ────────────────────────────────────────────────────────────
-
-function MemoriesPage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [memories, setMemories] = useState<DbMemory[]>([]);
-  const [memoryText, setMemoryText] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const maxChars = 420;
-
-  async function loadMemories() {
-    setLoading(true);
-    setError("");
-    try {
-      setMemories(await getApprovedMemories(DEFAULT_EVENT_ID));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar memórias.");
-    } finally { setLoading(false); }
-  }
-
-  useEffect(() => { loadMemories(); }, []);
-
-  async function submitMemory() {
-    if (!auth.loggedIn) { navigate("login"); return; }
-    if (memoryText.trim().length < 10) { setError("Escreva uma memória com pelo menos 10 caracteres."); return; }
-    setBusy(true); setError(""); setMessage("");
-    try {
-      await createMemory({
-        eventId: DEFAULT_EVENT_ID,
-        userId: auth.userId,
-        authorName: auth.name,
-        memoryText: memoryText.trim().slice(0, maxChars),
-        isAnonymous: false,
-      });
-      setMemoryText("");
-      setMessage("Memória adicionada à caixa de memórias.");
-      await loadMemories();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao enviar memória.";
-      setError(message.includes("profile_registration_required") ? "Conclua seu cadastro antes de enviar uma memória." : message);
-    } finally { setBusy(false); }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#080f08] pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate("photo-wall")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar à Nossa História</button>
-        <SectionLabel>Caixa de Memórias</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-6xl mb-4">O que ficou daquele tempo?</DisplayTitle>
-        <p className="text-[#8ab89a] text-sm md:text-base max-w-2xl mb-10">Compartilhe uma lembrança curta da turma, dos professores, dos corredores, das gincanas ou de qualquer momento que mereça ficar no acervo do reencontro.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-[0.9fr_1.1fr] gap-8">
-          <div className="bg-[#141f14] border border-[#2d6a4f]/30 p-6 flex flex-col gap-5 h-fit">
-            <p className="text-[#c9a84c] font-mono text-xs uppercase tracking-wider">Enviar memória</p>
-            <FieldArea label="Sua memória" value={memoryText} onChange={v => setMemoryText(v.slice(0, maxChars))} rows={6} />
-            <div className="text-xs font-mono text-[#7a9a7a]"><span>{memoryText.length}/{maxChars} caracteres</span></div>
-            {message && <p className="text-[#74c69d] text-xs font-mono bg-[#2d6a4f]/10 border border-[#2d6a4f]/30 px-4 py-3">{message}</p>}
-            {error && <p className="text-[#e74c3c] text-xs font-mono bg-[#c0392b]/10 border border-[#c0392b]/30 px-4 py-3">{error}</p>}
-            <Btn full onClick={submitMemory} disabled={busy}><Send size={16} />Adicionar memória</Btn>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {loading && <LoadingState message="Carregando memórias..." />}
-            {!loading && memories.length === 0 && <EmptyState title="Nenhuma memória ainda" subtitle="Compartilhe uma lembrança para ela aparecer aqui." />}
-            {memories.map(memory => (
-              <div key={memory.id} className={`bg-[#141f14] border p-6 ${memory.is_featured ? "border-[#c9a84c]/60" : "border-[#2d6a4f]/25"}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#c9a84c] font-mono text-[10px] uppercase tracking-widest">{memory.is_featured ? "Memória destacada" : "Memória da turma"}</p>
-                  {memory.is_featured && <Star size={14} className="text-[#c9a84c]" />}
-                </div>
-                <p className="text-[#f0ebe0] text-lg leading-relaxed font-['Playfair_Display']">“{memory.memory_text}”</p>
-                <p className="text-[#7a9a7a] font-mono text-xs mt-4">{memory.is_anonymous ? "Anônimo" : (memory.author_name ?? "Ex-aluno")} · {formatDateShortBR(memory.created_at)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── ALUMNI AREA ──────────────────────────────────────────────────────────────
 
@@ -9934,83 +8691,6 @@ function CheckinPage({ navigate, auth }: { navigate: (p: Page) => void; auth: Au
   );
 }
 
-// ─── TERMS PAGE ───────────────────────────────────────────────────────────────
-
-function TermsPage({ navigate }: { navigate: (p: Page) => void }) {
-  const sections = [
-    { title: "1. Aceitação dos Termos", body: "Ao utilizar o HC20Anos, espaço digital da Turma 2006 do Henrique Castriciano, você concorda com estes Termos de Uso e com as regras de convivência e privacidade da plataforma." },
-    { title: "2. Cancelamento do encontro e pagamentos", body: "O encontro de 20 anos previsto para 2026 foi cancelado. Novas vendas de ingressos estão encerradas. Os pagamentos aprovados realizados antes do cancelamento serão reembolsados integralmente pela organização por meio do Mercado Pago." },
-    { title: "3. Dados Pessoais", body: "A coleta e o uso de dados pessoais estão descritos na Política de Privacidade. Ao criar ou atualizar um perfil, você concorda com o tratamento dos dados para as finalidades descritas nessa política." },
-    { title: "4. Fotos e Imagens", body: "Ao enviar uma foto, você declara ter o direito de compartilhá-la e autoriza a exibição no site. Fotos ofensivas, inadequadas ou que violem direitos de terceiros poderão ser removidas. Qualquer pessoa pode solicitar a remoção da própria imagem." },
-    { title: "5. Perfis de Ex-Alunos", body: "A lista da Turma 2006 foi criada com base em registros históricos. Cada ex-aluno pode reivindicar ou atualizar seu perfil por meio do processo de verificação disponível no site. Informações falsas ou uso indevido podem resultar na suspensão do acesso." },
-    { title: "6. Participação e convivência", body: "O HC20Anos existe para registrar memórias, perfis, fotos, curiosidades e informações sobre a turma. Conteúdos ofensivos, discriminatórios, falsos ou que violem direitos de terceiros não são permitidos." },
-    { title: "7. Histórico de pedidos e reembolsos", body: "Pedidos e ingressos já emitidos permanecem acessíveis aos respectivos usuários como registro da compra e para acompanhamento do reembolso. Esses registros não representam ingresso válido para um evento futuro." },
-    { title: "8. Conteúdo publicado", body: "Fotos, memórias e enquetes são publicadas automaticamente. A administração pode ocultar ou remover conteúdo que viole estes termos ou a Política de Privacidade." },
-    { title: "9. Continuidade do site", body: "O cancelamento do encontro não encerra o HC20Anos. A plataforma pode continuar disponível como acervo e espaço de atualização da Turma 2006, com funcionalidades ajustadas ao longo do tempo." },
-    { title: "10. Contato", body: "Dúvidas sobre o site, pagamentos ou reembolsos podem ser encaminhadas para hc20anos@gmail.com." },
-  ];
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-3">Termos de Uso</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026</p>
-        <div className="flex flex-col gap-8">
-          {sections.map(section => (
-            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-12 flex flex-wrap gap-4">
-          <Btn variant="outline" onClick={() => navigate("privacy")}><FileText size={16} />Política de Privacidade</Btn>
-          <Btn variant="ghost" onClick={() => navigate("home")}>Voltar ao site</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PRIVACY PAGE ─────────────────────────────────────────────────────────────
-
-function PrivacyPage({ navigate }: { navigate: (p: Page) => void }) {
-  const sections = [
-    { title: "1. Dados que coletamos", body: "Podemos tratar nome, e-mail, telefone/WhatsApp, cidade, profissão, fotos enviadas voluntariamente, data de nascimento declarada, respostas de verificação de identidade, informações de perfil e dados técnicos de navegação. Dados associados a pedidos antigos, inclusive identificadores necessários ao pagamento, permanecem vinculados ao histórico comercial e ao reembolso." },
-    { title: "2. Como usamos seus dados", body: "Os dados são usados para identificar ex-alunos, permitir criação e atualização de perfis, exibir informações autorizadas no diretório e nas curiosidades, administrar conteúdo publicado, operar a conta do usuário e, quando aplicável, manter o histórico de pagamentos e processar reembolsos." },
-    { title: "3. Dados de ex-alunos pré-cadastrados", body: "A lista foi constituída com base em registros históricos do Colégio HC. Os dados iniciais incluem apenas informações necessárias para identificar integrantes da turma. O ex-aluno pode reivindicar, corrigir ou solicitar a remoção do próprio perfil." },
-    { title: "4. Dados de pagamento e reembolso", body: "Os pagamentos foram processados pelo Mercado Pago. O HC20Anos não armazena dados completos de cartão. Identificadores de pedidos e pagamentos podem ser mantidos para conciliação, auditoria e execução dos reembolsos decorrentes do cancelamento do encontro." },
-    { title: "5. Fotos e marcações", body: "Fotos enviadas são armazenadas com segurança e exibidas imediatamente. Qualquer pessoa pode solicitar a remoção da própria imagem ou de uma marcação." },
-    { title: "6. Controles de privacidade", body: "Você pode escolher exibir ou ocultar informações como cidade, profissão, redes sociais e presença no diretório público. Também pode controlar permissões relacionadas a marcações em fotos." },
-    { title: "7. Solicitações de remoção", body: "Você pode solicitar correção ou remoção de informações e imagens pelos recursos disponíveis na plataforma ou pelo contato informado abaixo. Solicitações serão analisadas conforme a natureza do dado e as obrigações legais aplicáveis." },
-    { title: "8. Seus direitos (LGPD)", body: "Nos termos da Lei 13.709/2018 (LGPD), você pode solicitar acesso, correção, informações sobre tratamento, revogação de consentimento e exclusão quando juridicamente aplicável. Registros que precisem ser mantidos por obrigação legal ou para defesa de direitos poderão ser preservados pelo prazo necessário." },
-    { title: "9. Contato", body: "Para exercer seus direitos ou tirar dúvidas sobre privacidade, escreva para hc20anos@gmail.com." },
-  ];
-  return (
-    <div className="min-h-screen bg-[#0d1a0f] pt-24 pb-20">
-      <div className="max-w-3xl mx-auto px-4">
-        <button onClick={() => navigate("home")} className="flex items-center gap-2 text-[#7a9a7a] text-sm font-mono mb-8 hover:text-[#f0ebe0] transition-colors"><ArrowLeft size={16} /> Voltar</button>
-        <SectionLabel>Colégio Henrique Castriciano · Turma 2006</SectionLabel>
-        <DisplayTitle className="text-4xl md:text-5xl mb-3">Política de Privacidade</DisplayTitle>
-        <p className="text-[#7a9a7a] font-mono text-sm mb-12">Última atualização: 25 de setembro de 2026 · Em conformidade com a LGPD</p>
-        <div className="flex flex-col gap-8">
-          {sections.map(section => (
-            <div key={section.title} className="border-l-2 border-[#2d6a4f]/40 pl-6">
-              <p className="text-[#c9a84c] font-['Playfair_Display'] font-bold text-lg mb-3">{section.title}</p>
-              <p className="text-[#8ab89a] text-sm leading-relaxed">{section.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-12 flex flex-wrap gap-4">
-          <Btn variant="outline" onClick={() => navigate("terms")}><FileText size={16} />Termos de Uso</Btn>
-          <Btn variant="ghost" onClick={() => navigate("home")}>Voltar ao site</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
 const PROTECTED_ALUMNI: Page[] = ["alumni-area", "edit-profile", "my-ticket", "checkout"];
@@ -10408,6 +9088,11 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1a0f] text-[#f0ebe0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       {!isFullscreen && <Header page={page} navigate={navigate} auth={auth} logout={logout} content={homeContent ?? undefined} />}
       <main>
+        <Suspense fallback={
+          <div className="min-h-[40vh] flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
         {page === "home"          && <LandingPage      navigate={navigate} people={people} photos={approvedPhotos} memories={approvedMemories} attendanceIntentPersonIds={attendanceIntentPersonIds} content={homeContent as HomePageContent} event={event} ticketTypes={ticketTypes} auth={auth} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} onOpenPhoto={openPhoto} />}
         {page === "event"         && <EventPage        navigate={navigate} event={event}                             />}
         {page === "tickets"       && <TicketsPage       navigate={navigate} ticketTypes={ticketTypes} onSelectTicket={(id) => { setSelectedTicketTypeId(id); setCheckoutReturn(null); }} />}
@@ -10420,11 +9105,23 @@ export default function App() {
         {page === "photo-wall"    && <PhotoWallPage      navigate={navigate} auth={auth} photos={approvedPhotos} people={people} onOpenPhoto={openPhoto} />}
         {page === "photo-detail"  && <PhotoDetailPage    navigate={navigate} people={people} auth={auth} photo={selectedPhoto} />}
         {page === "memories"      && <MemoriesPage       navigate={navigate} auth={auth}                              />}
-        {(page === "curiosities" || page === "polls") && <CuriositiesPage    navigate={navigate} auth={auth} people={people}              />}
+        {(page === "curiosities" || page === "polls") && (
+          <CuriositiesPage
+            navigate={navigate}
+            auth={auth}
+            people={people}
+            ModalComponent={Modal}
+            PersonDetailModalComponent={PersonDetailModal}
+            HomeMapChartComponent={HomeMapChart}
+            schoolProfileQuestions={SCHOOL_PROFILE_QUESTIONS}
+            getInitials={initials}
+            normalizeValue={normalizeLoose}
+          />
+        )}
         {page === "where-now"     && <WhereNowPage       navigate={navigate} people={people}                         />}
         {page === "share-invite"  && <ShareInvitePage    navigate={navigate} auth={auth}                           />}
         {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}
-        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}
+        {page === "archive"       && <ArchivePage        navigate={navigate} />}
         {page === "alumni-area"   && <AlumniDashboardPage navigate={navigate} auth={auth} onSelectPhoto={openPhoto} />}
         {page === "edit-profile"  && <EditProfilePage   navigate={navigate} auth={auth}                           />}
         {page === "admin"         && auth.isAdmin && <AdminPage navigate={navigate} auth={auth} onHomeContentUpdated={setHomeContent} registerNavigationGuard={registerAdminNavigationGuard} />}
@@ -10432,6 +9129,7 @@ export default function App() {
         {page === "login"         && <LoginPage          navigate={navigate} onLogin={handleLogin}                 />}
         {page === "terms"         && <TermsPage          navigate={navigate}                                        />}
         {page === "privacy"       && <PrivacyPage        navigate={navigate}                                        />}
+        </Suspense>
       </main>
       {!isFullscreen && <Footer navigate={navigate} content={homeContent ?? undefined} />}
     </div>
