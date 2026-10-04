@@ -28,7 +28,6 @@ test.describe("operação do evento", () => {
       {
         p_ticket_id: OPERATION_TICKET_ID,
         p_undo: false,
-        p_notes: null,
       },
     ]);
 
