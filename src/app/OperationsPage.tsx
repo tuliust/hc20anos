@@ -32,7 +32,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
   const loadTickets = useCallback(async (searchOverride?: string) => {
     setLoading(true);
     const term = searchOverride ?? search;
-    const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: term || null });
+    const { data, error } = await supabase.rpc("get_checkin_dashboard", { p_search: term || undefined });
     setLoading(false);
     if (error) return setNotice(error.message);
     setTickets((data ?? []).map(normalizeCheckinRow));
@@ -61,7 +61,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
 
   async function checkin(ticketId: string, undo = false) {
     setNotice(null);
-    const { error } = await supabase.rpc("perform_ticket_checkin", { p_ticket_id: ticketId, p_undo: undo, p_notes: null });
+    const { error } = await supabase.rpc("perform_ticket_checkin", { p_ticket_id: ticketId, p_undo: undo, p_notes: undefined });
     if (error) setNotice(error.message);
     else {
       setNotice(undo ? "Check-in desfeito." : "Check-in registrado.");
@@ -100,7 +100,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
   async function reviewRefund(requestId: string, approve: boolean) {
     if (!canManageRefunds) return;
     const notes = window.prompt(approve ? "Observação da aprovação (opcional)" : "Motivo da rejeição") ?? "";
-    const { error } = await supabase.rpc("review_refund_request", { p_request_id: requestId, p_approve: approve, p_notes: notes || null });
+    const { error } = await supabase.rpc("review_refund_request", { p_request_id: requestId, p_approve: approve, p_notes: notes || undefined });
     if (error) return setNotice(error.message);
     if (approve) {
       const { data: sessionData } = await supabase.auth.getSession();
