@@ -36,8 +36,8 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}`,
-    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "buyer-orders"  && <BuyerOrdersPage    navigate={navigate}                                         />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}`,
+    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} />}`,
+    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "buyer-orders"  && <BuyerOrdersPage    navigate={navigate}                                         />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} />}`,
     "renderização dentro do shell compartilhado",
   );
 
