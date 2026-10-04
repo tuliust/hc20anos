@@ -32,6 +32,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Recharts v3 package files
+        run: npm install --package-lock-only --ignore-scripts --save-exact recharts@3.10.1 react-is@18.3.1
+
+      - name: Upload Recharts package files
+        uses: actions/upload-artifact@v4
+        with:
+          name: recharts-package-files
+          path: |
+            package.json
+            package-lock.json
+          retention-days: 1
+
       - name: Enforce protected-main workflow policy
         run: npm run audit:protected-main
 
