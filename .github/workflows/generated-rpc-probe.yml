@@ -1,0 +1,36 @@
+name: Generated RPC probe
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "api/**"
+      - "supabase/functions/**"
+      - "build/**"
+      - "scripts/generate-consumed-rpc-contracts.mjs"
+      - ".github/workflows/generated-rpc-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Generate RPC artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:generate-rpc-usage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-rpc-contracts
+          path: |
+            src/lib/rpc.generated.ts
+            docs/30-contratos/RPCs-consumidas.generated.md
