@@ -303,7 +303,27 @@ const publicCuriosityProfileDetailsFixture = peopleFixture.map((person, index) =
   intends_to_attend: index >= 2 && index < 5,
 }));
 
-const eventFixture = {
+type HomeEventFixture = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  event_date: string;
+  event_time: string;
+  location_name: string;
+  location_address: string | null;
+  event_status: string;
+  sales_status: string;
+  contact_email: string | null;
+  contact_phone: string | null;
+  general_rules: string | null;
+  companion_policy: string | null;
+  refund_policy: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const eventFixture: HomeEventFixture = {
   id: "00000000-0000-0000-0000-000000000001",
   title: "Reencontro da Turma 2006",
   slug: "reencontro-20-anos",
@@ -315,7 +335,7 @@ const eventFixture = {
   event_status: "published",
   sales_status: "open",
   contact_email: null,
-  contact_whatsapp: null,
+  contact_phone: null,
   general_rules: null,
   companion_policy: null,
   refund_policy: null,
@@ -323,10 +343,18 @@ const eventFixture = {
   updated_at: "2026-01-01T00:00:00Z",
 };
 
+type HomePersonFixture = Omit<(typeof peopleFixture)[number], "display_name"> & {
+  display_name: string | null;
+  avatar_url: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  private_notes: string | null;
+};
+
 type InstallOptions = {
   delayHomeMs?: number;
   mutateHome?: (row: Record<string, unknown>) => void;
-  people?: typeof peopleFixture;
+  people?: HomePersonFixture[];
   locations?: typeof locationsFixture;
   photos?: unknown[];
   polls?: unknown[];
