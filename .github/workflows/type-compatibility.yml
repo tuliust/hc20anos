@@ -13,13 +13,6 @@ on:
       - "package.json"
       - ".github/workflows/type-compatibility.yml"
   pull_request:
-    paths:
-      - "src/**"
-      - "docs/30-contratos/database.types.generated.ts"
-      - "scripts/audit-database-types.mjs"
-      - "scripts/generate-database-type-consumers.mjs"
-      - "package.json"
-      - ".github/workflows/type-compatibility.yml"
   workflow_dispatch:
 
 permissions:
@@ -30,7 +23,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs type-compatibility.yml >> "$GITHUB_OUTPUT"
+
   compare-types:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
