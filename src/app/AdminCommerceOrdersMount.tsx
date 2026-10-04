@@ -247,7 +247,7 @@ function AdminCommerceOrdersPanel() {
     try {
       const { data, error: rpcError } = await supabase.rpc("admin_get_commerce_orders", {
         p_event_id: DEFAULT_EVENT_ID,
-        p_status: status === "all" ? null : status,
+        p_status: status === "all" ? undefined : status,
       });
       if (rpcError) throw rpcError;
       setOrders(Array.isArray(data) ? data as CommerceOrder[] : []);
