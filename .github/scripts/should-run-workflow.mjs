@@ -104,7 +104,7 @@ function globToRegex(glob) {
     } else if (char === "*") {
       source += "[^/]*";
     } else {
-      source += specials.has(char) ? "\\\\" + char : char;
+      source += specials.has(char) ? "\\" + char : char;
     }
   }
   return new RegExp(source + "$");
