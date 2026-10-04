@@ -23,24 +23,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/engagement-functional-tests.yml"
   pull_request:
-    paths:
-      - "index.html"
-      - "src/app/App.tsx"
-      - "src/contentSyncEnhancements.ts"
-      - "src/exAlumniEnhancements.ts"
-      - "src/styles.css"
-      - "src/historyContentEnhancements.ts"
-      - "src/lib/services.ts"
-      - "src/lib/engagement.types.ts"
-      - "tests/e2e/engagement-flow.spec.ts"
-      - "tests/e2e/home-alumni-clickable.spec.ts"
-      - "tests/e2e/home-fixtures.ts"
-      - "tests/e2e/engagement-fixtures.ts"
-      - "tests/e2e/profile-claim-fixtures.ts"
-      - "playwright.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/engagement-functional-tests.yml"
   workflow_dispatch:
 
 permissions:
@@ -51,7 +33,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs engagement-functional-tests.yml >> "$GITHUB_OUTPUT"
+
   memories-and-polls:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
