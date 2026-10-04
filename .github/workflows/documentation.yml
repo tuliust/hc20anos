@@ -14,15 +14,6 @@ on:
       - ".github/pull_request_template.md"
       - ".github/workflows/documentation.yml"
   pull_request:
-    paths:
-      - "README.md"
-      - "docs/**"
-      - "scripts/audit-docs.mjs"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/CODEOWNERS"
-      - ".github/pull_request_template.md"
-      - ".github/workflows/documentation.yml"
   workflow_dispatch:
 
 permissions:
@@ -33,7 +24,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs documentation.yml >> "$GITHUB_OUTPUT"
+
   audit-documentation:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

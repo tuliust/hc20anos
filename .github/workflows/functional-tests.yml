@@ -19,20 +19,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/functional-tests.yml"
   pull_request:
-    paths:
-      - "src/app/home/**"
-      - "src/app/admin/faq/**"
-      - "src/lib/faq*.ts"
-      - "src/lib/profileClaim*.ts"
-      - "src/lib/people.types.ts"
-      - "src/lib/identity.types.ts"
-      - "tests/unit/faq.test.mjs"
-      - "tests/e2e/faq-*.ts"
-      - "tests/e2e/profile-claim-*.ts"
-      - "playwright.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/functional-tests.yml"
   workflow_dispatch:
 
 permissions:
@@ -43,7 +29,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs functional-tests.yml >> "$GITHUB_OUTPUT"
+
   profile-and-faq:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 

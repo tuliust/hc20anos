@@ -18,20 +18,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/phase1-environment-security.yml"
   pull_request:
-    paths:
-      - "src/**"
-      - "api/**"
-      - "build/**"
-      - "supabase/functions/**"
-      - "supabase/migrations/**"
-      - "supabase/tests/**"
-      - "scripts/generate-consumed-rpc-contracts.mjs"
-      - "scripts/migrate-rpc-any-casts.mjs"
-      - "docs/30-contratos/database.types.generated.ts"
-      - "docs/30-contratos/permissoes.md"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/phase1-environment-security.yml"
   workflow_dispatch:
 
 permissions:
@@ -42,7 +28,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs phase1-environment-security.yml >> "$GITHUB_OUTPUT"
+
   integrated-security:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
