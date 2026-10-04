@@ -1,4 +1,4 @@
-import { defineConfig, splitVendorChunkPlugin } from 'vite'
+import { defineConfig, splitVendorChunkPlugin, type PluginOption } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -23,13 +23,13 @@ function figmaAssetResolver() {
 
 export default defineConfig({
   plugins: [
-    figmaAssetResolver(),
-    sourceLineEndingNormalizationTransform(),
-    buyerOrdersSharedRouteTransform(),
-    profileClaimIdentityTransform(),
-    profileClaimProfileAiTransform(),
-    photoUploadYearInputTransform(),
-    productionReadinessTransform(),
+    figmaAssetResolver() as PluginOption,
+    sourceLineEndingNormalizationTransform() as PluginOption,
+    buyerOrdersSharedRouteTransform() as PluginOption,
+    profileClaimIdentityTransform() as PluginOption,
+    profileClaimProfileAiTransform() as PluginOption,
+    photoUploadYearInputTransform() as PluginOption,
+    productionReadinessTransform() as PluginOption,
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
