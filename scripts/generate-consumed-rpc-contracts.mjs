@@ -3,10 +3,25 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import ts from "typescript";
+import { sourceLineEndingNormalizationTransform } from "../build/sourceLineEndingNormalizationTransform.mjs";
+import { buyerOrdersSharedRouteTransform } from "../build/buyerOrdersSharedRouteTransform.mjs";
+import { profileClaimIdentityTransform } from "../build/profileClaimIdentityTransform.mjs";
+import { profileClaimProfileAiTransform } from "../build/profileClaimProfileAiTransform.mjs";
+import { photoUploadYearInputTransform } from "../build/photoUploadYearInputTransform.mjs";
+import { productionReadinessTransform } from "../build/productionReadinessTransform.mjs";
 
 const ROOT = process.cwd();
 const CHECK = process.argv.includes("--check");
-const SOURCE_ROOTS = ["src", "api", "supabase/functions", "build"];
+const SOURCE_ROOTS = ["src", "api", "supabase/functions"];
+const METADATA_ROOTS = [...SOURCE_ROOTS, "build"];
+const BUILD_TRANSFORMS = [
+  sourceLineEndingNormalizationTransform(),
+  buyerOrdersSharedRouteTransform(),
+  profileClaimIdentityTransform(),
+  profileClaimProfileAiTransform(),
+  photoUploadYearInputTransform(),
+  productionReadinessTransform(),
+];
 const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts", ".cts"]);
 const EXCLUDED = new Set(["src/lib/rpc.generated.ts"]);
 const TS_OUTPUT = "src/lib/rpc.generated.ts";
@@ -37,6 +52,20 @@ async function walk(directory) {
     else if (entry.isFile() && EXTENSIONS.has(path.extname(entry.name)) && !EXCLUDED.has(relative)) files.push(relative);
   }
   return files;
+}
+
+async function effectiveRuntimeContent(file, source) {
+  if (!file.startsWith("src/")) return source;
+  let code = source;
+  const id = path.join(ROOT, file);
+  for (const plugin of BUILD_TRANSFORMS) {
+    const hook = plugin?.transform;
+    if (typeof hook !== "function") continue;
+    const result = await hook.call(plugin, code, id);
+    if (!result) continue;
+    code = typeof result === "string" ? result : result.code ?? code;
+  }
+  return code;
 }
 
 function lineNumber(sourceFile, position) {
@@ -151,7 +180,8 @@ const files = (await Promise.all(SOURCE_ROOTS.map(walk))).flat().sort();
 const usages = [];
 const dynamic = [];
 for (const file of files) {
-  const content = await readFile(path.join(ROOT, file), "utf8");
+  const rawContent = await readFile(path.join(ROOT, file), "utf8");
+  const content = await effectiveRuntimeContent(file, rawContent);
   const ast = collectAstUsages(file, content);
   usages.push(...ast.usages);
   dynamic.push(...ast.dynamic);
@@ -161,7 +191,7 @@ for (const file of files) {
 
 const uniqueUsages = [...new Map(usages.map(item => [`${item.file}:${item.line}:${item.name}`, item])).values()];
 const names = [...new Set(uniqueUsages.map(item => item.name))].sort();
-const sourcePathArgs = ["--", ...SOURCE_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];
+const sourcePathArgs = ["--", ...METADATA_ROOTS, "src/lib/rpc.types.ts", "scripts/generate-consumed-rpc-contracts.mjs", ":(exclude)src/lib/database.generated.ts", ":(exclude)src/lib/rpc.generated.ts"];
 const sourceCommit = gitValue(["log", "--no-merges", "-1", "--format=%H", ...sourcePathArgs], "unknown");
 const verifiedDate = gitValue(["log", "--no-merges", "-1", "--format=%cs", ...sourcePathArgs], new Date().toISOString().slice(0, 10));
 
