@@ -1,16 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff } from "lucide-react";
 
-type BarcodeDetectorShape = {
-  detect(source: HTMLVideoElement): Promise<Array<{ rawValue: string }>>;
-};
-
-declare global {
-  interface Window {
-    BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorShape;
-  }
-}
-
 export function CheckinScanner({ onCode }: { onCode: (code: string) => void }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);

@@ -1,4 +1,5 @@
 import type { DbFaqCategory, DbFaqItem } from "./faq.types";
+import type { Json } from "./database.generated";
 import { supabase } from "./supabase";
 import { writeAudit } from "./services";
 import { normalizeText, slugifyFaqText } from "./faqText";
@@ -492,7 +493,7 @@ export async function reorderFaqItems(
   const { error } = await supabase.rpc("reorder_faq_items", {
     p_event_id: category.event_id,
     p_category_id: categoryId,
-    p_items: items,
+    p_items: items as unknown as Json,
     p_admin_id: adminId,
   });
   if (error) throw mapFaqError(error);
@@ -507,7 +508,7 @@ export async function reorderFaqCategories(
   categories.forEach(category => assertSortOrder(category.sort_order));
   const { error } = await supabase.rpc("reorder_faq_categories", {
     p_event_id: eventId,
-    p_categories: categories,
+    p_categories: categories as unknown as Json,
     p_admin_id: adminId,
   });
   if (error) throw mapFaqError(error);

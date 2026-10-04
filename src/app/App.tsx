@@ -896,9 +896,10 @@ function normalizeParticipantHeader(value: string) {
     foto: "avatar_url",
     url_foto: "avatar_url",
     avatar_url: "avatar_url",
-    whatsapp: "contact_whatsapp",
-    telefone: "contact_whatsapp",
-    contact_whatsapp: "contact_whatsapp",
+    whatsapp: "contact_phone",
+    telefone: "contact_phone",
+    contact_whatsapp: "contact_phone",
+    contact_phone: "contact_phone",
     email: "contact_email",
     e_mail: "contact_email",
     contact_email: "contact_email",
@@ -935,7 +936,7 @@ async function inflateZipEntry(data: Uint8Array, method: number) {
   if (method !== 8) throw new Error("Formato de compressão do XLSX não suportado.");
   const Decompression = (window as unknown as { DecompressionStream?: new (format: string) => TransformStream }).DecompressionStream;
   if (!Decompression) throw new Error("Seu navegador não tem suporte nativo para leitura de XLSX. Salve a planilha como CSV e envie novamente.");
-  const stream = new Blob([data]).stream().pipeThrough(new Decompression("deflate-raw"));
+  const stream = new Blob([data.slice().buffer as ArrayBuffer]).stream().pipeThrough(new Decompression("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -1226,7 +1227,7 @@ function PersonDetailModal({
   const childrenLabel = publicProfile ? childrenStatusLabel(publicProfile.has_children, publicProfile.children_count) : null;
   const instagramUrl = normalizeExternalUrl(publicProfile?.instagram_url);
   const linkedinUrl = normalizeExternalUrl(publicProfile?.linkedin_url);
-  const whatsappUrl = whatsappLink(publicProfile?.contact_whatsapp);
+  const whatsappUrl = whatsappLink(publicProfile?.contact_phone);
 
   return (
     <Modal open={!!person} onClose={onClose} title="Perfil da turma" wide>
@@ -3986,7 +3987,7 @@ function ExAlumniPage({ navigate, people }: { navigate: (p: Page) => void; peopl
       .finally(() => { if (active) setLoadingStatuses(false); });
 
     setLoadingPublicDetails(true);
-    getPublicCuriosityProfileDetails(DEFAULT_EVENT_ID)
+    getPublicCuriosityProfileDetails()
       .then(rows => { if (active) setPublicDetailRows(rows); })
       .catch(() => { if (active) setPublicDetailRows([]); })
       .finally(() => { if (active) setLoadingPublicDetails(false); });
@@ -5687,8 +5688,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
   const profileStatusLabel =
     profile?.people?.profile_status === "unclaimed" ? "Não atualizado"
       : profile?.people?.profile_status === "claimed" ? "Perfil completo"
-        : profile?.people?.profile_status === "preconfirmed" ? "Pré-confirmado"
-          : profile?.people?.profile_status === "confirmed" ? "Confirmado"
+        : profile?.people?.profile_status === "confirmed" ? "Confirmado"
             : formatEnumValue(profile?.people?.profile_status);
   const contactEmail = profile?.contact_email || profile?.people?.contact_email || auth.email || "";
   const contactPhone = profile?.contact_phone || profile?.people?.contact_phone || "";
@@ -5917,7 +5917,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
 }
 
 function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> }) | null>(null);
+  const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> | null }) | null>(null);
   const [form, setForm] = useState({
     displayName: "", nickname: "", photoUrl: "", city: "", state: "", country: "Brasil",
     profession: "", bio: "", memoryText: "", instagram: "", linkedin: "",
@@ -5998,7 +5998,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
       const data = await getMyProfile(auth.userId);
       setProfile(data);
       if (data) {
-        const nextForm = {
+        const nextForm: typeof form = {
           displayName: data.display_name ?? auth.name,
           nickname: data.people?.nickname_at_school ?? "",
           photoUrl: data.current_photo_url ?? "",
@@ -6011,7 +6011,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
           instagram: socialDisplayValue(data.instagram_url, "https://instagram.com/"),
           linkedin: socialDisplayValue(data.linkedin_url, "https://linkedin.com/in/"),
           contactEmail: data.contact_email ?? auth.email ?? "",
-          contactWhatsapp: formatWhatsapp(data.contact_whatsapp ?? ""),
+          contactWhatsapp: formatWhatsapp(data.contact_phone ?? ""),
           relationshipStatus: data.relationship_status ?? "",
           hasChildren: data.has_children ? "yes" : "no",
           childrenCount: data.children_count ? String(data.children_count) : "",
@@ -6080,7 +6080,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
         instagram_url: normalizeSocialUrl(form.instagram, "https://instagram.com/"),
         linkedin_url: normalizeSocialUrl(form.linkedin, "https://linkedin.com/in/"),
         contact_email: form.contactEmail.trim() || null,
-        contact_whatsapp: normalizeWhatsapp(form.contactWhatsapp),
+        contact_phone: normalizeWhatsapp(form.contactWhatsapp),
         relationship_status: form.relationshipStatus || null,
         has_children: form.hasChildren === "yes",
         children_count: form.hasChildren === "yes" && form.childrenCount.trim() ? Number(form.childrenCount) : null,
@@ -6236,7 +6236,7 @@ function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 
 function emptyAdminPersonRow(): AdminImportPersonInput {
-  return { full_name: "", display_name: "", gender: null, birth_year: null, class_group: "", avatar_url: "", contact_whatsapp: "", contact_email: "" };
+  return { full_name: "", display_name: "", gender: null, birth_year: null, class_group: "", avatar_url: "", contact_phone: "", contact_email: "" };
 }
 
 function AdminPeopleImportModal({
@@ -6317,7 +6317,7 @@ function AdminPeopleImportModal({
     setBusy(true);
     setError("");
     try {
-      const imported = await importPeopleAdmin(validRows.map(row => ({ ...row, contact_whatsapp: formatWhatsappInput(row.contact_whatsapp ?? "") })), adminId);
+      const imported = await importPeopleAdmin(validRows.map(row => ({ ...row, contact_phone: formatWhatsappInput(row.contact_phone ?? "") })), adminId);
       onImported(imported);
       onClose();
     } catch (err) {
@@ -6366,7 +6366,7 @@ function AdminPeopleImportModal({
                   </div>
                   <Field label="Ano *" type="number" value={row.birth_year ? String(row.birth_year) : ""} onChange={v => updateRow(index, { birth_year: Number(v.replace(/\D/g, "").slice(0, 4)) || null })} />
                   <Field label="Turma *" value={row.class_group ?? ""} onChange={v => updateRow(index, { class_group: v.toUpperCase().slice(0, 3) })} />
-                  <Field label="WhatsApp" value={row.contact_whatsapp ?? ""} onChange={v => updateRow(index, { contact_whatsapp: formatWhatsappInput(v) })} />
+                  <Field label="WhatsApp" value={row.contact_phone ?? ""} onChange={v => updateRow(index, { contact_phone: formatWhatsappInput(v) })} />
                   <div className="md:col-span-3">
                     <Field label="E-mail" type="email" value={row.contact_email ?? ""} onChange={v => updateRow(index, { contact_email: v })} />
                   </div>
@@ -6413,7 +6413,7 @@ type AdminPersonForm = {
   class_year: string;
   class_group: string;
   avatar_url: string;
-  contact_whatsapp: string;
+  contact_phone: string;
   contact_email: string;
   nickname_at_school: string;
   profile_status: ProfileStatus;
@@ -6432,7 +6432,7 @@ const EMPTY_ADMIN_PROFILE_DRAFT: AdminPersonProfileDraft = {
   instagram_url: "",
   linkedin_url: "",
   contact_email: "",
-  contact_whatsapp: "",
+  contact_phone: "",
   relationship_status: null,
   has_children: false,
   children_count: null,
@@ -6454,7 +6454,7 @@ function buildAdminPersonForm(person: DbPerson): AdminPersonForm {
     class_year: person.class_year ? String(person.class_year) : "2006",
     class_group: person.class_group ?? "",
     avatar_url: person.avatar_url ?? "",
-    contact_whatsapp: formatWhatsappInput(person.contact_whatsapp ?? ""),
+    contact_phone: formatWhatsappInput(person.contact_phone ?? ""),
     contact_email: person.contact_email ?? "",
     nickname_at_school: person.nickname_at_school ?? "",
     profile_status: person.profile_status,
@@ -6464,7 +6464,7 @@ function buildAdminPersonForm(person: DbPerson): AdminPersonForm {
 }
 
 function buildAdminProfileDraft(profile: DbProfile | null, person: DbPerson): AdminPersonProfileDraft {
-  if (!profile) return { ...EMPTY_ADMIN_PROFILE_DRAFT, display_name: person.display_name ?? "", current_photo_url: person.avatar_url ?? "", contact_email: person.contact_email ?? "", contact_whatsapp: formatWhatsappInput(person.contact_whatsapp ?? "") };
+  if (!profile) return { ...EMPTY_ADMIN_PROFILE_DRAFT, display_name: person.display_name ?? "", current_photo_url: person.avatar_url ?? "", contact_email: person.contact_email ?? "", contact_phone: formatWhatsappInput(person.contact_phone ?? "") };
   return {
     display_name: profile.display_name ?? "",
     current_photo_url: profile.current_photo_url ?? "",
@@ -6476,7 +6476,7 @@ function buildAdminProfileDraft(profile: DbProfile | null, person: DbPerson): Ad
     instagram_url: profile.instagram_url ?? "",
     linkedin_url: profile.linkedin_url ?? "",
     contact_email: profile.contact_email ?? "",
-    contact_whatsapp: formatWhatsappInput(profile.contact_whatsapp ?? ""),
+    contact_phone: formatWhatsappInput(profile.contact_phone ?? ""),
     relationship_status: profile.relationship_status ?? null,
     has_children: profile.has_children ?? false,
     children_count: profile.children_count ?? null,
@@ -6544,6 +6544,7 @@ function AdminPersonEditModal({
   }
 
   async function persistAvatar(url: string | null) {
+    if (!person) return;
     const updated = await updateAdminPersonAndProfile({
       personId: person.id,
       person: { avatar_url: url },
@@ -6559,6 +6560,7 @@ function AdminPersonEditModal({
   }
 
   async function handleAvatar(file: File) {
+    if (!person) return;
     setPhotoBusy(true);
     setError("");
     try {
@@ -6584,6 +6586,7 @@ function AdminPersonEditModal({
   }
 
   async function save() {
+    if (!person || !personForm) return;
     if (!personForm.full_name.trim()) {
       setError("Informe o nome completo.");
       return;
@@ -6599,7 +6602,7 @@ function AdminPersonEditModal({
         class_year: Number(personForm.class_year.replace(/\D/g, "")) || 2006,
         class_group: personForm.class_group.trim().toUpperCase() || null,
         avatar_url: personForm.avatar_url.trim() || null,
-        contact_whatsapp: formatWhatsappInput(personForm.contact_whatsapp).trim() || null,
+        contact_phone: formatWhatsappInput(personForm.contact_phone).trim() || null,
         contact_email: personForm.contact_email.trim() || null,
         nickname_at_school: personForm.nickname_at_school.trim() || null,
         profile_status: personForm.profile_status,
@@ -6619,7 +6622,7 @@ function AdminPersonEditModal({
         instagram_url: String(profileDraft.instagram_url ?? "").trim() || null,
         linkedin_url: String(profileDraft.linkedin_url ?? "").trim() || null,
         contact_email: String(profileDraft.contact_email ?? "").trim() || null,
-        contact_whatsapp: formatWhatsappInput(String(profileDraft.contact_whatsapp ?? "")).trim() || null,
+        contact_phone: formatWhatsappInput(String(profileDraft.contact_phone ?? "")).trim() || null,
         children_count: profileDraft.has_children ? Number(profileDraft.children_count ?? 0) || 0 : null,
       } : null;
 
@@ -6677,7 +6680,7 @@ function AdminPersonEditModal({
             </select>
           </div>
           <Field label="Apelido na escola" value={personForm.nickname_at_school} onChange={v => updatePersonForm({ nickname_at_school: v })} />
-          <Field label="WhatsApp" value={personForm.contact_whatsapp} onChange={v => updatePersonForm({ contact_whatsapp: formatWhatsappInput(v) })} />
+          <Field label="WhatsApp" value={personForm.contact_phone} onChange={v => updatePersonForm({ contact_phone: formatWhatsappInput(v) })} />
           <div className="md:col-span-2"><Field label="E-mail" type="email" value={personForm.contact_email} onChange={v => updatePersonForm({ contact_email: v })} /></div>
           <label className="flex items-center justify-between gap-3 bg-[#0a120a] border border-[#2d6a4f]/20 px-4 py-3 md:col-span-1">
             <span className="text-[#7a9a7a] text-xs font-mono uppercase tracking-wider">Visível</span>
@@ -6707,7 +6710,7 @@ function AdminPersonEditModal({
                 <option value="married">Casado(a)</option>
               </select>
             </div>
-            <Field label="WhatsApp público" value={String(profileDraft.contact_whatsapp ?? "")} onChange={v => updateProfileDraft({ contact_whatsapp: formatWhatsappInput(v) })} />
+            <Field label="WhatsApp público" value={String(profileDraft.contact_phone ?? "")} onChange={v => updateProfileDraft({ contact_phone: formatWhatsappInput(v) })} />
             <div className="md:col-span-2"><Field label="E-mail público" type="email" value={String(profileDraft.contact_email ?? "")} onChange={v => updateProfileDraft({ contact_email: v })} /></div>
             <Field label="Instagram" value={String(profileDraft.instagram_url ?? "")} onChange={v => updateProfileDraft({ instagram_url: v })} />
             <Field label="LinkedIn" value={String(profileDraft.linkedin_url ?? "")} onChange={v => updateProfileDraft({ linkedin_url: v })} />
@@ -7109,7 +7112,7 @@ const role = auth.role ?? "viewer";
           address: eventData.location_address ?? "",
           salesStatus: eventData.sales_status,
           contactEmail: eventData.contact_email ?? "",
-          contactPhone: eventData.contact_whatsapp ?? "",
+          contactPhone: eventData.contact_phone ?? "",
           description: eventData.description ?? "",
           rules: eventData.general_rules ?? "",
           companionPolicy: eventData.companion_policy ?? "",
@@ -7168,7 +7171,7 @@ const role = auth.role ?? "viewer";
       location_address: settings.address,
       sales_status: settings.salesStatus as DbEvent["sales_status"],
       contact_email: settings.contactEmail,
-      contact_whatsapp: settings.contactPhone,
+      contact_phone: settings.contactPhone,
       description: settings.description,
       general_rules: settings.rules,
       companion_policy: settings.companionPolicy,
@@ -7485,7 +7488,7 @@ const role = auth.role ?? "viewer";
         <nav className="flex flex-wrap justify-end gap-1.5">
           {adminGroups.map(group => {
             const active = group.tabs.some(item => item.id === tab) || group.id === tab;
-            const firstAvailable = group.tabs.find(item => !item.disabled);
+            const firstAvailable = group.tabs[0];
             return (
               <button key={group.id} onClick={() => firstAvailable && selectAdminTab(firstAvailable.id)}
                 className={`inline-flex items-center gap-1.5 border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors ${active ? "border-[#c9a84c] text-[#c9a84c]" : "border-[#2d6a4f]/30 text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
@@ -7499,7 +7502,7 @@ const role = auth.role ?? "viewer";
       {adminGroups.find(group => group.tabs.some(item => item.id === tab)) && (
         <div className="flex flex-wrap gap-1 border-b border-[#2d6a4f]/20 px-4 py-2 bg-[#0a120a]">
           {adminGroups.find(group => group.tabs.some(item => item.id === tab))?.tabs.map(item => (
-            <button key={item.id} disabled={item.disabled} onClick={() => !item.disabled && selectAdminTab(item.id)}
+            <button key={item.id} onClick={() => selectAdminTab(item.id)}
               className={`inline-flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-colors disabled:opacity-30 ${selectedSubtab === (item.id === "event-content" ? "event" : item.id === "archive-content" ? "archive" : item.id) ? "bg-[#2d6a4f] text-[#f0ebe0]" : "text-[#7a9a7a] hover:text-[#f0ebe0]"}`}>
               {item.icon}{item.label}
             </button>

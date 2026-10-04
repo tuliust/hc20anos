@@ -298,7 +298,7 @@ function findYearFilter(root: HTMLElement) {
     .find(element => normalizeText(element.textContent) === "filtrar por ano");
   const section = label?.parentElement;
   const grid = Array.from(section?.children ?? [])
-    .find((element): element is HTMLElement => element instanceof HTMLElement && element.querySelector("button"));
+    .find((element): element is HTMLElement => element instanceof HTMLElement && Boolean(element.querySelector("button")));
   return grid ?? null;
 }
 

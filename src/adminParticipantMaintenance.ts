@@ -142,7 +142,7 @@ function findFieldContainer(grid: HTMLElement, labelText: string): HTMLElement |
   const target = normalize(labelText);
   const label = Array.from(grid.querySelectorAll<HTMLLabelElement>("label"))
     .find(candidate => normalize(candidate.textContent).startsWith(target));
-  return directGridChild(label, grid);
+  return directGridChild(label ?? null, grid);
 }
 
 function findManualRowGrid(label: HTMLLabelElement, modal: HTMLElement): HTMLElement | null {
@@ -196,7 +196,7 @@ function applyManualGridLayout(grid: HTMLElement): void {
   const email = findFieldContainer(grid, "E-mail");
   const removeButton = Array.from(grid.querySelectorAll<HTMLButtonElement>("button"))
     .find(button => normalize(button.textContent).includes("remover"));
-  const remove = directGridChild(removeButton, grid);
+  const remove = directGridChild(removeButton ?? null, grid);
 
   hideBirthYearField(grid);
   grid.dataset.hcParticipantManualGrid = "true";

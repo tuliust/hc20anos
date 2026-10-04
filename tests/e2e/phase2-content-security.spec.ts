@@ -7,6 +7,7 @@ test.describe("Fase 2 — conteúdo e Storage", () => {
   test("reencoda imagem e entrega arquivo raster sem metadados", async ({ page }) => {
     await page.goto("/");
     const result = await page.evaluate(async base64 => {
+      // @ts-expect-error O navegador do Vite resolve /src no runtime do E2E.
       const module = await import("/src/lib/imageUploadSecurity.ts");
       const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
       const input = new File([bytes], "foto original.png", { type: "image/png" });
