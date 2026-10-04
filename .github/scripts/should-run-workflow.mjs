@@ -94,13 +94,20 @@ const patternsByWorkflow = {
 const commonPatterns = [".github/scripts/should-run-workflow.mjs"];
 
 function globToRegex(glob) {
-  const placeholder = "__DOUBLE_STAR__";
-  const escaped = glob
-    .replace(/[.+^${}()|[\]\\]/g, "\\.replace(/[.+^$()|[\]{}]/g, "\\$&")")
-    .replaceAll("**", placeholder)
-    .replaceAll("*", "[^/]*")
-    .replaceAll(placeholder, ".*");
-  return new RegExp("^" + escaped + "$");
+  const specials = new Set("\\^$.*+?()[]{}|".split(""));
+  let source = "^";
+  for (let index = 0; index < glob.length; index += 1) {
+    const char = glob[index];
+    if (char === "*" && glob[index + 1] === "*") {
+      source += ".*";
+      index += 1;
+    } else if (char === "*") {
+      source += "[^/]*";
+    } else {
+      source += specials.has(char) ? "\\\\" + char : char;
+    }
+  }
+  return new RegExp(source + "$");
 }
 
 if (!workflow || !patternsByWorkflow[workflow]) {
