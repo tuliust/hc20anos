@@ -5917,7 +5917,7 @@ function AlumniDashboardPage({ navigate, auth, onSelectPhoto }: { navigate: (p: 
 }
 
 function EditProfilePage({ navigate, auth }: { navigate: (p: Page) => void; auth: AuthState }) {
-  const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> }) | null>(null);
+  const [profile, setProfile] = useState<(DbProfile & { people?: Partial<DbPerson> | null }) | null>(null);
   const [form, setForm] = useState({
     displayName: "", nickname: "", photoUrl: "", city: "", state: "", country: "Brasil",
     profession: "", bio: "", memoryText: "", instagram: "", linkedin: "",
