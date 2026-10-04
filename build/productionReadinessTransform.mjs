@@ -11,15 +11,13 @@ export function productionReadinessTransform() {
       const normalizedId = normalizeModuleId(id);
       let code = source;
 
-      if (normalizedId.endsWith('/src/app/App.tsx')) {
+      if (normalizedId.endsWith('/src/app/app.constants.ts')) {
         code = replaceRequired(
           code,
-          'const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";',
-          'const FALLBACK_EVENT_DATE_TIME = "2026-09-26T14:00:00-03:00";',
+          'export const FALLBACK_EVENT_DATE_TIME = "2026-10-17T19:00:00-03:00";',
+          'export const FALLBACK_EVENT_DATE_TIME = "2026-09-26T14:00:00-03:00";',
           'data fallback do evento',
         );
-
-
       }
 
       if (normalizedId.endsWith('/src/lib/services.ts')) {

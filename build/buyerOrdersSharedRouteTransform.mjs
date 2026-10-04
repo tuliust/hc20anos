@@ -8,16 +8,9 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `import { SecureCheckoutPage } from "./SecureCheckoutPage";`,
-    `import { SecureCheckoutPage } from "./SecureCheckoutPage";\nimport { BuyerOrdersPage } from "./BuyerOrdersPage";`,
+    `import type { AuthState, Page } from "./app.types";`,
+    `import type { AuthState, Page } from "./app.types";\nimport { BuyerOrdersPage } from "./BuyerOrdersPage";`,
     "importação da página de pedidos",
-  );
-
-  code = replaceRequired(
-    code,
-    `  | "my-ticket" | "archive";`,
-    `  | "my-ticket" | "buyer-orders" | "archive";`,
-    "tipo da rota de pedidos",
   );
 
   code = replaceRequired(
@@ -43,12 +36,21 @@ function transformApp(source) {
 
   code = replaceRequired(
     code,
-    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}`,
-    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "buyer-orders"  && <BuyerOrdersPage    navigate={navigate}                                         />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} auth={auth} photos={approvedPhotos} people={people} />}`,
+    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} />}`,
+    `        {page === "my-ticket"     && <MyTicketPage       navigate={navigate} auth={auth}                           />}\n        {page === "buyer-orders"  && <BuyerOrdersPage    navigate={navigate}                                         />}\n        {page === "archive"       && <ArchivePage        navigate={navigate} />}`,
     "renderização dentro do shell compartilhado",
   );
 
   return code;
+}
+
+function transformAppTypes(source) {
+  return replaceRequired(
+    source,
+    `  | "my-ticket" | "archive";`,
+    `  | "my-ticket" | "buyer-orders" | "archive";`,
+    "tipo da rota de pedidos",
+  );
 }
 
 export function buyerOrdersSharedRouteTransform() {
@@ -58,6 +60,7 @@ export function buyerOrdersSharedRouteTransform() {
     transform(source, id) {
       const normalizedId = normalizeModuleId(id);
       if (normalizedId.endsWith("/src/app/App.tsx")) return { code: transformApp(source), map: null };
+      if (normalizedId.endsWith("/src/app/app.types.ts")) return { code: transformAppTypes(source), map: null };
       return null;
     },
   };
