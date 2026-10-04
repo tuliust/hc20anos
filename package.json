@@ -49,7 +49,7 @@
     "audit:protected-main": "node scripts/check-protected-main-workflows.mjs",
     "audit:reproducibility": "node scripts/check-reproducibility.mjs",
     "test:build-transforms": "node --test tests/unit/build-transform-utils.test.mjs",
-    "ci:verify": "npm run audit:reproducibility && npm run audit:migrations && npm run audit:docs && npm run docs:check-contracts && npm run docs:check-routes && npm run docs:check-type-compatibility && npm run docs:check-type-consumers && npm run docs:check-rpc-usage && npm run audit:technical-debt && npm run test:build-transforms && npm run build",
+    "ci:verify": "npm run audit:reproducibility && npm run audit:migrations && npm run audit:docs && npm run docs:check-contracts && npm run docs:check-routes && npm run docs:check-type-compatibility && npm run docs:check-type-consumers && npm run docs:check-rpc-usage && npm run typecheck && npm run audit:technical-debt && npm run test:build-transforms && npm run build",
     "audit:technical-debt": "node scripts/audit-technical-debt.mjs",
     "audit:security": "npm audit --audit-level=moderate",
     "audit:security:prod": "npm audit --omit=dev --audit-level=moderate"
