@@ -167,7 +167,7 @@ export async function uploadPhoto(params: {
 `, "services.ts");
   next = replaceFunction(next, "moderatePhoto", `
 export async function moderatePhoto(id: string, action: "approved" | "rejected", adminId: string) {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo", p_entity_id: id, p_status: action, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo", p_entity_id: id, p_status: action, p_notes: undefined });
   if (error) throw error;
   await writeAudit(\`photo_\${action}\`, "photos", id, { admin_id: adminId });
 }
@@ -185,7 +185,7 @@ export async function getPhotosForModeration(status: "pending" | "approved" | "r
 `, "services.ts");
   next = replaceFunction(next, "moderateTag", `
 export async function moderateTag(id: string, action: "approved" | "rejected", adminId: string) {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: id, p_status: action, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: id, p_status: action, p_notes: undefined });
   if (error) throw error;
   await writeAudit(\`tag_\${action}\`, "photo_tags", id, { admin_id: adminId });
 }
@@ -206,7 +206,7 @@ export async function createPhotoComment(params: { photoId: string; userId: stri
 `, "services.ts");
   next = replaceFunction(next, "moderatePhotoComment", `
 export async function moderatePhotoComment(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_comment", p_entity_id: id, p_status: status, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_comment", p_entity_id: id, p_status: status, p_notes: undefined });
   if (error) throw error;
   await writeAudit(\`photo_comment_\${status}\`, "photo_comments", id, { admin_id: adminId });
 }
@@ -222,7 +222,7 @@ export async function getFeaturedOrPopularPhotos(eventId = DEFAULT_EVENT_ID): Pr
 `, "services.ts");
   next = replaceFunction(next, "toggleFeaturedPhoto", `
 export async function toggleFeaturedPhoto(photoId: string, featured: boolean, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "photo", p_entity_id: photoId, p_featured: featured, p_notes: null });
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "photo", p_entity_id: photoId, p_featured: featured, p_notes: undefined });
   if (error) throw error;
   await writeAudit(featured ? "feature_photo" : "unfeature_photo", "photos", photoId, { admin_id: adminId });
 }
@@ -246,14 +246,14 @@ export async function getApprovedMemories(eventId = DEFAULT_EVENT_ID, featuredOn
 `, "services.ts");
   next = replaceFunction(next, "moderateMemory", `
 export async function moderateMemory(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: id, p_status: status, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: id, p_status: status, p_notes: undefined });
   if (error) throw error;
   await writeAudit(\`memory_\${status}\`, "memories", id, { admin_id: adminId });
 }
 `, "services.ts");
   next = replaceFunction(next, "toggleFeaturedMemory", `
 export async function toggleFeaturedMemory(id: string, featured: boolean, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "memory", p_entity_id: id, p_featured: featured, p_notes: null });
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "memory", p_entity_id: id, p_featured: featured, p_notes: undefined });
   if (error) throw error;
   await writeAudit(featured ? "feature_memory" : "unfeature_memory", "memories", id, { admin_id: adminId });
 }
@@ -269,7 +269,7 @@ export async function createPhotoRemovalRequest(params: { photoId: string; userI
   next = replaceFunction(next, "reviewPhotoRemovalRequest", `
 export async function reviewPhotoRemovalRequest(id: string, action: "approved" | "rejected" | "hidden_preventively", adminId: string, notes?: string) {
   if (action === "rejected") {
-    const { error } = await supabase.rpc("reject_photo_removal_request", { p_request_id: id, p_notes: notes ?? null });
+    const { error } = await supabase.rpc("reject_photo_removal_request", { p_request_id: id, p_notes: notes ?? undefined });
     if (error) throw error;
   } else {
     await removeSecurePhoto(id, notes ?? null);
