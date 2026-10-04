@@ -48,7 +48,7 @@ export default defineConfig({
       output: {
         onlyExplicitManualChunks: true,
         manualChunks(id) {
-          const normalized = id.replaceAll('\\\\', '/')
+          const normalized = id.replaceAll('\\', '/')
 
           const srcMarker = '/src/'
           const srcIndex = normalized.lastIndexOf(srcMarker)
