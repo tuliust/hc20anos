@@ -96,7 +96,7 @@ const commonPatterns = [".github/scripts/should-run-workflow.mjs"];
 function globToRegex(glob) {
   const placeholder = "__DOUBLE_STAR__";
   const escaped = glob
-    .replace(/[.+^$()|[\]{}]/g, "\\$&")
+    .replace(/[.+^${}()|[\]\\]/g, "\\.replace(/[.+^$()|[\]{}]/g, "\\$&")")
     .replaceAll("**", placeholder)
     .replaceAll("*", "[^/]*")
     .replaceAll(placeholder, ".*");
