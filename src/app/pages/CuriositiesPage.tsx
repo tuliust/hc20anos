@@ -159,6 +159,9 @@ function CuriosityDrilldownModal({
   people,
   onClose,
   onOpenPerson,
+  ModalComponent,
+  getInitials,
+  normalizeValue,
 }: {
   kind: CuriosityDrilldownKind | null;
   details: PublicCuriosityProfileDetailRow[];
@@ -168,6 +171,9 @@ function CuriosityDrilldownModal({
   people: DbPerson[];
   onClose: () => void;
   onOpenPerson: (person: DbPerson) => void;
+  ModalComponent: ComponentType<ModalProps>;
+  getInitials: (name: string) => string;
+  normalizeValue: (value?: string | number | null) => string;
 }) {
   const [query, setQuery] = useState("");
   const peopleById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
@@ -388,6 +394,9 @@ export function CuriositiesPage({ navigate, auth, people, ModalComponent, Person
         people={people}
         onClose={() => setActiveDrilldown(null)}
         onOpenPerson={openCuriosityPerson}
+        ModalComponent={ModalComponent}
+        getInitials={getInitials}
+        normalizeValue={normalizeValue}
       />
       <PersonDetailModalComponent
         person={selectedPerson}
