@@ -43,6 +43,41 @@ export default defineConfig({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        onlyExplicitManualChunks: true,
+        manualChunks(id) {
+          const normalized = id.replaceAll('\\', '/')
+
+          const srcMarker = '/src/'
+          const srcIndex = normalized.lastIndexOf(srcMarker)
+          if (srcIndex >= 0) {
+            const relative = normalized.slice(srcIndex + srcMarker.length)
+            if (!relative.includes('/') && relative !== 'main.tsx' && /\.(ts|tsx)$/.test(relative)) {
+              return 'enhancements'
+            }
+          }
+
+          const routeMounts = [
+            '/src/app/AdminCmsPanelsMount.tsx',
+            '/src/app/AdminOverviewDashboardMount.tsx',
+            '/src/app/AdminCommerceOrdersMount.tsx',
+            '/src/app/AdminTicketLotsMount.tsx',
+            '/src/app/AdminTicketProductCopyMount.tsx',
+            '/src/app/ContactResearchPage.tsx',
+            '/src/app/OperationsRouteGuard.tsx',
+            '/src/app/PublicCmsStrictGuard.tsx',
+            '/src/app/PublicTicketsCatalogMount.tsx',
+          ]
+          if (routeMounts.some(modulePath => normalized.endsWith(modulePath))) {
+            return 'route-mounts'
+          }
+        },
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
