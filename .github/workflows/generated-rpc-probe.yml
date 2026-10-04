@@ -1,4 +1,5 @@
 name: Generated RPC probe
+# Temporary: removed once generated outputs are committed.
 
 on:
   pull_request:
