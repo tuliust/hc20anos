@@ -33,7 +33,7 @@ export function GuestApprovalPage() {
       return;
     }
     const [{ data: sponsorData, error: sponsorError }, { data: requestData, error: requestError }] = await Promise.all([
-      supabase.rpc("search_external_guest_sponsors", { p_search: search || null }),
+      supabase.rpc("search_external_guest_sponsors", { p_search: search || undefined }),
       supabase.rpc("get_my_guest_approval_requests"),
     ]);
     if (sponsorError || requestError) setNotice(sponsorError?.message ?? requestError?.message ?? "Falha ao carregar dados.");
@@ -66,7 +66,7 @@ export function GuestApprovalPage() {
 
   async function decide(id: string, decision: "approved" | "rejected") {
     const notes = window.prompt(decision === "approved" ? "Observação opcional" : "Motivo da rejeição") ?? "";
-    const { error } = await supabase.rpc("respond_guest_approval_request", { p_request_id: id, p_decision: decision, p_notes: notes || null });
+    const { error } = await supabase.rpc("respond_guest_approval_request", { p_request_id: id, p_decision: decision, p_notes: notes || undefined });
     if (error) return setNotice(error.message);
     setNotice(decision === "approved" ? "Convidado aprovado." : "Solicitação rejeitada.");
     await load();
