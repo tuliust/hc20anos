@@ -89,7 +89,7 @@ export function OperationsPage({ role }: { role: AdminRole }) {
   }
 
   async function vouchers(ticketId: string, delivered: boolean) {
-    const { error } = await supabase.rpc("set_participant_vouchers_delivered", { p_ticket_id: ticketId, p_delivered: delivered, p_notes: null });
+    const { error } = await supabase.rpc("set_participant_vouchers_delivered", { p_ticket_id: ticketId, p_delivered: delivered, p_notes: undefined });
     if (error) setNotice(error.message);
     else {
       setNotice(delivered ? "Fichas registradas como entregues." : "Entrega de fichas desfeita.");
