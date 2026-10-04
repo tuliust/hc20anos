@@ -23,7 +23,7 @@ export function TicketTransferAction({ ticketId, disabled, onDone }: { ticketId:
     if (!email) return;
     const phone = window.prompt("Telefone do novo participante (opcional)") ?? "";
     setBusy(true);
-    const { error } = await supabase.rpc("request_ticket_transfer", { p_ticket_id: ticketId, p_to_name: name, p_to_email: email, p_to_phone: phone || null });
+    const { error } = await supabase.rpc("request_ticket_transfer", { p_ticket_id: ticketId, p_to_name: name, p_to_email: email, p_to_phone: phone || undefined });
     setBusy(false);
     onDone(error ? `Não foi possível solicitar a transferência: ${error.message}` : "Transferência solicitada. O destinatário poderá aceitar na Área do Comprador.");
   }

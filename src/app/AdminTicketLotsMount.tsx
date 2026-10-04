@@ -287,14 +287,14 @@ function AdminTicketLotsPanel() {
     setSuccess("");
     try {
       const { data, error: rpcError } = await supabase.rpc("admin_upsert_ticket_lot", {
-        p_lot_id: draft.id,
+        p_lot_id: draft.id as string,
         p_event_id: DEFAULT_EVENT_ID,
         p_code: code,
         p_name: name,
         p_sort_order: Math.max(0, Number(draft.sortOrder) || 0),
-        p_starts_at: toIsoDateTime(draft.startsAt),
-        p_ends_at: toIsoDateTime(draft.endsAt),
-        p_capacity: draft.capacity.trim() ? Math.max(0, Number(draft.capacity) || 0) : null,
+        p_starts_at: toIsoDateTime(draft.startsAt) as string,
+        p_ends_at: toIsoDateTime(draft.endsAt) as string,
+        p_capacity: (draft.capacity.trim() ? Math.max(0, Number(draft.capacity) || 0) : null) as number,
         p_status: draft.status,
         p_prices: prices,
       });

@@ -302,7 +302,7 @@ export async function getCmsContentHealth(eventId = CMS_EVENT_ID): Promise<CmsHe
   if (assetsResult.error) {
     rows.push({ label: "Assets", ok: false, detail: assetsResult.error.message });
   } else {
-    const assetMap = new Map((assetsResult.data ?? []).map((asset: CmsAsset) => [asset.asset_key, asset]));
+    const assetMap = new Map<string, CmsAsset>((assetsResult.data ?? []).map((asset: CmsAsset) => [asset.asset_key, asset]));
     const missingAssets = REQUIRED_ASSETS.filter(key => {
       const asset = assetMap.get(key);
       return !asset || asset.is_active === false || isBlank(asset.file_url);
