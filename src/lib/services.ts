@@ -545,7 +545,7 @@ export interface AdminPersonProfileDraft {
   instagram_url?: string | null;
   linkedin_url?: string | null;
   contact_email?: string | null;
-  contact_whatsapp?: string | null;
+  contact_phone?: string | null;
   relationship_status?: "single" | "dating" | "married" | null;
   has_children?: boolean | null;
   children_count?: number | null;
