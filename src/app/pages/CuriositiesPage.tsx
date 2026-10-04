@@ -131,18 +131,17 @@ function MiniBarChart({ title, description, rows, emptyLabel = "Dados ainda insu
   );
 }
 
-function getQuestionTitle(questionId: string) {
-  return schoolProfileQuestions.find(question => question.id === questionId)?.title ?? questionId;
-}
-
-function groupQuestionnaireStats(rows: SchoolQuestionnaireOptionStatRow[]) {
+function groupQuestionnaireStats(
+  rows: SchoolQuestionnaireOptionStatRow[],
+  questions: Array<{ id: string; title: string }>,
+) {
   const grouped = new Map<string, { label: string; count: number }[]>();
   for (const row of rows) {
     const current = grouped.get(row.question_id) ?? [];
     current.push({ label: row.option_label, count: row.answer_count });
     grouped.set(row.question_id, current);
   }
-  return schoolProfileQuestions.map(question => ({
+  return questions.map(question => ({
     id: question.id,
     title: question.title,
     rows: (grouped.get(question.id) ?? []).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR")),
@@ -368,7 +367,7 @@ export function CuriositiesPage({ navigate, auth, people, ModalComponent, Person
     return Object.values(results[pollId] ?? {}).reduce<number>((sum, value) => sum + Number(value), 0);
   }
 
-  const questionGroups = groupQuestionnaireStats(questionnaireStats);
+  const questionGroups = groupQuestionnaireStats(questionnaireStats, schoolProfileQuestions);
   const relationshipRows = profileStats?.relationship_status_counts ?? [];
   const childrenRows = profileStats?.children_status_counts ?? [];
   const professionRows = profileStats?.profession_area_counts ?? [];
