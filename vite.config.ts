@@ -54,7 +54,7 @@ export default defineConfig({
           const srcIndex = normalized.lastIndexOf(srcMarker)
           if (srcIndex >= 0) {
             const relative = normalized.slice(srcIndex + srcMarker.length)
-            if (!relative.includes('/') && relative !== 'main.tsx' && /\\.(ts|tsx)$/.test(relative)) {
+            if (!relative.includes('/') && relative !== 'main.tsx' && /\.(ts|tsx)$/.test(relative)) {
               return 'enhancements'
             }
           }
