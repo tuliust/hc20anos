@@ -27,27 +27,6 @@ on:
       - "docs/30-contratos/database.types.generated.ts"
       - ".github/workflows/database-migrations.yml"
   pull_request:
-    paths:
-      - "supabase/config.toml"
-      - "supabase/migrations/**"
-      - "supabase/tests/**"
-      - "supabase/manual/**"
-      - "scripts/generate-database-contracts.mjs"
-      - "scripts/validate-supabase-migrations.mjs"
-      - "scripts/repair-supabase-migration-history.ps1"
-      - "build/profileClaimIdentityTransform.mjs"
-      - "src/lib/profileClaimIdentity.ts"
-      - "src/lib/database.generated.ts"
-      - "tests/e2e/profile-claim-*.ts"
-      - "playwright.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "docs/30-contratos/banco.generated.md"
-      - "docs/30-contratos/RPCs.generated.md"
-      - "docs/30-contratos/RLS.generated.md"
-      - "docs/30-contratos/erd.generated.mmd"
-      - "docs/30-contratos/database.types.generated.ts"
-      - ".github/workflows/database-migrations.yml"
   workflow_dispatch:
 
 permissions:
@@ -58,7 +37,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node .github/scripts/should-run-workflow.mjs database-migrations.yml >> "$GITHUB_OUTPUT"
+
   static-audit:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
