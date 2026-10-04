@@ -7,6 +7,9 @@
 import { DEV_MODE, supabase } from "./supabase";
 import { withFallback } from "./serviceFallback";
 export { getPeopleByPublicLocation, getPublicLocationStats } from "./locationService";
+export { getContentModerationSettings, updateContentModerationSettings } from "./contentModerationService";
+export type { ContentModerationSettings } from "./contentModerationService";
+export { getEventArchiveSettings, updateEventArchiveSettings } from "./eventArchiveService";
 import type { Json } from "./database.generated";
 import { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";
 import type {
@@ -34,7 +37,7 @@ import type {
 import type { DbOrder, DbTicket, DbTicketType, InsertOrder, TicketStatus, TicketWithDetails } from "./commerce.types";
 import type { DbMemory, DbPoll, DbPollOption, DbPollVote, PollResultRow, PollStatus } from "./engagement.types";
 import type { DbProfileClaim, DbProfileClaimAnswer, DbProfileClaimDispute } from "./identity.types";
-import type { DbAuditLog, DbEvent, DbEventArchiveSettings, DbEventPageContent, DbHomePageContent } from "./content.types";
+import type { DbAuditLog, DbEvent, DbEventPageContent, DbHomePageContent } from "./content.types";
 
 export interface HomePageContent extends Partial<DbHomePageContent> {
   event_id: string;
@@ -142,13 +145,6 @@ export interface EventPageContent {
   extra_info_json: string;
   updated_at?: string | null;
   updated_by_admin_id?: string | null;
-}
-
-export interface ContentModerationSettings {
-  event_id: string;
-  auto_approve_photos: boolean;
-  auto_approve_comments: boolean;
-  auto_approve_memories: boolean;
 }
 
 export const EVENT_PAGE_CONTENT_DEFAULTS: EventPageContent = {
@@ -354,26 +350,6 @@ export async function uploadCmsContentImage(file: File, adminId: string, scope: 
   await writeAudit("upload_cms_content_image", "cms_asset", DEFAULT_HOME_EVENT_ID, { path: uploaded.storagePath, scope, admin_id: adminId }).catch(() => {});
   return uploaded.publicUrl;
 }
-
-export async function getContentModerationSettings(eventId = DEFAULT_HOME_EVENT_ID): Promise<ContentModerationSettings> {
-  const fallback = { event_id: eventId, auto_approve_photos: false, auto_approve_comments: false, auto_approve_memories: false };
-  const { data, error } = await (supabase as any).from("content_moderation_settings").select("*").eq("event_id", eventId).maybeSingle();
-  if (error) return fallback;
-  return {
-    event_id: eventId,
-    auto_approve_photos: Boolean(data?.auto_approve_photos),
-    auto_approve_comments: Boolean(data?.auto_approve_comments),
-    auto_approve_memories: Boolean(data?.auto_approve_memories),
-  };
-}
-
-export async function updateContentModerationSettings(eventId: string, patch: Partial<ContentModerationSettings>): Promise<ContentModerationSettings> {
-  const { data, error } = await (supabase as any).from("content_moderation_settings")
-    .upsert({ event_id: eventId, ...patch }, { onConflict: "event_id" }).select("*").single();
-  if (error) throw error;
-  return data as ContentModerationSettings;
-}
-
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
 
@@ -1022,40 +998,6 @@ export async function createOrder(order: InsertOrder): Promise<DbOrder> {
   const { data, error } = await supabase.from("orders").insert(order).select().single();
   if (error) throw error;
   return data as DbOrder;
-}
-
-export async function getEventArchiveSettings(eventId: string): Promise<DbEventArchiveSettings | null> {
-  return withFallback(async () => {
-    const { data, error } = await supabase
-      .from("event_archive_settings")
-      .select("*")
-      .eq("event_id", eventId)
-      .maybeSingle();
-    if (error) throw error;
-    return data as DbEventArchiveSettings | null;
-  }, null);
-}
-
-export async function updateEventArchiveSettings(eventId: string, patch: Partial<DbEventArchiveSettings>): Promise<DbEventArchiveSettings> {
-  const payload = {
-    event_id: eventId,
-    archive_enabled: patch.archive_enabled ?? false,
-    page_eyebrow: patch.page_eyebrow ?? "Pós-festa",
-    page_title: patch.page_title ?? "Memórias do reencontro",
-    message_label: patch.message_label ?? "Mensagem da organização",
-    closed_title: patch.closed_title ?? "O acervo será aberto depois do reencontro.",
-    closed_text: patch.closed_text ?? "Depois do evento, esta página reunirá os registros e lembranças aprovados pela organização.",
-    post_event_text: patch.post_event_text ?? null,
-    official_video_url: patch.official_video_url ?? null,
-    official_video_title: patch.official_video_title ?? null,
-    official_photo_ids: patch.official_photo_ids ?? [],
-    highlight_photo_ids: patch.highlight_photo_ids ?? [],
-    highlights_links: patch.highlights_links ?? [],
-  };
-  const { data, error } = await (supabase as any).from("event_archive_settings")
-    .upsert(payload, { onConflict: "event_id" }).select("*").single();
-  if (error) throw error;
-  return data as DbEventArchiveSettings;
 }
 
 export async function getMyOrder(email: string): Promise<DbOrder | null> {
