@@ -10,7 +10,7 @@ export { getPeopleByPublicLocation, getPublicLocationStats } from "./locationSer
 export { getContentModerationSettings, updateContentModerationSettings } from "./contentModerationService";
 export type { ContentModerationSettings } from "./contentModerationService";
 export { getEventArchiveSettings, updateEventArchiveSettings } from "./eventArchiveService";
-import type { Json } from "./database.generated";
+import type { Database, Json } from "./database.generated";
 import { removeSecurePhoto, uploadSecureAsset, uploadSecurePhoto } from "./secureImageStorage";
 import type {
   AlumniDirectoryStatusRow,
@@ -74,7 +74,7 @@ export interface HomePageContent extends Partial<DbHomePageContent> {
   home_map_stats_json?: string;
   home_poll_id?: string | null;
   home_poll_fallback_json?: string;
-  updated_at?: string | null;
+  updated_at?: string;
   updated_by_admin_id?: string | null;
 }
 
@@ -278,7 +278,7 @@ export async function updateHomePageContent(
 
   const { data, error } = await supabase
     .from("home_page_content")
-    .upsert(payload, { onConflict: "event_id" })
+    .upsert(payload as Database["public"]["Tables"]["home_page_content"]["Insert"], { onConflict: "event_id" })
     .select("*")
     .single();
 
@@ -568,7 +568,7 @@ export async function getAdminPersonDetails(personId: string): Promise<AdminPers
     p_person_id: personId,
   });
   if (error) throw error;
-  return data as AdminPersonDetails;
+  return data as unknown as AdminPersonDetails;
 }
 
 export async function updateAdminPersonAndProfile(params: {
@@ -580,7 +580,7 @@ export async function updateAdminPersonAndProfile(params: {
   const { data, error } = await supabase.rpc("admin_update_person_and_profile", {
     p_person_id: params.personId,
     p_person: params.person,
-    p_profile: params.profile ?? {},
+    p_profile: (params.profile ?? {}) as unknown as Json,
   });
   if (error) throw error;
 
@@ -590,7 +590,7 @@ export async function updateAdminPersonAndProfile(params: {
     admin_id: params.adminId ?? null,
   }).catch(() => {});
 
-  return data as AdminPersonDetails;
+  return data as unknown as AdminPersonDetails;
 }
 
 export interface CompleteProfileRegistrationParams {
@@ -630,24 +630,24 @@ export async function completeProfileRegistration(params: CompleteProfileRegistr
     p_penultimate_surname: params.penultimateSurname,
     p_class_group_confirmation: params.classGroupConfirmation,
     p_birth_year: params.birthYear,
-    p_full_name: params.fullName ?? null,
-    p_display_name: params.displayName ?? null,
-    p_class_group: params.classGroup ?? null,
-    p_current_photo_url: params.currentPhotoUrl ?? null,
-    p_current_city: params.currentCity ?? null,
-    p_current_state: params.currentState ?? null,
+    p_full_name: params.fullName ?? undefined,
+    p_display_name: params.displayName ?? undefined,
+    p_class_group: params.classGroup ?? undefined,
+    p_current_photo_url: params.currentPhotoUrl ?? undefined,
+    p_current_city: params.currentCity ?? undefined,
+    p_current_state: params.currentState ?? undefined,
     p_current_country: params.currentCountry ?? "Brasil",
-    p_profession: params.profession ?? null,
-    p_bio: params.bio ?? null,
-    p_nickname_at_school: params.nicknameAtSchool ?? null,
-    p_instagram_url: params.instagramUrl ?? null,
-    p_linkedin_url: params.linkedinUrl ?? null,
-    p_contact_email: params.contactEmail ?? null,
-    p_contact_phone: params.contactPhone ?? null,
-    p_relationship_status: params.relationshipStatus ?? null,
+    p_profession: params.profession ?? undefined,
+    p_bio: params.bio ?? undefined,
+    p_nickname_at_school: params.nicknameAtSchool ?? undefined,
+    p_instagram_url: params.instagramUrl ?? undefined,
+    p_linkedin_url: params.linkedinUrl ?? undefined,
+    p_contact_email: params.contactEmail ?? undefined,
+    p_contact_phone: params.contactPhone ?? undefined,
+    p_relationship_status: params.relationshipStatus ?? undefined,
     p_has_children: params.hasChildren ?? false,
-    p_children_count: params.childrenCount ?? null,
-    p_intends_to_attend: params.intendsToAttend ?? null,
+    p_children_count: params.childrenCount ?? undefined,
+    p_intends_to_attend: params.intendsToAttend ?? undefined,
     p_show_current_photo: params.showCurrentPhoto ?? true,
     p_show_city: params.showCity ?? true,
     p_show_profession: params.showProfession ?? true,
@@ -664,14 +664,14 @@ export async function completeProfileRegistration(params: CompleteProfileRegistr
 
 // ─── PROFILES ─────────────────────────────────────────────────────────────────
 
-export async function getMyProfile(userId: string): Promise<(DbProfile & { people?: Partial<DbPerson> }) | null> {
+export async function getMyProfile(userId: string): Promise<(DbProfile & { people?: Partial<DbPerson> | null }) | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*, people(*)")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
-  return data as (DbProfile & { people?: Partial<DbPerson> }) | null;
+  return data as (DbProfile & { people?: Partial<DbPerson> | null }) | null;
 }
 
 export async function saveMyProfile(userId: string, patch: Partial<DbProfile>): Promise<DbProfile> {
@@ -985,7 +985,7 @@ export async function updateTicketType(id: string, patch: Partial<DbTicketType>)
   await writeAudit("update_ticket_type", "ticket_types", id, { patch });
 }
 
-export async function createTicketType(data: Partial<DbTicketType>) {
+export async function createTicketType(data: Database["public"]["Tables"]["ticket_types"]["Insert"]) {
   const { data: row, error } = await supabase.from("ticket_types").insert(data).select().single();
   if (error) throw error;
   await writeAudit("create_ticket_type", "ticket_types", (row as DbTicketType).id, {});
@@ -1015,7 +1015,7 @@ export async function getMyOrder(email: string): Promise<DbOrder | null> {
 export async function getOrdersByStatus(status?: string): Promise<DbOrder[]> {
   return withFallback(async () => {
     const { data, error } = await supabase.rpc("get_admin_orders", {
-      p_status: status ? status : null,
+      p_status: status || undefined,
     });
 
     if (error) throw error;
@@ -1108,7 +1108,7 @@ export async function uploadPhoto(params: {
 }
 
 export async function moderatePhoto(id: string, action: "approved" | "rejected", adminId: string) {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo", p_entity_id: id, p_status: action, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo", p_entity_id: id, p_status: action, p_notes: undefined });
   if (error) throw error;
   await writeAudit(`photo_${action}`, "photos", id, { admin_id: adminId });
 }
@@ -1138,7 +1138,7 @@ export async function getTagsForModeration(status = "pending"): Promise<(DbPhoto
 }
 
 export async function moderateTag(id: string, action: "approved" | "rejected", adminId: string) {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: id, p_status: action, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_tag", p_entity_id: id, p_status: action, p_notes: undefined });
   if (error) throw error;
   await writeAudit(`tag_${action}`, "photo_tags", id, { admin_id: adminId });
 }
@@ -1201,7 +1201,7 @@ export async function moderateClaim(
   const { error } = await supabase.rpc("admin_moderate_profile_claim", {
     p_claim_id: claimId,
     p_action: action,
-    p_reason: reason ?? null,
+    p_reason: reason ?? undefined,
   });
   if (error) throw error;
   await writeAudit(`claim_${action}`, "profile_claims", claimId, { admin_id: adminId });
@@ -1542,7 +1542,7 @@ export async function getPhotoCommentsForModeration(status: ModerationStatus | "
 }
 
 export async function moderatePhotoComment(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_comment", p_entity_id: id, p_status: status, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "photo_comment", p_entity_id: id, p_status: status, p_notes: undefined });
   if (error) throw error;
   await writeAudit(`photo_comment_${status}`, "photo_comments", id, { admin_id: adminId });
 }
@@ -1571,13 +1571,13 @@ export async function getFeaturedOrPopularPhotos(eventId = DEFAULT_EVENT_ID): Pr
 }
 
 export async function toggleFeaturedPhoto(photoId: string, featured: boolean, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "photo", p_entity_id: photoId, p_featured: featured, p_notes: null });
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "photo", p_entity_id: photoId, p_featured: featured, p_notes: undefined });
   if (error) throw error;
   await writeAudit(featured ? "feature_photo" : "unfeature_photo", "photos", photoId, { admin_id: adminId });
 }
 
 export async function createMemory(params: { eventId: string; userId: string; personId?: string | null; authorName: string; memoryText: string; isAnonymous: boolean; }): Promise<DbMemory> {
-  const { data, error } = await supabase.rpc("submit_memory", { p_event_id: params.eventId, p_person_id: params.personId ?? null, p_memory_text: params.memoryText, p_is_anonymous: params.isAnonymous });
+  const { data, error } = await supabase.rpc("submit_memory", { p_event_id: params.eventId, p_person_id: params.personId as string, p_memory_text: params.memoryText, p_is_anonymous: params.isAnonymous });
   if (error) throw error;
   await writeAudit("create_memory", "memories", data.id, { is_anonymous: params.isAnonymous });
   return data as DbMemory;
@@ -1616,13 +1616,13 @@ export async function getMemoriesForModeration(status: ModerationStatus | "all" 
 }
 
 export async function moderateMemory(id: string, status: ModerationStatus, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: id, p_status: status, p_notes: null });
+  const { error } = await supabase.rpc("moderate_content_item", { p_entity_type: "memory", p_entity_id: id, p_status: status, p_notes: undefined });
   if (error) throw error;
   await writeAudit(`memory_${status}`, "memories", id, { admin_id: adminId });
 }
 
 export async function toggleFeaturedMemory(id: string, featured: boolean, adminId: string): Promise<void> {
-  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "memory", p_entity_id: id, p_featured: featured, p_notes: null });
+  const { error } = await supabase.rpc("set_content_featured", { p_entity_type: "memory", p_entity_id: id, p_featured: featured, p_notes: undefined });
   if (error) throw error;
   await writeAudit(featured ? "feature_memory" : "unfeature_memory", "memories", id, { admin_id: adminId });
 }
@@ -1815,7 +1815,7 @@ export async function getPhotoRemovalRequests(status?: string): Promise<(DbPhoto
 
 export async function reviewPhotoRemovalRequest(id: string, action: "approved" | "rejected" | "hidden_preventively", adminId: string, notes?: string) {
   if (action === "rejected") {
-    const { error } = await supabase.rpc("reject_photo_removal_request", { p_request_id: id, p_notes: notes ?? null });
+    const { error } = await supabase.rpc("reject_photo_removal_request", { p_request_id: id, p_notes: notes ?? undefined });
     if (error) throw error;
   } else {
     await removeSecurePhoto(id, notes ?? null);
@@ -1864,7 +1864,7 @@ export async function reviewProfileClaimDispute(id: string, action: "approved" |
   const { error } = await supabase.rpc("admin_review_profile_claim_dispute", {
     p_dispute_id: id,
     p_action: action,
-    p_notes: notes ?? null,
+    p_notes: notes ?? undefined,
   });
   if (error) throw error;
   await writeAudit(`dispute_${action}`, "profile_claim_disputes", id, { admin_id: adminId, notes });
