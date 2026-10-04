@@ -343,7 +343,7 @@ const eventFixture: HomeEventFixture = {
   updated_at: "2026-01-01T00:00:00Z",
 };
 
-type HomePersonFixture = Omit<(typeof peopleFixture)[number], "display_name"> & {
+type HomePersonFixture = Omit<(typeof peopleFixture)[number], "display_name" | "avatar_url" | "private_notes"> & {
   display_name: string | null;
   avatar_url: string | null;
   contact_email?: string | null;
