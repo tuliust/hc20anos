@@ -22,7 +22,6 @@ test.describe("moderação editorial", () => {
       p_entity_type: "memory",
       p_entity_id: TEST_PENDING_MEMORY_ID,
       p_status: "approved",
-      p_notes: null,
     });
     await expect(page.getByText("A biblioteca era nosso refúgio nos intervalos mais tranquilos.", { exact: true })).toHaveCount(0);
     expect(api.auditCalls).toEqual(expect.arrayContaining([
@@ -49,7 +48,6 @@ test.describe("moderação editorial", () => {
       p_entity_type: "photo_comment",
       p_entity_id: TEST_PENDING_COMMENT_ID,
       p_status: "rejected",
-      p_notes: null,
     });
     await expect(page.getByText("Comentário aguardando revisão editorial.", { exact: true })).toHaveCount(0);
     expect(api.auditCalls).toEqual(expect.arrayContaining([
