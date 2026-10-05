@@ -24,8 +24,13 @@ with checks as (
   union all
   select 'save_audits_success', position('write_security_audit' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
   union all
-  select 'save_is_rate_limited', position('contact_research_save' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
-    and position('60, 3600' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+  select 'save_is_rate_limited',
+    position('contact_research_save_public_hour' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+    and position('12, 3600' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+    and position('contact_research_save_public_day' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+    and position('40, 86400' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+    and position('contact_research_save_manager_hour' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
+    and position('120, 3600' in pg_get_functiondef('public.save_contact_research(uuid,text,text,text,text,text,boolean)'::regprocedure)) > 0
   union all
   select 'contact_research_rls_stays_enabled', (select relrowsecurity from pg_class where oid='public.alumni_contact_research'::regclass)
 )
