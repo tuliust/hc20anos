@@ -156,6 +156,8 @@ source_files:
 - registrar resposta;
 - criar notificação idempotente.
 
+As Functions agregadas/temporárias legadas não fazem parte deste inventário vigente; sua retirada remota é tratada pelo workflow de limpeza de infraestrutura.
+
 ## RPCs diretamente relacionadas
 
 Inventário parcial:
