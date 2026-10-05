@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-10-04
-last_verified_commit: e0487782da440c296a82eb3f308910e611cd44e6
+last_verified: 2026-10-05
+last_verified_commit: d0233035a730393ce6bf8b489f725cd35f010544
 generation_command: npm run docs:generate-contracts
 source_files:
   - supabase/functions/
@@ -11,14 +11,6 @@ source_files:
 # Supabase Edge Functions
 
 > Arquivo gerado automaticamente. Não editar manualmente.
-
-## `checkout-consent`
-
-- **Arquivo:** `supabase/functions/checkout-consent/index.ts`
-- **Métodos detectados:** `GET`, `POST`
-- **Sinais de autenticação:** service role
-- **Variáveis:** `SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
-- **RPCs chamadas:** nenhuma
 
 ## `checkout-create`
 
@@ -59,12 +51,4 @@ source_files:
 - **Sinais de autenticação:** Bearer Supabase, service role, anon key, admin_users
 - **Variáveis:** `MERCADO_PAGO_ACCESS_TOKEN`, `SITE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - **RPCs chamadas:** `restore_refunded_order_inventory`
-
-## `server`
-
-- **Arquivo:** `supabase/functions/server/index.ts`
-- **Métodos detectados:** não inferidos estaticamente
-- **Sinais de autenticação:** nenhum sinal estático identificado
-- **Variáveis:** nenhuma
-- **RPCs chamadas:** nenhuma
 
