@@ -35,7 +35,7 @@ test("Home, Login e reivindicação de perfil estão operacionais", async ({ pag
   await expect(page.getByPlaceholder("seu@email.com")).toBeVisible();
   await expect(page.getByRole("button", { name: "Entrar", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Criar meu perfil", exact: true }).click();
+  await page.getByRole("main").getByRole("button", { name: "Criar meu perfil", exact: true }).click();
   await expect(page).toHaveURL(/\/reivindicar-perfil$/);
   await expect(page.getByPlaceholder("Digite seu nome completo...")).toBeVisible({ timeout: 20_000 });
 
@@ -82,9 +82,9 @@ test("Stage 3: História abre lightbox interno", async ({ page }) => {
   await gotoStable(page, "/nossa-historia");
   await expect(page.getByRole("heading", { name: "Fotos da Época" })).toBeVisible({ timeout: 20_000 });
 
-  const photo = page.locator("[data-history-photo-id]").first();
+  const photo = page.locator('[data-history-photo-card="true"]').first();
   await expect(photo).toBeVisible();
-  await photo.click();
+  await photo.getByRole("button", { name: /Abrir foto:/ }).click();
   await expect(page.locator("[data-history-photo-lightbox]")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator("[data-history-photo-lightbox]")).toHaveCount(0);
