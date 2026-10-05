@@ -13,7 +13,7 @@ begin
     raise exception 'FAIL: save_contact_research public rate limits missing';
   end if;
 
-  if not has_function_privilege('anon','public.record_site_page_view(uuid,text,text,text,text,text,boolean,text)','EXECUTE') then
+  if not has_function_privilege('anon','public.record_site_page_view(uuid,text,text,text,text,boolean,text)','EXECUTE') then
     raise exception 'FAIL: public page-view contract changed unexpectedly';
   end if;
 
