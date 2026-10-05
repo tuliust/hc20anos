@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-10-04
-last_verified_commit: e0487782da440c296a82eb3f308910e611cd44e6
+last_verified: 2026-10-05
+last_verified_commit: d0233035a730393ce6bf8b489f725cd35f010544
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -46,7 +46,6 @@ source_files:
 | `invalid_request` | `api/generate-profile-bio.ts:251` |
 | `invalid_signature` | `supabase/functions/payment-webhook/index.ts:348` |
 | `invalid_transaction_amount` | `supabase/functions/payment-webhook/index.ts:248` |
-| `legacy_function_retired` | `supabase/functions/server/index.ts:6` |
 | `mercado_pago_checkout_url_missing` | `supabase/functions/checkout-create/index.ts:292` |
 | `mercado_pago_environment_invalid` | `supabase/functions/checkout-create/index.ts:58` |
 | `mercado_pago_not_configured` | `supabase/functions/checkout-create/index.ts:223` |

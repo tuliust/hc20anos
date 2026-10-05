@@ -10,7 +10,7 @@ source_files:
   - supabase/functions/payment-webhook/index.ts
   - supabase/functions/notification-worker/index.ts
   - supabase/functions/refund-processor/index.ts
-  - supabase/functions/server/
+  - supabase/functions/photo-storage/index.ts
 ---
 
 # Inventário de APIs e Functions
@@ -156,16 +156,7 @@ source_files:
 - registrar resposta;
 - criar notificação idempotente.
 
-## Function agregada legada
-
-`supabase/functions/server/` contém uma implementação agregada anterior, associada às rotas `make-server-62fab262`.
-
-Ela não deve ser tratada como arquitetura vigente quando houver Function dedicada equivalente. Antes de removê-la, confirmar que:
-
-- nenhum frontend chama suas rotas;
-- nenhum webhook aponta para ela;
-- scripts de deploy não a publicam;
-- dados ou tarefas exclusivas foram migrados.
+As Functions agregadas/temporárias legadas não fazem parte deste inventário vigente; sua retirada remota é tratada pelo workflow de limpeza de infraestrutura.
 
 ## RPCs diretamente relacionadas
 
@@ -205,7 +196,6 @@ O inventário definitivo será gerado do banco.
 - CORS permite somente origens previstas;
 - idempotência funciona;
 - erros internos não expõem credenciais;
-- Function legada não é chamada pelos fluxos atuais.
 
 ## Geração futura
 

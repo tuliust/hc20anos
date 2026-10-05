@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-09-29
-last_verified_commit: cd27bb976a29fb4e95b0c5f7815e171250e54584
+last_verified: 2026-10-05
+last_verified_commit: 0b92f3fe15e3f68b9e156303551296a6e785ddc1
 generation_command: npm run docs:generate-db-contracts
 source_files:
   - supabase/config.toml
@@ -106,7 +106,7 @@ source_files:
 | `public.publish_community_contribution` | `—` | `trigger` | não | `volatile` | `—` |
 | `public.record_client_audit_event` | `p_action text, p_entity_type text, p_entity_id uuid, p_metadata jsonb` | `uuid` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |
 | `public.record_content_moderation` | `p_event_id uuid, p_entity_type text, p_entity_id uuid, p_previous_status text, p_new_status text, p_action text, p_notes text, p_metadata jsonb` | `uuid` | sim | `volatile` | `postgres=X/postgres` |
-| `public.record_site_page_view` | `p_event_id uuid, p_visitor_id text, p_session_id text, p_path text, p_query text, p_is_mobile boolean, p_referrer text` | `uuid` | sim | `volatile` | `postgres=X/postgres,anon=X/postgres,authenticated=X/postgres` |
+| `public.record_site_page_view` | `p_event_id uuid, p_visitor_id text, p_session_id text, p_path text, p_query text, p_is_mobile boolean, p_referrer text` | `uuid` | sim | `volatile` | `postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.refresh_ticket_type_sold_quantity` | `p_event_id uuid` | `integer` | sim | `volatile` | `postgres=X/postgres,service_role=X/postgres` |
 | `public.register_external_user_profile` | `p_full_name text, p_contact_email text, p_contact_phone text, p_current_city text, p_profession text` | `profiles` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres` |
 | `public.reject_photo_removal_request` | `p_request_id uuid, p_notes text` | `photo_removal_requests` | sim | `volatile` | `postgres=X/postgres,authenticated=X/postgres` |

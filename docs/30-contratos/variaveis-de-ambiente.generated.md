@@ -1,8 +1,8 @@
 ---
 status: generated
 owner: tuliust
-last_verified: 2026-10-04
-last_verified_commit: e0487782da440c296a82eb3f308910e611cd44e6
+last_verified: 2026-10-05
+last_verified_commit: d0233035a730393ce6bf8b489f725cd35f010544
 generation_command: npm run docs:generate-contracts
 source_files:
   - api/
@@ -40,12 +40,12 @@ source_files:
 | `PHASE3_SUPABASE_URL` | server-side | `scripts/phase3-financial-execution.mjs`<br>`scripts/phase3-financial-preflight.mjs`<br>`scripts/phase3-financial-runner.mjs` |
 | `PHOTO_STORAGE_PUBLIC_URL` | server-side | `supabase/functions/photo-storage/index.ts` |
 | `RESEND_API_KEY` | server-side | `supabase/functions/notification-worker/index.ts` |
-| `SITE_URL` | server-side | `supabase/functions/checkout-consent/index.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
+| `SITE_URL` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
 | `SUPABASE_ANON_KEY` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
 | `SUPABASE_DB_CONTAINER` | server-side | `scripts/generate-database-contracts.mjs` |
 | `SUPABASE_FUNCTIONS_URL` | server-side | `supabase/functions/checkout-create/index.ts` |
-| `SUPABASE_SERVICE_ROLE_KEY` | server-side | `supabase/functions/checkout-consent/index.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
-| `SUPABASE_URL` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-consent/index.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
+| `SUPABASE_SERVICE_ROLE_KEY` | server-side | `supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
+| `SUPABASE_URL` | server-side | `api/checkout-create.ts`<br>`supabase/functions/checkout-create/index.ts`<br>`supabase/functions/notification-worker/index.ts`<br>`supabase/functions/payment-webhook/index.ts`<br>`supabase/functions/photo-storage/index.ts`<br>`supabase/functions/refund-processor/index.ts` |
 | `TRANSACTIONAL_FROM_EMAIL` | server-side | `supabase/functions/notification-worker/index.ts` |
 | `VERCEL_OIDC_TOKEN` | server-side | `api/generate-profile-bio.ts` |
 | `VITE_DEV_MODE` | pública no bundle | `src/lib/supabase.ts` |
