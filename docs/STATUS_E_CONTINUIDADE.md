@@ -19,7 +19,7 @@ source_files:
 # STATUS E CONTINUIDADE — HC 20 Anos / EventoHC
 
 > **Data de diagnóstico remoto:** 23/11/2026.
-> **Escopo:** auditoria de leitura do GitHub, Supabase e Vercel. A inspeção da pasta Windows, do build local e dos fluxos funcionais ainda não ocorreu.
+> **Estado final do diagnóstico (23/11/2026):** GitHub, Supabase e Vercel conferidos em modo de leitura; pasta Windows e ambiente local inventariados; toolchain, reprodutibilidade, build, páginas públicas, login administrativo e leitura de dados reais confirmados. Homologação financeira/operacional, testes de escrita, produção funcional independente e ajustes de segurança continuam fora do escopo e pendentes.
 > **Segurança:** não modificar a produção, banco, pessoas, pedidos, pagamentos, reembolsos, ingressos, check-ins, webhooks ou notificações sem aprovação específica e plano de reversão.
 
 ## 1. Identidade canônica e estado atual
@@ -107,7 +107,7 @@ A documentação registra em setembro que a homologação física, ciclos contro
 
 O `README.md` e `docs/40-runbooks/` indicam procedimentos de deploy, incidentes, pagamentos, operação do evento, migrations e rollback. Antes de mudar fluxo financeiro, obedecer a `docs/40-runbooks/procedimento-operacional-v1.0.0.md` e documentação canônica correspondente.
 
-## 5. Diagnóstico inicial da pasta Windows — ainda pendente
+## 5. Diagnóstico da pasta Windows — executado e registrado
 
 **Pasta canônica informada:** `C:\Users\Tulius\Documents\github\hc20anos`.
 
@@ -213,13 +213,43 @@ O usuário executou, na sessão PowerShell com Node `v22.23.2` e npm `10.9.8`:
 - Rotas canônicas documentadas em `docs/30-contratos/rotas.generated.md`: públicas `/`, `/evento`, `/turma`, `/nossa-historia`, `/curiosidades`, `/termos`, `/privacidade`; administrativas `/admin` (pode exigir `/login`). Conteúdo exibido ainda depende de validação local.
 - **Permanece pendente:** navegador local, leitura das informações reais do Supabase e verificação funcional independente da produção.
 
-## 6. Continuidade após o diagnóstico Git
+## 5.5. Testes funcionais locais confirmados — 23/11/2026
+
+O usuário informou resultados explícitos para os **seis grupos de testes**, após executar `npm.cmd run dev` na sessão preparada com Node 22.23.2 e npm 10.9.8:
+
+| Teste realizado pelo usuário | Resultado |
+| --- | --- |
+| Página inicial (`/`) | CONFIRMADO |
+| Página `/evento` | CONFIRMADO |
+| Páginas `/turma` e `/nossa-historia` | CONFIRMADO |
+| Páginas `/curiosidades`, `/termos` e `/privacidade` | CONFIRMADO |
+| Login existente e painel `/admin` | CONFIRMADO |
+| Leitura do conteúdo real do Supabase no frontend | CONFIRMADO |
+
+A aplicação local está funcional nos fluxos **de navegação, autenticação e leitura** relatados. Não foi realizado teste de criação ou alteração de registros, checkout, pagamento, webhook, reembolso, emissão, check-in ou envio de notificações. Não foi solicitado nem executado teste de geração real de mini bio por IA.
+
+### Verificação de infraestrutura após os testes
+
+- GitHub remoto: `main` protegida, no commit `a4bb641788b7fcf018058a4c4453d6f0f4814f0c`.
+- Vercel: deployment de produção `dpl_HaELDSdtP4zu3GJ1boCmSx7w8Nmj` em estado `READY`, associado ao **mesmo commit**. Os domínios constam como verificados.
+- Supabase: projeto original `tjnqqsbwgjcdzcxykyif`, status `ACTIVE_HEALTHY`, sem alterações efetuadas.
+- Histórico: 180 migrations versionadas no GitHub e 180 no remoto; correspondência de versões e nomes confirmada na auditoria de leitura.
+- A abertura da URL pública pela ferramenta web não permitiu validar o JavaScript nem o conteúdo interno, e as rotas profundas não puderam ser inspecionadas de modo independente. Portanto, os **testes funcionais de produção** permanecem pendentes, apesar do deployment `READY`.
+
+### Estado do encerramento
+
+- **Concluído:** reconciliação diagnóstica de código, Supabase e Vercel; alinhamento Git local; validação de versões; instalação portátil de Node; auditoria de reprodutibilidade; build e checks estáticos; login e consultas locais existentes.
+- **Preservado:** `main`, tag `v1.0.0`, produção Vercel, banco, registros pessoais/financeiros, Storage e Edge Functions; arquivo local não rastreado `.codex/config.toml`.
+- **Pendente:** homologação de transações, reembolsos, emissão, QR/check-in, notificações, privacidade, acesso multi-perfil, dispositivos móveis, ajustes dos Supabase Advisors e validação independente de fluxos em produção.
+- **Segurança:** não interpretar a aprovação do build e das leituras como autorização para qualquer operação comercial, financeira ou de escrita.
+
+## 6. Continuidade e próximas verificações (após a reconciliação local)
 
 1. Validar Node 22.23.2 e npm 10.9.8 previstos em `package.json`. Se as versões forem diferentes, analisar compatibilidade antes da instalação.
 2. Confirmar, **sem imprimir credenciais**, que `.env.local` aponta para `https://tjnqqsbwgjcdzcxykyif.supabase.co` e usa a chave pública correta. Nenhuma service role ou secret key em variáveis `VITE_`.
 3. Conferir que `VITE_DEV_MODE` não está `true` nos testes de integração real. O valor em produção precisa ser validado pela Vercel em procedimento seguro.
 4. Quando o Git estiver reconciliado e o ambiente correto, usar `npm ci` se as dependências estiverem ausentes ou for necessária instalação reproduzível; `npm run build` e `npm run dev` para validação local.
-5. Validar páginas e login com dados existentes **somente por leitura**, sem realizar checkout, pagamento, notificação, mudança de ingressos ou check-in.
+5. Páginas, login e leitura de dados reais já foram validados localmente em 23/11/2026. Repetir somente por leitura quando necessário, sem checkout, pagamento, notificação, mudança de ingressos ou check-in.
 6. Conferir contrato de APIs/Edge Functions, Vercel e credenciais sem divulgar segredos; não testar webhooks ou gerar transações reais.
 7. Registrar evidências no documento de continuidade e tratar novos ajustes via branch/PR gate, sem alteração direta da main.
 
@@ -234,4 +264,4 @@ O usuário executou, na sessão PowerShell com Node `v22.23.2` e npm `10.9.8`:
 - Alterações documentais desta auditoria só devem ocorrer em branch separada; nenhuma mudança na `main` ou produção foi solicitada.
 - Ao retomar depois, verificar primeiro `git status` e seguir `docs/index.md` + `docs/40-runbooks/`.
 
-**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Git local confirmado; URL Supabase original, chave presente e modo demo desativado. Node portátil v22.23.2/npm 10.9.8, reprodutibilidade e build **aprovados**. Navegação e leitura funcional local ainda pendentes. Preservar `.codex/config.toml`.
+**Situação final de 23/11/2026:** reconciliação diagnóstica e funcional local do HC 20 Anos/EventoHC **concluída**: Git alinhado, Supabase original ativo e com 180 migrations reconciliadas, Vercel `READY` no mesmo commit, Node portátil v22.23.2/npm 10.9.8, reprodutibilidade e build aprovados e seis grupos de testes locais concluídos. **Não homologados:** fluxos de escrita, pagamentos, reembolsos, check-in, notificações e funcionalidades de produção testadas independentemente. Preservar `.codex/config.toml`, dados reais, tag `v1.0.0` e `main`.
