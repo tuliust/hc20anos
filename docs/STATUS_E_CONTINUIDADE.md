@@ -198,6 +198,21 @@ Referência oficial: https://nodejs.org/en/download/archive/v22.23.2/
 - **Próxima verificação:** `npm.cmd run build` na **mesma janela PowerShell**; em seguida `git status --short --branch` para identificar alterações. O build inclui verificações de perfil/IA após `vite build`; não dispara checkouts, webhooks ou mutations deliberadas.
 - Se o build passar, prosseguir somente com inspeção de leitura e navegação; **não executar checkout, pagamento, reembolso, emissão, check-in nem disparos de notificação reais**.
 
+## 5.4. Build local e contratos estáticos confirmados — 23/11/2026
+
+O usuário executou, na sessão PowerShell com Node `v22.23.2` e npm `10.9.8`:
+
+- `npm.cmd run audit:reproducibility`: **aprovado**; Node, npm e lockfile v3 corretos (resultado anteriormente confirmado).
+- `npm.cmd run build`: **aprovado**, Vite `v6.4.3`, **1.881 módulos transformados**, compilação em **5,54 s**, com saída em `dist/`.
+- O script de build executa ainda `scripts/verify-profile-claim-bundle.mjs` e `scripts/verify-profile-bio-api.mjs`. Todos os testes de presença/ausência de textos/rotas no bundle e do contrato estático OpenAI retornaram **PASS**.
+- Foram verificadas no bundle strings de cadastro de perfil e rota interna `/api/generate-profile-bio`, com ausência no cliente de `OPENAI_API_KEY` e `api.openai.com`, de acordo com os validadores do repositório.
+- O verificador da integração de IA confirmou uso server-side de `OPENAI_API_KEY`, Responses API, validação por JSON Schema, limitação de tentativas e exclusão de data de nascimento, e-mail e WhatsApp do payload. Trata-se de **validação estática de código**, não de chamada real à OpenAI.
+- `git status --short --branch` após build: `## main...origin/main` e `?? .codex/`. Nenhum arquivo rastreado alterado; preservar `.codex/config.toml`.
+- Não houve `npm ci`, alteração de dependências, migration, deploy ou operações comerciais.
+- **Próxima verificação:** iniciar `npm.cmd run dev` na mesma sessão com Node 22, e observar rotas públicas e leitura autenticada (somente navegação) sem gerar checkout, pagamento, check-in, alteração de pedidos, IA, notificações ou registros.
+- Rotas canônicas documentadas em `docs/30-contratos/rotas.generated.md`: públicas `/`, `/evento`, `/turma`, `/nossa-historia`, `/curiosidades`, `/termos`, `/privacidade`; administrativas `/admin` (pode exigir `/login`). Conteúdo exibido ainda depende de validação local.
+- **Permanece pendente:** navegador local, leitura das informações reais do Supabase e verificação funcional independente da produção.
+
 ## 6. Continuidade após o diagnóstico Git
 
 1. Validar Node 22.23.2 e npm 10.9.8 previstos em `package.json`. Se as versões forem diferentes, analisar compatibilidade antes da instalação.
@@ -219,4 +234,4 @@ Referência oficial: https://nodejs.org/en/download/archive/v22.23.2/
 - Alterações documentais desta auditoria só devem ocorrer em branch separada; nenhuma mudança na `main` ou produção foi solicitada.
 - Ao retomar depois, verificar primeiro `git status` e seguir `docs/index.md` + `docs/40-runbooks/`.
 
-**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Git local confirmado; URL Supabase original, chave presente e modo demo desativado. Node portátil v22.23.2/npm 10.9.8 **confirmados e auditoria de reprodutibilidade aprovada**. Build e testes funcionais ainda pendentes. Preservar `.codex/config.toml`.
+**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Git local confirmado; URL Supabase original, chave presente e modo demo desativado. Node portátil v22.23.2/npm 10.9.8, reprodutibilidade e build **aprovados**. Navegação e leitura funcional local ainda pendentes. Preservar `.codex/config.toml`.
