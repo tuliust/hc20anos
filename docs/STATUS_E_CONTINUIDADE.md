@@ -166,6 +166,25 @@ Test-Path -LiteralPath 'node_modules'
 
 **Decisão operacional:** preservar `.codex/config.toml` e `.env.local`, não alterar `main`, não executar `git clean` ou `reset --hard`. Confirmar gerenciador de versões Node no Windows (`nvm`, `volta` ou `fnm`) antes de definir troca reversível para Node 22.23.2; a instalação existente Node 24 atende outros projetos e não deve ser substituída permanentemente. Conferir envs sem revelar valores e somente depois prosseguir para build e testes não mutáveis.
 
+## 5.2. Validação mascarada do ambiente — retorno PowerShell em 23/11/2026
+
+O usuário executou verificações locais sem mostrar segredos:
+
+- `nvm: False`, `volta: False`, `fnm: False`: nenhum gerenciador de Node presente.
+- `where.exe node` apontou somente para `C:\Program Files\nodejs\node.exe`, isto é, a instalação global Node 24.
+- URL Supabase local = `https://tjnqqsbwgjcdzcxykyif.supabase.co`: **True**.
+- Chave `VITE_SUPABASE_ANON_KEY` presente: **True**.
+- Chave não começa com `sb_secret_`: **True**. Isso NÃO prova, isoladamente, que seja publicável; uma JWT legada com papel `service_role` também não possui esse prefixo. Verificar tipo/papel sem exibir o valor, se necessário.
+- `VITE_DEV_MODE` não é `true`: **True**. Teste local visa dados reais, não mocks.
+- Nenhum download, substituição de Node, `npm ci`, build, SQL ou deploy foi realizado como parte do diagnóstico.
+
+A distribuição oficial **Node.js v22.23.2 para Windows contém npm v10.9.8**, coincidindo com o pin do projeto e dispensando instalação adicional de npm. Recomenda-se a distribuição portátil ZIP x64, armazenada fora do repositório, por exemplo em `$env:LOCALAPPDATA\NodePortatil`, com checksum SHA-256 conferido contra o `SHASUMS256.txt` oficial da mesma release. Acrescentar o diretório do Node portátil somente ao `PATH` da sessão PowerShell corrente e executar `node --version`, `npm.cmd --version` e `npm.cmd run audit:reproducibility` antes do build.
+
+Não executar instalador MSI para substituir `C:\Program Files\nodejs`, não apagar `.codex/config.toml` e não executar `npm ci` inicialmente, pois `node_modules` já existe. Testar `npm.cmd run build` com Node 22; se a instalação anterior tiver incompatibilidades nativas, planejar reconstrução reproduzível pelo lockfile sem modificar os dados do projeto.
+
+Referência oficial: https://nodejs.org/en/download/archive/v22.23.2/
+
+
 ## 6. Continuidade após o diagnóstico Git
 
 1. Validar Node 22.23.2 e npm 10.9.8 previstos em `package.json`. Se as versões forem diferentes, analisar compatibilidade antes da instalação.
@@ -187,4 +206,4 @@ Test-Path -LiteralPath 'node_modules'
 - Alterações documentais desta auditoria só devem ocorrer em branch separada; nenhuma mudança na `main` ou produção foi solicitada.
 - Ao retomar depois, verificar primeiro `git status` e seguir `docs/index.md` + `docs/40-runbooks/`.
 
-**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Pasta local, Git, `.env.local` e dependências inventariados por PowerShell. Build e testes funcionais ainda pendentes após adequação de toolchain Node/npm e verificação mascarada do ambiente. Arquivo local `.codex/config.toml` deve ser preservado.
+**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Pasta local e Git inventariados; verificação mascarada confirmou URL Supabase original, chave presente e modo demo desativado. Node/npm globais divergem do pin; plano de Node portátil preparado. Build e testes funcionais ainda pendentes. Preservar `.codex/config.toml`.
