@@ -150,6 +150,22 @@ Test-Path -LiteralPath 'node_modules'
 
 **Interpretação:** o primeiro número de `main...origin/main` conta commits locais exclusivos; o segundo, remotos exclusivos. Somente `0 0` confirma alinhamento de commits. Se houver alterações locais, preservar; nunca executar `git reset --hard` nem `git push --force`. Não executar `git pull` ou checkout antes de analisar o relatório.
 
+## 5.1. Diagnóstico Git local recebido — 23/11/2026
+
+**Fonte:** saída PowerShell apresentada pelo usuário; não houve acesso direto ao sistema de arquivos Windows.
+
+- Diretório Git correto: `C:/Users/Tulius/Documents/github/hc20anos`; branch `main`.
+- Origin fetch/push: `https://github.com/tuliust/hc20anos.git`.
+- HEAD local e `origin/main`: `a4bb641788b7fcf018058a4c4453d6f0f4814f0c`; divergência `0 0`. A `main` e a Vercel usam o mesmo SHA.
+- `git status --short --branch` mostrou `## main...origin/main` e `?? .codex/`: **existe arquivo não rastreado**, `.codex/config.toml`. Não considerar o working tree completamente limpo; o arquivo pode conter configuração local do agente e **não foi inspecionado**.
+- `git diff --stat` e `git diff --cached --stat`: sem diferenças em arquivos rastreados. `git ls-files --others --exclude-standard`: `.codex/config.toml`.
+- O arquivo `.env.local` existe (`True`) e `git check-ignore .env.local` confirmou que é ignorado pelo Git. Nenhum valor de variável ou segredo foi exposto; destino real e `VITE_DEV_MODE` ainda precisam de validação mascarada.
+- `node_modules` existe (`True`); não executar `npm ci` automaticamente nem apagar dependências existentes.
+- Node instalado: **v24.22.1**; npm: **11.19.1**. O projeto está fixado em **Node 22.23.2** e **npm 10.9.8** por `.nvmrc`, `package.json` e `scripts/check-reproducibility.mjs`. Esse script rejeita Node diferente da versão fixada; mudar toolchain apenas no escopo do projeto.
+- Nenhum `git pull`, checkout, reset, merge, instalação, teste, SQL ou deploy foi executado pela auditoria.
+
+**Decisão operacional:** preservar `.codex/config.toml` e `.env.local`, não alterar `main`, não executar `git clean` ou `reset --hard`. Confirmar gerenciador de versões Node no Windows (`nvm`, `volta` ou `fnm`) antes de definir troca reversível para Node 22.23.2; a instalação existente Node 24 atende outros projetos e não deve ser substituída permanentemente. Conferir envs sem revelar valores e somente depois prosseguir para build e testes não mutáveis.
+
 ## 6. Continuidade após o diagnóstico Git
 
 1. Validar Node 22.23.2 e npm 10.9.8 previstos em `package.json`. Se as versões forem diferentes, analisar compatibilidade antes da instalação.
@@ -171,4 +187,4 @@ Test-Path -LiteralPath 'node_modules'
 - Alterações documentais desta auditoria só devem ocorrer em branch separada; nenhuma mudança na `main` ou produção foi solicitada.
 - Ao retomar depois, verificar primeiro `git status` e seguir `docs/index.md` + `docs/40-runbooks/`.
 
-**Situação:** auditoria remota inicial concluída, banco ativo e histórico de migrations alinhado. Ambiente local, testes e reconciliação funcional ainda aguardam diagnóstico do Windows.
+**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Pasta local, Git, `.env.local` e dependências inventariados por PowerShell. Build e testes funcionais ainda pendentes após adequação de toolchain Node/npm e verificação mascarada do ambiente. Arquivo local `.codex/config.toml` deve ser preservado.
