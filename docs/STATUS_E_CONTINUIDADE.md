@@ -185,6 +185,19 @@ Não executar instalador MSI para substituir `C:\Program Files\nodejs`, não apa
 Referência oficial: https://nodejs.org/en/download/archive/v22.23.2/
 
 
+## 5.3. Toolchain Node portátil confirmado — 23/11/2026
+
+**Evidência:** saída do PowerShell fornecida pelo usuário, na pasta `C:\Users\Tulius\Documents\github\hc20anos`.
+
+- Node.js selecionado na sessão atual: **`v22.23.2`**.
+- npm selecionado na sessão atual: **`10.9.8`**.
+- Comando executado: `npm.cmd run audit:reproducibility`.
+- Resultado: **`Reproducibility audit passed (Node 22.23.2, npm 10.9.8, lockfile v3).`**
+- O usuário seguiu o procedimento de distribuição portátil do Node, com prioridade temporária no `PATH` da sessão. Não há evidência de substituição da instalação global Node 24, de alterações no banco ou de deploy.
+- O arquivo `.codex/config.toml` ainda deve ser preservado.
+- **Próxima verificação:** `npm.cmd run build` na **mesma janela PowerShell**; em seguida `git status --short --branch` para identificar alterações. O build inclui verificações de perfil/IA após `vite build`; não dispara checkouts, webhooks ou mutations deliberadas.
+- Se o build passar, prosseguir somente com inspeção de leitura e navegação; **não executar checkout, pagamento, reembolso, emissão, check-in nem disparos de notificação reais**.
+
 ## 6. Continuidade após o diagnóstico Git
 
 1. Validar Node 22.23.2 e npm 10.9.8 previstos em `package.json`. Se as versões forem diferentes, analisar compatibilidade antes da instalação.
@@ -206,4 +219,4 @@ Referência oficial: https://nodejs.org/en/download/archive/v22.23.2/
 - Alterações documentais desta auditoria só devem ocorrer em branch separada; nenhuma mudança na `main` ou produção foi solicitada.
 - Ao retomar depois, verificar primeiro `git status` e seguir `docs/index.md` + `docs/40-runbooks/`.
 
-**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Pasta local e Git inventariados; verificação mascarada confirmou URL Supabase original, chave presente e modo demo desativado. Node/npm globais divergem do pin; plano de Node portátil preparado. Build e testes funcionais ainda pendentes. Preservar `.codex/config.toml`.
+**Situação atual:** auditoria remota concluída, banco ativo e 180 migrations alinhadas. Git local confirmado; URL Supabase original, chave presente e modo demo desativado. Node portátil v22.23.2/npm 10.9.8 **confirmados e auditoria de reprodutibilidade aprovada**. Build e testes funcionais ainda pendentes. Preservar `.codex/config.toml`.
